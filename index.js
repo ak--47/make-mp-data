@@ -11,7 +11,7 @@ const mp = require("mixpanel-import");
 const path = require("path");
 const Chance = require("chance");
 const chance = new Chance();
-const { touch, mkdir, comma, bytesHuman, mkdir } = require("ak-tools");
+const { touch, comma, bytesHuman, mkdir } = require("ak-tools");
 const Papa = require("papaparse");
 const {
 	integer,
