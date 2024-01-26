@@ -1,3 +1,6 @@
+#! /usr/bin/env node
+
+
 /*
 make fake mixpanel data easily!
 by AK 
@@ -8,7 +11,7 @@ const mp = require("mixpanel-import");
 const path = require("path");
 const Chance = require("chance");
 const chance = new Chance();
-const { touch, mkdir, comma, bytesHuman } = require("ak-tools");
+const { touch, mkdir, comma, bytesHuman, mkdir } = require("ak-tools");
 const Papa = require("papaparse");
 const {
 	integer,
@@ -254,7 +257,7 @@ async function main(config) {
 		}
 		console.log(`\n\n`);
 	}
-	return {import: importResults, files: [ eventFiles, userFiles, scdFiles, groupFiles, lookupFiles, folder ]};
+	return { import: importResults, files: [eventFiles, userFiles, scdFiles, groupFiles, lookupFiles, folder] };
 }
 
 function makeProfile(props, defaults) {
@@ -332,9 +335,7 @@ function buildFileNames(config) {
 	const { format = "csv", groupKeys = [], lookupTables = [] } = config;
 	const extension = format === "csv" ? "csv" : "json";
 	const current = dayjs.utc().format("MM-DD-HH");
-	const cwd = path.resolve("./");
-	const dataDir = path.join(cwd, "data");
-	const writeDir = mkdir(dataDir);
+	const writeDir = mkdir('./data');
 
 	const writePaths = {
 		eventFiles: [path.join(writeDir, `events-${current}.${extension}`)],
@@ -368,7 +369,7 @@ main(config)
 		console.log(`------------------SUMMARY------------------`);
 		const { events, groups, users } = data.import;
 		const files = data.files;
-		const folder = files.pop()
+		const folder = files.pop();
 		const groupBytes = groups.reduce((acc, group) => { return acc + group.bytes; }, 0);
 		const groupSuccess = groups.reduce((acc, group) => { return acc + group.success; }, 0);
 		const bytes = events.bytes + groupBytes + users.bytes;
