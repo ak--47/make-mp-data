@@ -115,7 +115,7 @@ async function main(config) {
 	const firstEvents = events.filter((e) => e.isFirstEvent);
 	const eventData = [];
 	const userProfilesData = [];
-	const scdTableData = [];
+	let scdTableData = [];
 	const groupProfilesData = [];
 	const lookupTableData = [];
 	const avgEvPerUser = Math.floor(numEvents / numUsers);
@@ -158,6 +158,9 @@ async function main(config) {
 			);
 		}
 	}
+	//flatten SCD
+	scdTableData = scdTableData.flat();
+
 	console.log("\n");
 
 	// make group profiles
@@ -205,13 +208,18 @@ async function main(config) {
 	for (const pair of pairs) {
 		const [paths, data] = pair;
 		for (const path of paths) {
-			if (format === "csv") {
-				console.log(`writing ${path}`);
-				const csv = Papa.unparse(data, {});
-				await touch(path, csv);
-				console.log(`\tdone\n`);
-			} else {
-				await touch(path, data, true);
+			let datasetsToWrite;
+			if (data?.[0]?.["key"]) datasetsToWrite = data.map(d => d.data);
+			else datasetsToWrite = [data];
+			for (const writeData of datasetsToWrite) {
+				if (format === "csv") {
+					console.log(`writing ${path}`);
+					const csv = Papa.unparse(writeData, {});
+					await touch(path, csv);
+					console.log(`\tdone\n`);
+				} else {
+					await touch(path, data, true);
+				}
 			}
 		}
 	}
@@ -379,10 +387,10 @@ main(config)
 			groups: comma(groupSuccess || 0),
 			bytes: bytesHuman(bytes || 0)
 		};
-		console.table(stats);
+		if (bytes > 0) console.table(stats);
 		console.log(`\nfiles written to ${folder}...`);
-		console.log("\t" + files.flat().join('\t\n'));
-		console.log(`------------------SUMMARY------------------\n\n\n`);
+		console.log("\t" + files.flat().join('\n\t'));
+		console.log(`\n------------------SUMMARY------------------\n\n\n`);
 	})
 	.catch((e) => {
 		console.log(`------------------ERROR------------------`);

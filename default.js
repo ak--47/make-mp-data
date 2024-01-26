@@ -94,7 +94,7 @@ const config = {
 	each pair represents a group_key and the number of profiles for that key
 	*/
 	groupKeys: [
-		['company_id', 250],
+		['company_id', 350],
 
 	],
 	groupProps: {
