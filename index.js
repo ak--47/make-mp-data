@@ -53,7 +53,7 @@ if (suppliedConfig) {
 	config = require(path.resolve(suppliedConfig));
 } else {
 	console.log(`... using default configuration ...\n`);
-	config = require(path.resolve("./default.js"));
+	config = require("./default.js");
 }
 
 //override config with cli params
