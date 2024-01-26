@@ -1,22 +1,22 @@
 const Chance = require('chance');
 const chance = new Chance();
-const { range, makeProducts, date } = require('./utils.js');
+const { weightedRange, makeProducts, date } = require('./utils.js');
 
 const config = {
-	// token & secret; you can pass these as command line params too.
-	token: "{{PROJECT TOKEN}}",
+	token: "",
 	seed: "foo bar baz",
 	numDays: 30, //how many days worth of data
-	numEvents: 10000, //how many events
-	numUsers: 100, //how many users	
+	numEvents: 250000, //how many events
+	numUsers: 1500, //how many users	
 	format: 'csv', //csv or json
+	region: "US",
 
 	events: [
 		{
 			"event": "checkout",
 			"weight": 2,
 			"properties": {
-				amount: range(5, 500, 1000, .25),
+				amount: weightedRange(5, 500, 1000, .25),
 				currency: ["USD", "CAD", "EUR", "BTC", "ETH", "JPY"],
 				cart: makeProducts,
 			}
@@ -26,10 +26,10 @@ const config = {
 			"weight": 4,
 			"properties": {
 				isFeaturedItem: [true, false, false],
-				amount: range(5, 500, 1000, .25),
-				rating: range(1, 5),
-				reviews: range(0, 35),
-				product_id: range(1, 1000)
+				amount: weightedRange(5, 500, 1000, .25),
+				rating: weightedRange(1, 5),
+				reviews: weightedRange(0, 35),
+				product_id: weightedRange(1, 1000)
 			}
 		},
 		{
@@ -43,15 +43,16 @@ const config = {
 			"event": "view item",
 			"weight": 8,
 			"properties": {
-				category: chance.animal.bind(chance),
-				item_name: chance.avatar.bind(chance),
+				product_id: weightedRange(1, 1000),
+				colors: ["light", "dark", "custom", "dark"]
 			}
 		},
 		{
 			"event": "save item",
 			"weight": 5,
 			"properties": {
-				category: chance.animal.bind(chance),
+				product_id: weightedRange(1, 1000),
+				colors: ["light", "dark", "custom", "dark"]
 			}
 		},
 		{
@@ -74,15 +75,15 @@ const config = {
 	*/
 	userProps: {
 		title: chance.profession.bind(chance),
-		luckyNumber: range(42, 420),
+		luckyNumber: weightedRange(42, 420),
 		servicesUsed: [["foo"], ["foo", "bar"], ["foo", "bar", "baz"], ["foo", "bar", "baz", "qux"], ["baz", "qux"], ["qux"]],
 		spiritAnimal: chance.animal.bind(chance)
 	},
 
 	scdProps: {
 		plan: ["free", "free", "free", "basic", "basic", "premium", "enterprise"],
-		MRR: range(0, 10000, 1000, .15),
-		NPS: range(0, 10, 150, 2),
+		MRR: weightedRange(0, 10000, 1000, .15),
+		NPS: weightedRange(0, 10, 150, 2),
 		marketingOptIn: [true, true, false],
 		dateOfRenewal: date(100, false),
 
@@ -93,19 +94,59 @@ const config = {
 	each pair represents a group_key and the number of profiles for that key
 	*/
 	groupKeys: [
-		['company_id', 1000],
+		['company_id', 250],
 
 	],
 	groupProps: {
 		company_id: {
 			$name: () => { return chance.company(); },
-			"# of employees": range(3, 10000),
+			$email: () => { return `CSM ${chance.pickone(["AK", "Jessica", "Michelle", "Dana", "Brian", "Dave"])}`; },
+			"# of employees": weightedRange(3, 10000),
 			"sector": ["tech", "finance", "healthcare", "education", "government", "non-profit"],
 			"segment": ["enterprise", "SMB", "mid-market"],
 		}
 	},
 
-	lookupTables: [],
+	lookupTables: [
+		{
+			key: "product_id",
+			entries: 1000,
+			attributes: {
+				category: [
+					"Books",
+					"Movies",
+					"Music",
+					"Games",
+					"Electronics",
+					"Computers",
+					"Smart Home",
+					"Home",
+					"Garden & Tools",
+					"Pet Supplies",
+					"Food & Grocery",
+					"Beauty",
+					"Health",
+					"Toys",
+					"Kids",
+					"Baby",
+					"Handmade",
+					"Sports",
+					"Outdoors",
+					"Automotive",
+					"Industrial",
+					"Entertainment",
+					"Art"
+				],
+				"demand": ["high", "medium", "medium", "low"],
+				"supply": ["high", "medium", "medium", "low"],
+				"manufacturer": chance.company.bind(chance),
+				"price": weightedRange(5, 500, 1000, .25),
+				"rating": weightedRange(1, 5),
+				"reviews": weightedRange(0, 35)
+			}
+
+		}
+	],
 };
 
 module.exports = config;

@@ -1,27 +1,41 @@
 {
-  "name": "simple-dm",
-  "version": "2.0.0",
+  "name": "make-mp-data",
+  "version": "1.0.0",
   "description": "builds all mixpanel primitives for a given project",
   "main": "index.js",
   "scripts": {
     "start": "node index.js",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "prune": "rm ./data/*",
+	"go": "sh ./go.sh",
+	"post": "npm publish"
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/ak--47/simpleDM.git"
+    "url": "git+https://github.com/ak--47/make-mp-data.git"
   },
-  "keywords": [],
-  "author": "",
+  "keywords": [
+    "mixpanel",
+    "stream",
+    "analytics",
+    "tracking",
+    "server",
+    "CLI",
+	"datamart",
+	"scd 2",
+	"dummy data",
+	"fake data"
+  ],
+  "author": "ak@mixpanel.com",
   "license": "ISC",
   "bugs": {
-    "url": "https://github.com/ak--47/simpleDM/issues"
+    "url": "https://github.com/ak--47/make-mp-data/issues"
   },
-  "homepage": "https://github.com/ak--47/simpleDM#readme",
+  "homepage": "https://github.com/ak--47/make-mp-data#readme",
   "dependencies": {
     "ak-tools": "^1.0.51",
     "chance": "^1.1.7",
     "dayjs": "^1.11.10",
-    "mixpanel-import": "^2.5.33"
+    "mixpanel-import": "^2.5.33",
+    "yargs": "^17.7.2"
   }
 }

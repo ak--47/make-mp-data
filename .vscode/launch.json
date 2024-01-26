@@ -12,7 +12,8 @@
 			"program": "${file}",
 			"restart": true,
 			"console": "integratedTerminal",
-			"internalConsoleOptions": "neverOpen"
+			"internalConsoleOptions": "neverOpen",
+			"args": ["--ignore", "./data/"]
 		}
 	]
 }

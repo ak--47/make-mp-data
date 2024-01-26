@@ -1,11 +1,11 @@
 const Chance = require('chance');
 const chance = new Chance();
+const readline = require('readline');
+const { comma } = require('ak-tools');
+const { spawn } = require('child_process');
 const dayjs = require('dayjs');
 const utc = require('dayjs/plugin/utc');
-const readline = require('readline');
 dayjs.extend(utc);
-const {comma} = require('ak-tools')
-
 
 function pick() {
 	const choice = chance.pickone(this);
@@ -59,15 +59,14 @@ function choose(value) {
 	}
 
 	return value;
-
-
 }
 
-
-function fakeIp() {
-	var ip = chance.ip();
-	return ip;
+function exhaust(arr) {
+	return function () {
+		return arr.shift();
+	};
 }
+
 
 function integer(min, max) {
 	if (min > max) {
@@ -84,9 +83,9 @@ function integer(min, max) {
 }
 
 function makeProducts() {
-	let categories = ["Device Accessories", "eBooks", "Automotive & Powersports", "Baby Products (excluding apparel)", "Beauty", "Books", "Camera & Photo", "Cell Phones & Accessories", "Collectible Coins", "Consumer Electronics", "Entertainment Collectibles", "Fine Art", "Grocery & Gourmet Food", "Health & Personal Care", "Home & Garden", "Independent Design", "Industrial & Scientific", "Accessories", "Major Appliances", "Music", "Musical Instruments", "Office Products", "Outdoors", "Personal Computers", "Pet Supplies", "Software", "Sports", "Sports Collectibles", "Tools & Home Improvement", "Toys & Games", "Video, DVD & Blu-ray", "Video Games", "Watches"];
+	let categories = ["Device Accessories", "eBooks", "Automotive", "Baby Products", "Beauty", "Books", "Camera & Photo", "Cell Phones & Accessories", "Collectible Coins", "Consumer Electronics", "Entertainment Collectibles", "Fine Art", "Grocery & Gourmet Food", "Health & Personal Care", "Home & Garden", "Independent Design", "Industrial & Scientific", "Accessories", "Major Appliances", "Music", "Musical Instruments", "Office Products", "Outdoors", "Personal Computers", "Pet Supplies", "Software", "Sports", "Sports Collectibles", "Tools & Home Improvement", "Toys & Games", "Video, DVD & Blu-ray", "Video Games", "Watches"];
 	let slugs = ['/sale/', '/featured/', '/home/', '/search/', '/wishlist/', '/'];
-	let assetExtention = ['.png', '.jpg', '.jpeg', '.heic', '.mp4', '.mov', '.avi'];
+	let assetExtension = ['.png', '.jpg', '.jpeg', '.heic', '.mp4', '.mov', '.avi'];
 	let data = [];
 	let numOfItems = integer(1, 12);
 
@@ -94,7 +93,7 @@ function makeProducts() {
 
 		let category = chance.pickone(categories);
 		let slug = chance.pickone(slugs);
-		let asset = chance.pickone(assetExtention);
+		let asset = chance.pickone(assetExtension);
 		let product_id = chance.guid();
 		let price = integer(1, 300);
 		let quantity = integer(1, 5);
@@ -138,7 +137,7 @@ function mapToRange(value, mean, sd) {
 	return Math.round(value * sd + mean);
 }
 
-function range(min, max, size = 100, skew = 1) {
+function weightedRange(min, max, size = 100, skew = 1) {
 	const mean = (max + min) / 2;
 	const sd = (max - min) / 4;
 	let array = [];
@@ -189,18 +188,39 @@ function person(bornDaysAgo = 30) {
 	};
 }
 
+function range(a, b, step = 1) {
+	step = !step ? 1 : step;
+	b = b / step;
+	for (var i = a; i <= b; i++) {
+		this.push(i * step);
+	}
+	return this;
+};
+
+
+//helper to open the finder
+function openFinder(path, callback) {
+	path = path || '/';
+	let p = spawn('open', [path]);
+	p.on('error', (err) => {
+		p.kill();
+		return callback(err);
+	});
+}
 
 
 
 module.exports = {
-	range,
+	weightedRange,
 	pick,
 	day,
-	fakeIp,
 	integer,
 	makeProducts,
 	date,
 	progress,
 	person,
-	choose
+	choose,
+	range,
+	exhaust,
+	openFinder
 };
