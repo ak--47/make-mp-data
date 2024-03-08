@@ -10,9 +10,10 @@ makes all the things for mixpanel (v${version || 1})
 by ak@mixpanel.com
    `;
 
-console.log(hero);
+
 
 function cliParams() {
+	console.log(hero);
 	const args = yargs(process.argv.splice(2))
 		.scriptName("make-mp-data")
 		.usage(`\nusage:\nnpx $0 [dataModel.js] [options]
