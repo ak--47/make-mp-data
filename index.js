@@ -14,12 +14,17 @@ const chance = new Chance();
 const { touch, comma, bytesHuman, mkdir } = require("ak-tools");
 const Papa = require("papaparse");
 const {
-	integer,
-	pick,
 	weightedRange,
+	pick,
+	day,
+	integer,
+	makeProducts,
+	date,
 	progress,
 	person,
 	choose,
+	range,
+	exhaust,
 	openFinder
 } = require("./utils.js");
 const dayjs = require("dayjs");
@@ -409,7 +414,21 @@ if (require.main === module) {
 }
 
 else {
-	module.exports = main;
+	module.exports = {
+		generate: main,
+		weightedRange,
+		pick,
+		day,
+		integer,
+		makeProducts,
+		date,
+		progress,
+		person,
+		choose,
+		range,
+		exhaust,
+		openFinder
+	};
 }
 
 
