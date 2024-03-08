@@ -87,6 +87,7 @@ async function main(config) {
 		format = "csv",
 		token = null,
 		region = "US",
+		writeToDisk = true
 	} = config;
 
 	const uuidChance = new Chance(seed);
@@ -204,6 +205,8 @@ async function main(config) {
 		[lookupFiles, lookupTableData],
 	];
 	console.log("\n");
+
+	if (!writeToDisk) return { eventData, userProfilesData, scdTableData, groupProfilesData, lookupTableData };
 	//write the files
 	for (const pair of pairs) {
 		const [paths, data] = pair;
@@ -371,34 +374,45 @@ function buildFileNames(config) {
 	return writePaths;
 }
 
-//that's all folks :)
-main(config)
-	.then((data) => {
-		console.log(`------------------SUMMARY------------------`);
-		const { events, groups, users } = data.import;
-		const files = data.files;
-		const folder = files.pop();
-		const groupBytes = groups.reduce((acc, group) => { return acc + group.bytes; }, 0);
-		const groupSuccess = groups.reduce((acc, group) => { return acc + group.success; }, 0);
-		const bytes = events.bytes + groupBytes + users.bytes;
-		const stats = {
-			events: comma(events.success || 0),
-			users: comma(users.success || 0),
-			groups: comma(groupSuccess || 0),
-			bytes: bytesHuman(bytes || 0)
-		};
-		if (bytes > 0) console.table(stats);
-		console.log(`\nfiles written to ${folder}...`);
-		console.log("\t" + files.flat().join('\n\t'));
-		console.log(`\n------------------SUMMARY------------------\n\n\n`);
-	})
-	.catch((e) => {
-		console.log(`------------------ERROR------------------`);
-		console.error(e);
-		console.log(`------------------ERROR------------------`);
-		debugger;
-	})
-	.finally(() => {
-		console.log('have a wonderful day :)');
-		openFinder(path.resolve("./data"));
-	});
+// this is for CLI
+if (require.main === module) {
+	//that's all folks :)
+	main(config)
+		.then((data) => {
+			console.log(`------------------SUMMARY------------------`);
+			const { events, groups, users } = data.import;
+			const files = data.files;
+			const folder = files.pop();
+			const groupBytes = groups.reduce((acc, group) => { return acc + group.bytes; }, 0);
+			const groupSuccess = groups.reduce((acc, group) => { return acc + group.success; }, 0);
+			const bytes = events.bytes + groupBytes + users.bytes;
+			const stats = {
+				events: comma(events.success || 0),
+				users: comma(users.success || 0),
+				groups: comma(groupSuccess || 0),
+				bytes: bytesHuman(bytes || 0)
+			};
+			if (bytes > 0) console.table(stats);
+			console.log(`\nfiles written to ${folder}...`);
+			console.log("\t" + files.flat().join('\n\t'));
+			console.log(`\n------------------SUMMARY------------------\n\n\n`);
+		})
+		.catch((e) => {
+			console.log(`------------------ERROR------------------`);
+			console.error(e);
+			console.log(`------------------ERROR------------------`);
+			debugger;
+		})
+		.finally(() => {
+			console.log('have a wonderful day :)');
+			openFinder(path.resolve("./data"));
+		});
+
+}
+
+else {
+	module.exports = main;
+}
+
+
+
