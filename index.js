@@ -32,44 +32,10 @@ Array.prototype.pickOne = pick;
 const now = dayjs().unix();
 const dayInSec = 86400;
 
-
-
-const args = cliParams();
-const {
-	token,
-	seed,
-	format,
-	numDays,
-	numUsers,
-	numEvents,
-	region
-} = args;
-const suppliedConfig = args._[0];
-
-//if the user specifics an separate config file
-let config = null;
-if (suppliedConfig) {
-	console.log(`using ${suppliedConfig} for data\n`);
-	config = require(path.resolve(suppliedConfig));
-} else {
-	console.log(`... using default configuration ...\n`);
-	config = require("./default.js");
-}
-
-//override config with cli params
-if (token) config.token = token;
-if (seed) config.seed = seed;
-if (format) config.format = format;
-if (numDays) config.numDays = numDays;
-if (numUsers) config.numUsers = numUsers;
-if (numEvents) config.numEvents = numEvents;
-if (region) config.region = region;
-
-
 //our main program
 async function main(config) {
 
-	const {
+	let {
 		seed = "every time a rug is micturated upon in this fair city...",
 		numEvents = 100000,
 		numUsers = 1000,
@@ -87,9 +53,9 @@ async function main(config) {
 		format = "csv",
 		token = null,
 		region = "US",
-		writeToDisk = true
+		writeToDisk = false
 	} = config;
-
+	if (require.main === module) writeToDisk = true;
 	const uuidChance = new Chance(seed);
 
 	//the function which generates $distinct_id
@@ -206,7 +172,7 @@ async function main(config) {
 	];
 	console.log("\n");
 
-	if (!writeToDisk) return { eventData, userProfilesData, scdTableData, groupProfilesData, lookupTableData };
+	if (!writeToDisk && !token) return { eventData, userProfilesData, scdTableData, groupProfilesData, lookupTableData };
 	//write the files
 	for (const pair of pairs) {
 		const [paths, data] = pair;
@@ -376,7 +342,39 @@ function buildFileNames(config) {
 
 // this is for CLI
 if (require.main === module) {
-	//that's all folks :)
+
+	const args = cliParams();
+	const {
+		token,
+		seed,
+		format,
+		numDays,
+		numUsers,
+		numEvents,
+		region
+	} = args;
+	const suppliedConfig = args._[0];
+
+	//if the user specifics an separate config file
+	let config = null;
+	if (suppliedConfig) {
+		console.log(`using ${suppliedConfig} for data\n`);
+		config = require(path.resolve(suppliedConfig));
+	} else {
+		console.log(`... using default configuration ...\n`);
+		config = require("./default.js");
+	}
+
+	//override config with cli params
+	if (token) config.token = token;
+	if (seed) config.seed = seed;
+	if (format) config.format = format;
+	if (numDays) config.numDays = numDays;
+	if (numUsers) config.numUsers = numUsers;
+	if (numEvents) config.numEvents = numEvents;
+	if (region) config.region = region;
+
+
 	main(config)
 		.then((data) => {
 			console.log(`------------------SUMMARY------------------`);
