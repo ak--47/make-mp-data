@@ -76,13 +76,14 @@ async function main(config) {
 	// weigh events for random selection
 	const weightedEvents = events
 		.reduce((acc, event) => {
-			for (let i = 0; i < event.weight; i++) {
+			const weight = event.weight || 1;
+			for (let i = 0; i < weight; i++) {
 				acc.push(event);
 			}
 			return acc;
 		}, [])
-		.filter((e) => e.weight > 0)
 		.filter((e) => !e.isFirstEvent);
+
 
 	const firstEvents = events.filter((e) => e.isFirstEvent);
 	const eventData = [];
@@ -104,7 +105,7 @@ async function main(config) {
 			chance.normal({ mean: avgEvPerUser, dev: avgEvPerUser / 4 })
 		);
 
-		if (firstEvents) {
+		if (firstEvents.length) {
 			eventData.push(
 				makeEvent(
 					distinct_id,
@@ -317,7 +318,8 @@ function buildFileNames(config) {
 	const { format = "csv", groupKeys = [], lookupTables = [] } = config;
 	const extension = format === "csv" ? "csv" : "json";
 	const current = dayjs.utc().format("MM-DD-HH");
-	const writeDir = mkdir('./data');
+	let writeDir = null;
+	if (config.writeToDisk)	writeDir = mkdir('./data');
 
 	const writePaths = {
 		eventFiles: [path.join(writeDir, `events-${current}.${extension}`)],

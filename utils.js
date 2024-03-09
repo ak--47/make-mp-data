@@ -8,8 +8,13 @@ const utc = require('dayjs/plugin/utc');
 dayjs.extend(utc);
 
 function pick() {
-	const choice = chance.pickone(this);
-	return choice;
+	try {
+		const choice = chance.pickone(this);
+		return choice;
+	}
+	catch (e) {
+		return null;
+	}
 }
 
 function date(inTheLast = 30, isPast = true, format = 'YYYY-MM-DD') {
