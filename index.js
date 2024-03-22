@@ -318,7 +318,7 @@ function buildFileNames(config) {
 	const { format = "csv", groupKeys = [], lookupTables = [] } = config;
 	const extension = format === "csv" ? "csv" : "json";
 	const current = dayjs.utc().format("MM-DD-HH");
-	let writeDir = null;
+	let writeDir = './';
 	if (config.writeToDisk)	writeDir = mkdir('./data');
 
 	const writePaths = {
