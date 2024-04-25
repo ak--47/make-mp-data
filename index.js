@@ -1,6 +1,5 @@
 #! /usr/bin/env node
 
-
 /*
 make fake mixpanel data easily!
 by AK 
@@ -25,21 +24,25 @@ const {
 	choose,
 	range,
 	exhaust,
-	openFinder
+	openFinder,
 } = require("./utils.js");
 const dayjs = require("dayjs");
 const utc = require("dayjs/plugin/utc");
-const cliParams = require('./cli.js');
-
+const cliParams = require("./cli.js");
 
 dayjs.extend(utc);
 Array.prototype.pickOne = pick;
 const now = dayjs().unix();
 const dayInSec = 86400;
+const PEAK_DAYS = [
+	dayjs().subtract(1, "day").unix(),
+	dayjs().subtract(5, "day").unix(),
+	dayjs().subtract(10, "day").unix(),
+	dayjs().subtract(15, "day").unix(),
+];
 
 //our main program
 async function main(config) {
-
 	let {
 		seed = "every time a rug is micturated upon in this fair city...",
 		numEvents = 100000,
@@ -58,7 +61,7 @@ async function main(config) {
 		format = "csv",
 		token = null,
 		region = "US",
-		writeToDisk = false
+		writeToDisk = false,
 	} = config;
 	if (require.main === module) writeToDisk = true;
 	const uuidChance = new Chance(seed);
@@ -83,7 +86,6 @@ async function main(config) {
 			return acc;
 		}, [])
 		.filter((e) => !e.isFirstEvent);
-
 
 	const firstEvents = events.filter((e) => e.isFirstEvent);
 	const eventData = [];
@@ -146,7 +148,7 @@ async function main(config) {
 			const group = {
 				[groupKey]: i,
 				...makeProfile(groupProps[groupKey]),
-				$distinct_id: i
+				$distinct_id: i,
 			};
 			groupProfiles.push(group);
 		}
@@ -168,7 +170,8 @@ async function main(config) {
 		}
 		lookupTableData.push({ key, data });
 	}
-	const { eventFiles, userFiles, scdFiles, groupFiles, lookupFiles, folder } = buildFileNames(config);
+	const { eventFiles, userFiles, scdFiles, groupFiles, lookupFiles, folder } =
+		buildFileNames(config);
 	const pairs = [
 		[eventFiles, eventData],
 		[userFiles, userProfilesData],
@@ -178,13 +181,20 @@ async function main(config) {
 	];
 	console.log("\n");
 
-	if (!writeToDisk && !token) return { eventData, userProfilesData, scdTableData, groupProfilesData, lookupTableData };
+	if (!writeToDisk && !token)
+		return {
+			eventData,
+			userProfilesData,
+			scdTableData,
+			groupProfilesData,
+			lookupTableData,
+		};
 	//write the files
 	for (const pair of pairs) {
 		const [paths, data] = pair;
 		for (const path of paths) {
 			let datasetsToWrite;
-			if (data?.[0]?.["key"]) datasetsToWrite = data.map(d => d.data);
+			if (data?.[0]?.["key"]) datasetsToWrite = data.map((d) => d.data);
 			else datasetsToWrite = [data];
 			for (const writeData of datasetsToWrite) {
 				if (format === "csv") {
@@ -210,37 +220,47 @@ async function main(config) {
 		strict: false,
 		dryRun: false,
 		abridged: false,
-		region
-
+		region,
 	};
 	//send to mixpanel
 	if (token) {
 		if (eventData) {
 			console.log(`importing events to mixpanel...`);
-			const imported = await mp(creds, eventData, { recordType: "event", ...importOpts });
+			const imported = await mp(creds, eventData, {
+				recordType: "event",
+				...importOpts,
+			});
 			console.log(`\tsent ${comma(imported.success)} events\n`);
 			importResults.events = imported;
 		}
 		if (userProfilesData) {
 			console.log(`importing user profiles to mixpanel...`);
-			const imported = await mp(creds, userProfilesData, { recordType: "user", ...importOpts });
+			const imported = await mp(creds, userProfilesData, {
+				recordType: "user",
+				...importOpts,
+			});
 			console.log(`\tsent ${comma(imported.success)} user profiles\n`);
 			importResults.users = imported;
 		}
 		if (groupProfilesData) {
-
 			for (const groupProfiles of groupProfilesData) {
 				const groupKey = groupProfiles.key;
 				const data = groupProfiles.data;
 				console.log(`importing ${groupKey} profiles to mixpanel...`);
-				const imported = await mp({ token, groupKey }, data, { recordType: "group", ...importOpts });
+				const imported = await mp({ token, groupKey }, data, {
+					recordType: "group",
+					...importOpts,
+				});
 				console.log(`\tsent ${comma(imported.success)} ${groupKey} profiles\n`);
 				importResults.groups.push(imported);
 			}
 		}
 		console.log(`\n\n`);
 	}
-	return { import: importResults, files: [eventFiles, userFiles, scdFiles, groupFiles, lookupFiles, folder] };
+	return {
+		import: importResults,
+		files: [eventFiles, userFiles, scdFiles, groupFiles, lookupFiles, folder],
+	};
 }
 
 function makeProfile(props, defaults) {
@@ -280,7 +300,14 @@ function makeSCD(props, distinct_id, mutations, $created) {
 	return scdEntries;
 }
 
-function makeEvent(distinct_id, earliestTime, events, superProps, groupKeys, isFirstEvent = false) {
+function makeEvent(
+	distinct_id,
+	earliestTime,
+	events,
+	superProps,
+	groupKeys,
+	isFirstEvent = false
+) {
 	let chosenEvent = events.pickOne();
 	if (typeof chosenEvent === "string")
 		chosenEvent = { event: chosenEvent, properties: {} };
@@ -291,7 +318,7 @@ function makeEvent(distinct_id, earliestTime, events, superProps, groupKeys, isF
 	};
 
 	if (isFirstEvent) event.time = earliestTime;
-	if (!isFirstEvent) event.time = integer(earliestTime, now);
+	if (!isFirstEvent) event.time = customTimeDistribution(earliestTime, now, PEAK_DAYS);
 
 	const props = { ...chosenEvent.properties, ...superProps };
 
@@ -318,8 +345,8 @@ function buildFileNames(config) {
 	const { format = "csv", groupKeys = [], lookupTables = [] } = config;
 	const extension = format === "csv" ? "csv" : "json";
 	const current = dayjs.utc().format("MM-DD-HH");
-	let writeDir = './';
-	if (config.writeToDisk)	writeDir = mkdir('./data');
+	let writeDir = "./";
+	if (config.writeToDisk) writeDir = mkdir("./data");
 
 	const writePaths = {
 		eventFiles: [path.join(writeDir, `events-${current}.${extension}`)],
@@ -347,19 +374,55 @@ function buildFileNames(config) {
 	return writePaths;
 }
 
+/**
+ * Generates a random timestamp with higher likelihood on peak days and typical business hours.
+ * @param {number} earliestTime - The earliest timestamp in Unix format.
+ * @param {number} latestTime - The latest timestamp in Unix format.
+ * @param {Array} peakDays - Array of Unix timestamps representing the start of peak days.
+ * @returns {number} - The generated event timestamp in Unix format.
+ */
+function customTimeDistribution(earliestTime, latestTime, peakDays) {
+	// Define business hours
+	const peakStartHour = 8; // 8 AM
+	const peakEndHour = 18; // 6 PM
+	const likelihoodOfPeakDay = chance.integer({ min: integer(5, 42), max: integer(43, 69) }); // Randomize likelihood with CHAOS!~~
+
+	// Select a day, with a preference for peak days
+	let selectedDay;
+	if (chance.bool({ likelihood: likelihoodOfPeakDay })) { // Randomized likelihood to pick a peak day
+		selectedDay = peakDays.length > 0 ? chance.pickone(peakDays) : integer(earliestTime, latestTime);
+	} else {
+		// Introduce minor peaks by allowing some events to still occur during business hours
+		selectedDay = chance.bool({ likelihood: 20 }) // 20% chance to simulate a minor peak on a non-peak day
+			? chance.pickone(peakDays)
+			: integer(earliestTime, latestTime);
+	}
+
+	// Normalize selectedDay to the start of the day
+	selectedDay = dayjs.unix(selectedDay).startOf('day').unix();
+
+	// Generate a random time within business hours with a higher concentration in the middle of the period
+	const businessStart = dayjs.unix(selectedDay).hour(peakStartHour).minute(0).second(0).unix();
+	const businessEnd = dayjs.unix(selectedDay).hour(peakEndHour).minute(0).second(0).unix();
+	let eventTime;
+	if (selectedDay === peakDays[0]) {
+		// Use a skewed distribution for peak days
+		eventTime = chance.normal({ mean: (businessEnd + businessStart) / 2, dev: (businessEnd - businessStart) / 8 });
+	} else {
+		// For non-peak days, use a uniform distribution to add noise
+		eventTime = integer(businessStart, businessEnd);
+	}
+	eventTime = Math.min(Math.max(eventTime, businessStart), businessEnd); // Ensure time is within business hours
+
+	return eventTime;
+}
+
+
+
 // this is for CLI
 if (require.main === module) {
-
 	const args = cliParams();
-	const {
-		token,
-		seed,
-		format,
-		numDays,
-		numUsers,
-		numEvents,
-		region
-	} = args;
+	const { token, seed, format, numDays, numUsers, numEvents, region } = args;
 	const suppliedConfig = args._[0];
 
 	//if the user specifics an separate config file
@@ -381,25 +444,28 @@ if (require.main === module) {
 	if (numEvents) config.numEvents = numEvents;
 	if (region) config.region = region;
 
-
 	main(config)
 		.then((data) => {
 			console.log(`------------------SUMMARY------------------`);
 			const { events, groups, users } = data.import;
 			const files = data.files;
 			const folder = files.pop();
-			const groupBytes = groups.reduce((acc, group) => { return acc + group.bytes; }, 0);
-			const groupSuccess = groups.reduce((acc, group) => { return acc + group.success; }, 0);
+			const groupBytes = groups.reduce((acc, group) => {
+				return acc + group.bytes;
+			}, 0);
+			const groupSuccess = groups.reduce((acc, group) => {
+				return acc + group.success;
+			}, 0);
 			const bytes = events.bytes + groupBytes + users.bytes;
 			const stats = {
 				events: comma(events.success || 0),
 				users: comma(users.success || 0),
 				groups: comma(groupSuccess || 0),
-				bytes: bytesHuman(bytes || 0)
+				bytes: bytesHuman(bytes || 0),
 			};
 			if (bytes > 0) console.table(stats);
 			console.log(`\nfiles written to ${folder}...`);
-			console.log("\t" + files.flat().join('\n\t'));
+			console.log("\t" + files.flat().join("\n\t"));
 			console.log(`\n------------------SUMMARY------------------\n\n\n`);
 		})
 		.catch((e) => {
@@ -409,13 +475,10 @@ if (require.main === module) {
 			debugger;
 		})
 		.finally(() => {
-			console.log('have a wonderful day :)');
+			console.log("have a wonderful day :)");
 			openFinder(path.resolve("./data"));
 		});
-
-}
-
-else {
+} else {
 	module.exports = {
 		generate: main,
 		weightedRange,
@@ -429,9 +492,6 @@ else {
 		choose,
 		range,
 		exhaust,
-		openFinder
+		openFinder,
 	};
 }
-
-
-

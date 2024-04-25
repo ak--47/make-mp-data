@@ -6,8 +6,8 @@ const config = {
 	token: "",
 	seed: "foo bar baz",
 	numDays: 30, //how many days worth of data
-	numEvents: 250000, //how many events
-	numUsers: 1500, //how many users	
+	numEvents: 100000, //how many events
+	numUsers: 1000, //how many users	
 	format: 'csv', //csv or json
 	region: "US",
 
