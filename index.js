@@ -25,20 +25,27 @@ const {
 	range,
 	exhaust,
 	openFinder,
+	applySkew,
+	boxMullerRandom,
 } = require("./utils.js");
 const dayjs = require("dayjs");
 const utc = require("dayjs/plugin/utc");
-const cliParams = require("./cli.js");
-
 dayjs.extend(utc);
+const cliParams = require("./cli.js");
 Array.prototype.pickOne = pick;
-const now = dayjs().unix();
-const dayInSec = 86400;
+const NOW = dayjs().unix();
+
 const PEAK_DAYS = [
-	dayjs().subtract(1, "day").unix(),
+	dayjs().subtract(2, "day").unix(),
+	dayjs().subtract(3, "day").unix(),
 	dayjs().subtract(5, "day").unix(),
-	dayjs().subtract(10, "day").unix(),
-	dayjs().subtract(15, "day").unix(),
+	dayjs().subtract(7, "day").unix(),
+	dayjs().subtract(11, "day").unix(),
+	dayjs().subtract(13, "day").unix(),
+	dayjs().subtract(17, "day").unix(),
+	dayjs().subtract(19, "day").unix(),
+	dayjs().subtract(23, "day").unix(),
+	dayjs().subtract(29, "day").unix(),
 ];
 
 //our main program
@@ -63,13 +70,30 @@ async function main(config) {
 		region = "US",
 		writeToDisk = false,
 	} = config;
-	if (require.main === module) writeToDisk = true;
+	
+	//ensure we have a token or are writing to disk
+	if (require.main === module) {
+		if (!token) {
+			if (!writeToDisk) {
+				writeToDisk = true;
+			}
+		}
+	}
+	
 	const uuidChance = new Chance(seed);
 
-	//the function which generates $distinct_id
+	//the function which generates $distinct_id + $created
 	function uuid() {
 		const distinct_id = uuidChance.guid();
-		const daysAgoBorn = chance.integer({ min: 1, max: numDays });
+		let z = boxMullerRandom();
+		const skew = chance.normal({ mean: 10, dev: 3 });		
+		z = applySkew(z, skew); 
+
+		// Scale and shift the normally distributed value to fit the range of days
+		const maxZ = integer(2, 4); 
+		const scaledZ = (z / maxZ + 1) / 2; // Scale to a 0-1 range
+		const daysAgoBorn = Math.round(scaledZ * (numDays - 1)) + 1; // Scale to 1-numDays range
+
 		return {
 			distinct_id,
 			...person(daysAgoBorn),
@@ -300,14 +324,7 @@ function makeSCD(props, distinct_id, mutations, $created) {
 	return scdEntries;
 }
 
-function makeEvent(
-	distinct_id,
-	earliestTime,
-	events,
-	superProps,
-	groupKeys,
-	isFirstEvent = false
-) {
+function makeEvent(distinct_id, earliestTime, events, superProps, groupKeys, isFirstEvent = false) {
 	let chosenEvent = events.pickOne();
 	if (typeof chosenEvent === "string")
 		chosenEvent = { event: chosenEvent, properties: {} };
@@ -318,7 +335,7 @@ function makeEvent(
 	};
 
 	if (isFirstEvent) event.time = earliestTime;
-	if (!isFirstEvent) event.time = customTimeDistribution(earliestTime, now, PEAK_DAYS);
+	if (!isFirstEvent) event.time = AKsTimeSoup(earliestTime, NOW, PEAK_DAYS);
 
 	const props = { ...chosenEvent.properties, ...superProps };
 
@@ -375,16 +392,16 @@ function buildFileNames(config) {
 }
 
 /**
- * Generates a random timestamp with higher likelihood on peak days and typical business hours.
+ * timestamp generator with a twist
  * @param {number} earliestTime - The earliest timestamp in Unix format.
  * @param {number} latestTime - The latest timestamp in Unix format.
  * @param {Array} peakDays - Array of Unix timestamps representing the start of peak days.
  * @returns {number} - The generated event timestamp in Unix format.
  */
-function customTimeDistribution(earliestTime, latestTime, peakDays) {
+function AKsTimeSoup(earliestTime, latestTime = NOW, peakDays = PEAK_DAYS) {
 	// Define business hours
-	const peakStartHour = 8; // 8 AM
-	const peakEndHour = 18; // 6 PM
+	const peakStartHour = 4; // 4 AM
+	const peakEndHour = 23; // 11 PM
 	const likelihoodOfPeakDay = chance.integer({ min: integer(5, 42), max: integer(43, 69) }); // Randomize likelihood with CHAOS!~~
 
 	// Select a day, with a preference for peak days
@@ -393,7 +410,7 @@ function customTimeDistribution(earliestTime, latestTime, peakDays) {
 		selectedDay = peakDays.length > 0 ? chance.pickone(peakDays) : integer(earliestTime, latestTime);
 	} else {
 		// Introduce minor peaks by allowing some events to still occur during business hours
-		selectedDay = chance.bool({ likelihood: 20 }) // 20% chance to simulate a minor peak on a non-peak day
+		selectedDay = chance.bool({ likelihood: integer(1, 42) })
 			? chance.pickone(peakDays)
 			: integer(earliestTime, latestTime);
 	}
@@ -407,12 +424,14 @@ function customTimeDistribution(earliestTime, latestTime, peakDays) {
 	let eventTime;
 	if (selectedDay === peakDays[0]) {
 		// Use a skewed distribution for peak days
-		eventTime = chance.normal({ mean: (businessEnd + businessStart) / 2, dev: (businessEnd - businessStart) / 8 });
+		eventTime = chance.normal({ mean: (businessEnd + businessStart) / integer(1, 4), dev: (businessEnd - businessStart) / integer(2, 8) });
 	} else {
 		// For non-peak days, use a uniform distribution to add noise
-		eventTime = integer(businessStart, businessEnd);
+		eventTime = integer(integer(businessStart, businessEnd), integer(businessStart, businessEnd));
 	}
-	eventTime = Math.min(Math.max(eventTime, businessStart), businessEnd); // Ensure time is within business hours
+
+	// usually, ensure the event time is within business hours
+	if (chance.bool({ likelihood: 42 })) eventTime = Math.min(Math.max(eventTime, businessStart), businessEnd);
 
 	return eventTime;
 }
@@ -422,7 +441,7 @@ function customTimeDistribution(earliestTime, latestTime, peakDays) {
 // this is for CLI
 if (require.main === module) {
 	const args = cliParams();
-	const { token, seed, format, numDays, numUsers, numEvents, region } = args;
+	const { token, seed, format, numDays, numUsers, numEvents, region, writeToDisk } = args;
 	const suppliedConfig = args._[0];
 
 	//if the user specifics an separate config file
@@ -443,6 +462,7 @@ if (require.main === module) {
 	if (numUsers) config.numUsers = numUsers;
 	if (numEvents) config.numEvents = numEvents;
 	if (region) config.region = region;
+	if (writeToDisk) config.writeToDisk = writeToDisk;
 
 	main(config)
 		.then((data) => {

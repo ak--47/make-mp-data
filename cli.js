@@ -60,6 +60,19 @@ DOCS: https://github.com/ak--47/make-mp-data`)
 			describe: 'either US or EU',
 			type: 'string'
 		})
+		.option("writeToDisk", {
+			demandOption: false,
+			default: true,
+			describe: 'write data to disk',
+			alias: 'w',
+			type: 'boolean',
+			coerce: (value) => {
+				if (typeof value === 'string') {
+					return value.toLowerCase() === 'true';
+				}
+				return value;
+			}
+		})
 		.help()
 		.wrap(null)
 		.argv;

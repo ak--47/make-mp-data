@@ -20,7 +20,7 @@ function pick() {
 function date(inTheLast = 30, isPast = true, format = 'YYYY-MM-DD') {
 	const now = dayjs.utc();
 	return function () {
-		const when = chance.integer({ min: 0, max: inTheLast });
+		const when = chance.integer({ min: 0, max: Math.abs(inTheLast) });
 		let then;
 		if (isPast) then = now.subtract(when, 'day');
 		if (!isPast) then = now.add(when, 'day');
@@ -227,5 +227,7 @@ module.exports = {
 	choose,
 	range,
 	exhaust,
-	openFinder
+	openFinder,
+	applySkew,
+	boxMullerRandom,
 };
