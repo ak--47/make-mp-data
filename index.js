@@ -1,11 +1,13 @@
 #! /usr/bin/env node
 
+
 /*
 make fake mixpanel data easily!
 by AK 
 ak@mixpanel.com
 */
 
+const RUNTIME = process.env.RUNTIME || "unspecified";
 const mp = require("mixpanel-import");
 const path = require("path");
 const Chance = require("chance");
@@ -27,13 +29,17 @@ const {
 	openFinder,
 	applySkew,
 	boxMullerRandom,
+	getUniqueKeys
 } = require("./utils.js");
 const dayjs = require("dayjs");
 const utc = require("dayjs/plugin/utc");
 dayjs.extend(utc);
 const cliParams = require("./cli.js");
+// @ts-ignore
 Array.prototype.pickOne = pick;
 const NOW = dayjs().unix();
+
+/** @typedef {import('./types.d.ts').Config} Config */
 
 const PEAK_DAYS = [
 	dayjs().subtract(2, "day").unix(),
@@ -48,7 +54,10 @@ const PEAK_DAYS = [
 	dayjs().subtract(29, "day").unix(),
 ];
 
-//our main program
+/**
+ * generates fake mixpanel data
+ * @param  {Config} config
+ */
 async function main(config) {
 	let {
 		seed = "every time a rug is micturated upon in this fair city...",
@@ -70,29 +79,30 @@ async function main(config) {
 		region = "US",
 		writeToDisk = false,
 	} = config;
-	
+
 	//ensure we have a token or are writing to disk
 	if (require.main === module) {
 		if (!token) {
 			if (!writeToDisk) {
 				writeToDisk = true;
+				config.writeToDisk = true;
 			}
 		}
 	}
-	
+
 	const uuidChance = new Chance(seed);
 
-	//the function which generates $distinct_id + $created
+	//the function which generates $distinct_id + $created, skewing towards the present
 	function uuid() {
 		const distinct_id = uuidChance.guid();
 		let z = boxMullerRandom();
-		const skew = chance.normal({ mean: 10, dev: 3 });		
-		z = applySkew(z, skew); 
+		const skew = chance.normal({ mean: 10, dev: 3 });
+		z = applySkew(z, skew);
 
 		// Scale and shift the normally distributed value to fit the range of days
-		const maxZ = integer(2, 4); 
-		const scaledZ = (z / maxZ + 1) / 2; // Scale to a 0-1 range
-		const daysAgoBorn = Math.round(scaledZ * (numDays - 1)) + 1; // Scale to 1-numDays range
+		const maxZ = integer(2, 4);
+		const scaledZ = (z / maxZ + 1) / 2;
+		const daysAgoBorn = Math.round(scaledZ * (numDays - 1)) + 1;
 
 		return {
 			distinct_id,
@@ -223,7 +233,14 @@ async function main(config) {
 			for (const writeData of datasetsToWrite) {
 				if (format === "csv") {
 					console.log(`writing ${path}`);
-					const csv = Papa.unparse(writeData, {});
+					const columns = getUniqueKeys(writeData);
+					//papa parse needs nested JSON stringified
+					writeData.forEach((e) => {
+						for (const key in e) {
+							if (typeof e[key] === "object") e[key] = JSON.stringify(e[key]);
+						}
+					})
+					const csv = Papa.unparse(writeData, { columns });
 					await touch(path, csv);
 					console.log(`\tdone\n`);
 				} else {
@@ -238,13 +255,13 @@ async function main(config) {
 	const creds = { token };
 	/** @type {import('mixpanel-import').Options} */
 	const importOpts = {
+		region,
 		fixData: true,
 		verbose: false,
 		forceStream: true,
 		strict: false,
 		dryRun: false,
 		abridged: false,
-		region,
 	};
 	//send to mixpanel
 	if (token) {
@@ -331,7 +348,7 @@ function makeEvent(distinct_id, earliestTime, events, superProps, groupKeys, isF
 	const event = {
 		event: chosenEvent.event,
 		distinct_id,
-		$source: "AK's fake data generator",
+		$source: "AKsTimeSoup",
 	};
 
 	if (isFirstEvent) event.time = earliestTime;
@@ -392,7 +409,7 @@ function buildFileNames(config) {
 }
 
 /**
- * timestamp generator with a twist
+ * essentially, a timestamp generator with a twist
  * @param {number} earliestTime - The earliest timestamp in Unix format.
  * @param {number} latestTime - The latest timestamp in Unix format.
  * @param {Array} peakDays - Array of Unix timestamps representing the start of peak days.

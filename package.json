@@ -1,13 +1,15 @@
 {
   "name": "make-mp-data",
-  "version": "1.0.15",
+  "version": "1.0.16",
   "description": "builds all mixpanel primitives for a given project",
   "main": "index.js",
+  "types": "types.d.ts",
   "scripts": {
     "start": "node index.js",
     "prune": "rm ./data/*",
 	"go": "sh ./go.sh",
-	"post": "npm publish"
+	"post": "npm publish",
+	"test": "jest"
   },
   "repository": {
     "type": "git",

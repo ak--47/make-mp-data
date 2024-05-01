@@ -1,5 +1,8 @@
 {
 	"cSpell.words": [
 		"unparse"
-	]
+	],
+	"jest.runMode": "on-demand",
+	"jest.jestCommandLine": "npm run test --",
+	"js/ts.implicitProjectConfig.checkJs": false,
 }

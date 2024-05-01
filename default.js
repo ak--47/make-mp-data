@@ -1,6 +1,6 @@
 const Chance = require('chance');
 const chance = new Chance();
-const { weightedRange, makeProducts, date } = require('./utils.js');
+const { weightedRange, makeProducts, date, generateEmoji } = require('./utils.js');
 
 const config = {
 	token: "",
@@ -36,7 +36,8 @@ const config = {
 			"event": "page view",
 			"weight": 10,
 			"properties": {
-				path: ["/", "/", "/help", "/account", "/watch", "/listen", "/product", "/people", "/peace"],
+				page: ["/", "/", "/help", "/account", "/watch", "/listen", "/product", "/people", "/peace"],
+				utm_source: ["$organic", "$organic", "$organic", "$organic", "google", "google", "google", "facebook", "facebook", "twitter", "linkedin"],
 			}
 		},
 		{
@@ -66,7 +67,8 @@ const config = {
 		}
 	],
 	superProps: {
-		platform: ["web", "mobile", "kiosk"],
+		platform: ["web", "mobile", "web", "mobile", "web", "kiosk"],
+		emotions: generateEmoji(),
 
 	},
 	/*
@@ -76,17 +78,16 @@ const config = {
 	userProps: {
 		title: chance.profession.bind(chance),
 		luckyNumber: weightedRange(42, 420),
-		servicesUsed: [["foo"], ["foo", "bar"], ["foo", "bar", "baz"], ["foo", "bar", "baz", "qux"], ["baz", "qux"], ["qux"]],
+		vibe: generateEmoji(),		
 		spiritAnimal: chance.animal.bind(chance)
 	},
 
 	scdProps: {
-		plan: ["free", "free", "free", "basic", "basic", "premium", "enterprise"],
+		plan: ["free", "free", "free", "free", "basic", "basic", "basic", "premium", "premium", "enterprise"],
 		MRR: weightedRange(0, 10000, 1000, .15),
 		NPS: weightedRange(0, 10, 150, 2),
 		marketingOptIn: [true, true, false],
 		dateOfRenewal: date(100, false),
-
 	},
 
 	/*

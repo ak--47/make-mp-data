@@ -25,38 +25,45 @@ DOCS: https://github.com/ak--47/make-mp-data`)
 		.command('$0', 'model mixpanel data', () => { })
 		.option("token", {
 			demandOption: false,
+			alias: 't',
 			describe: 'project token; if supplied data will be sent to mixpanel',
 			type: 'string'
 		})
 		.option("seed", {
-			demandOption: false,
+			demandOption: false,			
+			alias: 's',
 			describe: 'randomness seed; used to create distinct_ids',
 			type: 'string'
 		})
 		.option("format", {
 			demandOption: false,
 			default: 'csv',
+			alias: 'f',
 			describe: 'csv or json',
 			type: 'string'
 		})
 		.option("numDays", {
 			demandOption: false,
+			alias: 'd',
 			describe: 'number of days in past to model',
 			type: 'number',
 		})
 		.option("numUsers", {
 			demandOption: false,
+			alias: 'u',
 			describe: 'number of users to model',
 			type: 'number',
 		})
 		.option("numEvents", {
 			demandOption: false,
+			alias: 'e',
 			describe: 'number of events to model',
 			type: 'number',
 		})
 		.option("region", {
 			demandOption: false,
 			default: 'US',
+			alias: 'r',
 			describe: 'either US or EU',
 			type: 'string'
 		})
