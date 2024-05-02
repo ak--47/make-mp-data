@@ -90,7 +90,7 @@ const config = {
 	],
 	superProps: {
 		platform: ["web", "mobile", "web", "mobile", "web", "kiosk", "smartTV"],
-		emotions: generateEmoji(),
+		// emotions: generateEmoji(),
 
 	},
 	/*
@@ -100,7 +100,7 @@ const config = {
 	userProps: {
 		title: chance.profession.bind(chance),
 		luckyNumber: weightedRange(42, 420),
-		vibe: generateEmoji(),
+		// vibe: generateEmoji(),
 		spiritAnimal: chance.animal.bind(chance)
 	},
 
