@@ -269,6 +269,9 @@ async function main(config) {
 			console.log(`importing events to mixpanel...`);
 			const imported = await mp(creds, eventData, {
 				recordType: "event",
+				fixData: true,
+				fixJson: true,
+				strict: false,
 				...importOpts,
 			});
 			console.log(`\tsent ${comma(imported.success)} events\n`);
@@ -351,7 +354,7 @@ function makeEvent(distinct_id, earliestTime, events, superProps, groupKeys, isF
 		$source: "AKsTimeSoup",
 	};
 
-	if (isFirstEvent) event.time = earliestTime;
+	if (isFirstEvent) event.time = dayjs.unix(earliestTime).toISOString();
 	if (!isFirstEvent) event.time = AKsTimeSoup(earliestTime, NOW, PEAK_DAYS);
 
 	const props = { ...chosenEvent.properties, ...superProps };
@@ -449,8 +452,8 @@ function AKsTimeSoup(earliestTime, latestTime = NOW, peakDays = PEAK_DAYS) {
 
 	// usually, ensure the event time is within business hours
 	if (chance.bool({ likelihood: 42 })) eventTime = Math.min(Math.max(eventTime, businessStart), businessEnd);
-
-	return eventTime;
+	
+	return dayjs.unix(eventTime).toISOString();
 }
 
 
