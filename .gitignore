@@ -3,5 +3,5 @@ node_modules
 examples/*
 data/*
 !data/.gitkeep
-go.sh
 .DS_Store
+.env

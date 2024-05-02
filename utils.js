@@ -1,7 +1,7 @@
 const Chance = require('chance');
 const chance = new Chance();
 const readline = require('readline');
-const { comma } = require('ak-tools');
+const { comma, uid } = require('ak-tools');
 const { spawn } = require('child_process');
 const dayjs = require('dayjs');
 const utc = require('dayjs/plugin/utc');
@@ -111,6 +111,30 @@ function integer(min, max) {
 	return 0;
 }
 
+function makeHashTags() {
+	const popularHashtags = [
+		'#GalacticAdventures',
+		'#EnchantedExplorations',
+		'#MagicalMoments',
+		'#EpicQuests',
+		'#WonderfulWorlds',
+		'#FantasyFrenzy',
+		'#MysticalMayhem',
+		'#MythicalMarvels',
+		'#LegendaryLegends',
+		'#DreamlandDiaries',
+		'#WhimsicalWonders',
+		'#FabledFables'
+	];
+
+	const numHashtags = integer(integer(1, 5), integer(5, 10));
+	const hashtags = [];
+	for (let i = 0; i < numHashtags; i++) {
+		hashtags.push(chance.pickone(popularHashtags));
+	}
+	return hashtags;
+}
+
 function makeProducts() {
 	let categories = ["Device Accessories", "eBooks", "Automotive", "Baby Products", "Beauty", "Books", "Camera & Photo", "Cell Phones & Accessories", "Collectible Coins", "Consumer Electronics", "Entertainment Collectibles", "Fine Art", "Grocery & Gourmet Food", "Health & Personal Care", "Home & Garden", "Independent Design", "Industrial & Scientific", "Accessories", "Major Appliances", "Music", "Musical Instruments", "Office Products", "Outdoors", "Personal Computers", "Pet Supplies", "Software", "Sports", "Sports Collectibles", "Tools & Home Improvement", "Toys & Games", "Video, DVD & Blu-ray", "Video Games", "Watches"];
 	let slugs = ['/sale/', '/featured/', '/home/', '/search/', '/wishlist/', '/'];
@@ -207,12 +231,18 @@ function person(bornDaysAgo = 30) {
 	const avPath = gender === 'male' ? `/men/${randomAvatarNumber}.jpg` : `/women/${randomAvatarNumber}.jpg`;
 	const $avatar = avatarPrefix + avPath;
 	const $created = date(bornDaysAgo, true, null)();
+	const anonymousIds = [];
+	const clusterSize = integer(2, 10);
+	for (let i = 0; i < clusterSize; i++) {
+		anonymousIds.push(uid(42));
+	}
 
 	return {
 		$name,
 		$email,
 		$avatar,
-		$created
+		$created,
+		anonymousIds
 	};
 }
 
@@ -255,7 +285,75 @@ function generateEmoji(max = 10, array = false) {
 		}
 		if (array) return arr;
 		if (!array) return arr.join(', ');
+		return "🤷";
 	};
+}
+
+function generateName() {
+	var adjs = [
+		"autumn", "hidden", "bitter", "misty", "silent", "empty", "dry", "dark",
+		"summer", "icy", "delicate", "quiet", "white", "cool", "spring", "winter",
+		"patient", "twilight", "dawn", "crimson", "wispy", "weathered", "blue",
+		"billowing", "broken", "cold", "damp", "falling", "frosty", "green",
+		"long", "late", "lingering", "bold", "little", "morning", "muddy", "old",
+		"red", "rough", "still", "small", "sparkling", "throbbing", "shy",
+		"wandering", "withered", "wild", "black", "young", "holy", "solitary",
+		"fragrant", "aged", "snowy", "proud", "floral", "restless", "divine",
+		"polished", "ancient", "purple", "lively", "nameless", "gentle", "gleaming", "furious", "luminous", "obscure", "poised", "shimmering", "swirling",
+		"sombre", "steamy", "whispering", "jagged", "melodic", "moonlit", "starry", "forgotten",
+		"peaceful", "restive", "rustling", "sacred", "ancient", "haunting", "solitary", "mysterious",
+		"silver", "dusky", "earthy", "golden", "hallowed", "misty", "roaring", "serene", "vibrant",
+		"stalwart", "whimsical", "timid", "tranquil", "vast", "youthful", "zephyr", "raging",
+		"sapphire", "turbulent", "whirling", "sleepy", "ethereal", "tender", "unseen", "wistful"
+	];
+
+	var nouns = [
+		"waterfall", "river", "breeze", "moon", "rain", "wind", "sea", "morning",
+		"snow", "lake", "sunset", "pine", "shadow", "leaf", "dawn", "glitter",
+		"forest", "hill", "cloud", "meadow", "sun", "glade", "bird", "brook",
+		"butterfly", "bush", "dew", "dust", "field", "fire", "flower", "firefly",
+		"feather", "grass", "haze", "mountain", "night", "pond", "darkness",
+		"snowflake", "silence", "sound", "sky", "shape", "surf", "thunder",
+		"violet", "water", "wildflower", "wave", "water", "resonance", "sun",
+		"wood", "dream", "cherry", "tree", "fog", "frost", "voice", "paper",
+		"frog", "smoke", "star", "glow", "wave", "riverbed", "cliff", "deluge", "prairie", "creek", "ocean",
+		"peak", "valley", "starlight", "quartz", "woodland", "marsh", "earth", "canopy",
+		"petal", "stone", "orb", "gale", "bay", "canyon", "watercourse", "vista", "raindrop",
+		"boulder", "grove", "plateau", "sand", "mist", "tide", "blossom", "leaf", "flame",
+		"shade", "coil", "grotto", "pinnacle", "scallop", "serenity", "abyss", "skyline",
+		"drift", "echo", "nebula", "horizon", "crest", "wreath", "twilight", "balm", "glimmer"
+	];
+
+	var verbs = [
+		"dancing", "whispering", "flowing", "shimmering", "swirling", "echoing", "sparkling", "glistening",
+		"cascading", "drifting", "glowing", "rippling", "quivering", "singing", "twinkling", "radiating",
+		"enveloping", "enchanting", "captivating", "embracing", "embracing", "illuminating", "pulsating", "gliding",
+		"soaring", "wandering", "meandering", "dazzling", "cuddling", "embracing", "caressing", "twisting",
+		"twirling", "tumbling", "surging", "glimmering", "gushing", "splashing", "rolling", "splintering",
+		"splintering", "crescendoing", "whirling", "bursting", "shining", "gushing", "emerging", "revealing",
+		"emerging", "unfolding", "unveiling", "emerging", "surrounding", "unveiling", "materializing", "revealing"
+	];
+	
+	var adverbs = [
+		"gracefully", "softly", "smoothly", "gently", "tenderly", "quietly", "serenely", "peacefully",
+		"delicately", "effortlessly", "subtly", "tranquilly", "majestically", "silently", "calmly", "harmoniously",
+		"elegantly", "luminously", "ethereally", "mysteriously", "sublimely", "radiantly", "dreamily", "ethereally",
+		"mesmerizingly", "hypnotically", "mystically", "enigmatically", "spellbindingly", "enchantingly", "fascinatingly",
+		"bewitchingly", "captivatingly", "entrancingly", "alluringly", "rapturously", "seductively", "charismatically",
+		"seductively", "envelopingly", "ensnaringly", "entrancingly", "intoxicatingly", "irresistibly", "transcendentally",
+		"envelopingly", "rapturously", "intimately", "intensely", "tangibly", "vividly", "intensely", "deeply"
+	];
+	
+
+	// ? http://stackoverflow.com/a/17516862/103058
+	var adj = adjs[Math.floor(Math.random() * adjs.length)]; 
+	var noun = nouns[Math.floor(Math.random() * nouns.length)];
+	var verb = verbs[Math.floor(Math.random() * verbs.length)];
+	var adverb = adverbs[Math.floor(Math.random() * adverbs.length)];
+	
+	
+	return adj + '-' + noun + '-' + verb + '-' + adverb
+
 }
 
 module.exports = {
@@ -274,5 +372,7 @@ module.exports = {
 	applySkew,
 	boxMullerRandom,
 	generateEmoji,
-	getUniqueKeys
+	getUniqueKeys,
+	makeHashTags,
+	generateName,
 };

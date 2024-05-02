@@ -18,10 +18,13 @@ function cliParams() {
 		.scriptName("make-mp-data")
 		.usage(`\nusage:\nnpx $0 [dataModel.js] [options]
 ex:
-npx $0 --token 1234 --events 1000000
-npx $0 myDataOutline.js --token 1234 --days 90
+npx $0
+npx $0 --token 1234 --u 100 --e 1000 --d 7 --w false
+npx $0 myDataConfig.js
 
-DOCS: https://github.com/ak--47/make-mp-data`)
+DOCS: https://github.com/ak--47/make-mp-data
+DATA MODEL: https://github.com/ak--47/make-mp-data/blob/main/default.js
+`)
 		.command('$0', 'model mixpanel data', () => { })
 		.option("token", {
 			demandOption: false,

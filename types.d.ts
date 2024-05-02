@@ -1,5 +1,7 @@
 // types.d.ts
-import { Chance } from "chance";
+
+type primitives = string | number | boolean | Date | Object;
+type valueValid = primitives | primitives[] | (() => primitives | primitives[]);
 
 export interface Config {
   token?: string;
@@ -10,44 +12,34 @@ export interface Config {
   format?: "csv" | "json";
   region?: string;
   events?: EventConfig[];
-  superProps?: Record<string, string[]>; // Flexible for any string keys
-  userProps?: Record<string, any>; // Could be more specific based on actual usage
-  scdProps?: {
-    plan?: string[];
-    MRR?: number;
-    NPS?: number;
-    marketingOptIn?: boolean[];
-    dateOfRenewal?: Date;
-  };
+  superProps?: Record<string, valueValid>; 
+  userProps?: Record<string, valueValid>; 
+  scdProps?: Record<string, valueValid>;
   groupKeys?: [string, number][];
   groupProps?: Record<string, GroupProperty>; // Adjust according to usage
   lookupTables?: LookupTable[];
   writeToDisk?: boolean;
+  simulationName?: string;
+  verbose?: boolean;
 }
 
 interface EventConfig {
   event?: string;
   weight?: number;
   properties?: {
-    [key: string]: any; // Consider refining based on actual properties used
+    [key: string]: valueValid; // Consider refining based on actual properties used
   };
   isFirstEvent?: boolean;
 }
 
 interface GroupProperty {
-  [key?: string]: any;
+  [key?: string]: valueValid;
 }
 
 interface LookupTable {
-  key?: string;
-  entries?: number;
-  attributes?: {
-    category?: string[];
-    demand?: string[];
-    supply?: string[];
-    manufacturer?: () => string;
-    price?: number;
-    rating?: number;
-    reviews?: number;
+  key: string;
+  entries: number;
+  attributes: {
+    [key?: string]: valueValid;
   };
 }

@@ -35,11 +35,15 @@ const dayjs = require("dayjs");
 const utc = require("dayjs/plugin/utc");
 dayjs.extend(utc);
 const cliParams = require("./cli.js");
-// @ts-ignore
+const { makeName } = require('ak-tools');
+
 Array.prototype.pickOne = pick;
 const NOW = dayjs().unix();
+let VERBOSE = false;
 
 /** @typedef {import('./types.d.ts').Config} Config */
+/** @typedef {import('./types.d.ts').EventConfig} EventConfig */
+
 
 const PEAK_DAYS = [
 	dayjs().subtract(2, "day").unix(),
@@ -78,18 +82,10 @@ async function main(config) {
 		token = null,
 		region = "US",
 		writeToDisk = false,
+		verbose = false,
 	} = config;
-
-	//ensure we have a token or are writing to disk
-	if (require.main === module) {
-		if (!token) {
-			if (!writeToDisk) {
-				writeToDisk = true;
-				config.writeToDisk = true;
-			}
-		}
-	}
-
+	VERBOSE = verbose;
+	config.simulationName = makeName();
 	const uuidChance = new Chance(seed);
 
 	//the function which generates $distinct_id + $created, skewing towards the present
@@ -115,10 +111,12 @@ async function main(config) {
 		.reduce((acc, event) => {
 			const weight = event.weight || 1;
 			for (let i = 0; i < weight; i++) {
+				
 				acc.push(event);
 			}
 			return acc;
 		}, [])
+		
 		.filter((e) => !e.isFirstEvent);
 
 	const firstEvents = events.filter((e) => e.isFirstEvent);
@@ -133,18 +131,19 @@ async function main(config) {
 	for (let i = 1; i < numUsers + 1; i++) {
 		progress("users", i);
 		const user = uuid();
-		const { distinct_id, $created } = user;
+		const { distinct_id, $created, anonymousIds } = user;
 		userProfilesData.push(makeProfile(userProps, user));
-		const mutations = chance.integer({ min: 1, max: 20 });
+		const mutations = chance.integer({ min: 1, max: 10 });
 		scdTableData.push(makeSCD(scdProps, distinct_id, mutations, $created));
 		const numEventsThisUser = Math.round(
-			chance.normal({ mean: avgEvPerUser, dev: avgEvPerUser / 4 })
+			chance.normal({ mean: avgEvPerUser, dev: avgEvPerUser / integer(3, 7) })
 		);
 
 		if (firstEvents.length) {
 			eventData.push(
 				makeEvent(
 					distinct_id,
+					anonymousIds,
 					dayjs($created).unix(),
 					firstEvents,
 					superProps,
@@ -159,6 +158,7 @@ async function main(config) {
 			eventData.push(
 				makeEvent(
 					distinct_id,
+					anonymousIds,
 					dayjs($created).unix(),
 					weightedEvents,
 					superProps,
@@ -170,7 +170,7 @@ async function main(config) {
 	//flatten SCD
 	scdTableData = scdTableData.flat();
 
-	console.log("\n");
+	log("\n");
 
 	// make group profiles
 	for (const groupPair of groupKeys) {
@@ -188,7 +188,7 @@ async function main(config) {
 		}
 		groupProfilesData.push({ key: groupKey, data: groupProfiles });
 	}
-	console.log("\n");
+	log("\n");
 
 	// make lookup tables
 	for (const lookupTable of lookupTables) {
@@ -213,7 +213,7 @@ async function main(config) {
 		[groupFiles, groupProfilesData],
 		[lookupFiles, lookupTableData],
 	];
-	console.log("\n");
+	log("\n");
 
 	if (!writeToDisk && !token)
 		return {
@@ -224,82 +224,89 @@ async function main(config) {
 			lookupTableData,
 		};
 	//write the files
-	for (const pair of pairs) {
-		const [paths, data] = pair;
-		for (const path of paths) {
-			let datasetsToWrite;
-			if (data?.[0]?.["key"]) datasetsToWrite = data.map((d) => d.data);
-			else datasetsToWrite = [data];
-			for (const writeData of datasetsToWrite) {
-				if (format === "csv") {
-					console.log(`writing ${path}`);
-					const columns = getUniqueKeys(writeData);
-					//papa parse needs nested JSON stringified
-					writeData.forEach((e) => {
-						for (const key in e) {
-							if (typeof e[key] === "object") e[key] = JSON.stringify(e[key]);
-						}
-					})
-					const csv = Papa.unparse(writeData, { columns });
-					await touch(path, csv);
-					console.log(`\tdone\n`);
-				} else {
-					await touch(path, data, true);
+	if (writeToDisk) {
+		if (verbose) log(`writing files... for ${config.simulationName}`);
+		for (const pair of pairs) {
+			const [paths, data] = pair;
+			for (const path of paths) {
+				let datasetsToWrite;
+				if (data?.[0]?.["key"]) datasetsToWrite = data.map((d) => d.data);
+				else datasetsToWrite = [data];
+				for (const writeData of datasetsToWrite) {
+					if (format === "csv") {
+						log(`writing ${path}`);
+						const columns = getUniqueKeys(writeData);
+						//papa parse needs nested JSON stringified
+						writeData.forEach((e) => {
+							for (const key in e) {
+								if (typeof e[key] === "object") e[key] = JSON.stringify(e[key]);
+							}
+						});
+						const csv = Papa.unparse(writeData, { columns });
+						await touch(path, csv);
+						log(`\tdone\n`);
+					} else {
+						await touch(path, data, true);
+					}
 				}
 			}
 		}
 	}
 
 	const importResults = { events: {}, users: {}, groups: [] };
-	/** @type {import('mixpanel-import').Creds} */
-	const creds = { token };
-	/** @type {import('mixpanel-import').Options} */
-	const importOpts = {
-		region,
-		fixData: true,
-		verbose: false,
-		forceStream: true,
-		strict: false,
-		dryRun: false,
-		abridged: false,
-	};
+
 	//send to mixpanel
 	if (token) {
+		/** @type {import('mixpanel-import').Creds} */
+		const creds = { token };
+		/** @type {import('mixpanel-import').Options} */
+		const commonOpts = {
+			
+			region,
+			fixData: true,
+			verbose: false,
+			forceStream: true,
+			strict: false,
+			dryRun: false,
+			abridged: false,
+		};
+
 		if (eventData) {
-			console.log(`importing events to mixpanel...`);
+			log(`importing events to mixpanel...`);
 			const imported = await mp(creds, eventData, {
 				recordType: "event",
 				fixData: true,
 				fixJson: true,
 				strict: false,
-				...importOpts,
+				...commonOpts,
 			});
-			console.log(`\tsent ${comma(imported.success)} events\n`);
+			log(`\tsent ${comma(imported.success)} events\n`);
 			importResults.events = imported;
 		}
 		if (userProfilesData) {
-			console.log(`importing user profiles to mixpanel...`);
+			log(`importing user profiles to mixpanel...`);
 			const imported = await mp(creds, userProfilesData, {
 				recordType: "user",
-				...importOpts,
+				...commonOpts,
 			});
-			console.log(`\tsent ${comma(imported.success)} user profiles\n`);
+			log(`\tsent ${comma(imported.success)} user profiles\n`);
 			importResults.users = imported;
 		}
 		if (groupProfilesData) {
 			for (const groupProfiles of groupProfilesData) {
 				const groupKey = groupProfiles.key;
 				const data = groupProfiles.data;
-				console.log(`importing ${groupKey} profiles to mixpanel...`);
+				log(`importing ${groupKey} profiles to mixpanel...`);
 				const imported = await mp({ token, groupKey }, data, {
 					recordType: "group",
-					...importOpts,
+					...commonOpts,
 				});
-				console.log(`\tsent ${comma(imported.success)} ${groupKey} profiles\n`);
+				log(`\tsent ${comma(imported.success)} ${groupKey} profiles\n`);
+				
 				importResults.groups.push(imported);
 			}
 		}
-		console.log(`\n\n`);
+		log(`\n\n`);
 	}
 	return {
 		import: importResults,
@@ -344,18 +351,32 @@ function makeSCD(props, distinct_id, mutations, $created) {
 	return scdEntries;
 }
 
-function makeEvent(distinct_id, earliestTime, events, superProps, groupKeys, isFirstEvent = false) {
+/**
+ * creates a random event
+ * @param  {string} distinct_id
+ * @param  {string[]} anonymousIds
+ * @param  {number} earliestTime
+ * @param  {Object[]} events
+ * @param  {Object} superProps
+ * @param  {Object} groupKeys
+ * @param  {Boolean} isFirstEvent=false
+ */
+function makeEvent(distinct_id, anonymousIds, earliestTime, events, superProps, groupKeys, isFirstEvent = false) {
+	
 	let chosenEvent = events.pickOne();
 	if (typeof chosenEvent === "string")
 		chosenEvent = { event: chosenEvent, properties: {} };
 	const event = {
 		event: chosenEvent.event,
-		distinct_id,
+		$device_id: chance.pickone(anonymousIds), // always have a $device_id		
 		$source: "AKsTimeSoup",
 	};
 
 	if (isFirstEvent) event.time = dayjs.unix(earliestTime).toISOString();
 	if (!isFirstEvent) event.time = AKsTimeSoup(earliestTime, NOW, PEAK_DAYS);
+
+	//sometimes have a $user_id
+	if (!isFirstEvent && chance.bool({ likelihood: 42 })) event.$user_id = distinct_id;
 
 	const props = { ...chosenEvent.properties, ...superProps };
 
@@ -364,6 +385,7 @@ function makeEvent(distinct_id, earliestTime, events, superProps, groupKeys, isF
 		try {
 			event[key] = choose(props[key]);
 		} catch (e) {
+			console.error(`error with ${key} in ${chosenEvent.event} event`, e);
 			debugger;
 		}
 	}
@@ -372,6 +394,7 @@ function makeEvent(distinct_id, earliestTime, events, superProps, groupKeys, isF
 	for (const groupPair of groupKeys) {
 		const groupKey = groupPair[0];
 		const groupCardinality = groupPair[1];
+		
 		event[groupKey] = weightedRange(1, groupCardinality).pickOne();
 	}
 
@@ -381,14 +404,15 @@ function makeEvent(distinct_id, earliestTime, events, superProps, groupKeys, isF
 function buildFileNames(config) {
 	const { format = "csv", groupKeys = [], lookupTables = [] } = config;
 	const extension = format === "csv" ? "csv" : "json";
-	const current = dayjs.utc().format("MM-DD-HH");
+	// const current = dayjs.utc().format("MM-DD-HH");
+	const simName = config.simulationName;
 	let writeDir = "./";
 	if (config.writeToDisk) writeDir = mkdir("./data");
 
 	const writePaths = {
-		eventFiles: [path.join(writeDir, `events-${current}.${extension}`)],
-		userFiles: [path.join(writeDir, `users-${current}.${extension}`)],
-		scdFiles: [path.join(writeDir, `scd-${current}.${extension}`)],
+		eventFiles: [path.join(writeDir, `events-${simName}.${extension}`)],
+		userFiles: [path.join(writeDir, `users-${simName}.${extension}`)],
+		scdFiles: [path.join(writeDir, `scd-${simName}.${extension}`)],
 		groupFiles: [],
 		lookupFiles: [],
 		folder: writeDir,
@@ -397,14 +421,14 @@ function buildFileNames(config) {
 	for (const groupPair of groupKeys) {
 		const groupKey = groupPair[0];
 		writePaths.groupFiles.push(
-			path.join(writeDir, `group-${groupKey}-${current}.${extension}`)
+			path.join(writeDir, `group-${groupKey}-${simName}.${extension}`)
 		);
 	}
 
 	for (const lookupTable of lookupTables) {
 		const { key } = lookupTable;
 		writePaths.lookupFiles.push(
-			path.join(writeDir, `lookup-${key}-${current}.${extension}`)
+			path.join(writeDir, `lookup-${key}-${simName}.${extension}`)
 		);
 	}
 
@@ -452,7 +476,7 @@ function AKsTimeSoup(earliestTime, latestTime = NOW, peakDays = PEAK_DAYS) {
 
 	// usually, ensure the event time is within business hours
 	if (chance.bool({ likelihood: 42 })) eventTime = Math.min(Math.max(eventTime, businessStart), businessEnd);
-	
+
 	return dayjs.unix(eventTime).toISOString();
 }
 
@@ -467,10 +491,10 @@ if (require.main === module) {
 	//if the user specifics an separate config file
 	let config = null;
 	if (suppliedConfig) {
-		console.log(`using ${suppliedConfig} for data\n`);
+		log(`using ${suppliedConfig} for data\n`);
 		config = require(path.resolve(suppliedConfig));
 	} else {
-		console.log(`... using default configuration ...\n`);
+		log(`... using default configuration ...\n`);
 		config = require("./default.js");
 	}
 
@@ -483,13 +507,15 @@ if (require.main === module) {
 	if (numEvents) config.numEvents = numEvents;
 	if (region) config.region = region;
 	if (writeToDisk) config.writeToDisk = writeToDisk;
+	if (writeToDisk === 'false') config.writeToDisk = false;
+	config.verbose = true;
 
 	main(config)
 		.then((data) => {
-			console.log(`------------------SUMMARY------------------`);
+			log(`------------------SUMMARY------------------`);
 			const { events, groups, users } = data.import;
 			const files = data.files;
-			const folder = files.pop();
+			const folder = files?.pop();
 			const groupBytes = groups.reduce((acc, group) => {
 				return acc + group.bytes;
 			}, 0);
@@ -504,18 +530,18 @@ if (require.main === module) {
 				bytes: bytesHuman(bytes || 0),
 			};
 			if (bytes > 0) console.table(stats);
-			console.log(`\nfiles written to ${folder}...`);
-			console.log("\t" + files.flat().join("\n\t"));
-			console.log(`\n------------------SUMMARY------------------\n\n\n`);
+			log(`\nfiles written to ${folder}...`);
+			log("\t" + files?.flat().join("\n\t"));
+			log(`\n------------------SUMMARY------------------\n\n\n`);
 		})
 		.catch((e) => {
-			console.log(`------------------ERROR------------------`);
+			log(`------------------ERROR------------------`);
 			console.error(e);
-			console.log(`------------------ERROR------------------`);
+			log(`------------------ERROR------------------`);
 			debugger;
 		})
 		.finally(() => {
-			console.log("have a wonderful day :)");
+			log("have a wonderful day :)");
 			openFinder(path.resolve("./data"));
 		});
 } else {
@@ -534,4 +560,9 @@ if (require.main === module) {
 		exhaust,
 		openFinder,
 	};
+}
+
+
+function log(...args) {
+	if (VERBOSE) console.log(...args);
 }

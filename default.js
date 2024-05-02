@@ -1,7 +1,16 @@
+/**
+ * This is the default configuration file for the data generator
+ * notice how the config object is structured, and see it's type definition in ./types.d.ts
+ * feel free to modify this file to customize the data you generate
+ * see helper functions in utils.js for more ways to generate data
+ */
+
+
 const Chance = require('chance');
 const chance = new Chance();
-const { weightedRange, makeProducts, date, generateEmoji } = require('./utils.js');
+const { weightedRange, makeProducts, date, generateEmoji, makeHashTags } = require('./utils.js');
 
+/** @type {import('./types.d.ts').Config} */
 const config = {
 	token: "",
 	seed: "foo bar baz",
@@ -41,6 +50,19 @@ const config = {
 			}
 		},
 		{
+			"event": "watch video",
+			"weight": 8,
+			"properties": {
+				category: ["funny", "educational", "inspirational", "music", "news", "sports", "cooking", "DIY", "travel", "gaming"],
+				hashTags: makeHashTags,
+				watchTimeSec: weightedRange(10, 600, 1000, .25),
+				quality: ["2160p", "1440p", "1080p", "720p", "480p", "360p", "240p"],
+				format: ["mp4", "avi", "mov", "mpg"],
+				uploader_id: chance.guid.bind(chance)
+
+			}
+		},
+		{
 			"event": "view item",
 			"weight": 8,
 			"properties": {
@@ -67,7 +89,7 @@ const config = {
 		}
 	],
 	superProps: {
-		platform: ["web", "mobile", "web", "mobile", "web", "kiosk"],
+		platform: ["web", "mobile", "web", "mobile", "web", "kiosk", "smartTV"],
 		emotions: generateEmoji(),
 
 	},
@@ -78,7 +100,7 @@ const config = {
 	userProps: {
 		title: chance.profession.bind(chance),
 		luckyNumber: weightedRange(42, 420),
-		vibe: generateEmoji(),		
+		vibe: generateEmoji(),
 		spiritAnimal: chance.animal.bind(chance)
 	},
 
@@ -101,7 +123,7 @@ const config = {
 	groupProps: {
 		company_id: {
 			$name: () => { return chance.company(); },
-			$email: () => { return `CSM ${chance.pickone(["AK", "Jessica", "Michelle", "Dana", "Brian", "Dave"])}`; },
+			$email: () => { return `CSM: ${chance.pickone(["AK", "Jessica", "Michelle", "Dana", "Brian", "Dave"])}`; },
 			"# of employees": weightedRange(3, 10000),
 			"sector": ["tech", "finance", "healthcare", "education", "government", "non-profit"],
 			"segment": ["enterprise", "SMB", "mid-market"],
