@@ -255,7 +255,7 @@ async function main(config) {
 						log(`\tdone\n`);
 					} else {
 						const ndjson = data.map((d) => JSON.stringify(d)).join("\n");
-						await touch(path, ndjson, true);
+						await touch(path, ndjson, false);
 					}
 				}
 			}
