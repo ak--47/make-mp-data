@@ -87,6 +87,11 @@ async function main(config) {
 	VERBOSE = verbose;
 	config.simulationName = makeName();
 	const uuidChance = new Chance(seed);
+	log(`------------------SETUP------------------`);
+	log(`\nyour data simulation will heretofore be known as: \n\n\t${config.simulationName.toUpperCase()}...\n`);
+	log(`and your configuration is:\n`, JSON.stringify({ seed, numEvents, numUsers, numDays, format, token, region, writeToDisk }, null, 2));
+	log(`------------------SETUP------------------`, "\n");
+
 
 	//the function which generates $distinct_id + $created, skewing towards the present
 	function uuid() {
@@ -111,12 +116,12 @@ async function main(config) {
 		.reduce((acc, event) => {
 			const weight = event.weight || 1;
 			for (let i = 0; i < weight; i++) {
-				
+
 				acc.push(event);
 			}
 			return acc;
 		}, [])
-		
+
 		.filter((e) => !e.isFirstEvent);
 
 	const firstEvents = events.filter((e) => e.isFirstEvent);
@@ -128,6 +133,7 @@ async function main(config) {
 	const avgEvPerUser = Math.floor(numEvents / numUsers);
 
 	//user loop
+	log(`---------------SIMULATION----------------`, `\n\n`);
 	for (let i = 1; i < numUsers + 1; i++) {
 		progress("users", i);
 		const user = uuid();
@@ -213,9 +219,9 @@ async function main(config) {
 		[groupFiles, groupProfilesData],
 		[lookupFiles, lookupTableData],
 	];
-	log("\n");
-
-	if (!writeToDisk && !token)
+	log("\n", `---------------SIMULATION----------------`, "\n");
+	
+	if (!writeToDisk && !token) {
 		return {
 			eventData,
 			userProfilesData,
@@ -223,6 +229,8 @@ async function main(config) {
 			groupProfilesData,
 			lookupTableData,
 		};
+	}
+	log(`-----------------WRITES------------------`, `\n\n`);
 	//write the files
 	if (writeToDisk) {
 		if (verbose) log(`writing files... for ${config.simulationName}`);
@@ -246,7 +254,8 @@ async function main(config) {
 						await touch(path, csv);
 						log(`\tdone\n`);
 					} else {
-						await touch(path, data, true);
+						const ndjson = data.map((d) => JSON.stringify(d)).join("\n");
+						await touch(path, ndjson, true);
 					}
 				}
 			}
@@ -261,7 +270,7 @@ async function main(config) {
 		const creds = { token };
 		/** @type {import('mixpanel-import').Options} */
 		const commonOpts = {
-			
+
 			region,
 			fixData: true,
 			verbose: false,
@@ -302,12 +311,13 @@ async function main(config) {
 					...commonOpts,
 				});
 				log(`\tsent ${comma(imported.success)} ${groupKey} profiles\n`);
-				
+
 				importResults.groups.push(imported);
 			}
 		}
-		log(`\n\n`);
+
 	}
+	log(`-----------------WRITES------------------`, "\n");
 	return {
 		import: importResults,
 		files: [eventFiles, userFiles, scdFiles, groupFiles, lookupFiles, folder],
@@ -362,7 +372,7 @@ function makeSCD(props, distinct_id, mutations, $created) {
  * @param  {Boolean} isFirstEvent=false
  */
 function makeEvent(distinct_id, anonymousIds, earliestTime, events, superProps, groupKeys, isFirstEvent = false) {
-	
+
 	let chosenEvent = events.pickOne();
 	if (typeof chosenEvent === "string")
 		chosenEvent = { event: chosenEvent, properties: {} };
@@ -394,7 +404,7 @@ function makeEvent(distinct_id, anonymousIds, earliestTime, events, superProps, 
 	for (const groupPair of groupKeys) {
 		const groupKey = groupPair[0];
 		const groupCardinality = groupPair[1];
-		
+
 		event[groupKey] = weightedRange(1, groupCardinality).pickOne();
 	}
 
@@ -512,7 +522,7 @@ if (require.main === module) {
 
 	main(config)
 		.then((data) => {
-			log(`------------------SUMMARY------------------`);
+			log(`-----------------SUMMARY-----------------`);
 			const { events, groups, users } = data.import;
 			const files = data.files;
 			const folder = files?.pop();
@@ -530,9 +540,9 @@ if (require.main === module) {
 				bytes: bytesHuman(bytes || 0),
 			};
 			if (bytes > 0) console.table(stats);
-			log(`\nfiles written to ${folder}...`);
-			log("\t" + files?.flat().join("\n\t"));
-			log(`\n------------------SUMMARY------------------\n\n\n`);
+			log(`\nfiles written to ${folder} ...`);
+			log("  " + files?.flat().join("\n  "));
+			log(`\n----------------SUMMARY-----------------\n\n\n`);
 		})
 		.catch((e) => {
 			log(`------------------ERROR------------------`);

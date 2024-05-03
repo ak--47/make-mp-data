@@ -8,6 +8,7 @@ const hero = String.raw`
    ┛             ┛               
 makes all the things for mixpanel (v${version || 1})
 by ak@mixpanel.com
+-----------------------------------------
    `;
 
 
@@ -17,7 +18,8 @@ function cliParams() {
 	const args = yargs(process.argv.splice(2))
 		.scriptName("make-mp-data")
 		.usage(`\nusage:\nnpx $0 [dataModel.js] [options]
-ex:
+
+		examples:
 npx $0
 npx $0 --token 1234 --u 100 --e 1000 --d 7 --w false
 npx $0 myDataConfig.js
