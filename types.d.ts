@@ -21,6 +21,8 @@ export interface Config {
   writeToDisk?: boolean;
   simulationName?: string;
   verbose?: boolean;
+  anonIds?: boolean;
+  sessionIds?: boolean;
 }
 
 interface EventConfig {

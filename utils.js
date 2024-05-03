@@ -231,18 +231,30 @@ function person(bornDaysAgo = 30) {
 	const avPath = gender === 'male' ? `/men/${randomAvatarNumber}.jpg` : `/women/${randomAvatarNumber}.jpg`;
 	const $avatar = avatarPrefix + avPath;
 	const $created = date(bornDaysAgo, true, null)();
+
+	//anon Ids
 	const anonymousIds = [];
 	const clusterSize = integer(2, 10);
 	for (let i = 0; i < clusterSize; i++) {
 		anonymousIds.push(uid(42));
 	}
 
+	//session Ids
+	const sessionIds = [];
+	const sessionSize = integer(5, 30);
+	for (let i = 0; i < sessionSize; i++) {
+		sessionIds.push([uid(5), uid(5), uid(5), uid(5)].join("-"));
+	}
+
+
+
 	return {
 		$name,
 		$email,
 		$avatar,
 		$created,
-		anonymousIds
+		anonymousIds,
+		sessionIds
 	};
 }
 
@@ -333,7 +345,7 @@ function generateName() {
 		"splintering", "crescendoing", "whirling", "bursting", "shining", "gushing", "emerging", "revealing",
 		"emerging", "unfolding", "unveiling", "emerging", "surrounding", "unveiling", "materializing", "revealing"
 	];
-	
+
 	var adverbs = [
 		"gracefully", "softly", "smoothly", "gently", "tenderly", "quietly", "serenely", "peacefully",
 		"delicately", "effortlessly", "subtly", "tranquilly", "majestically", "silently", "calmly", "harmoniously",
@@ -343,16 +355,16 @@ function generateName() {
 		"seductively", "envelopingly", "ensnaringly", "entrancingly", "intoxicatingly", "irresistibly", "transcendentally",
 		"envelopingly", "rapturously", "intimately", "intensely", "tangibly", "vividly", "intensely", "deeply"
 	];
-	
+
 
 	// ? http://stackoverflow.com/a/17516862/103058
-	var adj = adjs[Math.floor(Math.random() * adjs.length)]; 
+	var adj = adjs[Math.floor(Math.random() * adjs.length)];
 	var noun = nouns[Math.floor(Math.random() * nouns.length)];
 	var verb = verbs[Math.floor(Math.random() * verbs.length)];
 	var adverb = adverbs[Math.floor(Math.random() * adverbs.length)];
-	
-	
-	return adj + '-' + noun + '-' + verb + '-' + adverb
+
+
+	return adj + '-' + noun + '-' + verb + '-' + adverb;
 
 }
 

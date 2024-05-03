@@ -35,7 +35,7 @@ const dayjs = require("dayjs");
 const utc = require("dayjs/plugin/utc");
 dayjs.extend(utc);
 const cliParams = require("./cli.js");
-const { makeName } = require('ak-tools');
+const { makeName, md5 } = require('ak-tools');
 
 Array.prototype.pickOne = pick;
 const NOW = dayjs().unix();
@@ -78,6 +78,8 @@ async function main(config) {
 		groupKeys = [],
 		groupProps = {},
 		lookupTables = [],
+		anonIds = true,
+		sessionIds = true,
 		format = "csv",
 		token = null,
 		region = "US",
@@ -86,6 +88,7 @@ async function main(config) {
 	} = config;
 	VERBOSE = verbose;
 	config.simulationName = makeName();
+	global.config = config;
 	const uuidChance = new Chance(seed);
 	log(`------------------SETUP------------------`);
 	log(`\nyour data simulation will heretofore be known as: \n\n\t${config.simulationName.toUpperCase()}...\n`);
@@ -93,8 +96,8 @@ async function main(config) {
 	log(`------------------SETUP------------------`, "\n");
 
 
-	//the function which generates $distinct_id + $created, skewing towards the present
-	function uuid() {
+	//the function which generates $distinct_id + $anonymoud_ids, $session_ids, and $created, skewing towards the present
+	function generateUser() {
 		const distinct_id = uuidChance.guid();
 		let z = boxMullerRandom();
 		const skew = chance.normal({ mean: 10, dev: 3 });
@@ -136,8 +139,8 @@ async function main(config) {
 	log(`---------------SIMULATION----------------`, `\n\n`);
 	for (let i = 1; i < numUsers + 1; i++) {
 		progress("users", i);
-		const user = uuid();
-		const { distinct_id, $created, anonymousIds } = user;
+		const user = generateUser();
+		const { distinct_id, $created, anonymousIds, sessionIds } = user;
 		userProfilesData.push(makeProfile(userProps, user));
 		const mutations = chance.integer({ min: 1, max: 10 });
 		scdTableData.push(makeSCD(scdProps, distinct_id, mutations, $created));
@@ -150,6 +153,7 @@ async function main(config) {
 				makeEvent(
 					distinct_id,
 					anonymousIds,
+					sessionIds,
 					dayjs($created).unix(),
 					firstEvents,
 					superProps,
@@ -165,6 +169,7 @@ async function main(config) {
 				makeEvent(
 					distinct_id,
 					anonymousIds,
+					sessionIds,
 					dayjs($created).unix(),
 					weightedEvents,
 					superProps,
@@ -220,7 +225,7 @@ async function main(config) {
 		[lookupFiles, lookupTableData],
 	];
 	log("\n", `---------------SIMULATION----------------`, "\n");
-	
+
 	if (!writeToDisk && !token) {
 		return {
 			eventData,
@@ -365,28 +370,40 @@ function makeSCD(props, distinct_id, mutations, $created) {
  * creates a random event
  * @param  {string} distinct_id
  * @param  {string[]} anonymousIds
+ * @param  {string[]} sessionIds
  * @param  {number} earliestTime
  * @param  {Object[]} events
  * @param  {Object} superProps
  * @param  {Object} groupKeys
  * @param  {Boolean} isFirstEvent=false
  */
-function makeEvent(distinct_id, anonymousIds, earliestTime, events, superProps, groupKeys, isFirstEvent = false) {
-
+function makeEvent(distinct_id, anonymousIds, sessionIds, earliestTime, events, superProps, groupKeys, isFirstEvent = false) {
 	let chosenEvent = events.pickOne();
-	if (typeof chosenEvent === "string")
+
+	//allow for a string shorthand
+	if (typeof chosenEvent === "string") {
 		chosenEvent = { event: chosenEvent, properties: {} };
+	}
+
+	//event model
 	const event = {
 		event: chosenEvent.event,
-		$device_id: chance.pickone(anonymousIds), // always have a $device_id		
 		$source: "AKsTimeSoup",
 	};
 
+	//event time
 	if (isFirstEvent) event.time = dayjs.unix(earliestTime).toISOString();
 	if (!isFirstEvent) event.time = AKsTimeSoup(earliestTime, NOW, PEAK_DAYS);
 
+	// anonymous and session ids
+	if (global?.config.anonIds) event.$device_id = chance.pickone(anonymousIds);
+	if (global?.config.sessionIds) event.$session_id = chance.pickone(sessionIds);
+
 	//sometimes have a $user_id
 	if (!isFirstEvent && chance.bool({ likelihood: 42 })) event.$user_id = distinct_id;
+
+	// ensure that there is a $user_id or $device_id
+	if (!event.$user_id && !event.$device_id) event.$user_id = distinct_id;
 
 	const props = { ...chosenEvent.properties, ...superProps };
 
@@ -407,6 +424,9 @@ function makeEvent(distinct_id, anonymousIds, earliestTime, events, superProps, 
 
 		event[groupKey] = weightedRange(1, groupCardinality).pickOne();
 	}
+
+	//make $insert_id
+	event.$insert_id = md5(JSON.stringify(event));
 
 	return event;
 }
