@@ -3,7 +3,7 @@
 /* eslint-disable no-undef */
 /* eslint-disable no-debugger */
 /* eslint-disable no-unused-vars */
-const { generate } = require('./index.js');
+const generate = require('./index.js');
 require('dotenv').config();
 const { execSync } = require("child_process");
 const u = require('ak-tools');
@@ -52,7 +52,7 @@ describe('e2e', () => {
 
 		const invalidEvents = eventData.filter(e => !validateEvent(e));
 		const invalidUsers = userProfilesData.filter(u => !validateUser(u));
-		
+
 		expect(areEventsValid).toBe(true);
 		expect(areUsersValid).toBe(true);
 	}, timeout);
