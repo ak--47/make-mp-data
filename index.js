@@ -96,7 +96,7 @@ async function main(config) {
 	log(`------------------SETUP------------------`, "\n");
 
 
-	//the function which generates $distinct_id + $anonymoud_ids, $session_ids, and $created, skewing towards the present
+	//the function which generates $distinct_id + $anonymous_ids, $session_ids, and $created, skewing towards the present
 	function generateUser() {
 		const distinct_id = uuidChance.guid();
 		let z = boxMullerRandom();
@@ -575,21 +575,7 @@ if (require.main === module) {
 			openFinder(path.resolve("./data"));
 		});
 } else {
-	module.exports = {
-		generate: main,
-		weightedRange,
-		pick,
-		day,
-		integer,
-		makeProducts,
-		date,
-		progress,
-		person,
-		choose,
-		range,
-		exhaust,
-		openFinder,
-	};
+	module.exports = main;
 }
 
 

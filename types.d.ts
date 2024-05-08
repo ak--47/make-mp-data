@@ -1,4 +1,4 @@
-// types.d.ts
+declare namespace main {
 
 type primitives = string | number | boolean | Date | Object;
 type valueValid = primitives | primitives[] | (() => primitives | primitives[]);
@@ -45,3 +45,38 @@ interface LookupTable {
     [key?: string]: valueValid;
   };
 }
+
+type Result = {
+    eventData: {
+        event: any;
+        $source: string;
+    }[];
+    userProfilesData: any[];
+    scdTableData: any[];
+    groupProfilesData: {
+        key: string;
+        data: any[];
+    }[];
+    lookupTableData: {
+        key: string;
+        data: any[];
+    }[];
+    import?: undefined;
+    files?: undefined;
+}
+
+}
+
+
+/**
+ * Mixpanel Data Generator
+ * model events, users, groups, and lookup tables (and SCD props!)
+ * @example
+ * const gen = require('make-mp-data')
+ * const dta = gen({writeToDisk: false})
+ */
+declare function main(
+	config: main.Config
+  ): Promise<main.Result>;
+  export = main;
+  
