@@ -9,16 +9,54 @@ const { execSync } = require("child_process");
 const u = require('ak-tools');
 
 const simple = require('../examples/simple');
+const complex = require('../examples/complex');
+const deep = require('../examples/deepNest');
 
 const timeout = 60000;
 const testToken = process.env.TEST_TOKEN;
 
+describe('module', () => {
 
-describe('e2e', () => {
-
-	test('works as module', async () => {
+	test('works as module (no config)', async () => {
 		console.log('MODULE TEST');
-		const results = await generate({ verbose: false, writeToDisk: false, numEvents: 1100, numUsers: 100, seed: "deal with it" });
+		const results = await generate({ verbose: true, writeToDisk: false, numEvents: 1100, numUsers: 100, seed: "deal with it" });
+		const { eventData, groupProfilesData, lookupTableData, scdTableData, userProfilesData } = results;
+		expect(eventData.length).toBeGreaterThan(980);
+		expect(groupProfilesData.length).toBe(0);
+		expect(lookupTableData.length).toBe(0);
+		expect(scdTableData.length).toBeGreaterThan(200);
+		expect(userProfilesData.length).toBe(100);		
+
+	}, timeout);
+
+	test('works as module (simple)', async () => {
+		console.log('MODULE TEST: SIMPLE');
+		const results = await generate({ ...simple, verbose: true, writeToDisk: false, numEvents: 1100, numUsers: 100, seed: "deal with it" });
+		const { eventData, groupProfilesData, lookupTableData, scdTableData, userProfilesData } = results;
+		expect(eventData.length).toBeGreaterThan(980);
+		expect(groupProfilesData.length).toBe(0);
+		expect(lookupTableData.length).toBe(0);
+		expect(scdTableData.length).toBe(0);
+		expect(userProfilesData.length).toBe(100);
+
+	}, timeout);
+
+	test('works as module (complex)', async () => {
+		console.log('MODULE TEST: COMPLEX');
+		const results = await generate({ ...complex, verbose: true, writeToDisk: false, numEvents: 1100, numUsers: 100, seed: "deal with it" });
+		const { eventData, groupProfilesData, lookupTableData, scdTableData, userProfilesData } = results;
+		expect(eventData.length).toBeGreaterThan(980);
+		expect(groupProfilesData[0]?.data?.length).toBe(350);
+		expect(lookupTableData.length).toBe(1);
+		expect(lookupTableData[0].data.length).toBe(1000);
+		expect(scdTableData.length).toBeGreaterThan(200);
+		expect(userProfilesData.length).toBe(100);
+
+	}, timeout);
+
+	test('works as module (deep nest)', async () => {
+		console.log('MODULE TEST: DEEP NEST');
+		const results = await generate({ ...deep, verbose: true, writeToDisk: false, numEvents: 1100, numUsers: 100, seed: "deal with it" });
 		const { eventData, groupProfilesData, lookupTableData, scdTableData, userProfilesData } = results;
 		expect(eventData.length).toBeGreaterThan(980);
 		expect(groupProfilesData.length).toBe(0);
@@ -28,46 +66,36 @@ describe('e2e', () => {
 
 	}, timeout);
 
-	test('works as CLI', async () => {
-		console.log('CLI TEST');
-		const run = execSync(`node ./index.js --numEvents 1000 --numUsers 100 --seed "deal with it" --verbose false`);
+
+});
+
+describe('cli', () => {
+	test('works as CLI (complex)', async () => {
+		console.log('COMPLEX CLI TEST');
+		const run = execSync(`node ./index.js --numEvents 1000 --numUsers 100 --seed "deal with it" --complex`);
 		expect(run.toString().trim().includes('have a wonderful day :)')).toBe(true);
 		const csvs = (await u.ls('./data')).filter(a => a.includes('.csv'));
 		expect(csvs.length).toBe(5);
+		clearData();
 	}, timeout);
 
-	test('sends data to mixpanel', async () => {
-		console.log('NETWORK TEST');
-		const results = await generate({verbose: false, writeToDisk: false, numEvents: 1100, numUsers: 100, seed: "deal with it", token: testToken });
-		const { events, users, groups } = results.import;
-		expect(events.success).toBeGreaterThan(980);
-		expect(users.success).toBe(100);
-		expect(groups.length).toBe(0);
+	test('works as CLI (simple)', async () => {
+		console.log('simple CLI TEST');
+		const run = execSync(`node ./index.js --numEvents 1000 --numUsers 100 --seed "deal with it"`);
+		expect(run.toString().trim().includes('have a wonderful day :)')).toBe(true);
+		const csvs = (await u.ls('./data')).filter(a => a.includes('.csv'));
+		expect(csvs.length).toBe(2);
+		clearData();
 	}, timeout);
 
-	test('every record is valid', async () => {
-		console.log('VALIDATION TEST');
-		const results = await generate({verbose: false, writeToDisk: false, numEvents: 10000, numUsers: 500 });
-		const { eventData, userProfilesData } = results;
-		const areEventsValid = eventData.every(validateEvent);
-		const areUsersValid = userProfilesData.every(validateUser);
-
-		const invalidEvents = eventData.filter(e => !validateEvent(e));
-		const invalidUsers = userProfilesData.filter(u => !validateUser(u));
-
-		expect(areEventsValid).toBe(true);
-		expect(areUsersValid).toBe(true);
+	test('works as CLI (custom)', async () => {
+		console.log('custom CLI TEST');
+		const run = execSync(`node ./index.js ./examples/deepNest.js`);
+		expect(run.toString().trim().includes('have a wonderful day :)')).toBe(true);
+		const csvs = (await u.ls('./data')).filter(a => a.includes('.csv'));
+		expect(csvs.length).toBe(3);
+		clearData();
 	}, timeout);
-
-	test('every date is valid', async () => {
-		console.log('DATE TEST');
-		const results = await generate({ ...simple, writeToDisk: false, verbose: false });
-		const { eventData } = results;
-		const invalidDates = eventData.filter(e => !validateTime(e.time));
-		expect(eventData.every(e => validateTime(e.time))).toBe(true);
-
-		
-	}, timeout)
 
 });
 
@@ -102,16 +130,47 @@ describe('options + tweaks', () => {
 		expect(anonIds.length).toBe(0);
 	}, timeout);
 
+	test('sends data to mixpanel', async () => {
+		console.log('NETWORK TEST');
+		const results = await generate({ verbose: true, writeToDisk: false, numEvents: 1100, numUsers: 100, seed: "deal with it", token: testToken });
+		const { events, users, groups } = results.import;
+		expect(events.success).toBeGreaterThan(980);
+		expect(users.success).toBe(100);
+		expect(groups.length).toBe(0);
+	}, timeout);
 
-});
+	test('every record is valid', async () => {
+		console.log('VALIDATION TEST');
+		const results = await generate({ verbose: true, writeToDisk: false, numEvents: 10000, numUsers: 500 });
+		const { eventData, userProfilesData } = results;
+		const areEventsValid = eventData.every(validateEvent);
+		const areUsersValid = userProfilesData.every(validateUser);
 
+		const invalidEvents = eventData.filter(e => !validateEvent(e));
+		const invalidUsers = userProfilesData.filter(u => !validateUser(u));
 
+		expect(areEventsValid).toBe(true);
+		expect(areUsersValid).toBe(true);
+	}, timeout);
 
-afterEach(() => {
+	test('every date is valid', async () => {
+		console.log('DATE TEST');
+		const results = await generate({ ...simple, writeToDisk: false, verbose: true });
+		const { eventData } = results;
+		const invalidDates = eventData.filter(e => !validateTime(e.time));
+		expect(eventData.every(e => validateTime(e.time))).toBe(true);
+
+	}, timeout);
 
 });
 
 afterAll(() => {
+	clearData();
+});
+
+//helpers
+
+function clearData() {
 	try {
 		console.log('clearing...');
 		execSync(`npm run prune`);
@@ -120,9 +179,7 @@ afterAll(() => {
 	catch (err) {
 		console.log('error clearing files');
 	}
-});
-
-//helpers
+}
 
 function validateEvent(event) {
 	if (!event.event) return false;

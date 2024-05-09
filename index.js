@@ -14,23 +14,8 @@ const Chance = require("chance");
 const chance = new Chance();
 const { touch, comma, bytesHuman, mkdir } = require("ak-tools");
 const Papa = require("papaparse");
-const {
-	weightedRange,
-	pick,
-	day,
-	integer,
-	makeProducts,
-	date,
-	progress,
-	choose,
-	range,
-	exhaust,
-	openFinder,
-	applySkew,
-	boxMullerRandom,
-	getUniqueKeys,
-	person
-} = require("./utils.js");
+const u = require("./utils.js");
+const AKsTimeSoup = require("./timesoup.js");
 const dayjs = require("dayjs");
 const utc = require("dayjs/plugin/utc");
 dayjs.extend(utc);
@@ -41,20 +26,6 @@ let VERBOSE = false;
 
 /** @typedef {import('./types.d.ts').Config} Config */
 /** @typedef {import('./types.d.ts').EventConfig} EventConfig */
-
-
-const PEAK_DAYS = [
-	dayjs().subtract(2, "day").unix(),
-	dayjs().subtract(3, "day").unix(),
-	dayjs().subtract(5, "day").unix(),
-	dayjs().subtract(7, "day").unix(),
-	dayjs().subtract(11, "day").unix(),
-	dayjs().subtract(13, "day").unix(),
-	dayjs().subtract(17, "day").unix(),
-	dayjs().subtract(19, "day").unix(),
-	dayjs().subtract(23, "day").unix(),
-	dayjs().subtract(29, "day").unix(),
-];
 
 /**
  * generates fake mixpanel data
@@ -72,7 +43,7 @@ async function main(config) {
 			favoriteColor: ["red", "green", "blue", "yellow"],
 			spiritAnimal: chance.animal,
 		},
-		scdProps = { NPS: weightedRange(0, 10, 150, 1.6) },
+		scdProps = { NPS: u.weightedRange(0, 10, 150, 1.6) },
 		groupKeys = [],
 		groupProps = {},
 		lookupTables = [],
@@ -86,7 +57,7 @@ async function main(config) {
 	} = config;
 	VERBOSE = verbose;
 	config.simulationName = makeName();
-	global.config = config;
+	global.MP_SIMULATION_CONFIG = config;
 	const uuidChance = new Chance(seed);
 	log(`------------------SETUP------------------`);
 	log(`\nyour data simulation will heretofore be known as: \n\n\t${config.simulationName.toUpperCase()}...\n`);
@@ -97,18 +68,18 @@ async function main(config) {
 	//the function which generates $distinct_id + $anonymous_ids, $session_ids, and $created, skewing towards the present
 	function generateUser() {
 		const distinct_id = uuidChance.guid();
-		let z = boxMullerRandom();
+		let z = u.boxMullerRandom();
 		const skew = chance.normal({ mean: 10, dev: 3 });
-		z = applySkew(z, skew);
+		z = u.applySkew(z, skew);
 
 		// Scale and shift the normally distributed value to fit the range of days
-		const maxZ = integer(2, 4);
+		const maxZ = u.integer(2, 4);
 		const scaledZ = (z / maxZ + 1) / 2;
 		const daysAgoBorn = Math.round(scaledZ * (numDays - 1)) + 1;
 
 		return {
 			distinct_id,
-			...person(daysAgoBorn),
+			...u.person(daysAgoBorn),
 		};
 	}
 
@@ -134,16 +105,16 @@ async function main(config) {
 	const avgEvPerUser = Math.floor(numEvents / numUsers);
 
 	//user loop
-	log(`---------------SIMULATION----------------`, `\n\n`);
+	log(`---------------SIMULATION----------------`, "\n\n");
 	for (let i = 1; i < numUsers + 1; i++) {
-		progress("users", i);
+		u.progress("users", i);
 		const user = generateUser();
 		const { distinct_id, $created, anonymousIds, sessionIds } = user;
 		userProfilesData.push(makeProfile(userProps, user));
 		const mutations = chance.integer({ min: 1, max: 10 });
 		scdTableData.push(makeSCD(scdProps, distinct_id, mutations, $created));
 		const numEventsThisUser = Math.round(
-			chance.normal({ mean: avgEvPerUser, dev: avgEvPerUser / integer(3, 7) })
+			chance.normal({ mean: avgEvPerUser, dev: avgEvPerUser / u.integer(3, 7) })
 		);
 
 		if (firstEvents.length) {
@@ -187,7 +158,7 @@ async function main(config) {
 		const groupCardinality = groupPair[1];
 		const groupProfiles = [];
 		for (let i = 1; i < groupCardinality + 1; i++) {
-			progress("groups", i);
+			u.progress("groups", i);
 			const group = {
 				[groupKey]: i,
 				...makeProfile(groupProps[groupKey]),
@@ -204,7 +175,7 @@ async function main(config) {
 		const { key, entries, attributes } = lookupTable;
 		const data = [];
 		for (let i = 1; i < entries + 1; i++) {
-			progress("lookups", i);
+			u.progress("lookups", i);
 			const item = {
 				[key]: i,
 				...makeProfile(attributes),
@@ -236,17 +207,19 @@ async function main(config) {
 	log(`-----------------WRITES------------------`, `\n\n`);
 	//write the files
 	if (writeToDisk) {
-		if (verbose) log(`writing files... for ${config.simulationName}`);
-		for (const pair of pairs) {
+		if (verbose) log(`writing files... for ${config.simulationName}\n`);
+		loopFiles: for (const pair of pairs) {
 			const [paths, data] = pair;
+			if (!data.length) continue loopFiles;
 			for (const path of paths) {
 				let datasetsToWrite;
 				if (data?.[0]?.["key"]) datasetsToWrite = data.map((d) => d.data);
 				else datasetsToWrite = [data];
 				for (const writeData of datasetsToWrite) {
-					if (format === "csv") {
+					//if it's a lookup table, it's always a CSV
+					if (format === "csv" || path.includes("-LOOKUP.csv")) {
 						log(`writing ${path}`);
-						const columns = getUniqueKeys(writeData);
+						const columns = u.getUniqueKeys(writeData);
 						//papa parse needs nested JSON stringified
 						writeData.forEach((e) => {
 							for (const key in e) {
@@ -348,6 +321,7 @@ function makeProfile(props, defaults) {
 }
 
 function makeSCD(props, distinct_id, mutations, $created) {
+	if (JSON.stringify(props) === "{}") return [];
 	const scdEntries = [];
 	let lastInserted = dayjs($created);
 	const deltaDays = dayjs().diff(lastInserted, "day");
@@ -356,12 +330,12 @@ function makeSCD(props, distinct_id, mutations, $created) {
 		if (lastInserted.isAfter(dayjs())) break;
 		const scd = makeProfile(props, { distinct_id });
 		scd.startTime = lastInserted.toISOString();
-		lastInserted = lastInserted.add(integer(1, 1000), "seconds");
+		lastInserted = lastInserted.add(u.integer(1, 1000), "seconds");
 		scd.insertTime = lastInserted.toISOString();
 		scdEntries.push({ ...scd });
 		lastInserted = lastInserted
-			.add(integer(0, deltaDays), "day")
-			.subtract(integer(1, 1000), "seconds");
+			.add(u.integer(0, deltaDays), "day")
+			.subtract(u.integer(1, 1000), "seconds");
 	}
 
 	return scdEntries;
@@ -394,11 +368,11 @@ function makeEvent(distinct_id, anonymousIds, sessionIds, earliestTime, events, 
 
 	//event time
 	if (isFirstEvent) event.time = dayjs.unix(earliestTime).toISOString();
-	if (!isFirstEvent) event.time = AKsTimeSoup(earliestTime, NOW, PEAK_DAYS);
+	if (!isFirstEvent) event.time = AKsTimeSoup(earliestTime, NOW);
 
 	// anonymous and session ids
-	if (global?.config.anonIds) event.$device_id = chance.pickone(anonymousIds);
-	if (global?.config.sessionIds) event.$session_id = chance.pickone(sessionIds);
+	if (global.MP_SIMULATION_CONFIG?.anonIds) event.$device_id = chance.pickone(anonymousIds);
+	if (global.MP_SIMULATION_CONFIG?.sessionIds) event.$session_id = chance.pickone(sessionIds);
 
 	//sometimes have a $user_id
 	if (!isFirstEvent && chance.bool({ likelihood: 42 })) event.$user_id = distinct_id;
@@ -411,7 +385,7 @@ function makeEvent(distinct_id, anonymousIds, sessionIds, earliestTime, events, 
 	//iterate through custom properties
 	for (const key in props) {
 		try {
-			event[key] = choose(props[key]);
+			event[key] = u.choose(props[key]);
 		} catch (e) {
 			console.error(`error with ${key} in ${chosenEvent.event} event`, e);
 			debugger;
@@ -423,7 +397,7 @@ function makeEvent(distinct_id, anonymousIds, sessionIds, earliestTime, events, 
 		const groupKey = groupPair[0];
 		const groupCardinality = groupPair[1];
 
-		event[groupKey] = pick(weightedRange(1, groupCardinality))
+		event[groupKey] = u.pick(u.weightedRange(1, groupCardinality));
 	}
 
 	//make $insert_id
@@ -441,9 +415,9 @@ function buildFileNames(config) {
 	if (config.writeToDisk) writeDir = mkdir("./data");
 
 	const writePaths = {
-		eventFiles: [path.join(writeDir, `events-${simName}.${extension}`)],
-		userFiles: [path.join(writeDir, `users-${simName}.${extension}`)],
-		scdFiles: [path.join(writeDir, `scd-${simName}.${extension}`)],
+		eventFiles: [path.join(writeDir, `${simName}-EVENTS.${extension}`)],
+		userFiles: [path.join(writeDir, `${simName}-USERS.${extension}`)],
+		scdFiles: [path.join(writeDir, `${simName}-SCD.${extension}`)],
 		groupFiles: [],
 		lookupFiles: [],
 		folder: writeDir,
@@ -452,90 +426,28 @@ function buildFileNames(config) {
 	for (const groupPair of groupKeys) {
 		const groupKey = groupPair[0];
 		writePaths.groupFiles.push(
-			path.join(writeDir, `group-${groupKey}-${simName}.${extension}`)
+			path.join(writeDir, `${simName}-${groupKey}-GROUP.${extension}`)
 		);
 	}
 
 	for (const lookupTable of lookupTables) {
 		const { key } = lookupTable;
 		writePaths.lookupFiles.push(
-			path.join(writeDir, `lookup-${key}-${simName}.${extension}`)
+			//lookups are always CSVs
+			path.join(writeDir, `${simName}-${key}-LOOKUP.csv`)
 		);
 	}
 
 	return writePaths;
 }
 
-/**
- * essentially, a timestamp generator with a twist
- * @param {number} earliestTime - The earliest timestamp in Unix format.
- * @param {number} latestTime - The latest timestamp in Unix format.
- * @param {Array} peakDays - Array of Unix timestamps representing the start of peak days.
- * @returns {number} - The generated event timestamp in Unix format.
- */
-function AKsTimeSoup(earliestTime, latestTime = NOW, peakDays = PEAK_DAYS) {
-	let chosenTime;
-	let eventTime;
-	let validTime = false;
-
-	if (typeof earliestTime !== "number") {
-		if (parseInt(earliestTime) > 0) earliestTime = parseInt(earliestTime);
-		if (dayjs(earliestTime).isValid()) earliestTime = dayjs(earliestTime).unix();
-	}
-
-	while (!validTime) {
-
-		// Define business hours
-		const peakStartHour = 4; // 4 AM
-		const peakEndHour = 23; // 11 PM
-		const likelihoodOfPeakDay = chance.integer({ min: integer(5, 42), max: integer(43, 69) }); // Randomize likelihood with CHAOS!~~
-
-		// Select a day, with a preference for peak days
-		let selectedDay;
-		if (chance.bool({ likelihood: likelihoodOfPeakDay })) { // Randomized likelihood to pick a peak day
-			selectedDay = peakDays.length > 0 ? chance.pickone(peakDays) : integer(earliestTime, latestTime);
-		} else {
-			// Introduce minor peaks by allowing some events to still occur during business hours
-			selectedDay = chance.bool({ likelihood: integer(1, 42) })
-				? chance.pickone(peakDays)
-				: integer(earliestTime, latestTime);
-		}
-
-		// Normalize selectedDay to the start of the day
-		selectedDay = dayjs.unix(selectedDay).startOf('day').unix();
-
-		// Generate a random time within business hours with a higher concentration in the middle of the period
-		const businessStart = dayjs.unix(selectedDay).hour(peakStartHour).minute(0).second(0).unix();
-		const businessEnd = dayjs.unix(selectedDay).hour(peakEndHour).minute(0).second(0).unix();
-
-		if (selectedDay === peakDays[0]) {
-			// Use a skewed distribution for peak days
-			eventTime = chance.normal({ mean: (businessEnd + businessStart) / integer(1, 4), dev: (businessEnd - businessStart) / integer(2, 8) });
-		} else {
-			// For non-peak days, use a uniform distribution to add noise
-			eventTime = integer(integer(businessStart, businessEnd), integer(businessStart, businessEnd));
-		}
-
-		// usually, ensure the event time is within business hours
-		if (chance.bool({ likelihood: 42 })) eventTime = Math.min(Math.max(eventTime, businessStart), businessEnd);
-
-		if (eventTime > 0) validTime = true;
-		const parsedTime = dayjs.unix(eventTime).toISOString();
-		if (!parsedTime.startsWith('20')) validTime = false;
-
-	}
-	chosenTime = dayjs.unix(eventTime).toISOString();
-	if (eventTime < 0) debugger;
-	if (!chosenTime.startsWith('20')) debugger;
-	return chosenTime;
-}
 
 
 
 // this is for CLI
 if (require.main === module) {
 	const args = cliParams();
-	const { token, seed, format, numDays, numUsers, numEvents, region, writeToDisk } = args;
+	const { token, seed, format, numDays, numUsers, numEvents, region, writeToDisk, complex = false } = args;
 	const suppliedConfig = args._[0];
 
 	//if the user specifics an separate config file
@@ -543,9 +455,18 @@ if (require.main === module) {
 	if (suppliedConfig) {
 		log(`using ${suppliedConfig} for data\n`);
 		config = require(path.resolve(suppliedConfig));
-	} else {
-		log(`... using default configuration ...\n`);
-		config = require("./default.js");
+	}
+	else {
+		if (complex) {
+			log(`... using default COMPLEX configuration [everything] ...\n`);
+			log(`... for more simple data, don't use the --complex flag ...\n`);
+			config = require("./examples/complex.js");
+		}
+		else {
+			log(`... using default SIMPLE configuration [events + users] ...\n`);
+			log(`... for more complex data, use the --complex flag ...\n`);
+			config = require("./examples/simple.js");
+		}
 	}
 
 	//override config with cli params
@@ -592,9 +513,10 @@ if (require.main === module) {
 		})
 		.finally(() => {
 			log("have a wonderful day :)");
-			openFinder(path.resolve("./data"));
+			u.openFinder(path.resolve("./data"));
 		});
 } else {
+	main.utils = { ...u };
 	main.timeSoup = AKsTimeSoup;
 	module.exports = main;
 }

@@ -35,7 +35,7 @@ DATA MODEL: https://github.com/ak--47/make-mp-data/blob/main/default.js
 			type: 'string'
 		})
 		.option("seed", {
-			demandOption: false,			
+			demandOption: false,
 			alias: 's',
 			describe: 'randomness seed; used to create distinct_ids',
 			type: 'string'
@@ -71,6 +71,24 @@ DATA MODEL: https://github.com/ak--47/make-mp-data/blob/main/default.js
 			alias: 'r',
 			describe: 'either US or EU',
 			type: 'string'
+		})
+		.options("complex", {
+			demandOption: false,
+			default: false,
+			describe: 'use complex data model (model all entities)',
+			alias: 'c',
+			type: 'boolean',
+			coerce: (value) => {
+				if (typeof value === 'boolean') return value;
+				if (value === 'true') {
+					return true;
+				}
+				if (value === 'false') {
+					return false;
+				}
+
+				return true;
+			}
 		})
 		.option("writeToDisk", {
 			demandOption: false,
