@@ -22,22 +22,20 @@ const {
 	makeProducts,
 	date,
 	progress,
-	person,
 	choose,
 	range,
 	exhaust,
 	openFinder,
 	applySkew,
 	boxMullerRandom,
-	getUniqueKeys
+	getUniqueKeys,
+	person
 } = require("./utils.js");
 const dayjs = require("dayjs");
 const utc = require("dayjs/plugin/utc");
 dayjs.extend(utc);
 const cliParams = require("./cli.js");
 const { makeName, md5 } = require('ak-tools');
-
-Array.prototype.pickOne = pick;
 const NOW = dayjs().unix();
 let VERBOSE = false;
 
@@ -329,6 +327,9 @@ async function main(config) {
 	};
 }
 
+
+
+
 function makeProfile(props, defaults) {
 	//build the spec
 	const profile = {
@@ -378,7 +379,7 @@ function makeSCD(props, distinct_id, mutations, $created) {
  * @param  {Boolean} isFirstEvent=false
  */
 function makeEvent(distinct_id, anonymousIds, sessionIds, earliestTime, events, superProps, groupKeys, isFirstEvent = false) {
-	let chosenEvent = events.pickOne();
+	let chosenEvent = chance.pickone(events);
 
 	//allow for a string shorthand
 	if (typeof chosenEvent === "string") {
@@ -422,7 +423,7 @@ function makeEvent(distinct_id, anonymousIds, sessionIds, earliestTime, events, 
 		const groupKey = groupPair[0];
 		const groupCardinality = groupPair[1];
 
-		event[groupKey] = weightedRange(1, groupCardinality).pickOne();
+		event[groupKey] = pick(weightedRange(1, groupCardinality))
 	}
 
 	//make $insert_id
@@ -524,6 +525,8 @@ function AKsTimeSoup(earliestTime, latestTime = NOW, peakDays = PEAK_DAYS) {
 
 	}
 	chosenTime = dayjs.unix(eventTime).toISOString();
+	if (eventTime < 0) debugger;
+	if (!chosenTime.startsWith('20')) debugger;
 	return chosenTime;
 }
 

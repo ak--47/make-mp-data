@@ -8,6 +8,8 @@ require('dotenv').config();
 const { execSync } = require("child_process");
 const u = require('ak-tools');
 
+const simple = require('../examples/simple');
+
 const timeout = 60000;
 const testToken = process.env.TEST_TOKEN;
 
@@ -16,7 +18,7 @@ describe('e2e', () => {
 
 	test('works as module', async () => {
 		console.log('MODULE TEST');
-		const results = await generate({ writeToDisk: false, numEvents: 1100, numUsers: 100, seed: "deal with it" });
+		const results = await generate({ verbose: false, writeToDisk: false, numEvents: 1100, numUsers: 100, seed: "deal with it" });
 		const { eventData, groupProfilesData, lookupTableData, scdTableData, userProfilesData } = results;
 		expect(eventData.length).toBeGreaterThan(980);
 		expect(groupProfilesData.length).toBe(0);
@@ -28,7 +30,7 @@ describe('e2e', () => {
 
 	test('works as CLI', async () => {
 		console.log('CLI TEST');
-		const run = execSync(`node ./index.js --numEvents 1000 --numUsers 100 --seed "deal with it"`);
+		const run = execSync(`node ./index.js --numEvents 1000 --numUsers 100 --seed "deal with it" --verbose false`);
 		expect(run.toString().trim().includes('have a wonderful day :)')).toBe(true);
 		const csvs = (await u.ls('./data')).filter(a => a.includes('.csv'));
 		expect(csvs.length).toBe(5);
@@ -36,7 +38,7 @@ describe('e2e', () => {
 
 	test('sends data to mixpanel', async () => {
 		console.log('NETWORK TEST');
-		const results = await generate({ writeToDisk: false, numEvents: 1100, numUsers: 100, seed: "deal with it", token: testToken });
+		const results = await generate({verbose: false, writeToDisk: false, numEvents: 1100, numUsers: 100, seed: "deal with it", token: testToken });
 		const { events, users, groups } = results.import;
 		expect(events.success).toBeGreaterThan(980);
 		expect(users.success).toBe(100);
@@ -45,7 +47,7 @@ describe('e2e', () => {
 
 	test('every record is valid', async () => {
 		console.log('VALIDATION TEST');
-		const results = await generate({ writeToDisk: false, numEvents: 10000, numUsers: 500 });
+		const results = await generate({verbose: false, writeToDisk: false, numEvents: 10000, numUsers: 500 });
 		const { eventData, userProfilesData } = results;
 		const areEventsValid = eventData.every(validateEvent);
 		const areUsersValid = userProfilesData.every(validateUser);
@@ -57,6 +59,15 @@ describe('e2e', () => {
 		expect(areUsersValid).toBe(true);
 	}, timeout);
 
+	test('every date is valid', async () => {
+		console.log('DATE TEST');
+		const results = await generate({ ...simple, writeToDisk: false, verbose: false });
+		const { eventData } = results;
+		const invalidDates = eventData.filter(e => !validateTime(e.time));
+		expect(eventData.every(e => validateTime(e.time))).toBe(true);
+
+		
+	}, timeout)
 
 });
 
@@ -127,5 +138,13 @@ function validateUser(user) {
 	if (!user.$name) return false;
 	if (!user.$email) return false;
 	if (!user.$created) return false;
+	return true;
+}
+
+
+function validateTime(str) {
+	if (!str) return false;
+	if (str.startsWith('-')) return false;
+	if (!str.startsWith('20')) return false;
 	return true;
 }

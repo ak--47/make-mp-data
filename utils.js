@@ -7,18 +7,23 @@ const dayjs = require('dayjs');
 const utc = require('dayjs/plugin/utc');
 dayjs.extend(utc);
 
-function pick() {
-	try {
-		const choice = chance.pickone(this);
-		return choice;
+function pick(items) {
+	if (!Array.isArray(items)) {
+		try {
+			const choice = chance.pickone(this);
+			return choice;
+		}
+		catch (e) {
+			return null;
+		}
 	}
-	catch (e) {
-		return null;
-	}
+	return chance.pickone(items);
 }
 
 function date(inTheLast = 30, isPast = true, format = 'YYYY-MM-DD') {
 	const now = dayjs.utc();
+	// dates must be in the the last 10 years
+	if (Math.abs(inTheLast) > 365 * 10) inTheLast = chance.integer({ min: 1, max: 180 });
 	return function () {
 		try {
 			const when = chance.integer({ min: 0, max: Math.abs(inTheLast) });
@@ -216,47 +221,7 @@ function progress(thing, p) {
 	process.stdout.write(`${thing} processed ... ${comma(p)}`);
 }
 
-function person(bornDaysAgo = 30) {
-	//names and photos
-	const gender = chance.pickone(['male', 'female']);
-	const first = chance.first({ gender });
-	const last = chance.last();
-	const $name = `${first} ${last}`;
-	const $email = `${first[0]}.${last}@${chance.domain()}.com`;
-	const avatarPrefix = `https://randomuser.me/api/portraits`;
-	const randomAvatarNumber = chance.integer({
-		min: 1,
-		max: 99
-	});
-	const avPath = gender === 'male' ? `/men/${randomAvatarNumber}.jpg` : `/women/${randomAvatarNumber}.jpg`;
-	const $avatar = avatarPrefix + avPath;
-	const $created = date(bornDaysAgo, true, null)();
 
-	//anon Ids
-	const anonymousIds = [];
-	const clusterSize = integer(2, 10);
-	for (let i = 0; i < clusterSize; i++) {
-		anonymousIds.push(uid(42));
-	}
-
-	//session Ids
-	const sessionIds = [];
-	const sessionSize = integer(5, 30);
-	for (let i = 0; i < sessionSize; i++) {
-		sessionIds.push([uid(5), uid(5), uid(5), uid(5)].join("-"));
-	}
-
-
-
-	return {
-		$name,
-		$email,
-		$avatar,
-		$created,
-		anonymousIds,
-		sessionIds
-	};
-}
 
 function range(a, b, step = 1) {
 	step = !step ? 1 : step;
@@ -368,6 +333,48 @@ function generateName() {
 
 }
 
+function person(bornDaysAgo = 30) {
+	//names and photos
+	const gender = chance.pickone(['male', 'female']);
+	const first = chance.first({ gender });
+	const last = chance.last();
+	const $name = `${first} ${last}`;
+	const $email = `${first[0]}.${last}@${chance.domain()}.com`;
+	const avatarPrefix = `https://randomuser.me/api/portraits`;
+	const randomAvatarNumber = chance.integer({
+		min: 1,
+		max: 99
+	});
+	const avPath = gender === 'male' ? `/men/${randomAvatarNumber}.jpg` : `/women/${randomAvatarNumber}.jpg`;
+	const $avatar = avatarPrefix + avPath;
+	const $created = date(bornDaysAgo, true, null)();
+
+	//anon Ids
+	const anonymousIds = [];
+	const clusterSize = integer(2, 10);
+	for (let i = 0; i < clusterSize; i++) {
+		anonymousIds.push(uid(42));
+	}
+
+	//session Ids
+	const sessionIds = [];
+	const sessionSize = integer(5, 30);
+	for (let i = 0; i < sessionSize; i++) {
+		sessionIds.push([uid(5), uid(5), uid(5), uid(5)].join("-"));
+	}
+
+
+
+	return {
+		$name,
+		$email,
+		$avatar,
+		$created,
+		anonymousIds,
+		sessionIds
+	};
+}
+
 module.exports = {
 	weightedRange,
 	pick,
@@ -376,7 +383,6 @@ module.exports = {
 	makeProducts,
 	date,
 	progress,
-	person,
 	choose,
 	range,
 	exhaust,
@@ -387,4 +393,5 @@ module.exports = {
 	getUniqueKeys,
 	makeHashTags,
 	generateName,
+	person
 };
