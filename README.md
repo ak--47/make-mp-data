@@ -26,5 +26,5 @@ npx make-mp-data ecommSpec.js --token 1234 --numDays 30 --numUsers 1000 --numEve
 
 see `--help` for a full list of options
 
-see `./examples/` for a few `dataModel.js`` examples
+see `./models/` for a few `dataModel.js`` examples
 

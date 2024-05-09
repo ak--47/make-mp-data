@@ -460,12 +460,12 @@ if (require.main === module) {
 		if (complex) {
 			log(`... using default COMPLEX configuration [everything] ...\n`);
 			log(`... for more simple data, don't use the --complex flag ...\n`);
-			config = require("./examples/complex.js");
+			config = require(path.resolve("./models/complex.js"));
 		}
 		else {
 			log(`... using default SIMPLE configuration [events + users] ...\n`);
 			log(`... for more complex data, use the --complex flag ...\n`);
-			config = require("./examples/simple.js");
+			config = require(path.resolve("./models/simple.js"));
 		}
 	}
 

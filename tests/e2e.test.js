@@ -8,9 +8,9 @@ require('dotenv').config();
 const { execSync } = require("child_process");
 const u = require('ak-tools');
 
-const simple = require('../examples/simple');
-const complex = require('../examples/complex');
-const deep = require('../examples/deepNest');
+const simple = require('../models/simple.js');
+const complex = require('../models/complex.js');
+const deep = require('../models/deepNest.js');
 
 const timeout = 60000;
 const testToken = process.env.TEST_TOKEN;
@@ -90,7 +90,7 @@ describe('cli', () => {
 
 	test('works as CLI (custom)', async () => {
 		console.log('custom CLI TEST');
-		const run = execSync(`node ./index.js ./examples/deepNest.js`);
+		const run = execSync(`node ./index.js ./models/deepNest.js`);
 		expect(run.toString().trim().includes('have a wonderful day :)')).toBe(true);
 		const csvs = (await u.ls('./data')).filter(a => a.includes('.csv'));
 		expect(csvs.length).toBe(3);
