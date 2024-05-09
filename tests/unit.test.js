@@ -10,7 +10,7 @@ require('dotenv').config();
 describe('timeSoup', () => {
 	test('always positive dates', () => {
 		const dates = [];
-		for (let i = 0; i < 10000; i++) {
+		for (let i = 0; i < 20000; i++) {
 			const earliest = dayjs().subtract(u.rand(2, 360), 'D');
 			dates.push(timeSoup());
 		}

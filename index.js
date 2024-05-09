@@ -518,8 +518,8 @@ function AKsTimeSoup(earliestTime, latestTime = NOW, peakDays = PEAK_DAYS) {
 		// usually, ensure the event time is within business hours
 		if (chance.bool({ likelihood: 42 })) eventTime = Math.min(Math.max(eventTime, businessStart), businessEnd);
 
-		const compareTime = dayjs.unix(eventTime).toISOString();
-		if (dayjs(chosenTime).isAfter(dayjs.unix(0))) validTime = true;
+		if (eventTime > 0) validTime = true;
+
 	}
 	chosenTime = dayjs.unix(eventTime).toISOString();
 	return chosenTime;
