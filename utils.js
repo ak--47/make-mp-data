@@ -285,30 +285,34 @@ function person(bornDaysAgo = 30) {
 	const $avatar = avatarPrefix + avPath;
 	const $created = date(bornDaysAgo, true, null)();
 
-	//anon Ids
-	const anonymousIds = [];
-	const clusterSize = integer(2, 10);
-	for (let i = 0; i < clusterSize; i++) {
-		anonymousIds.push(uid(42));
-	}
-
-	//session Ids
-	const sessionIds = [];
-	const sessionSize = integer(5, 30);
-	for (let i = 0; i < sessionSize; i++) {
-		sessionIds.push([uid(5), uid(5), uid(5), uid(5)].join("-"));
-	}
-
-
-
-	return {
+	const user = {
 		$name,
 		$email,
 		$avatar,
 		$created,
-		anonymousIds,
-		sessionIds
 	};
+
+	//anon Ids
+	if (global.MP_SIMULATION_CONFIG?.anonIds) {
+		const anonymousIds = [];
+		const clusterSize = integer(2, 10);
+		for (let i = 0; i < clusterSize; i++) {
+			anonymousIds.push(uid(42));
+		}
+		user.anonymousIds = anonymousIds;
+	}
+
+	//session Ids
+	if (global.MP_SIMULATION_CONFIG?.sessionIds) {
+		const sessionIds = [];
+		const sessionSize = integer(5, 30);
+		for (let i = 0; i < sessionSize; i++) {
+			sessionIds.push([uid(5), uid(5), uid(5), uid(5)].join("-"));
+		}
+		user.sessionIds = sessionIds;
+	}
+
+	return user;
 };
 
 

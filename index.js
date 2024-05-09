@@ -61,7 +61,7 @@ async function main(config) {
 	const uuidChance = new Chance(seed);
 	log(`------------------SETUP------------------`);
 	log(`\nyour data simulation will heretofore be known as: \n\n\t${config.simulationName.toUpperCase()}...\n`);
-	log(`and your configuration is:\n`, JSON.stringify({ seed, numEvents, numUsers, numDays, format, token, region, writeToDisk }, null, 2));
+	log(`and your configuration is:\n\n`, JSON.stringify({ seed, numEvents, numUsers, numDays, format, token, region, writeToDisk }, null, 2));
 	log(`------------------SETUP------------------`, "\n");
 
 
@@ -116,7 +116,7 @@ async function main(config) {
 		const numEventsThisUser = Math.round(
 			chance.normal({ mean: avgEvPerUser, dev: avgEvPerUser / u.integer(3, 7) })
 		);
-
+		
 		if (firstEvents.length) {
 			eventData.push(
 				makeEvent(
@@ -147,6 +147,7 @@ async function main(config) {
 			);
 		}
 	}
+
 	//flatten SCD
 	scdTableData = scdTableData.flat();
 
@@ -193,7 +194,8 @@ async function main(config) {
 		[groupFiles, groupProfilesData],
 		[lookupFiles, lookupTableData],
 	];
-	log("\n", `---------------SIMULATION----------------`, "\n");
+	log("\n")
+	log(`---------------SIMULATION----------------`, "\n");
 
 	if (!writeToDisk && !token) {
 		return {
@@ -207,7 +209,7 @@ async function main(config) {
 	log(`-----------------WRITES------------------`, `\n\n`);
 	//write the files
 	if (writeToDisk) {
-		if (verbose) log(`writing files... for ${config.simulationName}\n`);
+		if (verbose) log(`writing files... for ${config.simulationName}`);
 		loopFiles: for (const pair of pairs) {
 			const [paths, data] = pair;
 			if (!data.length) continue loopFiles;
@@ -218,7 +220,7 @@ async function main(config) {
 				for (const writeData of datasetsToWrite) {
 					//if it's a lookup table, it's always a CSV
 					if (format === "csv" || path.includes("-LOOKUP.csv")) {
-						log(`writing ${path}`);
+						log(`\twriting ${path}`);
 						const columns = u.getUniqueKeys(writeData);
 						//papa parse needs nested JSON stringified
 						writeData.forEach((e) => {
@@ -228,7 +230,6 @@ async function main(config) {
 						});
 						const csv = Papa.unparse(writeData, { columns });
 						await touch(path, csv);
-						log(`\tdone\n`);
 					} else {
 						const ndjson = data.map((d) => JSON.stringify(d)).join("\n");
 						await touch(path, ndjson, false);
@@ -293,7 +294,7 @@ async function main(config) {
 		}
 
 	}
-	log(`-----------------WRITES------------------`, "\n");
+	log(`\n-----------------WRITES------------------`, "\n");
 	return {
 		import: importResults,
 		files: [eventFiles, userFiles, scdFiles, groupFiles, lookupFiles, folder],
@@ -311,7 +312,7 @@ function makeProfile(props, defaults) {
 
 	for (const key in props) {
 		try {
-			profile[key] = choose(props[key]);
+			profile[key] = u.choose(props[key]);
 		} catch (e) {
 			// debugger;
 		}
@@ -451,20 +452,22 @@ if (require.main === module) {
 	const suppliedConfig = args._[0];
 
 	//if the user specifics an separate config file
+	//todo this text isn't displaying
 	let config = null;
 	if (suppliedConfig) {
-		log(`using ${suppliedConfig} for data\n`);
+		console.log(`using ${suppliedConfig} for data\n`);
 		config = require(path.resolve(suppliedConfig));
 	}
 	else {
 		if (complex) {
-			log(`... using default COMPLEX configuration [everything] ...\n`);
-			log(`... for more simple data, don't use the --complex flag ...\n`);
+			console.log(`... using default COMPLEX configuration [everything] ...\n`);
+			console.log(`... for more simple data, don't use the --complex flag ...\n`);
+			console.log(`... or specify your own js config file (see docs or --help) ...\n`);
 			config = require(path.resolve(__dirname, "./models/complex.js"));
 		}
 		else {
-			log(`... using default SIMPLE configuration [events + users] ...\n`);
-			log(`... for more complex data, use the --complex flag ...\n`);
+			console.log(`... using default SIMPLE configuration [events + users] ...\n`);
+			console.log(`... for more complex data, use the --complex flag ...\n`);
 			config = require(path.resolve(__dirname, "./models/simple.js"));
 		}
 	}

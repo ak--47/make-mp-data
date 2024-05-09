@@ -70,9 +70,7 @@ describe('utils', () => {
 		const generatedPerson = person();
 		expect(generatedPerson).toHaveProperty('$name');
 		expect(generatedPerson).toHaveProperty('$email');
-		expect(generatedPerson).toHaveProperty('$avatar');
-		expect(generatedPerson).toHaveProperty('anonymousIds');
-		expect(generatedPerson.anonymousIds).toBeInstanceOf(Array);
+		expect(generatedPerson).toHaveProperty('$avatar');		
 	});
 
 
