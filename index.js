@@ -479,8 +479,8 @@ function AKsTimeSoup(earliestTime, latestTime = NOW, peakDays = PEAK_DAYS) {
 
 	if (typeof earliestTime !== "number") {
 		if (parseInt(earliestTime) > 0) earliestTime = parseInt(earliestTime);
-		if (dayjs(earliestTime).isValid()) earliestTime = dayjs(earliestTime).unix();		
-	} 
+		if (dayjs(earliestTime).isValid()) earliestTime = dayjs(earliestTime).unix();
+	}
 
 	while (!validTime) {
 
@@ -506,7 +506,7 @@ function AKsTimeSoup(earliestTime, latestTime = NOW, peakDays = PEAK_DAYS) {
 		// Generate a random time within business hours with a higher concentration in the middle of the period
 		const businessStart = dayjs.unix(selectedDay).hour(peakStartHour).minute(0).second(0).unix();
 		const businessEnd = dayjs.unix(selectedDay).hour(peakEndHour).minute(0).second(0).unix();
-		
+
 		if (selectedDay === peakDays[0]) {
 			// Use a skewed distribution for peak days
 			eventTime = chance.normal({ mean: (businessEnd + businessStart) / integer(1, 4), dev: (businessEnd - businessStart) / integer(2, 8) });
@@ -519,6 +519,8 @@ function AKsTimeSoup(earliestTime, latestTime = NOW, peakDays = PEAK_DAYS) {
 		if (chance.bool({ likelihood: 42 })) eventTime = Math.min(Math.max(eventTime, businessStart), businessEnd);
 
 		if (eventTime > 0) validTime = true;
+		const parsedTime = dayjs.unix(eventTime).toISOString();
+		if (!parsedTime.startsWith('20')) validTime = false;
 
 	}
 	chosenTime = dayjs.unix(eventTime).toISOString();
