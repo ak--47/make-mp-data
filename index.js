@@ -204,6 +204,8 @@ async function main(config) {
 			scdTableData,
 			groupProfilesData,
 			lookupTableData,
+			import: {},
+			files: []
 		};
 	}
 	log(`-----------------WRITES------------------`, `\n\n`);
@@ -487,7 +489,9 @@ if (require.main === module) {
 	main(config)
 		.then((data) => {
 			log(`-----------------SUMMARY-----------------`);
-			const { events, groups, users } = data.import;
+			const d = {success: 0, bytes: 0};
+			const darr = [d]
+			const { events = d, groups = darr, users = d } = data.import;
 			const files = data.files;
 			const folder = files?.pop();
 			const groupBytes = groups.reduce((acc, group) => {
@@ -504,7 +508,7 @@ if (require.main === module) {
 				bytes: bytesHuman(bytes || 0),
 			};
 			if (bytes > 0) console.table(stats);
-			log(`\nfiles written to ${folder} ...`);
+			log(`\nfiles written to ${folder || "no where; we didn't write anything"} ...`);
 			log("  " + files?.flat().join("\n  "));
 			log(`\n----------------SUMMARY-----------------\n\n\n`);
 		})

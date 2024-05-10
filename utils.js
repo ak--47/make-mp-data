@@ -81,16 +81,24 @@ function day(start, end) {
 };
 
 function choose(value) {
-	if (typeof value === 'function') {
-		return value();
-	}
-	if (Array.isArray(value)) {
-		return chance.pickone(value);
-	}
+	try {
+		// Keep resolving the value if it's a function
+		while (typeof value === 'function') {
+			value = value();
+		}
 
-	return value;
-};
+		// Now, if the resolved value is an array, use chance.pickone
+		if (Array.isArray(value)) {
+			return chance.pickone(value);
+		}
 
+		// If it's not a function or array, return it as is
+		return value;
+	}
+	catch (e) {
+		return '';
+	}
+}
 function exhaust(arr) {
 	return function () {
 		return arr.shift();
