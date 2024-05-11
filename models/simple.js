@@ -4,7 +4,7 @@ const dayjs = require("dayjs");
 const utc = require("dayjs/plugin/utc");
 dayjs.extend(utc);
 const { uid, comma } = require('ak-tools');
-const { weighList, weightedRange, date, integer } = require('../utils')
+const { weighList, weightedRange, date, integer } = require('../utils');
 
 const itemCategories = ["Books", "Movies", "Music", "Games", "Electronics", "Computers", "Smart Home", "Home", "Garden", "Pet", "Beauty", "Health", "Toys", "Kids", "Baby", "Handmade", "Sports", "Outdoors", "Automotive", "Industrial", "Entertainment", "Art", "Food", "Appliances", "Office", "Wedding", "Software"];
 
@@ -114,10 +114,10 @@ const config = {
 	userProps: {
 		title: chance.profession.bind(chance),
 		luckyNumber: weightedRange(42, 420),
-		spiritAnimal: chance.animal.bind(chance)
+		spiritAnimal: ["duck", "dog", "otter", "penguin", "cat", "elephant", "lion", "cheetah", "giraffe", "zebra", "rhino", "hippo", "whale", "dolphin", "shark", "octopus", "squid", "jellyfish", "starfish", "seahorse", "crab", "lobster", "shrimp", "clam", "snail", "slug", "butterfly", "moth", "bee", "wasp", "ant", "beetle", "ladybug", "caterpillar", "centipede", "millipede", "scorpion", "spider", "tarantula", "tick", "mite", "mosquito", "fly", "dragonfly", "damselfly", "grasshopper", "cricket", "locust", "mantis", "cockroach", "termite", "praying mantis", "walking stick", "stick bug", "leaf insect", "lacewing", "aphid", "cicada", "thrips", "psyllid", "scale insect", "whitefly", "mealybug", "planthopper", "leafhopper", "treehopper", "flea", "louse", "bedbug", "flea beetle", "weevil", "longhorn beetle", "leaf beetle", "tiger beetle", "ground beetle", "lady beetle", "firefly", "click beetle", "rove beetle", "scarab beetle", "dung beetle", "stag beetle", "rhinoceros beetle", "hercules beetle", "goliath beetle", "jewel beetle", "tortoise beetle"]
 	},
 
-	scdProps: {	},
+	scdProps: {},
 
 	/*
 	for group analytics keys, we need an array of arrays [[],[],[]] 
@@ -126,6 +126,9 @@ const config = {
 	groupKeys: [],
 	groupProps: {},
 	lookupTables: [],
+	hook: function (record, type, meta) {
+		return record;
+	}
 };
 
 

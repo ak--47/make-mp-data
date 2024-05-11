@@ -1,13 +1,15 @@
 {
   "name": "make-mp-data",
-  "version": "1.2.21",
+  "version": "1.2.25",
   "description": "builds all mixpanel primitives for a given project",
   "main": "index.js",
   "types": "types.d.ts",
   "scripts": {
     "start": "node index.js",
-	"dev": "./scripts/go.sh",
-    "prune": "rm ./data/*",    
+    "dev": "./scripts/go.sh",
+	"complex": "nodemon index.js --complex",
+	"simple": "nodemon index.js",
+    "prune": "rm ./data/*",
     "post": "npm publish",
     "test": "jest --runInBand",
     "deps": "sh ./scripts/deps.sh"
@@ -38,7 +40,7 @@
   },
   "homepage": "https://github.com/ak--47/make-mp-data#readme",
   "dependencies": {
-    "ak-tools": "^1.0.55",
+    "ak-tools": "^1.0.57",
     "chance": "^1.1.11",
     "dayjs": "^1.11.11",
     "mixpanel-import": "^2.5.51",

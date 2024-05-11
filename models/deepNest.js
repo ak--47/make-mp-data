@@ -38,8 +38,8 @@ function generateVideoMeta() {
 			observedLatencyTimestamps: chance.pickset([].range(1, 300000), int(1, 40))
 		},
 		videoStats: {
-			numerOfPlays: int(10, 10000000),
-			isReccommendedVideo: chance.bool(),
+			numberOfPlays: int(10, 10000000),
+			isRecommendedVideo: chance.bool(),
 			inPlaylists: chance.pickset(hashtags, int(1, hashtags.length)),
 			likers: chance.n(chance.guid, int(3, 100)),
 			dislikers: chance.n(chance.guid, int(3, 100)),
@@ -49,12 +49,12 @@ function generateVideoMeta() {
 				hashtags: chance.pickset(hashtags, int(1, 10)),
 				category: chance.pickone(categories),
 			},
-			availibility: {
+			availability: {
 				hasAdvertisements: chance.bool(),
 				canBeSeenOnPlans: chance.pickset(plans, int(1, plans.length)),
 				releaseInfo: {
 					isReleased: chance.bool({ likelihood: 90 }),
-					relaseDate: chance.date({ year: 2021 })
+					releaseDate: chance.date({ year: 2021 })
 				}
 			}
 

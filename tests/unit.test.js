@@ -55,16 +55,6 @@ describe('utils', () => {
 
 
 
-	test('hashtags', () => {
-		const hashtags = makeHashTags();
-		expect(hashtags).toBeInstanceOf(Array);
-		expect(hashtags).not.toHaveLength(0);
-		hashtags.forEach(tag => {
-			expect(tag).toMatch(/^#/);
-		});
-	});
-
-
 
 	test('person: fields', () => {
 		const generatedPerson = person();
@@ -74,19 +64,19 @@ describe('utils', () => {
 	});
 
 
-	test('date: past date', () => {
+	test('date: past', () => {
 		const pastDate = date(10, true, 'YYYY-MM-DD')();
 		expect(dayjs(pastDate, 'YYYY-MM-DD').isValid()).toBeTruthy();
 		expect(dayjs(pastDate).isBefore(dayjs())).toBeTruthy();
 	});
 
-	test('date: future date', () => {
+	test('date: future', () => {
 		const futureDate = date(10, false, 'YYYY-MM-DD')();
 		expect(dayjs(futureDate, 'YYYY-MM-DD').isValid()).toBeTruthy();
 		expect(dayjs(futureDate).isAfter(dayjs())).toBeTruthy();
 	});
 
-	test('dates: returns pairs of dates', () => {
+	test('dates: pairs', () => {
 		const datePairs = dates(10, 3, 'YYYY-MM-DD');
 		expect(datePairs).toBeInstanceOf(Array);
 		expect(datePairs).toHaveLength(3);
@@ -95,18 +85,18 @@ describe('utils', () => {
 		});
 	});
 
-	test('choose: choose from array', () => {
+	test('choose: array', () => {
 		const options = ['apple', 'banana', 'cherry'];
 		const choice = choose(options);
 		expect(options).toContain(choice);
 	});
 
-	test('choose: execute function', () => {
+	test('choose: function', () => {
 		const result = choose(() => 'test');
 		expect(result).toBe('test');
 	});
 
-	test('exhaust: exhaust array elements', () => {
+	test('exhaust: elements', () => {
 		const arr = [1, 2, 3];
 		const exhaustFn = exhaust([...arr]);
 		expect(exhaustFn()).toBe(1);
@@ -115,25 +105,21 @@ describe('utils', () => {
 		expect(exhaustFn()).toBeUndefined();
 	});
 
-	test('generateEmoji: returns string of emojis', () => {
-		const emojis = generateEmoji(5)();
-		expect(typeof emojis).toBe('string');
-		expect(emojis.split(', ').length).toBeLessThanOrEqual(5);
-	});
 
-	test('getUniqueKeys: find unique keys', () => {
+
+	test('unique keys', () => {
 		const objects = [{ a: 1, b: 2 }, { a: 3, c: 4 }, { a: 5, b: 6 }];
 		const uniqueKeys = getUniqueKeys(objects);
 		expect(uniqueKeys).toEqual(expect.arrayContaining(['a', 'b', 'c']));
 	});
 
 
-	test('date: generates a valid date', () => {
+	test('date', () => {
 		const result = date();
 		expect(dayjs(result()).isValid()).toBe(true);
 	});
 
-	test('dates: generates an array of date pairs', () => {
+	test('dates', () => {
 		const result = dates();
 		expect(result).toBeInstanceOf(Array);
 		expect(result.length).toBe(5); // Assuming default numPairs is 5
@@ -145,7 +131,7 @@ describe('utils', () => {
 		});
 	});
 
-	test('day: generates a day within range', () => {
+	test('day', () => {
 		const start = '2020-01-01';
 		const end = '2020-01-30';
 		const result = day(start, end);
@@ -154,7 +140,7 @@ describe('utils', () => {
 		expect(dayjs(dayResult.day).isBefore(dayjs(dayResult.end))).toBe(true);
 	});
 
-	test('exhaust: sequentially removes items from array', () => {
+	test('exhaust', () => {
 		const arr = [1, 2, 3];
 		const next = exhaust(arr);
 		expect(next()).toBe(1);
@@ -163,7 +149,13 @@ describe('utils', () => {
 		expect(next()).toBe(undefined); // or whatever your implementation does after array is exhausted
 	});
 
-	test('generateEmoji: generates correct format and length', () => {
+	test('emoji: works', () => {
+		const emojis = generateEmoji(5)();
+		expect(typeof emojis).toBe('string');
+		expect(emojis.split(', ').length).toBeLessThanOrEqual(5);
+	});
+
+	test('emoji: length', () => {
 		const result = generateEmoji();
 		const emojis = result();
 		expect(typeof emojis).toBe('string');

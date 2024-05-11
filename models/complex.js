@@ -8,7 +8,8 @@
 
 const Chance = require('chance');
 const chance = new Chance();
-const { weightedRange, makeProducts, date, makeHashTags } = require('../utils.js');
+const { weightedRange, date, integer } = require('../utils.js');
+const u = require('ak-tools');
 
 /** @type {import('../types.js').Config} */
 const config = {
@@ -28,26 +29,24 @@ const config = {
 			"weight": 2,
 			"properties": {
 				amount: weightedRange(5, 500, 1000, .25),
-				currency: ["USD", "CAD", "EUR", "BTC", "ETH", "JPY"],
-				cart: makeProducts,
+				currency: ["USD", "USD", "USD", "CAD", "EUR", "EUR", "BTC", "BTC", "ETH", "JPY"],
+				cart: makeProducts(12),
 			}
 		},
 		{
 			"event": "add to cart",
 			"weight": 4,
 			"properties": {
-				isFeaturedItem: [true, false, false],
 				amount: weightedRange(5, 500, 1000, .25),
-				rating: weightedRange(1, 5),
-				reviews: weightedRange(0, 35),
-				product_id: weightedRange(1, 1000)
+				qty: integer(1, 5),
+				product_id: weightedRange(1, 1000, 42, 1.4)
 			}
 		},
 		{
 			"event": "page view",
 			"weight": 10,
 			"properties": {
-				page: ["/", "/", "/help", "/account", "/watch", "/listen", "/product", "/people", "/peace"],
+				page: ["/", "/", "/", "/learn-more", "/pricing", "/contact", "/about", "/careers", "/sign-up", "/login", "/app", "/app", "/app", "/app"],
 				utm_source: ["$organic", "$organic", "$organic", "$organic", "google", "google", "google", "facebook", "facebook", "twitter", "linkedin"],
 			}
 		},
@@ -68,7 +67,7 @@ const config = {
 			"event": "view item",
 			"weight": 8,
 			"properties": {
-				product_id: weightedRange(1, 1000),
+				product_id: weightedRange(1, 1000, 24, 3),
 				colors: ["light", "dark", "custom", "dark"]
 			}
 		},
@@ -76,8 +75,18 @@ const config = {
 			"event": "save item",
 			"weight": 5,
 			"properties": {
-				product_id: weightedRange(1, 1000),
+				product_id: weightedRange(1, 1000, 8, 12),
 				colors: ["light", "dark", "custom", "dark"]
+			}
+		},
+		{
+			"event": "support ticket",
+			"weight": 2,
+			"properties": {
+				product_id: weightedRange(1, 1000, 420, .6),
+				description: chance.sentence.bind(chance),
+				severity: ["low", "medium", "high"],
+				ticket_id: chance.guid.bind(chance)
 			}
 		},
 		{
@@ -85,13 +94,14 @@ const config = {
 			"isFirstEvent": true,
 			"weight": 0,
 			"properties": {
-				variant: ["A", "B", "C", "Control"],
-				experiment: ["no password", "social sign in", "new tutorial"],
+				plan: ["free", "free", "free", "free", "basic", "basic", "basic", "premium", "premium", "enterprise"],
+				dateOfRenewal: date(100, false),
+				codewords: u.makeName,
 			}
 		}
 	],
 	superProps: {
-		platform: ["web", "mobile", "web", "mobile", "web", "kiosk", "smartTV"],
+		device: deviceAttributes()
 		// emotions: generateEmoji(),
 
 	},
@@ -102,8 +112,12 @@ const config = {
 	userProps: {
 		title: chance.profession.bind(chance),
 		luckyNumber: weightedRange(42, 420),
-		// vibe: generateEmoji(),
-		spiritAnimal: chance.animal.bind(chance)
+		experiment: designExperiment(),
+		spiritAnimal: ["unicorn", "dragon", "phoenix", "sasquatch", "yeti", "kraken", "jackalope", "thunderbird", "mothman", "nessie", "chupacabra", "jersey devil", "bigfoot", "weindgo", "bunyip", "mokele-mbembe", "tatzelwurm", "megalodon"],
+		timezone: chance.timezone.bind(chance), // ["America/New_York", "America/Los_Angeles", "America/Chicago", "America/Denver", "America/Phoenix", "America/Anchorage", "Pacific/Honolulu"]
+		ip: chance.ip.bind(chance),
+		lastCart: makeProducts(5),
+
 	},
 
 	scdProps: {
@@ -127,8 +141,9 @@ const config = {
 			$name: () => { return chance.company(); },
 			$email: () => { return `CSM: ${chance.pickone(["AK", "Jessica", "Michelle", "Dana", "Brian", "Dave"])}`; },
 			"# of employees": weightedRange(3, 10000),
-			"sector": ["tech", "finance", "healthcare", "education", "government", "non-profit"],
+			"industry": ["tech", "finance", "healthcare", "education", "government", "non-profit"],
 			"segment": ["enterprise", "SMB", "mid-market"],
+			"products": [["core"], ["core"], ["core", "add-ons"], ["core", "pro-serve"], ["core", "add-ons", "pro-serve"], ["core", "BAA", "enterprise"], ["free"], ["free"], ["free", "addons"]],
 		}
 	},
 
@@ -172,6 +187,118 @@ const config = {
 
 		}
 	],
+
+	hook: function (record, type, meta) {
+		return record;
+	}
 };
+
+
+
+function makeHashTags() {
+	const possibleHashtags = [];
+	for (let i = 0; i < 20; i++) {
+		possibleHashtags.push('#' + u.makeName(2, ''));
+	}
+
+	const numHashtags = integer(integer(1, 5), integer(5, 10));
+	const hashtags = [];
+	for (let i = 0; i < numHashtags; i++) {
+		hashtags.push(chance.pickone(possibleHashtags));
+	}
+	return [hashtags];
+};
+
+function makeProducts(maxItems = 10) {
+
+	return function () {
+		const categories = ["Device Accessories", "eBooks", "Automotive", "Baby Products", "Beauty", "Books", "Camera & Photo", "Cell Phones & Accessories", "Collectible Coins", "Consumer Electronics", "Entertainment Collectibles", "Fine Art", "Grocery & Gourmet Food", "Health & Personal Care", "Home & Garden", "Independent Design", "Industrial & Scientific", "Accessories", "Major Appliances", "Music", "Musical Instruments", "Office Products", "Outdoors", "Personal Computers", "Pet Supplies", "Software", "Sports", "Sports Collectibles", "Tools & Home Improvement", "Toys & Games", "Video, DVD & Blu-ray", "Video Games", "Watches"];
+		const slugs = ['/sale/', '/featured/', '/home/', '/search/', '/wishlist/', '/'];
+		const assetExtension = ['.png', '.jpg', '.jpeg', '.heic', '.mp4', '.mov', '.avi'];
+		const data = [];
+		const numOfItems = integer(1, 12);
+
+		for (var i = 0; i < numOfItems; i++) {
+			const category = chance.pickone(categories);
+			const slug = chance.pickone(slugs);
+			const asset = chance.pickone(assetExtension);
+			const product_id = chance.guid();
+			const price = integer(1, 300);
+			const quantity = integer(1, 5);
+
+			const item = {
+				product_id: product_id,
+				sku: integer(11111, 99999),
+				amount: price,
+				quantity: quantity,
+				value: price * quantity,
+				featured: chance.pickone([true, false]),
+				category: category,
+				urlSlug: slug + category,
+				asset: `${category}-${integer(1, 20)}${asset}`
+			};
+
+			data.push(item);
+		}
+
+		return [data];
+	};
+};
+
+
+function designExperiment() {
+	return function () {
+		const variants = ["A", "B", "C", "Control"];
+		const variant = chance.pickone(variants);
+		const experiments = ["no password", "social sign in", "new tutorial", "new search"];
+		const experiment = chance.pickone(experiments);
+		const multi_variates = ["A/B", "A/B/C", "A/B/C/D", "Control"];
+		const multi_variate = chance.pickone(multi_variates);
+		const impression_id = chance.guid();
+
+
+
+		const chosen = {
+			variant,
+			experiment,
+			multi_variate,
+			impression_id
+		};
+
+		return [chosen];
+	};
+}
+
+function deviceAttributes(isMobile = false) {
+	return function () {
+		let devices = ["desktop", "laptop", "desktop", "laptop", "desktop", "laptop", "other"];
+		if (isMobile) devices = [...devices, "mobile", "mobile", "mobile", "tablet"];
+		const device = chance.pickone(devices);
+		const oses = ["Windows", "macOS", "Windows", "macOS", "macOS", "Linux", "Windows", "macOS", "Windows", "macOS", "macOS", "TempleOS"];
+		if (isMobile) oses = [...oses, "iOS", "Android", "iOS", "Android"];
+		const os = chance.pickone(oses);
+		const browser = chance.pickone(["Chrome", "Firefox", "Safari", "Edge", "Opera", "IE", "Brave", "Vivaldi"]);
+		const version = chance.integer({ min: 1, max: 15 });
+		const resolution = chance.pickone(["1920x1080", "1280x720", "1024x768", "800x600", "640x480"]);
+		const language = chance.pickone(["en-US", "en-US", "en-US", "en-GB", "es", "es", "fr", "de", "it", "ja", "zh", "ru"]);
+
+		const chosen = {
+			platform: device,
+			os,
+			browser,
+			version,
+			resolution,
+			language
+		};
+
+		return [chosen];
+
+	};
+}
+
+
+
+
+
 
 module.exports = config;

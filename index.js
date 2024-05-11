@@ -41,7 +41,7 @@ async function main(config) {
 		superProps = { platform: ["web", "iOS", "Android"] },
 		userProps = {
 			favoriteColor: ["red", "green", "blue", "yellow"],
-			spiritAnimal: chance.animal,
+			spiritAnimal: chance.animal.bind(chance),
 		},
 		scdProps = { NPS: u.weightedRange(0, 10, 150, 1.6) },
 		groupKeys = [],
@@ -54,6 +54,7 @@ async function main(config) {
 		region = "US",
 		writeToDisk = false,
 		verbose = false,
+		hook = (record) => record,
 	} = config;
 	VERBOSE = verbose;
 	config.simulationName = makeName();
@@ -97,11 +98,11 @@ async function main(config) {
 		.filter((e) => !e.isFirstEvent);
 
 	const firstEvents = events.filter((e) => e.isFirstEvent);
-	const eventData = [];
-	const userProfilesData = [];
-	let scdTableData = [];
-	const groupProfilesData = [];
-	const lookupTableData = [];
+	const eventData = enrichArray([], { hook, type: "event", config });
+	const userProfilesData = enrichArray([], { hook, type: "user", config });
+	let scdTableData = enrichArray([], { hook, type: "scd", config });
+	const groupProfilesData = enrichArray([], { hook, type: "groups", config });
+	const lookupTableData = enrichArray([], { hook, type: "lookups", config });
 	const avgEvPerUser = Math.floor(numEvents / numUsers);
 
 	//user loop
@@ -110,15 +111,15 @@ async function main(config) {
 		u.progress("users", i);
 		const user = generateUser();
 		const { distinct_id, $created, anonymousIds, sessionIds } = user;
-		userProfilesData.push(makeProfile(userProps, user));
+		userProfilesData.hPush(makeProfile(userProps, user));
 		const mutations = chance.integer({ min: 1, max: 10 });
-		scdTableData.push(makeSCD(scdProps, distinct_id, mutations, $created));
+		scdTableData.hPush(makeSCD(scdProps, distinct_id, mutations, $created));
 		const numEventsThisUser = Math.round(
 			chance.normal({ mean: avgEvPerUser, dev: avgEvPerUser / u.integer(3, 7) })
 		);
-		
+
 		if (firstEvents.length) {
-			eventData.push(
+			eventData.hPush(
 				makeEvent(
 					distinct_id,
 					anonymousIds,
@@ -134,7 +135,7 @@ async function main(config) {
 
 		//event loop
 		for (let j = 0; j < numEventsThisUser; j++) {
-			eventData.push(
+			eventData.hPush(
 				makeEvent(
 					distinct_id,
 					anonymousIds,
@@ -163,11 +164,11 @@ async function main(config) {
 			const group = {
 				[groupKey]: i,
 				...makeProfile(groupProps[groupKey]),
-				$distinct_id: i,
+				// $distinct_id: i,
 			};
 			groupProfiles.push(group);
 		}
-		groupProfilesData.push({ key: groupKey, data: groupProfiles });
+		groupProfilesData.hPush({ key: groupKey, data: groupProfiles });
 	}
 	log("\n");
 
@@ -183,7 +184,7 @@ async function main(config) {
 			};
 			data.push(item);
 		}
-		lookupTableData.push({ key, data });
+		lookupTableData.hPush({ key, data });
 	}
 	const { eventFiles, userFiles, scdFiles, groupFiles, lookupFiles, folder } =
 		buildFileNames(config);
@@ -194,7 +195,7 @@ async function main(config) {
 		[groupFiles, groupProfilesData],
 		[lookupFiles, lookupTableData],
 	];
-	log("\n")
+	log("\n");
 	log(`---------------SIMULATION----------------`, "\n");
 
 	if (!writeToDisk && !token) {
@@ -445,6 +446,18 @@ function buildFileNames(config) {
 }
 
 
+function enrichArray(arr = [], opts = {}) {
+	const { hook = a => a, type = "", config = {} } = opts;
+
+	function transformThenPush(item) {
+		return arr.push(hook(item, type, config));
+	}
+
+	arr.hPush = transformThenPush;
+
+	return arr;
+};
+
 
 
 // this is for CLI
@@ -489,8 +502,8 @@ if (require.main === module) {
 	main(config)
 		.then((data) => {
 			log(`-----------------SUMMARY-----------------`);
-			const d = {success: 0, bytes: 0};
-			const darr = [d]
+			const d = { success: 0, bytes: 0 };
+			const darr = [d];
 			const { events = d, groups = darr, users = d } = data.import;
 			const files = data.files;
 			const folder = files?.pop();

@@ -1,7 +1,25 @@
 {
 	"cSpell.words": [
+		"AVCHD",
+		"chupacabra",
+		"darr",
+		"dislikers",
+		"Dont",
+		"jackalope",
+		"mbembe",
+		"megalodon",
+		"Miley",
+		"mokele",
+		"mothman",
+		"nessie",
+		"nesty",
+		"planthopper",
+		"psyllid",
+		"tatzelwurm",
 		"timesoup",
-		"unparse"
+		"unparse",
+		"Vlogs",
+		"weindgo"
 	],
 	"jest.runMode": "on-demand",
 	"jest.jestCommandLine": "npm run test --",

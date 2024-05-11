@@ -92,10 +92,15 @@ function choose(value) {
 			return chance.pickone(value);
 		}
 
+		if (typeof value === 'string') {
+			return value;
+		}
+
 		// If it's not a function or array, return it as is
 		return value;
 	}
 	catch (e) {
+		console.error(`\n\nerror on value: ${value};\n\n`,e, '\n\n');
 		return '';
 	}
 }
@@ -128,63 +133,6 @@ function integer(min, max) {
 	return 0;
 };
 
-function makeHashTags() {
-	const popularHashtags = [
-		'#GalacticAdventures',
-		'#EnchantedExplorations',
-		'#MagicalMoments',
-		'#EpicQuests',
-		'#WonderfulWorlds',
-		'#FantasyFrenzy',
-		'#MysticalMayhem',
-		'#MythicalMarvels',
-		'#LegendaryLegends',
-		'#DreamlandDiaries',
-		'#WhimsicalWonders',
-		'#FabledFables'
-	];
-
-	const numHashtags = integer(integer(1, 5), integer(5, 10));
-	const hashtags = [];
-	for (let i = 0; i < numHashtags; i++) {
-		hashtags.push(chance.pickone(popularHashtags));
-	}
-	return hashtags;
-};
-
-function makeProducts() {
-	let categories = ["Device Accessories", "eBooks", "Automotive", "Baby Products", "Beauty", "Books", "Camera & Photo", "Cell Phones & Accessories", "Collectible Coins", "Consumer Electronics", "Entertainment Collectibles", "Fine Art", "Grocery & Gourmet Food", "Health & Personal Care", "Home & Garden", "Independent Design", "Industrial & Scientific", "Accessories", "Major Appliances", "Music", "Musical Instruments", "Office Products", "Outdoors", "Personal Computers", "Pet Supplies", "Software", "Sports", "Sports Collectibles", "Tools & Home Improvement", "Toys & Games", "Video, DVD & Blu-ray", "Video Games", "Watches"];
-	let slugs = ['/sale/', '/featured/', '/home/', '/search/', '/wishlist/', '/'];
-	let assetExtension = ['.png', '.jpg', '.jpeg', '.heic', '.mp4', '.mov', '.avi'];
-	let data = [];
-	let numOfItems = integer(1, 12);
-
-	for (var i = 0; i < numOfItems; i++) {
-
-		let category = chance.pickone(categories);
-		let slug = chance.pickone(slugs);
-		let asset = chance.pickone(assetExtension);
-		let product_id = chance.guid();
-		let price = integer(1, 300);
-		let quantity = integer(1, 5);
-
-		let item = {
-			product_id: product_id,
-			sku: integer(11111, 99999),
-			amount: price,
-			quantity: quantity,
-			value: price * quantity,
-			featured: chance.pickone([true, false]),
-			category: category,
-			urlSlug: slug + category,
-			asset: `${category}-${integer(1, 20)}${asset}`
-		};
-
-		data.push(item);
-	}
-
-	return data;
-};
 
 // Box-Muller transform to generate standard normally distributed values
 function boxMullerRandom() {
@@ -359,8 +307,7 @@ module.exports = {
 	choose,
 	exhaust,
 	integer,
-	makeHashTags,
-	makeProducts,
+
 	boxMullerRandom,
 	applySkew,
 	mapToRange,
