@@ -23,11 +23,12 @@ const { makeName, md5, clone, tracker, uid } = require('ak-tools');
 const NOW = dayjs().unix();
 let VERBOSE = false;
 let isCLI = false;
+const { version } = require('./package.json');
 
 const metrics = tracker("make-mp-data", "db99eb8f67ae50949a13c27cacf57d41");
-function track() {
+function track(name, props, ...rest) {
 	if (process.env.NODE_ENV === 'test') return;
-	metrics.track(...arguments);
+	metrics(name, props, ...rest);
 }
 
 /** @typedef {import('./types.d.ts').Config} Config */
@@ -82,7 +83,8 @@ async function main(config) {
 		token,
 		region,
 		writeToDisk,
-		isCLI
+		isCLI,
+		version
 	});
 	log(`------------------SETUP------------------`);
 	log(`\nyour data simulation will heretofore be known as: \n\n\t${simulationName.toUpperCase()}...\n`);
@@ -383,7 +385,8 @@ async function main(config) {
 		token,
 		region,
 		writeToDisk,
-		isCLI
+		isCLI,
+		version
 	});
 	return {
 		import: importResults,
