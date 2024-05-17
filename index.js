@@ -1,5 +1,9 @@
 #! /usr/bin/env node
 
+//todos:
+// - multiple group profiles + lookups are duplicating the files
+// - scd are not rendering correctly
+// - printing the full path is annoying... maybe just print the file name
 
 /*
 make fake mixpanel data easily!
@@ -48,8 +52,8 @@ async function main(config) {
 		groupKeys = [],
 		groupProps = {},
 		lookupTables = [],
-		anonIds = true,
-		sessionIds = true,
+		anonIds = false,
+		sessionIds = false,
 		format = "csv",
 		token = null,
 		region = "US",
@@ -101,7 +105,12 @@ async function main(config) {
 	const firstEvents = events.filter((e) => e.isFirstEvent);
 	const eventData = enrichArray([], { hook, type: "event", config });
 	const userProfilesData = enrichArray([], { hook, type: "user", config });
-	let scdTableData = enrichArray([], { hook, type: "scd", config });
+	const scdTableKeys = Object.keys(scdProps);
+	const scdTableData = [];
+	for (const [index, key] of scdTableKeys.entries()) {
+		scdTableData[index] = enrichArray([], { hook, type: "scd", config, scdKey: key });
+	}
+	// const scdTableData = enrichArray([], { hook, type: "scd", config });
 	const groupProfilesData = enrichArray([], { hook, type: "groups", config });
 	const lookupTableData = enrichArray([], { hook, type: "lookups", config });
 	const avgEvPerUser = Math.floor(numEvents / numUsers);
@@ -113,8 +122,13 @@ async function main(config) {
 		const user = generateUser();
 		const { distinct_id, $created, anonymousIds, sessionIds } = user;
 		userProfilesData.hPush(makeProfile(userProps, user));
-		const mutations = chance.integer({ min: 1, max: 10 });
-		scdTableData.hPush(makeSCD(scdProps, distinct_id, mutations, $created));
+
+		//scd loop
+		for (const [index, key] of scdTableKeys.entries()) {
+			const mutations = chance.integer({ min: 1, max: 10 });
+			scdTableData[index].hPush(makeSCD(scdProps[key], key, distinct_id, mutations, $created));
+		}
+
 		const numEventsThisUser = Math.round(
 			chance.normal({ mean: avgEvPerUser, dev: avgEvPerUser / u.integer(3, 7) })
 		);
@@ -151,7 +165,7 @@ async function main(config) {
 	}
 
 	//flatten SCD
-	scdTableData = scdTableData.flat();
+	scdTableData.forEach((table, index) => scdTableData[index] = table.flat());
 
 	log("\n");
 
@@ -195,8 +209,8 @@ async function main(config) {
 		mirrorEventData = clone(eventData);
 		for (const row of mirrorEventData) {
 			for (const key of mirrorPropKeys) {
-				if (mirrorProps[key]?.events?.includes(row?.event)) row[key] = u.choose(mirrorProps[key]?.values);				
-				if (mirrorProps[key]?.events === "*") row[key] = u.choose(mirrorProps[key]?.values);
+				if (mirrorProps[key]?.events?.includes(row?.event)) row[key] = hook(u.choose(mirrorProps[key]?.values), "mirror", { config, row, key });
+				if (mirrorProps[key]?.events === "*") row[key] = hook(u.choose(mirrorProps[key]?.values), "mirror", { config, row, key });
 			}
 		}
 	}
@@ -340,16 +354,23 @@ function makeProfile(props, defaults) {
 
 	return profile;
 }
-
-function makeSCD(props, distinct_id, mutations, $created) {
-	if (JSON.stringify(props) === "{}") return [];
+/**
+ * @param  {import('./types.d.ts').valueValid} prop
+ * @param  {string} scdKey
+ * @param  {string} distinct_id
+ * @param  {number} mutations
+ * @param  {string} $created
+ */
+function makeSCD(prop, scdKey, distinct_id, mutations, $created) {
+	if (JSON.stringify(prop) === "{}") return {};
+	if (JSON.stringify(prop) === "[]") return [];
 	const scdEntries = [];
 	let lastInserted = dayjs($created);
 	const deltaDays = dayjs().diff(lastInserted, "day");
 
 	for (let i = 0; i < mutations; i++) {
 		if (lastInserted.isAfter(dayjs())) break;
-		const scd = makeProfile(props, { distinct_id });
+		const scd = makeProfile({ [scdKey]: prop }, { distinct_id });
 		scd.startTime = lastInserted.toISOString();
 		lastInserted = lastInserted.add(u.integer(1, 1000), "seconds");
 		scd.insertTime = lastInserted.toISOString();
@@ -438,12 +459,20 @@ function buildFileNames(config) {
 	const writePaths = {
 		eventFiles: [path.join(writeDir, `${simName}-EVENTS.${extension}`)],
 		userFiles: [path.join(writeDir, `${simName}-USERS.${extension}`)],
-		scdFiles: [path.join(writeDir, `${simName}-SCD.${extension}`)],
-		mirrorFiles: [path.join(writeDir, `${simName}-MIRROR-FUTURE.${extension}`)],
+		scdFiles: [],
+		mirrorFiles: [path.join(writeDir, `${simName}-EVENTS-FUTURE-MIRROR.${extension}`)],
 		groupFiles: [],
 		lookupFiles: [],
 		folder: writeDir,
 	};
+
+	//add SCD files
+	const scdKeys = Object.keys(config.scdProps);
+	for (const key of scdKeys) {
+		writePaths.scdFiles.push(
+			path.join(writeDir, `${simName}-${key}-SCD.${extension}`)
+		);
+	}
 
 	for (const groupPair of groupKeys) {
 		const groupKey = groupPair[0];
@@ -465,10 +494,10 @@ function buildFileNames(config) {
 
 
 function enrichArray(arr = [], opts = {}) {
-	const { hook = a => a, type = "", config = {} } = opts;
+	const { hook = a => a, type = "", ...rest } = opts;
 
 	function transformThenPush(item) {
-		return arr.push(hook(item, type, config));
+		return arr.push(hook(item, type, rest));
 	}
 
 	arr.hPush = transformThenPush;

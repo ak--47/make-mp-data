@@ -16,7 +16,7 @@ declare namespace main {
     events?: EventConfig[];
     superProps?: Record<string, valueValid>;
     userProps?: Record<string, valueValid>;
-    scdProps?: Record<string, valueValid>;
+    scdProps?: SCDTable[];
 	mirrorProps?: Record<string, { events: string[]; values: valueValid[] }>;
     groupKeys?: [string, number][];
     groupProps?: Record<string, GroupProperty>; // Adjust according to usage
@@ -50,6 +50,17 @@ declare namespace main {
     attributes: {
       [key?: string]: valueValid;
     };
+  }
+
+  interface SCDTable {
+	distinct_id: string;
+	insertTime: string;
+	startTime: string;
+	[key: string]: valueValid;
+  }
+
+  interface SCDProps {
+	[key: string]: valueValid;
   }
 
   type Result = {

@@ -5,6 +5,18 @@
 	"version": "0.2.0",
 	"configurations": [
 		{
+			"command": "npm run simple",
+			"name": "simple",
+			"request": "launch",
+			"type": "node-terminal"
+		},
+		{
+			"command": "npm run complex",
+			"name": "complex",
+			"request": "launch",
+			"type": "node-terminal"
+		},			
+		{
 			"type": "node",
 			"request": "launch",
 			"name": "go",
@@ -15,5 +27,6 @@
 			"internalConsoleOptions": "neverOpen",
 			"args": ["--ignore", "./data/"]
 		}
+
 	]
 }

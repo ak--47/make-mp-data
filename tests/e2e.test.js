@@ -24,7 +24,7 @@ describe('module', () => {
 		expect(eventData.length).toBeGreaterThan(980);
 		expect(groupProfilesData.length).toBe(0);
 		expect(lookupTableData.length).toBe(0);
-		expect(scdTableData.length).toBeGreaterThan(200);
+		expect(scdTableData.length).toBe(0);
 		expect(userProfilesData.length).toBe(100);		
 
 	}, timeout);
@@ -61,7 +61,7 @@ describe('module', () => {
 		expect(eventData.length).toBeGreaterThan(980);
 		expect(groupProfilesData.length).toBe(0);
 		expect(lookupTableData.length).toBe(0);
-		expect(scdTableData.length).toBeGreaterThan(200);
+		expect(scdTableData.length).toBe(0);
 		expect(userProfilesData.length).toBe(100);
 
 	}, timeout);
@@ -75,7 +75,7 @@ describe('cli', () => {
 		const run = execSync(`node ./index.js --numEvents 1000 --numUsers 100 --seed "deal with it" --complex`);
 		expect(run.toString().trim().includes('have a wonderful day :)')).toBe(true);
 		const csvs = (await u.ls('./data')).filter(a => a.includes('.csv'));
-		expect(csvs.length).toBe(5);
+		expect(csvs.length).toBe(6);
 		clearData();
 	}, timeout);
 
@@ -84,7 +84,7 @@ describe('cli', () => {
 		const run = execSync(`node ./index.js --numEvents 1000 --numUsers 100 --seed "deal with it"`);
 		expect(run.toString().trim().includes('have a wonderful day :)')).toBe(true);
 		const csvs = (await u.ls('./data')).filter(a => a.includes('.csv'));
-		expect(csvs.length).toBe(2);
+		expect(csvs.length).toBe(3);
 		clearData();
 	}, timeout);
 
@@ -93,7 +93,7 @@ describe('cli', () => {
 		const run = execSync(`node ./index.js ./models/deepNest.js`);
 		expect(run.toString().trim().includes('have a wonderful day :)')).toBe(true);
 		const csvs = (await u.ls('./data')).filter(a => a.includes('.csv'));
-		expect(csvs.length).toBe(3);
+		expect(csvs.length).toBe(2);
 		clearData();
 	}, timeout);
 
