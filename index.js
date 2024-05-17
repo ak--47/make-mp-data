@@ -23,9 +23,10 @@ const { makeName, md5, clone, tracker, uid } = require('ak-tools');
 const NOW = dayjs().unix();
 let VERBOSE = false;
 let isCLI = false;
-const { version } = require('./package.json');
 
-const metrics = tracker("make-mp-data", "db99eb8f67ae50949a13c27cacf57d41");
+const { version } = require('./package.json');
+const os = require("os");
+const metrics = tracker("make-mp-data", "db99eb8f67ae50949a13c27cacf57d41", os.userInfo().username);
 function track(name, props, ...rest) {
 	if (process.env.NODE_ENV === 'test') return;
 	metrics(name, props, ...rest);
@@ -80,7 +81,7 @@ async function main(config) {
 		anonIds,
 		sessionIds,
 		format,
-		token,
+		targetToken: token,
 		region,
 		writeToDisk,
 		isCLI,
@@ -382,7 +383,7 @@ async function main(config) {
 		anonIds,
 		sessionIds,
 		format,
-		token,
+		targetToken: token,
 		region,
 		writeToDisk,
 		isCLI,
