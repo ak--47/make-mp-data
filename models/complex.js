@@ -1,5 +1,5 @@
 /**
- * This is the default configuration file for the data generator
+ * This is the default configuration file for the data generator in COMPLEX mode
  * notice how the config object is structured, and see it's type definition in ./types.d.ts
  * feel free to modify this file to customize the data you generate
  * see helper functions in utils.js for more ways to generate data
@@ -59,7 +59,7 @@ const config = {
 				watchTimeSec: weightedRange(10, 600, 1000, .25),
 				quality: ["2160p", "1440p", "1080p", "720p", "480p", "360p", "240p"],
 				format: ["mp4", "avi", "mov", "mpg"],
-				uploader_id: chance.guid.bind(chance)
+				video_id: weightedRange(1, 50000, 420000, 1.4),
 
 			}
 		},
@@ -120,12 +120,22 @@ const config = {
 
 	},
 
+	/** each generates it's own table */
 	scdProps: {
 		plan: ["free", "free", "free", "free", "basic", "basic", "basic", "premium", "premium", "enterprise"],
 		MRR: weightedRange(0, 10000, 1000, .15),
 		NPS: weightedRange(0, 10, 150, 2),
-		marketingOptIn: [true, true, false],
-		dateOfRenewal: date(100, false),
+		subscribed: [true, true, true, true, true, true, false, false, false, false, "it's complicated"],
+		renewalDate: date(100, false),
+	},
+
+	mirrorProps: {
+		isBot: { events: "*", values: [false, false, false, false, true] },
+		profit: { events: ["checkout"], values: [4, 2, 42, 420] },
+		watchTimeSec: {
+			events: ["watch video"],
+			values: weightedRange(50, 1200, 247, 6)
+		}
 	},
 
 	/*
@@ -133,7 +143,8 @@ const config = {
 	each pair represents a group_key and the number of profiles for that key
 	*/
 	groupKeys: [
-		['company_id', 350],
+		['company_id', 500],
+		['room_id', 10000],
 
 	],
 	groupProps: {
@@ -144,6 +155,15 @@ const config = {
 			"industry": ["tech", "finance", "healthcare", "education", "government", "non-profit"],
 			"segment": ["enterprise", "SMB", "mid-market"],
 			"products": [["core"], ["core"], ["core", "add-ons"], ["core", "pro-serve"], ["core", "add-ons", "pro-serve"], ["core", "BAA", "enterprise"], ["free"], ["free"], ["free", "addons"]],
+		},
+		room_id: {
+			$name: () => { return `#${chance.word({ length: integer(4, 24), capitalize: true })}`; },
+			$email: ["public", "private"],
+			"room provider": ["partner", "core", "core", "core"],
+			"room capacity": weightedRange(3, 1000000),
+			"isPublic": [true, false, false, false, false],
+			"country": chance.country.bind(chance),
+			"isVerified": [true, true, false, false, false],
 		}
 	},
 
@@ -153,29 +173,7 @@ const config = {
 			entries: 1000,
 			attributes: {
 				category: [
-					"Books",
-					"Movies",
-					"Music",
-					"Games",
-					"Electronics",
-					"Computers",
-					"Smart Home",
-					"Home",
-					"Garden & Tools",
-					"Pet Supplies",
-					"Food & Grocery",
-					"Beauty",
-					"Health",
-					"Toys",
-					"Kids",
-					"Baby",
-					"Handmade",
-					"Sports",
-					"Outdoors",
-					"Automotive",
-					"Industrial",
-					"Entertainment",
-					"Art"
+					"Books", "Movies", "Music", "Games", "Electronics", "Computers", "Smart Home", "Home", "Garden & Tools", "Pet Supplies", "Food & Grocery", "Beauty", "Health", "Toys", "Kids", "Baby", "Handmade", "Sports", "Outdoors", "Automotive", "Industrial", "Entertainment", "Art"
 				],
 				"demand": ["high", "medium", "medium", "low"],
 				"supply": ["high", "medium", "medium", "low"],
@@ -183,6 +181,20 @@ const config = {
 				"price": weightedRange(5, 500, 1000, .25),
 				"rating": weightedRange(1, 5),
 				"reviews": weightedRange(0, 35)
+			}
+
+		},
+		{
+			key: "video_id",
+			entries: 50000,
+			attributes: {
+				isFlagged: [true, false, false, false, false],
+				copyright: ["all rights reserved", "creative commons", "creative commons", "public domain", "fair use"],
+				uploader_id: chance.guid.bind(chance),
+				"uploader influence": ["low", "low", "low", "medium", "medium", "high"],
+				rating: weightedRange(1, 5),
+				thumbs: weightedRange(0, 35),
+				rating: ["G", "PG", "PG-13", "R", "NC-17", "PG-13", "R", "NC-17", "R", "PG", "PG"]
 			}
 
 		}

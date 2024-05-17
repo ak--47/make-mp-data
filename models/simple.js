@@ -1,3 +1,13 @@
+/**
+ * This is the default configuration file for the data generator in SIMPLE mode
+ * notice how the config object is structured, and see it's type definition in ./types.d.ts
+ * feel free to modify this file to customize the data you generate
+ * see helper functions in utils.js for more ways to generate data
+ */
+
+
+
+
 const Chance = require('chance');
 const chance = new Chance();
 const dayjs = require("dayjs");
@@ -24,9 +34,9 @@ const config = {
 
 	events: [
 		{
-			"event": "checkout",
-			"weight": 2,
-			"properties": {
+			event: "checkout",
+			weight: 2,
+			properties: {
 				amount: weightedRange(5, 500, 1000, .25),
 				currency: ["USD", "CAD", "EUR", "BTC", "ETH", "JPY"],
 				coupon: ["none", "none", "none", "none", "10%OFF", "20%OFF", "10%OFF", "20%OFF", "30%OFF", "40%OFF", "50%OFF"],
@@ -35,9 +45,9 @@ const config = {
 			}
 		},
 		{
-			"event": "add to cart",
-			"weight": 4,
-			"properties": {
+			event: "add to cart",
+			weight: 4,
+			properties: {
 				amount: weightedRange(5, 500, 1000, .25),
 				rating: weightedRange(1, 5),
 				reviews: weightedRange(0, 35),
@@ -48,17 +58,17 @@ const config = {
 			}
 		},
 		{
-			"event": "page view",
-			"weight": 10,
-			"properties": {
+			event: "page view",
+			weight: 10,
+			properties: {
 				page: ["/", "/", "/help", "/account", "/watch", "/listen", "/product", "/people", "/peace"],
 				utm_source: ["$organic", "$organic", "$organic", "$organic", "google", "google", "google", "facebook", "facebook", "twitter", "linkedin"],
 			}
 		},
 		{
-			"event": "watch video",
-			"weight": 8,
-			"properties": {
+			event: "watch video",
+			weight: 8,
+			properties: {
 				videoCategory: weighList(videoCategories, integer(0, 9)),
 				isFeaturedItem: [true, false, false],
 				watchTimeSec: weightedRange(10, 600, 1000, .25),
@@ -69,9 +79,9 @@ const config = {
 			}
 		},
 		{
-			"event": "view item",
-			"weight": 8,
-			"properties": {
+			event: "view item",
+			weight: 8,
+			properties: {
 				isFeaturedItem: [true, false, false],
 				itemCategory: weighList(itemCategories, integer(0, 27)),
 				dateItemListed: date(30, true, 'YYYY-MM-DD'),
@@ -79,9 +89,9 @@ const config = {
 			}
 		},
 		{
-			"event": "save item",
-			"weight": 5,
-			"properties": {
+			event: "save item",
+			weight: 5,
+			properties: {
 				isFeaturedItem: [true, false, false],
 				itemCategory: weighList(itemCategories, integer(0, 27)),
 				dateItemListed: date(30, true, 'YYYY-MM-DD'),
@@ -89,10 +99,10 @@ const config = {
 			}
 		},
 		{
-			"event": "sign up",
-			"isFirstEvent": true,
-			"weight": 0,
-			"properties": {
+			event: "sign up",
+			isFirstEvent: true,
+			weight: 0,
+			properties: {
 				variants: ["A", "B", "C", "Control"],
 				flows: ["new", "existing", "loyal", "churned"],
 				flags: ["on", "off"],
@@ -118,6 +128,15 @@ const config = {
 	},
 
 	scdProps: {},
+	mirrorProps: {
+		isBot: { events: "*", values: [false, false, false, false, true] },
+		profit: { events: ["checkout"], values: [4, 2, 42, 420] },
+		watchTimeSec: {
+			events: ["watch video"],
+			values: weightedRange(50, 1200, 247, 6)
+		}
+
+	},
 
 	/*
 	for group analytics keys, we need an array of arrays [[],[],[]] 
