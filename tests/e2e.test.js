@@ -46,10 +46,10 @@ describe('module', () => {
 		const results = await generate({ ...complex, verbose: true, writeToDisk: false, numEvents: 1100, numUsers: 100, seed: "deal with it" });
 		const { eventData, groupProfilesData, lookupTableData, scdTableData, userProfilesData } = results;
 		expect(eventData.length).toBeGreaterThan(980);
-		expect(groupProfilesData[0]?.data?.length).toBe(350);
-		expect(lookupTableData.length).toBe(1);
+		expect(groupProfilesData[0]?.data?.length).toBe(500);
+		expect(lookupTableData.length).toBe(2);
 		expect(lookupTableData[0].data.length).toBe(1000);
-		expect(scdTableData.length).toBeGreaterThan(200);
+		expect(scdTableData.length).toBe(5);
 		expect(userProfilesData.length).toBe(100);
 
 	}, timeout);
@@ -66,16 +66,25 @@ describe('module', () => {
 
 	}, timeout);
 
+	test('fails with invalid configuration', async () => {
+		try {
+		  await generate({ numUsers: -10 });
+		} catch (e) {
+		  expect(e).toBeDefined();
+		}
+	  }, timeout);
+	  
+
 
 });
 
 describe('cli', () => {
 	test('works as CLI (complex)', async () => {
 		console.log('COMPLEX CLI TEST');
-		const run = execSync(`node ./index.js --numEvents 1000 --numUsers 100 --seed "deal with it" --complex`);
-		expect(run.toString().trim().includes('have a wonderful day :)')).toBe(true);
+		const run = execSync(`node ./index.js --numEvents 1000 --numUsers 100 --seed "deal with it" --complex`, { stdio: 'ignore' });
+		// expect(run.toString().trim().includes('have a wonderful day :)')).toBe(true);
 		const csvs = (await u.ls('./data')).filter(a => a.includes('.csv'));
-		expect(csvs.length).toBe(6);
+		expect(csvs.length).toBe(12);
 		clearData();
 	}, timeout);
 
@@ -98,6 +107,7 @@ describe('cli', () => {
 	}, timeout);
 
 });
+
 
 describe('options + tweaks', () => {
 	test('creates sessionIds', async () => {

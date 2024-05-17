@@ -1,10 +1,5 @@
 #! /usr/bin/env node
 
-//todos:
-// - multiple group profiles + lookups are duplicating the files
-// - scd are not rendering correctly
-// - printing the full path is annoying... maybe just print the file name
-
 /*
 make fake mixpanel data easily!
 by AK 
@@ -24,9 +19,16 @@ const dayjs = require("dayjs");
 const utc = require("dayjs/plugin/utc");
 dayjs.extend(utc);
 const cliParams = require("./cli.js");
-const { makeName, md5, clone } = require('ak-tools');
+const { makeName, md5, clone, tracker, uid } = require('ak-tools');
 const NOW = dayjs().unix();
 let VERBOSE = false;
+let isCLI = false;
+
+const metrics = tracker("make-mp-data", "db99eb8f67ae50949a13c27cacf57d41");
+function track() {
+	if (process.env.NODE_ENV === 'test') return;
+	metrics.track(...arguments);
+}
 
 /** @typedef {import('./types.d.ts').Config} Config */
 /** @typedef {import('./types.d.ts').EventConfig} EventConfig */
@@ -63,10 +65,27 @@ async function main(config) {
 	} = config;
 	VERBOSE = verbose;
 	config.simulationName = makeName();
+	const { simulationName } = config;
 	global.MP_SIMULATION_CONFIG = config;
 	const uuidChance = new Chance(seed);
+	const runId = uid(42);
+	track('start simulation', {
+		runId,
+		seed,
+		numEvents,
+		numUsers,
+		numDays,
+		events,
+		anonIds,
+		sessionIds,
+		format,
+		token,
+		region,
+		writeToDisk,
+		isCLI
+	});
 	log(`------------------SETUP------------------`);
-	log(`\nyour data simulation will heretofore be known as: \n\n\t${config.simulationName.toUpperCase()}...\n`);
+	log(`\nyour data simulation will heretofore be known as: \n\n\t${simulationName.toUpperCase()}...\n`);
 	log(`and your configuration is:\n\n`, JSON.stringify({ seed, numEvents, numUsers, numDays, format, token, region, writeToDisk }, null, 2));
 	log(`------------------SETUP------------------`, "\n");
 
@@ -218,17 +237,32 @@ async function main(config) {
 	const { eventFiles, userFiles, scdFiles, groupFiles, lookupFiles, mirrorFiles, folder } =
 		buildFileNames(config);
 	const pairs = [
-		[eventFiles, eventData],
-		[userFiles, userProfilesData],
+		[eventFiles, [eventData]],
+		[userFiles, [userProfilesData]],
 		[scdFiles, scdTableData],
 		[groupFiles, groupProfilesData],
 		[lookupFiles, lookupTableData],
-		[mirrorFiles, mirrorEventData],
+		[mirrorFiles, [mirrorEventData]],
 	];
 	log("\n");
 	log(`---------------SIMULATION----------------`, "\n");
 
 	if (!writeToDisk && !token) {
+		track('end simulation', {
+			runId,
+			seed,
+			numEvents,
+			numUsers,
+			numDays,
+			events,
+			anonIds,
+			sessionIds,
+			format,
+			token,
+			region,
+			writeToDisk,
+			isCLI
+		});
 		return {
 			eventData,
 			userProfilesData,
@@ -243,32 +277,39 @@ async function main(config) {
 	log(`-----------------WRITES------------------`, `\n\n`);
 	//write the files
 	if (writeToDisk) {
-		if (verbose) log(`writing files... for ${config.simulationName}`);
-		loopFiles: for (const pair of pairs) {
-			const [paths, data] = pair;
+		if (verbose) log(`writing files... for ${simulationName}`);
+		loopFiles: for (const ENTITY of pairs) {
+			const [paths, data] = ENTITY;
 			if (!data.length) continue loopFiles;
-			for (const path of paths) {
-				let datasetsToWrite;
-				if (data?.[0]?.["key"]) datasetsToWrite = data.map((d) => d.data);
-				else datasetsToWrite = [data];
-				for (const writeData of datasetsToWrite) {
-					//if it's a lookup table, it's always a CSV
-					if (format === "csv" || path.includes("-LOOKUP.csv")) {
-						log(`\twriting ${path}`);
-						const columns = u.getUniqueKeys(writeData);
-						//papa parse needs nested JSON stringified
-						writeData.forEach((e) => {
-							for (const key in e) {
-								if (typeof e[key] === "object") e[key] = JSON.stringify(e[key]);
-							}
-						});
-						const csv = Papa.unparse(writeData, { columns });
-						await touch(path, csv);
-					} else {
-						const ndjson = data.map((d) => JSON.stringify(d)).join("\n");
-						await touch(path, ndjson, false);
-					}
+			for (const [index, path] of paths.entries()) {
+				let TABLE;
+				//group + lookup tables are structured differently
+				if (data?.[index]?.["key"]) {
+					TABLE = data[index].data;
 				}
+				else {
+					TABLE = data[index];
+				}
+
+				log(`\twriting ${path}`);
+				//if it's a lookup table, it's always a CSV
+				if (format === "csv" || path.includes("-LOOKUP.csv")) {
+					const columns = u.getUniqueKeys(TABLE);
+					//papa parse needs eac nested field JSON stringified
+					TABLE.forEach((e) => {
+						for (const key in e) {
+							if (typeof e[key] === "object") e[key] = JSON.stringify(e[key]);
+						}
+					});
+
+					const csv = Papa.unparse(TABLE, { columns });
+					await touch(path, csv);
+				}
+				else {
+					const ndjson = TABLE.map((d) => JSON.stringify(d)).join("\n");
+					await touch(path, ndjson, false);
+				}
+
 			}
 		}
 	}
@@ -329,6 +370,21 @@ async function main(config) {
 
 	}
 	log(`\n-----------------WRITES------------------`, "\n");
+	track('end simulation', {
+		runId,
+		seed,
+		numEvents,
+		numUsers,
+		numDays,
+		events,
+		anonIds,
+		sessionIds,
+		format,
+		token,
+		region,
+		writeToDisk,
+		isCLI
+	});
 	return {
 		import: importResults,
 		files: [eventFiles, userFiles, scdFiles, groupFiles, lookupFiles, mirrorFiles, folder],
@@ -467,7 +523,7 @@ function buildFileNames(config) {
 	};
 
 	//add SCD files
-	const scdKeys = Object.keys(config.scdProps);
+	const scdKeys = Object.keys(config?.scdProps || {});
 	for (const key of scdKeys) {
 		writePaths.scdFiles.push(
 			path.join(writeDir, `${simName}-${key}-SCD.${extension}`)
@@ -509,6 +565,7 @@ function enrichArray(arr = [], opts = {}) {
 
 // this is for CLI
 if (require.main === module) {
+	isCLI = true;
 	const args = cliParams();
 	const { token, seed, format, numDays, numUsers, numEvents, region, writeToDisk, complex = false } = args;
 	const suppliedConfig = args._[0];
@@ -590,5 +647,13 @@ if (require.main === module) {
 
 
 function log(...args) {
+	const cwd = process.cwd();  // Get the current working directory
+
+	for (let i = 0; i < args.length; i++) {
+		// Replace occurrences of the current working directory with "./" in string arguments
+		if (typeof args[i] === 'string') {
+			args[i] = args[i].replace(new RegExp(cwd, 'g'), ".");
+		}
+	}
 	if (VERBOSE) console.log(...args);
 }

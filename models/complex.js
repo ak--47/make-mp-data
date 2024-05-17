@@ -1,5 +1,5 @@
 /**
- * This is the default configuration file for the data generator
+ * This is the default configuration file for the data generator in COMPLEX mode
  * notice how the config object is structured, and see it's type definition in ./types.d.ts
  * feel free to modify this file to customize the data you generate
  * see helper functions in utils.js for more ways to generate data
@@ -125,14 +125,16 @@ const config = {
 		plan: ["free", "free", "free", "free", "basic", "basic", "basic", "premium", "premium", "enterprise"],
 		MRR: weightedRange(0, 10000, 1000, .15),
 		NPS: weightedRange(0, 10, 150, 2),
-		marketingOptIn: [true, true, false],
-		dateOfRenewal: date(100, false),
+		subscribed: [true, true, true, true, true, true, false, false, false, false, "it's complicated"],
+		renewalDate: date(100, false),
 	},
 
 	mirrorProps: {
-		actualValue: {
-			events: ["checkout", "sign up"],
-			values: [42, 420, 4, 2, 4200]
+		isBot: { events: "*", values: [false, false, false, false, true] },
+		profit: { events: ["checkout"], values: [4, 2, 42, 420] },
+		watchTimeSec: {
+			events: ["watch video"],
+			values: weightedRange(50, 1200, 247, 6)
 		}
 	},
 
@@ -155,9 +157,9 @@ const config = {
 			"products": [["core"], ["core"], ["core", "add-ons"], ["core", "pro-serve"], ["core", "add-ons", "pro-serve"], ["core", "BAA", "enterprise"], ["free"], ["free"], ["free", "addons"]],
 		},
 		room_id: {
-			$name: () => { return `#${chance.word({length: integer(4,24), capitalize: true})}`; },
+			$name: () => { return `#${chance.word({ length: integer(4, 24), capitalize: true })}`; },
 			$email: ["public", "private"],
-			"room provider": ["partner", "core", "core", "core" ],
+			"room provider": ["partner", "core", "core", "core"],
 			"room capacity": weightedRange(3, 1000000),
 			"isPublic": [true, false, false, false, false],
 			"country": chance.country.bind(chance),
@@ -189,7 +191,7 @@ const config = {
 				isFlagged: [true, false, false, false, false],
 				copyright: ["all rights reserved", "creative commons", "creative commons", "public domain", "fair use"],
 				uploader_id: chance.guid.bind(chance),
-				"uploader influence": ["low", "low", "low", "medium", "medium", "high"],				
+				"uploader influence": ["low", "low", "low", "medium", "medium", "high"],
 				rating: weightedRange(1, 5),
 				thumbs: weightedRange(0, 35),
 				rating: ["G", "PG", "PG-13", "R", "NC-17", "PG-13", "R", "NC-17", "R", "PG", "PG"]

@@ -155,7 +155,7 @@ function mapToRange(value, mean, sd) {
 	return Math.round(value * sd + mean);
 };
 
-function weightedRange(min, max, size = 100, skew = 1) {
+function unOptimizedWeightedRange(min, max, size = 100, skew = 1) {
 	const mean = (max + min) / 2;
 	const sd = (max - min) / 4;
 	let array = [];
@@ -175,6 +175,23 @@ function weightedRange(min, max, size = 100, skew = 1) {
 
 	return array;
 };
+
+// optimized weighted range
+function weightedRange(min, max, size = 100, skew = 1) {
+    const mean = (max + min) / 2;
+    const sd = (max - min) / 4;
+    const array = [];
+    while (array.length < size) {
+        const normalValue = boxMullerRandom();
+        const skewedValue = applySkew(normalValue, skew);
+        const mappedValue = mapToRange(skewedValue, mean, sd);
+        if (mappedValue >= min && mappedValue <= max) {
+            array.push(mappedValue);
+        }
+    }
+    return array;
+}
+
 
 function progress(thing, p) {
 	readline.cursorTo(process.stdout, 0);

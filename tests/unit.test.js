@@ -60,7 +60,7 @@ describe('utils', () => {
 		const generatedPerson = person();
 		expect(generatedPerson).toHaveProperty('$name');
 		expect(generatedPerson).toHaveProperty('$email');
-		expect(generatedPerson).toHaveProperty('$avatar');		
+		expect(generatedPerson).toHaveProperty('$avatar');
 	});
 
 
@@ -95,6 +95,38 @@ describe('utils', () => {
 		const result = choose(() => 'test');
 		expect(result).toBe('test');
 	});
+
+	test('choose: non-function / non-array', () => {
+		expect(choose('test')).toBe('test');
+		expect(choose(123)).toBe(123);
+	});
+
+	test('choose: nested functions', () => {
+		const result = choose(() => () => () => 'nested');
+		expect(result).toBe('nested');
+	});
+
+	test('weightedRange:  within range', () => {
+		const values = weightedRange(5, 15, 100);
+		expect(values.every(v => v >= 5 && v <= 15)).toBe(true);
+		expect(values.length).toBe(100);
+	});
+
+	test('applySkew: skews', () => {
+		const value = boxMullerRandom();
+		const skewedValue = applySkew(value, .25);
+		expect(Math.abs(skewedValue)).toBeGreaterThanOrEqual(Math.abs(value));
+	});
+
+	test('mapToRange: works', () => {
+		const value = 0;
+		const mean = 10;
+		const sd = 5;
+		const mappedValue = mapToRange(value, mean, sd);
+		expect(mappedValue).toBe(10);
+	  });
+	  
+
 
 	test('exhaust: elements', () => {
 		const arr = [1, 2, 3];
@@ -161,7 +193,7 @@ describe('utils', () => {
 		expect(typeof emojis).toBe('string');
 		const emojiArray = emojis.split(', ');
 		expect(emojiArray.length).toBeLessThanOrEqual(10); // Assuming max default is 10
-		
+
 	});
 
 

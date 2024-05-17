@@ -1,6 +1,6 @@
 {
   "name": "make-mp-data",
-  "version": "1.2.25",
+  "version": "1.3.0",
   "description": "builds all mixpanel primitives for a given project",
   "main": "index.js",
   "types": "types.d.ts",
@@ -8,10 +8,10 @@
     "start": "node index.js",
     "dev": "./scripts/go.sh",
     "complex": "nodemon index.js --complex --e 10000 --u 100",
-    "simple": "nodemon index.js  --complex --e 10000 --u 100",
+    "simple": "nodemon index.js  --simple --e 10000 --u 100",
     "prune": "rm ./data/*",
     "post": "npm publish",
-    "test": "jest --runInBand",
+    "test": "NODE_ENV=test jest --runInBand",
     "deps": "sh ./scripts/deps.sh"
   },
   "repository": {
