@@ -20,7 +20,7 @@ const dayjs = require("dayjs");
 const utc = require("dayjs/plugin/utc");
 dayjs.extend(utc);
 const cliParams = require("./cli.js");
-const { makeName, md5 } = require('ak-tools');
+const { makeName, md5, clone } = require('ak-tools');
 const NOW = dayjs().unix();
 let VERBOSE = false;
 
@@ -43,7 +43,8 @@ async function main(config) {
 			favoriteColor: ["red", "green", "blue", "yellow"],
 			spiritAnimal: chance.animal.bind(chance),
 		},
-		scdProps = { NPS: u.weightedRange(0, 10, 150, 1.6) },
+		scdProps = {},
+		mirrorProps = {},
 		groupKeys = [],
 		groupProps = {},
 		lookupTables = [],
@@ -186,7 +187,21 @@ async function main(config) {
 		}
 		lookupTableData.hPush({ key, data });
 	}
-	const { eventFiles, userFiles, scdFiles, groupFiles, lookupFiles, folder } =
+
+	// deal with mirror props
+	let mirrorEventData = [];
+	const mirrorPropKeys = Object.keys(mirrorProps);
+	if (mirrorPropKeys.length) {
+		mirrorEventData = clone(eventData);
+		for (const row of mirrorEventData) {
+			for (const key of mirrorPropKeys) {
+				if (mirrorProps[key]?.events?.includes(row?.event)) row[key] = u.choose(mirrorProps[key]?.values);				
+				if (mirrorProps[key]?.events === "*") row[key] = u.choose(mirrorProps[key]?.values);
+			}
+		}
+	}
+
+	const { eventFiles, userFiles, scdFiles, groupFiles, lookupFiles, mirrorFiles, folder } =
 		buildFileNames(config);
 	const pairs = [
 		[eventFiles, eventData],
@@ -194,6 +209,7 @@ async function main(config) {
 		[scdFiles, scdTableData],
 		[groupFiles, groupProfilesData],
 		[lookupFiles, lookupTableData],
+		[mirrorFiles, mirrorEventData],
 	];
 	log("\n");
 	log(`---------------SIMULATION----------------`, "\n");
@@ -205,6 +221,7 @@ async function main(config) {
 			scdTableData,
 			groupProfilesData,
 			lookupTableData,
+			mirrorEventData,
 			import: {},
 			files: []
 		};
@@ -300,7 +317,7 @@ async function main(config) {
 	log(`\n-----------------WRITES------------------`, "\n");
 	return {
 		import: importResults,
-		files: [eventFiles, userFiles, scdFiles, groupFiles, lookupFiles, folder],
+		files: [eventFiles, userFiles, scdFiles, groupFiles, lookupFiles, mirrorFiles, folder],
 	};
 }
 
@@ -422,6 +439,7 @@ function buildFileNames(config) {
 		eventFiles: [path.join(writeDir, `${simName}-EVENTS.${extension}`)],
 		userFiles: [path.join(writeDir, `${simName}-USERS.${extension}`)],
 		scdFiles: [path.join(writeDir, `${simName}-SCD.${extension}`)],
+		mirrorFiles: [path.join(writeDir, `${simName}-MIRROR-FUTURE.${extension}`)],
 		groupFiles: [],
 		lookupFiles: [],
 		folder: writeDir,

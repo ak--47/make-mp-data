@@ -128,6 +128,13 @@ const config = {
 		dateOfRenewal: date(100, false),
 	},
 
+	mirrorProps: {
+		actualValue: {
+			events: ["checkout", "sign up"],
+			values: [42, 420, 4, 2, 4200]
+		}
+	},
+
 	/*
 	for group analytics keys, we need an array of arrays [[],[],[]] 
 	each pair represents a group_key and the number of profiles for that key

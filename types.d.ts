@@ -17,6 +17,7 @@ declare namespace main {
     superProps?: Record<string, valueValid>;
     userProps?: Record<string, valueValid>;
     scdProps?: Record<string, valueValid>;
+	mirrorProps?: Record<string, { events: string[]; values: valueValid[] }>;
     groupKeys?: [string, number][];
     groupProps?: Record<string, GroupProperty>; // Adjust according to usage
     lookupTables?: LookupTable[];
