@@ -22,10 +22,10 @@ const PEAK_DAYS = [
 
 /**
  * essentially, a timestamp generator with a twist
- * @param {number} earliestTime - The earliest timestamp in Unix format.
- * @param {number} latestTime - The latest timestamp in Unix format.
- * @param {Array} peakDays - Array of Unix timestamps representing the start of peak days.
- * @returns {number} - The generated event timestamp in Unix format.
+ * @param {number} [earliestTime] - The earliest timestamp in Unix format.
+ * @param {number} [latestTime] - The latest timestamp in Unix format.
+ * @param {Array} [peakDays] - Array of Unix timestamps representing the start of peak days.
+ * @returns {string} - The generated event timestamp in Unix format.
  */
 function AKsTimeSoup(earliestTime, latestTime = NOW, peakDays = PEAK_DAYS) {
 	let chosenTime;

@@ -99,6 +99,14 @@ declare namespace main {
 	  success: number;
 	  bytes: number;
 	}
+	export interface Person {
+		$name: string;
+		$email: string;
+		$avatar: string;
+		$created: string | undefined;
+		anonymousIds: string[];
+		sessionIds: string[];
+	}
   }
   
   /**

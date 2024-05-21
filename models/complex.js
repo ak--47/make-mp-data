@@ -192,7 +192,6 @@ const config = {
 				copyright: ["all rights reserved", "creative commons", "creative commons", "public domain", "fair use"],
 				uploader_id: chance.guid.bind(chance),
 				"uploader influence": ["low", "low", "low", "medium", "medium", "high"],
-				rating: weightedRange(1, 5),
 				thumbs: weightedRange(0, 35),
 				rating: ["G", "PG", "PG-13", "R", "NC-17", "PG-13", "R", "NC-17", "R", "PG", "PG"]
 			}
@@ -286,7 +285,7 @@ function deviceAttributes(isMobile = false) {
 		let devices = ["desktop", "laptop", "desktop", "laptop", "desktop", "laptop", "other"];
 		if (isMobile) devices = [...devices, "mobile", "mobile", "mobile", "tablet"];
 		const device = chance.pickone(devices);
-		const oses = ["Windows", "macOS", "Windows", "macOS", "macOS", "Linux", "Windows", "macOS", "Windows", "macOS", "macOS", "TempleOS"];
+		let oses = ["Windows", "macOS", "Windows", "macOS", "macOS", "Linux", "Windows", "macOS", "Windows", "macOS", "macOS", "TempleOS"];
 		if (isMobile) oses = [...oses, "iOS", "Android", "iOS", "Android"];
 		const os = chance.pickone(oses);
 		const browser = chance.pickone(["Chrome", "Firefox", "Safari", "Edge", "Opera", "IE", "Brave", "Vivaldi"]);

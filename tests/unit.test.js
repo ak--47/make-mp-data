@@ -25,7 +25,7 @@ describe('timeSoup', () => {
 
 
 
-const { applySkew, boxMullerRandom, choose, date, dates, day, exhaust, generateEmoji, getUniqueKeys, integer, makeHashTags, makeProducts, mapToRange, person, pick, range, weighList, weightedRange } = require('../utils');
+const { applySkew, boxMullerRandom, choose, date, dates, day, exhaust, generateEmoji, getUniqueKeys, integer, mapToRange, person, pick, range, weighList, weightedRange } = require('../utils');
 
 describe('utils', () => {
 
@@ -124,8 +124,8 @@ describe('utils', () => {
 		const sd = 5;
 		const mappedValue = mapToRange(value, mean, sd);
 		expect(mappedValue).toBe(10);
-	  });
-	  
+	});
+
 
 
 	test('exhaust: elements', () => {
@@ -184,15 +184,24 @@ describe('utils', () => {
 	test('emoji: works', () => {
 		const emojis = generateEmoji(5)();
 		expect(typeof emojis).toBe('string');
-		expect(emojis.split(', ').length).toBeLessThanOrEqual(5);
+		if (!Array.isArray(emojis)) {
+			expect(emojis.split(', ').length).toBeLessThanOrEqual(5);
+		}
+		if (Array.isArray(emojis)) {
+			expect(emojis.length).toBeLessThanOrEqual(5);
+		}
 	});
 
 	test('emoji: length', () => {
 		const result = generateEmoji();
 		const emojis = result();
 		expect(typeof emojis).toBe('string');
-		const emojiArray = emojis.split(', ');
-		expect(emojiArray.length).toBeLessThanOrEqual(10); // Assuming max default is 10
+		if (!Array.isArray(emojis)) {
+			expect(emojis.split(', ').length).toBeLessThanOrEqual(10);
+		}
+		if (Array.isArray(emojis)) {
+			expect(emojis.length).toBeLessThanOrEqual(10);
+		}
 
 	});
 

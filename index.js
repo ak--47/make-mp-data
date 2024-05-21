@@ -88,7 +88,7 @@ async function main(config) {
 	});
 	log(`------------------SETUP------------------`);
 	log(`\nyour data simulation will heretofore be known as: \n\n\t${simulationName.toUpperCase()}...\n`);
-	log(`and your configuration is:\n\n`, JSON.stringify({ seed, numEvents, numUsers, numDays, format, token, region, writeToDisk }, null, 2));
+	log(`and your configuration is:\n\n`, JSON.stringify({ seed, numEvents, numUsers, numDays, format, token, region, writeToDisk, anonIds, sessionIds }, null, 2));
 	log(`------------------SETUP------------------`, "\n");
 
 
@@ -116,11 +116,13 @@ async function main(config) {
 			const weight = event.weight || 1;
 			for (let i = 0; i < weight; i++) {
 
+				// @ts-ignore
 				acc.push(event);
 			}
 			return acc;
 		}, [])
 
+		// @ts-ignore
 		.filter((e) => !e.isFirstEvent);
 
 	const firstEvents = events.filter((e) => e.isFirstEvent);
@@ -402,6 +404,10 @@ function makeProfile(props, defaults) {
 		...defaults,
 	};
 
+	// anonymous and session ids
+	if (!global.MP_SIMULATION_CONFIG?.anonIds) delete profile.anonymousIds
+	if (!global.MP_SIMULATION_CONFIG?.sessionIds)  delete profile.sessionIds
+
 	for (const key in props) {
 		try {
 			profile[key] = u.choose(props[key]);
@@ -569,7 +575,7 @@ function enrichArray(arr = [], opts = {}) {
 if (require.main === module) {
 	isCLI = true;
 	const args = cliParams();
-	const { token, seed, format, numDays, numUsers, numEvents, region, writeToDisk, complex = false } = args;
+	const { token, seed, format, numDays, numUsers, numEvents, region, writeToDisk, complex = false, sessionIds, anonIds } = args;
 	const suppliedConfig = args._[0];
 
 	//if the user specifics an separate config file
@@ -603,6 +609,8 @@ if (require.main === module) {
 	if (region) config.region = region;
 	if (writeToDisk) config.writeToDisk = writeToDisk;
 	if (writeToDisk === 'false') config.writeToDisk = false;
+	if (sessionIds) config.sessionIds = sessionIds;
+	if (anonIds) config.anonIds = anonIds;
 	config.verbose = true;
 
 	main(config)

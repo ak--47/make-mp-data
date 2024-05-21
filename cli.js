@@ -15,6 +15,7 @@ by ak@mixpanel.com
 
 function cliParams() {
 	console.log(hero);
+	// @ts-ignore
 	const args = yargs(process.argv.splice(2))
 		.scriptName("make-mp-data")
 		.usage(`\nusage:\nnpx $0 [dataModel.js] [options]
@@ -78,17 +79,7 @@ DATA MODEL: https://github.com/ak--47/make-mp-data/blob/main/default.js
 			describe: 'use complex data model (model all entities)',
 			alias: 'c',
 			type: 'boolean',
-			coerce: (value) => {
-				if (typeof value === 'boolean') return value;
-				if (value === 'true') {
-					return true;
-				}
-				if (value === 'false') {
-					return false;
-				}
-
-				return true;
-			}
+			coerce: boolCoerce
 		})
 		.option("writeToDisk", {
 			demandOption: false,
@@ -96,13 +87,25 @@ DATA MODEL: https://github.com/ak--47/make-mp-data/blob/main/default.js
 			describe: 'write data to disk',
 			alias: 'w',
 			type: 'boolean',
-			coerce: (value) => {
-				if (typeof value === 'string') {
-					return value.toLowerCase() === 'true';
-				}
-				return value;
-			}
+			coerce: boolCoerce
 		})
+		.option("sessionIds", {
+			demandOption: false,
+			default: false,
+			describe: 'create session ids in the data',
+			alias: 'sid',
+			type: 'boolean',
+			coerce: boolCoerce
+		})
+		.option("anonIds", {
+			demandOption: false,
+			default: false,
+			describe: 'create anonymous ids in the data',
+			alias: 'aid',
+			type: 'boolean',
+			coerce: boolCoerce
+		})
+
 		.help()
 		.wrap(null)
 		.argv;
@@ -112,6 +115,16 @@ DATA MODEL: https://github.com/ak--47/make-mp-data/blob/main/default.js
 	// 	process.exit();
 	// }
 	return args;
+}
+
+
+function boolCoerce(value, foo) {
+	if (typeof value === 'boolean') return value;
+	if (typeof value === 'string') {
+		return value.toLowerCase() === 'true';
+	}
+	return value;
+
 }
 
 

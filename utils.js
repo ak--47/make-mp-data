@@ -7,6 +7,7 @@ const dayjs = require('dayjs');
 const utc = require('dayjs/plugin/utc');
 dayjs.extend(utc);
 
+
 function pick(items) {
 	if (!Array.isArray(items)) {
 		if (typeof items === 'function') {
@@ -57,10 +58,9 @@ function date(inTheLast = 30, isPast = true, format = 'YYYY-MM-DD') {
 function dates(inTheLast = 30, numPairs = 5, format = 'YYYY-MM-DD') {
 	const pairs = [];
 	for (let i = 0; i < numPairs; i++) {
-		pairs.push([date(inTheLast, format), date(inTheLast, format)]);
+		pairs.push([date(inTheLast, true, format), date(inTheLast, true, format)]);
 	}
 	return pairs;
-
 };
 
 function day(start, end) {
@@ -100,7 +100,7 @@ function choose(value) {
 		return value;
 	}
 	catch (e) {
-		console.error(`\n\nerror on value: ${value};\n\n`,e, '\n\n');
+		console.error(`\n\nerror on value: ${value};\n\n`, e, '\n\n');
 		return '';
 	}
 }
@@ -178,22 +178,23 @@ function unOptimizedWeightedRange(min, max, size = 100, skew = 1) {
 
 // optimized weighted range
 function weightedRange(min, max, size = 100, skew = 1) {
-    const mean = (max + min) / 2;
-    const sd = (max - min) / 4;
-    const array = [];
-    while (array.length < size) {
-        const normalValue = boxMullerRandom();
-        const skewedValue = applySkew(normalValue, skew);
-        const mappedValue = mapToRange(skewedValue, mean, sd);
-        if (mappedValue >= min && mappedValue <= max) {
-            array.push(mappedValue);
-        }
-    }
-    return array;
+	const mean = (max + min) / 2;
+	const sd = (max - min) / 4;
+	const array = [];
+	while (array.length < size) {
+		const normalValue = boxMullerRandom();
+		const skewedValue = applySkew(normalValue, skew);
+		const mappedValue = mapToRange(skewedValue, mean, sd);
+		if (mappedValue >= min && mappedValue <= max) {
+			array.push(mappedValue);
+		}
+	}
+	return array;
 }
 
 
 function progress(thing, p) {
+	// @ts-ignore
 	readline.cursorTo(process.stdout, 0);
 	process.stdout.write(`${thing} processed ... ${comma(p)}`);
 };
@@ -226,7 +227,12 @@ function getUniqueKeys(data) {
 	return Array.from(keysSet);
 };
 
-//makes a random-sized array of emojis
+//
+/**
+ * makes a random-sized array of emojis
+ * @param  {number} max=10
+ * @param  {boolean} array=false
+ */
 function generateEmoji(max = 10, array = false) {
 	return function () {
 		const emojis = ['😀', '😂', '😍', '😎', '😜', '😇', '😡', '😱', '😭', '😴', '🤢', '🤠', '🤡', '👽', '👻', '💩', '👺', '👹', '👾', '🤖', '🤑', '🤗', '🤓', '🤔', '🤐', '😀', '😂', '😍', '😎', '😜', '😇', '😡', '😱', '😭', '😴', '🤢', '🤠', '🤡', '👽', '👻', '💩', '👺', '👹', '👾', '🤖', '🤑', '🤗', '🤓', '🤔', '🤐', '😈', '👿', '👦', '👧', '👨', '👩', '👴', '👵', '👶', '🧒', '👮', '👷', '💂', '🕵', '👩‍⚕️', '👨‍⚕️', '👩‍🌾', '👨‍🌾', '👩‍🍳', '👨‍🍳', '👩‍🎓', '👨‍🎓', '👩‍🎤', '👨‍🎤', '👩‍🏫', '👨‍🏫', '👩‍🏭', '👨‍🏭', '👩‍💻', '👨‍💻', '👩‍💼', '👨‍💼', '👩‍🔧', '👨‍🔧', '👩‍🔬', '👨‍🔬', '👩‍🎨', '👨‍🎨', '👩‍🚒', '👨‍🚒', '👩‍✈️', '👨‍✈️', '👩‍🚀', '👨‍🚀', '👩‍⚖️', '👨‍⚖️', '🤶', '🎅', '👸', '🤴', '👰', '🤵', '👼', '🤰', '🙇', '💁', '🙅', '🙆', '🙋', '🤦', '🤷', '🙎', '🙍', '💇', '💆', '🕴', '💃', '🕺', '🚶', '🏃', '🤲', '👐', '🙌', '👏', '🤝', '👍', '👎', '👊', '✊', '🤛', '🤜', '🤞', '✌️', '🤟', '🤘', '👌', '👈', '👉', '👆', '👇', '☝️', '✋', '🤚', '🖐', '🖖', '👋', '🤙', '💪', '🖕', '✍️', '🤳', '💅', '👂', '👃', '👣', '👀', '👁', '🧠', '👅', '👄', '💋', '👓', '🕶', '👔', '👕', '👖', '🧣', '🧤', '🧥', '🧦', '👗', '👘', '👙', '👚', '👛', '👜', '👝', '🛍', '🎒', '👞', '👟', '👠', '👡', '👢', '👑', '👒', '🎩', '🎓', '🧢', '⛑', '📿', '💄', '💍', '💎', '🔇', '🔈', '🔉', '🔊', '📢', '📣', '📯', '🔔', '🔕', '🎼', '🎵', '🎶', '🎙', '🎚', '🎛', '🎤', '🎧', '📻', '🎷', '🎸', '🎹', '🎺', '🎻', '🥁', '📱', '📲', '💻', '🖥', '🖨', '🖱', '🖲', '🕹', '🗜', '💽', '💾', '💿', '📀', '📼', '📷', '📸', '📹', '🎥', '📽', '🎞', '📞', '☎️', '📟', '📠', '📺', '📻', '🎙', '📡', '🔍', '🔎', '🔬', '🔭', '📡', '💡', '🔦', '🏮', '📔', '📕', '📖', '📗', '📘', '📙', '📚', '📓', '📒', '📃', '📜', '📄', '📰', '🗞', '📑', '🔖', '🏷', '💰', '💴', '💵', '💶', '💷', '💸', '💳', '🧾', '💹', '💱', '💲', '✉️', '📧', '📨', '📩', '📤', '📥', '📦', '📫', '📪', '📬', '📭', '📮', '🗳', '✏️', '✒️', '🖋', '🖊', '🖌', '🖍', '📝', '💼', '📁', '📂', '🗂', '📅', '📆', '🗒', '🗓', '📇', '📈', '📉', '📊', '📋', '📌', '📍', '📎', '🖇', '📏', '📐', '✂️', '🗃', '🗄', '🗑', '🔒', '🔓', '🔏', '🔐', '🔑', '🗝', '🔨', '⛏', '⚒', '🛠', '🗡', '⚔️', '🔫', '🏹', '🛡', '🔧', '🔩', '⚙️', '🗜', '⚖️', '🔗', '⛓', '🧰', '🧲', '⚗️', '🧪', '🧫', '🧬', '🔬', '🔭', '📡', '💉', '💊', '🛏', '🛋', '🚪', '🚽', '🚿', '🛁', '🧴', '🧷', '🧹', '🧺', '🧻', '🧼', '🧽', '🧯', '🚬', '⚰️', '⚱️', '🗿', '🏺', '🧱', '🎈', '🎏', '🎀', '🎁', '🎊', '🎉', '🎎', '🏮', '🎐', '🧧', '✉️', '📩', '📨', '📧'];
@@ -241,10 +247,17 @@ function generateEmoji(max = 10, array = false) {
 	};
 };
 
+/** @typedef {import('./types').Person} Person */
 
+/**
+ * @param  {number} bornDaysAgo=30
+ * @return {Person}
+ */
 function person(bornDaysAgo = 30) {
 	//names and photos
-	const gender = chance.pickone(['male', 'female']);
+	let gender = chance.pickone(['male', 'female']);
+	if (!gender) gender = "female"
+	// @ts-ignore
 	const first = chance.first({ gender });
 	const last = chance.last();
 	const $name = `${first} ${last}`;
@@ -256,33 +269,35 @@ function person(bornDaysAgo = 30) {
 	});
 	const avPath = gender === 'male' ? `/men/${randomAvatarNumber}.jpg` : `/women/${randomAvatarNumber}.jpg`;
 	const $avatar = avatarPrefix + avPath;
-	const $created = date(bornDaysAgo, true, null)();
+	const $created = date(bornDaysAgo, true)();
 
+	/** @type {Person} */
 	const user = {
 		$name,
 		$email,
 		$avatar,
 		$created,
+		anonymousIds: [],
+		sessionIds: []
 	};
 
 	//anon Ids
 	if (global.MP_SIMULATION_CONFIG?.anonIds) {
-		const anonymousIds = [];
 		const clusterSize = integer(2, 10);
 		for (let i = 0; i < clusterSize; i++) {
-			anonymousIds.push(uid(42));
+			const anonId = uid(42);
+			user.anonymousIds.push(anonId);
 		}
-		user.anonymousIds = anonymousIds;
+
 	}
 
 	//session Ids
 	if (global.MP_SIMULATION_CONFIG?.sessionIds) {
-		const sessionIds = [];
 		const sessionSize = integer(5, 30);
 		for (let i = 0; i < sessionSize; i++) {
-			sessionIds.push([uid(5), uid(5), uid(5), uid(5)].join("-"));
+			const sessionId = [uid(5), uid(5), uid(5), uid(5)].join("-");
+			user.sessionIds.push(sessionId);
 		}
-		user.sessionIds = sessionIds;
 	}
 
 	return user;
