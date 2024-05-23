@@ -201,7 +201,7 @@ async function main(config) {
 			u.progress("groups", i);
 			const group = {
 				[groupKey]: i,
-				...makeProfile(groupProps[groupKey]),
+				...makeProfile(groupProps[groupKey].props),
 				// $distinct_id: i,
 			};
 			groupProfiles.push(group);
@@ -405,8 +405,8 @@ function makeProfile(props, defaults) {
 	};
 
 	// anonymous and session ids
-	if (!global.MP_SIMULATION_CONFIG?.anonIds) delete profile.anonymousIds
-	if (!global.MP_SIMULATION_CONFIG?.sessionIds)  delete profile.sessionIds
+	if (!global.MP_SIMULATION_CONFIG?.anonIds) delete profile.anonymousIds;
+	if (!global.MP_SIMULATION_CONFIG?.sessionIds) delete profile.sessionIds;
 
 	for (const key in props) {
 		try {
@@ -419,7 +419,7 @@ function makeProfile(props, defaults) {
 	return profile;
 }
 /**
- * @param  {import('./types.d.ts').valueValid} prop
+ * @param  {import('./types.d.ts').ValueValid} prop
  * @param  {string} scdKey
  * @param  {string} distinct_id
  * @param  {number} mutations
@@ -502,8 +502,11 @@ function makeEvent(distinct_id, anonymousIds, sessionIds, earliestTime, events, 
 	for (const groupPair of groupKeys) {
 		const groupKey = groupPair[0];
 		const groupCardinality = groupPair[1];
+		const groupEvents = groupPair[2] || [];
 
-		event[groupKey] = u.pick(u.weightedRange(1, groupCardinality));
+		// empty array for group events means all events
+		if (!groupEvents.length) event[groupKey] = u.pick(u.weightedRange(1, groupCardinality));
+		if (groupEvents.includes(event.event)) event[groupKey] = u.pick(u.weightedRange(1, groupCardinality));
 	}
 
 	//make $insert_id
@@ -514,11 +517,14 @@ function makeEvent(distinct_id, anonymousIds, sessionIds, earliestTime, events, 
 
 function buildFileNames(config) {
 	const { format = "csv", groupKeys = [], lookupTables = [] } = config;
-	const extension = format === "csv" ? "csv" : "json";
+	let extension = "";
+	extension = format === "csv" ? "csv" : "json";
 	// const current = dayjs.utc().format("MM-DD-HH");
 	const simName = config.simulationName;
 	let writeDir = "./";
 	if (config.writeToDisk) writeDir = mkdir("./data");
+	if (typeof writeDir !== "string") throw new Error("writeDir must be a string");
+	if (typeof simName !== "string") throw new Error("simName must be a string");
 
 	const writePaths = {
 		eventFiles: [path.join(writeDir, `${simName}-EVENTS.${extension}`)],
@@ -540,6 +546,7 @@ function buildFileNames(config) {
 
 	for (const groupPair of groupKeys) {
 		const groupKey = groupPair[0];
+
 		writePaths.groupFiles.push(
 			path.join(writeDir, `${simName}-${groupKey}-GROUP.${extension}`)
 		);
@@ -556,7 +563,14 @@ function buildFileNames(config) {
 	return writePaths;
 }
 
+/** @typedef {import('./types').EnrichedArray} EnrichArray */
+/** @typedef {import('./types').EnrichArrayOptions} EnrichArrayOptions */
 
+/** 
+ * @param  {any[]} arr
+ * @param  {EnrichArrayOptions} opts
+ * @returns {EnrichArray}}
+ */
 function enrichArray(arr = [], opts = {}) {
 	const { hook = a => a, type = "", ...rest } = opts;
 
@@ -564,9 +578,15 @@ function enrichArray(arr = [], opts = {}) {
 		return arr.push(hook(item, type, rest));
 	}
 
-	arr.hPush = transformThenPush;
+	/** @type {EnrichArray} */
+	// @ts-ignore
+	const enrichedArray = arr;
 
-	return arr;
+
+	enrichedArray.hPush = transformThenPush;
+	
+
+	return enrichedArray;
 };
 
 
@@ -575,7 +595,9 @@ function enrichArray(arr = [], opts = {}) {
 if (require.main === module) {
 	isCLI = true;
 	const args = cliParams();
+	// @ts-ignore
 	const { token, seed, format, numDays, numUsers, numEvents, region, writeToDisk, complex = false, sessionIds, anonIds } = args;
+	// @ts-ignore
 	const suppliedConfig = args._[0];
 
 	//if the user specifics an separate config file
