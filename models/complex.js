@@ -64,6 +64,27 @@ const config = {
 			}
 		},
 		{
+			"event": "comment",
+			"weight": 2,
+			"properties": {
+				length: weightedRange(1, 500, 1000, .25),
+				video_id: weightedRange(1, 50000, 420000, 1.4),
+				has_replies: [true, false, false, false, false],
+				has_photo: [true, false, false, false, false],
+
+			}
+		},
+		{
+			"event": "save video",
+			"weight": 4,
+			"properties": {
+				video_id: weightedRange(1, 50000, 420000, 1.4),
+				ui_control: ["toolbar", "menu", "keyboard"]
+
+
+			}
+		},
+		{
 			"event": "view item",
 			"weight": 8,
 			"properties": {
@@ -143,8 +164,8 @@ const config = {
 	each pair represents a group_key and the number of profiles for that key
 	*/
 	groupKeys: [
-		['company_id', 500],
-		['room_id', 10000],
+		['company_id', 500, []],
+		['room_id', 10000, ["save video", "comment", "watch video"]],
 
 	],
 	groupProps: {

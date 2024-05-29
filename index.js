@@ -11,15 +11,13 @@ const mp = require("mixpanel-import");
 const path = require("path");
 const Chance = require("chance");
 const chance = new Chance();
-const { touch, comma, bytesHuman, mkdir } = require("ak-tools");
-const Papa = require("papaparse");
+const { comma, bytesHuman, mkdir, makeName, md5, clone, tracker, uid  } = require("ak-tools");
 const u = require("./utils.js");
 const AKsTimeSoup = require("./timesoup.js");
 const dayjs = require("dayjs");
 const utc = require("dayjs/plugin/utc");
 dayjs.extend(utc);
 const cliParams = require("./cli.js");
-const { makeName, md5, clone, tracker, uid } = require('ak-tools');
 const NOW = dayjs().unix();
 let VERBOSE = false;
 let isCLI = false;
@@ -278,7 +276,8 @@ async function main(config) {
 		};
 	}
 	log(`-----------------WRITES------------------`, `\n\n`);
-	//write the files
+
+	let writeFilePromises = [];
 	if (writeToDisk) {
 		if (verbose) log(`writing files... for ${simulationName}`);
 		loopFiles: for (const ENTITY of pairs) {
@@ -297,25 +296,16 @@ async function main(config) {
 				log(`\twriting ${path}`);
 				//if it's a lookup table, it's always a CSV
 				if (format === "csv" || path.includes("-LOOKUP.csv")) {
-					const columns = u.getUniqueKeys(TABLE);
-					//papa parse needs eac nested field JSON stringified
-					TABLE.forEach((e) => {
-						for (const key in e) {
-							if (typeof e[key] === "object") e[key] = JSON.stringify(e[key]);
-						}
-					});
-
-					const csv = Papa.unparse(TABLE, { columns });
-					await touch(path, csv);
+					writeFilePromises.push(u.streamCSV(path, TABLE));
 				}
 				else {
-					const ndjson = TABLE.map((d) => JSON.stringify(d)).join("\n");
-					await touch(path, ndjson, false);
+					writeFilePromises.push(u.streamJSON(path, TABLE));
 				}
 
 			}
 		}
 	}
+	const fileWriteResults = await Promise.all(writeFilePromises);
 
 	const importResults = { events: {}, users: {}, groups: [] };
 
@@ -405,8 +395,8 @@ function makeProfile(props, defaults) {
 	};
 
 	// anonymous and session ids
-	if (!global.MP_SIMULATION_CONFIG?.anonIds) delete profile.anonymousIds
-	if (!global.MP_SIMULATION_CONFIG?.sessionIds)  delete profile.sessionIds
+	if (!global.MP_SIMULATION_CONFIG?.anonIds) delete profile.anonymousIds;
+	if (!global.MP_SIMULATION_CONFIG?.sessionIds) delete profile.sessionIds;
 
 	for (const key in props) {
 		try {
@@ -419,7 +409,7 @@ function makeProfile(props, defaults) {
 	return profile;
 }
 /**
- * @param  {import('./types.d.ts').valueValid} prop
+ * @param  {import('./types.d.ts').ValueValid} prop
  * @param  {string} scdKey
  * @param  {string} distinct_id
  * @param  {number} mutations
@@ -502,8 +492,11 @@ function makeEvent(distinct_id, anonymousIds, sessionIds, earliestTime, events, 
 	for (const groupPair of groupKeys) {
 		const groupKey = groupPair[0];
 		const groupCardinality = groupPair[1];
+		const groupEvents = groupPair[2] || [];
 
-		event[groupKey] = u.pick(u.weightedRange(1, groupCardinality));
+		// empty array for group events means all events
+		if (!groupEvents.length) event[groupKey] = u.pick(u.weightedRange(1, groupCardinality));
+		if (groupEvents.includes(event.event)) event[groupKey] = u.pick(u.weightedRange(1, groupCardinality));
 	}
 
 	//make $insert_id
@@ -513,18 +506,21 @@ function makeEvent(distinct_id, anonymousIds, sessionIds, earliestTime, events, 
 }
 
 function buildFileNames(config) {
-	const { format = "csv", groupKeys = [], lookupTables = [] } = config;
-	const extension = format === "csv" ? "csv" : "json";
+	const { format = "csv", groupKeys = [], lookupTables = [], m } = config;
+	let extension = "";
+	extension = format === "csv" ? "csv" : "json";
 	// const current = dayjs.utc().format("MM-DD-HH");
 	const simName = config.simulationName;
 	let writeDir = "./";
 	if (config.writeToDisk) writeDir = mkdir("./data");
+	if (typeof writeDir !== "string") throw new Error("writeDir must be a string");
+	if (typeof simName !== "string") throw new Error("simName must be a string");
 
 	const writePaths = {
 		eventFiles: [path.join(writeDir, `${simName}-EVENTS.${extension}`)],
 		userFiles: [path.join(writeDir, `${simName}-USERS.${extension}`)],
 		scdFiles: [],
-		mirrorFiles: [path.join(writeDir, `${simName}-EVENTS-FUTURE-MIRROR.${extension}`)],
+		mirrorFiles: [],
 		groupFiles: [],
 		lookupFiles: [],
 		folder: writeDir,
@@ -538,13 +534,16 @@ function buildFileNames(config) {
 		);
 	}
 
+	//add group files
 	for (const groupPair of groupKeys) {
 		const groupKey = groupPair[0];
+
 		writePaths.groupFiles.push(
 			path.join(writeDir, `${simName}-${groupKey}-GROUP.${extension}`)
 		);
 	}
 
+	//add lookup files
 	for (const lookupTable of lookupTables) {
 		const { key } = lookupTable;
 		writePaths.lookupFiles.push(
@@ -553,10 +552,25 @@ function buildFileNames(config) {
 		);
 	}
 
+	//add mirror files
+	const mirrorProps = config?.mirrorProps || {};
+	if (Object.keys(mirrorProps).length) {
+		writePaths.mirrorFiles.push(
+			path.join(writeDir, `${simName}-MIRROR.${extension}`)
+		);
+	}
+
 	return writePaths;
 }
 
+/** @typedef {import('./types').EnrichedArray} EnrichArray */
+/** @typedef {import('./types').EnrichArrayOptions} EnrichArrayOptions */
 
+/** 
+ * @param  {any[]} arr
+ * @param  {EnrichArrayOptions} opts
+ * @returns {EnrichArray}}
+ */
 function enrichArray(arr = [], opts = {}) {
 	const { hook = a => a, type = "", ...rest } = opts;
 
@@ -564,9 +578,15 @@ function enrichArray(arr = [], opts = {}) {
 		return arr.push(hook(item, type, rest));
 	}
 
-	arr.hPush = transformThenPush;
+	/** @type {EnrichArray} */
+	// @ts-ignore
+	const enrichedArray = arr;
 
-	return arr;
+
+	enrichedArray.hPush = transformThenPush;
+	
+
+	return enrichedArray;
 };
 
 
@@ -575,7 +595,9 @@ function enrichArray(arr = [], opts = {}) {
 if (require.main === module) {
 	isCLI = true;
 	const args = cliParams();
+	// @ts-ignore
 	const { token, seed, format, numDays, numUsers, numEvents, region, writeToDisk, complex = false, sessionIds, anonIds } = args;
+	// @ts-ignore
 	const suppliedConfig = args._[0];
 
 	//if the user specifics an separate config file

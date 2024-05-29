@@ -1,3 +1,5 @@
+const fs = require('fs');
+const Papa = require('papaparse');
 const Chance = require('chance');
 const chance = new Chance();
 const readline = require('readline');
@@ -5,6 +7,7 @@ const { comma, uid } = require('ak-tools');
 const { spawn } = require('child_process');
 const dayjs = require('dayjs');
 const utc = require('dayjs/plugin/utc');
+
 dayjs.extend(utc);
 
 
@@ -96,6 +99,10 @@ function choose(value) {
 			return value;
 		}
 
+		if (typeof value === 'number') {
+			return value;
+		}
+
 		// If it's not a function or array, return it as is
 		return value;
 	}
@@ -111,7 +118,7 @@ function exhaust(arr) {
 };
 
 
-function integer(min, max) {
+function integer(min = 1, max = 100) {
 	if (min === max) {
 		return min;
 	}
@@ -256,7 +263,7 @@ function generateEmoji(max = 10, array = false) {
 function person(bornDaysAgo = 30) {
 	//names and photos
 	let gender = chance.pickone(['male', 'female']);
-	if (!gender) gender = "female"
+	if (!gender) gender = "female";
 	// @ts-ignore
 	const first = chance.first({ gender });
 	const last = chance.last();
@@ -331,6 +338,51 @@ function weighList(items, mostChosenIndex) {
 	};
 }
 
+
+
+
+function streamJSON(path, data) {
+	return new Promise((resolve, reject) => {
+		const writeStream = fs.createWriteStream(path, { encoding: 'utf8' });
+		data.forEach(item => {
+			writeStream.write(JSON.stringify(item) + '\n');
+		});
+		writeStream.end();
+		writeStream.on('finish', () => {
+			resolve(path);
+		});
+		writeStream.on('error', reject);
+	});
+}
+
+function streamCSV(path, data) {
+	return new Promise((resolve, reject) => {
+		const writeStream = fs.createWriteStream(path, { encoding: 'utf8' });
+		// Extract all unique keys from the data array
+		const columns = getUniqueKeys(data);  // Assuming getUniqueKeys properly retrieves all keys
+
+		// Stream the header
+		writeStream.write(columns.join(',') + '\n');
+
+		// Stream each data row
+		data.forEach(item => {
+			for (const key in item) {
+				// Ensure all nested objects are properly stringified
+				if (typeof item[key] === "object") item[key] = JSON.stringify(item[key]);
+			}
+			const row = columns.map(col => item[col] ? `"${item[col].toString().replace(/"/g, '""')}"` : "").join(',');
+			writeStream.write(row + '\n');
+		});
+
+		writeStream.end();
+		writeStream.on('finish', () => {
+			resolve(path);
+		});
+		writeStream.on('error', reject);
+	});
+}
+
+
 module.exports = {
 	pick,
 	date,
@@ -350,5 +402,9 @@ module.exports = {
 	getUniqueKeys,
 	generateEmoji,
 	person,
-	weighList
+	weighList,
+
+
+	streamJSON,
+	streamCSV
 };
