@@ -11,15 +11,13 @@ const mp = require("mixpanel-import");
 const path = require("path");
 const Chance = require("chance");
 const chance = new Chance();
-const { touch, comma, bytesHuman, mkdir } = require("ak-tools");
-const Papa = require("papaparse");
+const { comma, bytesHuman, mkdir, makeName, md5, clone, tracker, uid  } = require("ak-tools");
 const u = require("./utils.js");
 const AKsTimeSoup = require("./timesoup.js");
 const dayjs = require("dayjs");
 const utc = require("dayjs/plugin/utc");
 dayjs.extend(utc);
 const cliParams = require("./cli.js");
-const { makeName, md5, clone, tracker, uid } = require('ak-tools');
 const NOW = dayjs().unix();
 let VERBOSE = false;
 let isCLI = false;
@@ -201,7 +199,7 @@ async function main(config) {
 			u.progress("groups", i);
 			const group = {
 				[groupKey]: i,
-				...makeProfile(groupProps[groupKey].props),
+				...makeProfile(groupProps[groupKey]),
 				// $distinct_id: i,
 			};
 			groupProfiles.push(group);
@@ -278,7 +276,8 @@ async function main(config) {
 		};
 	}
 	log(`-----------------WRITES------------------`, `\n\n`);
-	//write the files
+
+	let writeFilePromises = [];
 	if (writeToDisk) {
 		if (verbose) log(`writing files... for ${simulationName}`);
 		loopFiles: for (const ENTITY of pairs) {
@@ -297,25 +296,16 @@ async function main(config) {
 				log(`\twriting ${path}`);
 				//if it's a lookup table, it's always a CSV
 				if (format === "csv" || path.includes("-LOOKUP.csv")) {
-					const columns = u.getUniqueKeys(TABLE);
-					//papa parse needs eac nested field JSON stringified
-					TABLE.forEach((e) => {
-						for (const key in e) {
-							if (typeof e[key] === "object") e[key] = JSON.stringify(e[key]);
-						}
-					});
-
-					const csv = Papa.unparse(TABLE, { columns });
-					await touch(path, csv);
+					writeFilePromises.push(u.streamCSV(path, TABLE));
 				}
 				else {
-					const ndjson = TABLE.map((d) => JSON.stringify(d)).join("\n");
-					await touch(path, ndjson, false);
+					writeFilePromises.push(u.streamJSON(path, TABLE));
 				}
 
 			}
 		}
 	}
+	const fileWriteResults = await Promise.all(writeFilePromises);
 
 	const importResults = { events: {}, users: {}, groups: [] };
 
@@ -516,7 +506,7 @@ function makeEvent(distinct_id, anonymousIds, sessionIds, earliestTime, events, 
 }
 
 function buildFileNames(config) {
-	const { format = "csv", groupKeys = [], lookupTables = [] } = config;
+	const { format = "csv", groupKeys = [], lookupTables = [], m } = config;
 	let extension = "";
 	extension = format === "csv" ? "csv" : "json";
 	// const current = dayjs.utc().format("MM-DD-HH");
@@ -530,7 +520,7 @@ function buildFileNames(config) {
 		eventFiles: [path.join(writeDir, `${simName}-EVENTS.${extension}`)],
 		userFiles: [path.join(writeDir, `${simName}-USERS.${extension}`)],
 		scdFiles: [],
-		mirrorFiles: [path.join(writeDir, `${simName}-EVENTS-FUTURE-MIRROR.${extension}`)],
+		mirrorFiles: [],
 		groupFiles: [],
 		lookupFiles: [],
 		folder: writeDir,
@@ -544,6 +534,7 @@ function buildFileNames(config) {
 		);
 	}
 
+	//add group files
 	for (const groupPair of groupKeys) {
 		const groupKey = groupPair[0];
 
@@ -552,11 +543,20 @@ function buildFileNames(config) {
 		);
 	}
 
+	//add lookup files
 	for (const lookupTable of lookupTables) {
 		const { key } = lookupTable;
 		writePaths.lookupFiles.push(
 			//lookups are always CSVs
 			path.join(writeDir, `${simName}-${key}-LOOKUP.csv`)
+		);
+	}
+
+	//add mirror files
+	const mirrorProps = config?.mirrorProps || {};
+	if (Object.keys(mirrorProps).length) {
+		writePaths.mirrorFiles.push(
+			path.join(writeDir, `${simName}-MIRROR.${extension}`)
 		);
 	}
 
