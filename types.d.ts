@@ -15,6 +15,7 @@ declare namespace main {
     region?: "US" | "EU";
     events?: EventConfig[];
     superProps?: Record<string, ValueValid>;
+	funnels?: Funnel[];
     userProps?: Record<string, ValueValid>;
     scdProps?: Record<string, ValueValid>;
     mirrorProps?: Record<string, MirrorProps>;
@@ -29,16 +30,17 @@ declare namespace main {
     hook?: Hook<any>;
   }
 
-  export type Hook<T> = (record: any, type: string, meta: any) => T;
+  type hookTypes = "event" | "user" | "group" | "lookup" | "scd" | "mirror" | "";
+  export type Hook<T> = (record: any, type: hookTypes, meta: any) => T;
 
   export interface EnrichArrayOptions<T> {
     hook?: Hook<T>;
-    type?: string;
+    type?: hookTypes;
     [key: string]: any;
   }
 
   export interface EnrichedArray<T> extends Array<T> {
-    hPush: (item: T) => number;
+    hookPush: (item: T) => number;
   }
 
   export interface EventConfig {
@@ -46,6 +48,17 @@ declare namespace main {
     weight?: number;
     properties?: Record<string, ValueValid>;
     isFirstEvent?: boolean;
+  }
+
+
+  export interface Funnel {
+	sequence: string[];
+	weight: number;
+	isFirstFunnel: boolean;
+	order: "sequential" | "first-fixed" | "last-fixed" | "random" | 'first-and-last-fixed';
+	conversionRate: number;
+	timeToConvert: number;
+	props: Record<string, ValueValid>;
   }
 
   export interface MirrorProps {

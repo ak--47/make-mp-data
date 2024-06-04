@@ -1,5 +1,4 @@
 const fs = require('fs');
-const Papa = require('papaparse');
 const Chance = require('chance');
 const chance = new Chance();
 const readline = require('readline');
@@ -311,7 +310,7 @@ function person(bornDaysAgo = 30) {
 };
 
 
-function weighList(items, mostChosenIndex) {
+function pickAWinner(items, mostChosenIndex) {
 	if (mostChosenIndex > items.length) mostChosenIndex = items.length;
 	return function () {
 		const weighted = [];
@@ -338,8 +337,24 @@ function weighList(items, mostChosenIndex) {
 	};
 }
 
+function weighArray(arr) {
+	
+	// Calculate the upper bound based on the size of the array with added noise
+	const maxCopies = arr.length + integer(1, arr.length);
 
+	// Create an empty array to store the weighted elements
+	let weightedArray = [];
 
+	// Iterate over the input array and copy each element a random number of times
+	arr.forEach(element => {
+		let copies = integer(1, maxCopies);
+		for (let i = 0; i < copies; i++) {
+			weightedArray.push(element);
+		}
+	});
+
+	return weightedArray;
+}
 
 function streamJSON(path, data) {
 	return new Promise((resolve, reject) => {
@@ -383,6 +398,7 @@ function streamCSV(path, data) {
 }
 
 
+
 module.exports = {
 	pick,
 	date,
@@ -402,7 +418,8 @@ module.exports = {
 	getUniqueKeys,
 	generateEmoji,
 	person,
-	weighList,
+	pickAWinner,
+	weighArray,
 
 
 	streamJSON,

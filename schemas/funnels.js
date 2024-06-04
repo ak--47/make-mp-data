@@ -14,7 +14,7 @@ const dayjs = require("dayjs");
 const utc = require("dayjs/plugin/utc");
 dayjs.extend(utc);
 const { uid, comma } = require('ak-tools');
-const { weighList, weightedRange, date, integer } = require('../utils');
+const { pickAWinner, weightedRange, date, integer } = require('../utils');
 
 const itemCategories = ["Books", "Movies", "Music", "Games", "Electronics", "Computers", "Smart Home", "Home", "Garden", "Pet", "Beauty", "Health", "Toys", "Kids", "Baby", "Handmade", "Sports", "Outdoors", "Automotive", "Industrial", "Entertainment", "Art", "Food", "Appliances", "Office", "Wedding", "Software"];
 
@@ -52,7 +52,7 @@ const config = {
 				rating: weightedRange(1, 5),
 				reviews: weightedRange(0, 35),
 				isFeaturedItem: [true, false, false],
-				itemCategory: weighList(itemCategories, integer(0, 27)),
+				itemCategory: pickAWinner(itemCategories, integer(0, 27)),
 				dateItemListed: date(30, true, 'YYYY-MM-DD'),
 				itemId: integer(1000, 9999),
 			}
@@ -69,7 +69,7 @@ const config = {
 			event: "watch video",
 			weight: 8,
 			properties: {
-				videoCategory: weighList(videoCategories, integer(0, 9)),
+				videoCategory: pickAWinner(videoCategories, integer(0, 9)),
 				isFeaturedItem: [true, false, false],
 				watchTimeSec: weightedRange(10, 600, 1000, .25),
 				quality: ["2160p", "1440p", "1080p", "720p", "480p", "360p", "240p"],
@@ -83,7 +83,7 @@ const config = {
 			weight: 8,
 			properties: {
 				isFeaturedItem: [true, false, false],
-				itemCategory: weighList(itemCategories, integer(0, 27)),
+				itemCategory: pickAWinner(itemCategories, integer(0, 27)),
 				dateItemListed: date(30, true, 'YYYY-MM-DD'),
 				itemId: integer(1000, 9999),
 			}
@@ -93,7 +93,7 @@ const config = {
 			weight: 5,
 			properties: {
 				isFeaturedItem: [true, false, false],
-				itemCategory: weighList(itemCategories, integer(0, 27)),
+				itemCategory: pickAWinner(itemCategories, integer(0, 27)),
 				dateItemListed: date(30, true, 'YYYY-MM-DD'),
 				itemId: integer(1000, 9999),
 			}
@@ -103,14 +103,26 @@ const config = {
 			isFirstEvent: true,
 			weight: 0,
 			properties: {
-				variants: ["A", "B", "C", "Control"],
-				flows: ["new", "existing", "loyal", "churned"],
-				flags: ["on", "off"],
-				experiment_ids: ["1234", "5678", "9012", "3456", "7890"],
-				multiVariate: [true, false]
+				CTA: ["sign up", "register", "join", "create account"]
 			}
 		}
 	],
+	funnels: [{
+		sequence: ["page view", "view item", "add to cart", "add to cart", "sign up", "checkout"],
+		weight: 1,
+		isFirstFunnel: true,
+		order: "sequential",
+		conversionRate: 0.1,
+		timeToConvert: 2,
+		props: {
+			variants: ["A", "B", "C", "Control"],
+			flows: ["new", "existing", "loyal", "churned"],
+			flags: ["on", "off"],
+			experiment_ids: ["1234", "5678", "9012", "3456", "7890"],
+			multiVariate: [true, false]
+		
+		}
+	}],
 	superProps: {
 		platform: ["web", "mobile", "web", "mobile", "web", "web", "kiosk", "smartTV"],
 		currentTheme: ["light", "dark", "custom", "light", "dark"],

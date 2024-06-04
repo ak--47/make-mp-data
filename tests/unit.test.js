@@ -25,7 +25,7 @@ describe('timeSoup', () => {
 
 
 
-const { applySkew, boxMullerRandom, choose, date, dates, day, exhaust, generateEmoji, getUniqueKeys, integer, mapToRange, person, pick, range, weighList, weightedRange } = require('../utils');
+const { applySkew, boxMullerRandom, choose, date, dates, day, exhaust, generateEmoji, getUniqueKeys, integer, mapToRange, person, pick, range, pickAWinner, weightedRange } = require('../utils');
 
 describe('utils', () => {
 

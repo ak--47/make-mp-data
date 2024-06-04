@@ -37,12 +37,18 @@ function AKsTimeSoup(earliestTime, latestTime = NOW, peakDays = PEAK_DAYS) {
 		if (dayjs(earliestTime).isValid()) earliestTime = dayjs(earliestTime).unix();
 	}
 
+	//25% of the time, just choose a random time
+	if (chance.bool({ likelihood: 25 })) {
+		chosenTime = dayjs.unix(integer(earliestTime, latestTime)).toISOString();
+		return chosenTime;
+	}
+
 	while (!validTime) {
 
 		// Define business hours
 		const peakStartHour = 4; // 4 AM
 		const peakEndHour = 23; // 11 PM
-		const likelihoodOfPeakDay = chance.integer({ min: integer(5, 42), max: integer(43, 69) }); // Randomize likelihood with CHAOS!~~
+		const likelihoodOfPeakDay = integer(integer(integer(1, 42), integer(1, 42)), integer(integer(1, 42), integer(1, 42)));
 
 		// Select a day, with a preference for peak days
 		let selectedDay;

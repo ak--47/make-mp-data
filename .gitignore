@@ -5,3 +5,4 @@ data/*
 !data/.gitkeep
 .DS_Store
 .env
+customers

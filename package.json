@@ -1,6 +1,6 @@
 {
   "name": "make-mp-data",
-  "version": "1.3.04",
+  "version": "1.3.05",
   "description": "builds all mixpanel primitives for a given project",
   "main": "index.js",
   "types": "types.d.ts",
@@ -12,7 +12,8 @@
     "prune": "rm ./data/*",
     "post": "npm publish",
     "test": "NODE_ENV=test jest --runInBand",
-    "deps": "sh ./scripts/deps.sh"
+    "deps": "sh ./scripts/deps.sh",
+    "udacity": "nodemon index.js ./customers/udacity.js"
   },
   "repository": {
     "type": "git",
@@ -44,7 +45,6 @@
     "chance": "^1.1.11",
     "dayjs": "^1.11.11",
     "mixpanel-import": "^2.5.51",
-    "papaparse": "^5.4.1",
     "yargs": "^17.7.2"
   },
   "devDependencies": {

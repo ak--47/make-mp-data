@@ -45,6 +45,7 @@ async function main(config) {
 		numDays = 30,
 		events = [{ event: "foo" }, { event: "bar" }, { event: "baz" }],
 		superProps = { platform: ["web", "iOS", "Android"] },
+		funnels = [],
 		userProps = {
 			favoriteColor: ["red", "green", "blue", "yellow"],
 			spiritAnimal: chance.animal.bind(chance),
@@ -132,8 +133,8 @@ async function main(config) {
 		scdTableData[index] = enrichArray([], { hook, type: "scd", config, scdKey: key });
 	}
 	// const scdTableData = enrichArray([], { hook, type: "scd", config });
-	const groupProfilesData = enrichArray([], { hook, type: "groups", config });
-	const lookupTableData = enrichArray([], { hook, type: "lookups", config });
+	const groupProfilesData = enrichArray([], { hook, type: "group", config });
+	const lookupTableData = enrichArray([], { hook, type: "lookup", config });
 	const avgEvPerUser = Math.floor(numEvents / numUsers);
 
 	//user loop
@@ -142,12 +143,12 @@ async function main(config) {
 		u.progress("users", i);
 		const user = generateUser();
 		const { distinct_id, $created, anonymousIds, sessionIds } = user;
-		userProfilesData.hPush(makeProfile(userProps, user));
+		userProfilesData.hookPush(makeProfile(userProps, user));
 
 		//scd loop
 		for (const [index, key] of scdTableKeys.entries()) {
 			const mutations = chance.integer({ min: 1, max: 10 });
-			scdTableData[index].hPush(makeSCD(scdProps[key], key, distinct_id, mutations, $created));
+			scdTableData[index].hookPush(makeSCD(scdProps[key], key, distinct_id, mutations, $created));
 		}
 
 		const numEventsThisUser = Math.round(
@@ -155,7 +156,7 @@ async function main(config) {
 		);
 
 		if (firstEvents.length) {
-			eventData.hPush(
+			eventData.hookPush(
 				makeEvent(
 					distinct_id,
 					anonymousIds,
@@ -170,8 +171,9 @@ async function main(config) {
 		}
 
 		//event loop
+		//todo: funnels
 		for (let j = 0; j < numEventsThisUser; j++) {
-			eventData.hPush(
+			eventData.hookPush(
 				makeEvent(
 					distinct_id,
 					anonymousIds,
@@ -202,9 +204,10 @@ async function main(config) {
 				...makeProfile(groupProps[groupKey]),
 				// $distinct_id: i,
 			};
+			group["distinct_id"] = i;
 			groupProfiles.push(group);
 		}
-		groupProfilesData.hPush({ key: groupKey, data: groupProfiles });
+		groupProfilesData.hookPush({ key: groupKey, data: groupProfiles });
 	}
 	log("\n");
 
@@ -220,7 +223,7 @@ async function main(config) {
 			};
 			data.push(item);
 		}
-		lookupTableData.hPush({ key, data });
+		lookupTableData.hookPush({ key, data });
 	}
 
 	// deal with mirror props
@@ -354,6 +357,7 @@ async function main(config) {
 				const imported = await mp({ token, groupKey }, data, {
 					recordType: "group",
 					...commonOpts,
+
 				});
 				log(`\tsent ${comma(imported.success)} ${groupKey} profiles\n`);
 
@@ -583,7 +587,7 @@ function enrichArray(arr = [], opts = {}) {
 	const enrichedArray = arr;
 
 
-	enrichedArray.hPush = transformThenPush;
+	enrichedArray.hookPush = transformThenPush;
 	
 
 	return enrichedArray;
@@ -596,7 +600,7 @@ if (require.main === module) {
 	isCLI = true;
 	const args = cliParams();
 	// @ts-ignore
-	const { token, seed, format, numDays, numUsers, numEvents, region, writeToDisk, complex = false, sessionIds, anonIds } = args;
+	let { token, seed, format, numDays, numUsers, numEvents, region, writeToDisk, complex = false, sessionIds, anonIds } = args;
 	// @ts-ignore
 	const suppliedConfig = args._[0];
 
@@ -612,18 +616,19 @@ if (require.main === module) {
 			console.log(`... using default COMPLEX configuration [everything] ...\n`);
 			console.log(`... for more simple data, don't use the --complex flag ...\n`);
 			console.log(`... or specify your own js config file (see docs or --help) ...\n`);
-			config = require(path.resolve(__dirname, "./models/complex.js"));
+			config = require(path.resolve(__dirname, "./schemas/complex.js"));
 		}
 		else {
 			console.log(`... using default SIMPLE configuration [events + users] ...\n`);
 			console.log(`... for more complex data, use the --complex flag ...\n`);
-			config = require(path.resolve(__dirname, "./models/simple.js"));
+			config = require(path.resolve(__dirname, "./schemas/simple.js"));
 		}
 	}
 
 	//override config with cli params
 	if (token) config.token = token;
-	if (seed) config.seed = seed;
+	if (seed) config.seed = seed;	
+	if (format === "csv" && config.format === "json") format = "json";
 	if (format) config.format = format;
 	if (numDays) config.numDays = numDays;
 	if (numUsers) config.numUsers = numUsers;

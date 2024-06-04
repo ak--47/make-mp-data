@@ -69,7 +69,7 @@ npx make-mp-data ecommSpec.js --token 1234 --numDays 30 --numUsers 1000 --numEve
 
 ### Data Models
 
-Check out `./models/` for example `dataModel.js` files to get started quickly.
+Check out `./schemas/` for example `dataModel.js` files to get started quickly.
 
 ## 🛠️ CLI Options
 
@@ -91,7 +91,7 @@ Here's a breakdown of the CLI options you can use with `make-mp-data`:
 Check out the examples directory for sample data models:
 
 ```bash
-ls ./models/
+ls ./schemas/
 ```
 
 These models provide a great starting point for creating your own custom data generation scripts.
