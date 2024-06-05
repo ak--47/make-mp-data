@@ -125,7 +125,7 @@ const config = {
 	},
 	{
 		sequence: ["app install", "app open", "tutorial", "sign up"],
-		weight: 2,
+		weight: 0,
 		isFirstFunnel: true,
 		order: "sequential",
 		conversionRate: 50,

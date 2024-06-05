@@ -30,7 +30,7 @@ declare namespace main {
     hook?: Hook<any>;
   }
 
-  type hookTypes = "event" | "user" | "group" | "lookup" | "scd" | "mirror" | "funnel"  | "";
+  type hookTypes = "event" | "user" | "group" | "lookup" | "scd" | "mirror" | "funnel-pre" | "funnel-post"| "";
   export type Hook<T> = (record: any, type: hookTypes, meta: any) => T;
 
   export interface EnrichArrayOptions<T> {

@@ -145,7 +145,7 @@ async function main(config) {
 
 	//user loop
 	log(`---------------SIMULATION----------------`, "\n\n");
-	for (let i = 1; i < numUsers + 1; i++) {
+	loopUsers: for (let i = 1; i < numUsers + 1; i++) {
 		u.progress("users", i);
 		const user = generateUser();
 		const { distinct_id, $created, anonymousIds, sessionIds } = user;
@@ -176,9 +176,10 @@ async function main(config) {
 				/** @type {Funnel} */
 				const firstFunnel = chance.pickone(firstFunnels, user);
 
-				const data = makeFunnel(firstFunnel, user, profile, userSCD, config);
+				const [data, userConverted] = makeFunnel(firstFunnel, user, profile, userSCD, config);
 				numEventsPreformed += data.length;
 				eventData.hookPush(data);
+				if (!userConverted) continue loopUsers;
 				debugger;
 			}
 
@@ -494,19 +495,75 @@ function makeSCD(prop, scdKey, distinct_id, mutations, $created) {
  * @param  {UserProfile} profile
  * @param  {Record<string, SCDTable[]>} scd
  * @param  {Config} config
- * @return {EventData[]}
+ * @return {[EventConfig[], Boolean]}
  */
 function makeFunnel(funnel, user, profile, scd, config) {
 	const { hook } = config;
-	hook(funnel, "funnel", { user, profile, scd });
+	hook(funnel, "funnel-pre", { user, profile, scd, funnel });
 	const { sequence, conversionRate = 50, order = 'sequential', timeToConvert = 1, props } = funnel;
 	const { distinct_id, $created, anonymousIds, sessionIds } = user;
 	const { superProps, groupKeys } = config;
 	const { $name, $email } = profile;
-	debugger;
 
+	const chosenFunnelProps = {...props, ...superProps};
+	for (const key in props) {
+		try {
+			chosenFunnelProps[key] = u.choose(chosenFunnelProps[key]);
+		} catch (e) {
+			console.error(`error with ${key} in ${funnel.sequence.join(" > ")} funnel`, e);
+			debugger;
+		}
+	}
 
-	return funnel;
+	const funnelPossibleEvents = sequence.map((event, index) => {
+		const foundEvent = config.events.find((e) => e.event === event);
+		/** @type {EventConfig} */
+		const eventSpec = foundEvent || { event, properties: {} };
+		for (const key in eventSpec.properties) {
+			try {
+				eventSpec.properties[key] = u.choose(eventSpec.properties[key]);
+			} catch (e) {
+				console.error(`error with ${key} in ${eventSpec.event} event`, e);
+				debugger;
+			}
+		}
+		delete eventSpec.isFirstEvent;
+		delete eventSpec.weight;
+		eventSpec.properties = { ...eventSpec.properties, ...chosenFunnelProps };
+		return eventSpec;
+	});
+
+	const doesUserConvert = chance.bool({ likelihood: conversionRate });
+	let numStepsUserWillTake = sequence.length;
+	if (!doesUserConvert) numStepsUserWillTake = u.integer(1, sequence.length - 1);
+	const funnelActualEvents = funnelPossibleEvents.slice(0, numStepsUserWillTake);
+	let funnelActualOrder = [];
+	
+	//todo
+	switch (order) {
+		case "sequential":
+			funnelActualOrder = funnelActualEvents;
+			break;
+		case "random":
+			funnelActualOrder = funnelActualEvents.sort(() => Math.random() - 0.5);
+			break;
+		case "first-fixed":
+			funnelActualOrder = funnelActualEvents.reverse();
+			break;
+		case "last-fixed":
+			funnelActualOrder = funnelActualEvents.reverse();
+			break;
+		case "first-and-last-fixed":
+			funnelActualOrder= funnelActualEvents.reverse();
+			break;
+	}
+
+	let finalEvents = funnelActualOrder.map((event, index) => {
+		return makeEvent(distinct_id, anonymousIds, sessionIds, dayjs($created).unix(), [event], {}, groupKeys);
+	})
+
+	hook(finalEvents, "funnel-post", { user, profile, scd, funnel });
+	return [finalEvents, doesUserConvert];
 }
 
 /**
