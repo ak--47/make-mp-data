@@ -365,7 +365,6 @@ async function main(config) {
 		const creds = { token };
 		/** @type {import('mixpanel-import').Options} */
 		const commonOpts = {
-
 			region,
 			fixData: true,
 			verbose: false,
@@ -411,7 +410,6 @@ async function main(config) {
 				importResults.groups.push(imported);
 			}
 		}
-
 	}
 	log(`\n-----------------WRITES------------------`, "\n");
 	track('end simulation', {
@@ -430,6 +428,7 @@ async function main(config) {
 		isCLI,
 		version
 	});
+	
 	return {
 		import: importResults,
 		files: [eventFiles, userFiles, scdFiles, groupFiles, lookupFiles, mirrorFiles, folder],
@@ -499,13 +498,13 @@ function makeSCD(prop, scdKey, distinct_id, mutations, $created) {
  */
 function makeFunnel(funnel, user, profile, scd, config) {
 	const { hook } = config;
-	hook(funnel, "funnel-pre", { user, profile, scd, funnel });
+	hook(funnel, "funnel-pre", { user, profile, scd, funnel, config });
 	const { sequence, conversionRate = 50, order = 'sequential', timeToConvert = 1, props } = funnel;
 	const { distinct_id, $created, anonymousIds, sessionIds } = user;
 	const { superProps, groupKeys } = config;
 	const { $name, $email } = profile;
 
-	const chosenFunnelProps = {...props, ...superProps};
+	const chosenFunnelProps = { ...props, ...superProps };
 	for (const key in props) {
 		try {
 			chosenFunnelProps[key] = u.choose(chosenFunnelProps[key]);
@@ -538,31 +537,37 @@ function makeFunnel(funnel, user, profile, scd, config) {
 	if (!doesUserConvert) numStepsUserWillTake = u.integer(1, sequence.length - 1);
 	const funnelActualEvents = funnelPossibleEvents.slice(0, numStepsUserWillTake);
 	let funnelActualOrder = [];
-	
+
 	//todo
 	switch (order) {
 		case "sequential":
 			funnelActualOrder = funnelActualEvents;
 			break;
 		case "random":
-			funnelActualOrder = funnelActualEvents.sort(() => Math.random() - 0.5);
+			funnelActualOrder = u.shuffleArray(funnelActualEvents);
 			break;
 		case "first-fixed":
-			funnelActualOrder = funnelActualEvents.reverse();
+			funnelActualOrder = u.shuffleExceptFirst(funnelActualEvents);
 			break;
 		case "last-fixed":
-			funnelActualOrder = funnelActualEvents.reverse();
+			funnelActualOrder = u.shuffleExceptLast(funnelActualEvents);
 			break;
 		case "first-and-last-fixed":
-			funnelActualOrder= funnelActualEvents.reverse();
+			funnelActualOrder = u.fixFirstAndLast(funnelActualEvents);
+			break;
+		case "middle-fixed":
+			funnelActualOrder = u.shuffleOutside(funnelActualEvents);
+			break;
+		default:
+			funnelActualOrder = funnelActualEvents;
 			break;
 	}
 
 	let finalEvents = funnelActualOrder.map((event, index) => {
 		return makeEvent(distinct_id, anonymousIds, sessionIds, dayjs($created).unix(), [event], {}, groupKeys);
-	})
+	});
 
-	hook(finalEvents, "funnel-post", { user, profile, scd, funnel });
+	hook(finalEvents, "funnel-post", { user, profile, scd, funnel, config });
 	return [finalEvents, doesUserConvert];
 }
 

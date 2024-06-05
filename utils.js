@@ -407,6 +407,46 @@ function weighFunnels(acc, funnel) {
 }
 
 
+// Function to shuffle array
+function shuffleArray(array) {
+	return array.sort(() => Math.random() - 0.5);
+}
+
+// Function to shuffle all except the first element
+function shuffleExceptFirst(array) {
+	if (array.length <= 1) return array;
+	const restShuffled = shuffleArray(array.slice(1));
+	return [array[0], ...restShuffled];
+};
+
+// Function to shuffle all except the last element
+function shuffleExceptLast(array) {
+	if (array.length <= 1) return array;
+	const restShuffled = shuffleArray(array.slice(0, -1));
+	return [...restShuffled, array[array.length - 1]];
+};
+
+// Function to fix the first and last elements and shuffle the middle ones
+function fixFirstAndLast(array) {
+	if (array.length <= 2) return array;
+	const middleShuffled = shuffleArray(array.slice(1, -1));
+	return [array[0], ...middleShuffled, array[array.length - 1]];
+};
+
+// Function to shuffle only the middle elements
+function shuffleMiddle(array) {
+	if (array.length <= 2) return array;
+	const middleShuffled = shuffleArray(array.slice(1, -1));
+	return [array[0], ...middleShuffled, array[array.length - 1]];
+};
+
+const shuffleOutside = (array) => {
+	if (array.length <= 2) return array;
+	const middleFixed = array.slice(1, -1);
+	const outsideShuffled = shuffleArray([array[0], array[array.length - 1]]);
+	return [outsideShuffled[0], ...middleFixed, outsideShuffled[1]];
+};
+
 module.exports = {
 	pick,
 	date,
@@ -429,6 +469,13 @@ module.exports = {
 	pickAWinner,
 	weighArray,
 	weighFunnels,
+
+	shuffleArray,
+	shuffleExceptFirst,
+	shuffleExceptLast,
+	fixFirstAndLast,
+	shuffleMiddle,
+	shuffleOutside,
 
 
 	streamJSON,
