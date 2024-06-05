@@ -338,7 +338,7 @@ function pickAWinner(items, mostChosenIndex) {
 }
 
 function weighArray(arr) {
-	
+
 	// Calculate the upper bound based on the size of the array with added noise
 	const maxCopies = arr.length + integer(1, arr.length);
 
@@ -398,6 +398,14 @@ function streamCSV(path, data) {
 }
 
 
+function weighFunnels(acc, funnel) {
+	const weight = funnel?.weight || 1;
+	for (let i = 0; i < weight; i++) {
+		acc.push(funnel);
+	}
+	return acc;
+}
+
 
 module.exports = {
 	pick,
@@ -420,6 +428,7 @@ module.exports = {
 	person,
 	pickAWinner,
 	weighArray,
+	weighFunnels,
 
 
 	streamJSON,

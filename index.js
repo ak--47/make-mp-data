@@ -11,7 +11,7 @@ const mp = require("mixpanel-import");
 const path = require("path");
 const Chance = require("chance");
 const chance = new Chance();
-const { comma, bytesHuman, mkdir, makeName, md5, clone, tracker, uid  } = require("ak-tools");
+const { comma, bytesHuman, mkdir, makeName, md5, clone, tracker, uid } = require("ak-tools");
 const u = require("./utils.js");
 const AKsTimeSoup = require("./timesoup.js");
 const dayjs = require("dayjs");
@@ -32,6 +32,10 @@ function track(name, props, ...rest) {
 
 /** @typedef {import('./types.d.ts').Config} Config */
 /** @typedef {import('./types.d.ts').EventConfig} EventConfig */
+/** @typedef {import('./types.d.ts').Funnel} Funnel */
+/** @typedef {import('./types.d.ts').Person} Person */
+/** @typedef {import('./types.d.ts').SCDTable} SCDTable */
+/** @typedef {import('./types.d.ts').UserProfile} UserProfile */
 
 /**
  * generates fake mixpanel data
@@ -64,6 +68,8 @@ async function main(config) {
 		verbose = false,
 		hook = (record) => record,
 	} = config;
+	if (!config.superProps) config.superProps = superProps;
+	if (!config.userProps || Object.keys(config?.userProps)) config.userProps = userProps;
 	VERBOSE = verbose;
 	config.simulationName = makeName();
 	const { simulationName } = config;
@@ -143,47 +149,87 @@ async function main(config) {
 		u.progress("users", i);
 		const user = generateUser();
 		const { distinct_id, $created, anonymousIds, sessionIds } = user;
-		userProfilesData.hookPush(makeProfile(userProps, user));
+		let numEventsPreformed = 0;
 
-		//scd loop
+		// profile creation
+		const profile = makeProfile(userProps, user);
+		userProfilesData.hookPush(profile);
+
+		//scd creation
+		const userSCD = {};
 		for (const [index, key] of scdTableKeys.entries()) {
 			const mutations = chance.integer({ min: 1, max: 10 });
-			scdTableData[index].hookPush(makeSCD(scdProps[key], key, distinct_id, mutations, $created));
+			const changes = makeSCD(scdProps[key], key, distinct_id, mutations, $created);
+			userSCD[key] = changes;
+			scdTableData[index].hookPush(changes);
 		}
 
-		const numEventsThisUser = Math.round(
+		const numEventsThisUserWillPreform = Math.round(
 			chance.normal({ mean: avgEvPerUser, dev: avgEvPerUser / u.integer(3, 7) })
 		);
 
-		if (firstEvents.length) {
-			eventData.hookPush(
-				makeEvent(
-					distinct_id,
-					anonymousIds,
-					sessionIds,
-					dayjs($created).unix(),
-					firstEvents,
-					superProps,
-					groupKeys,
-					true
-				)
-			);
+		if (funnels.length) {
+			//first funnel
+			const firstFunnels = funnels.filter((f) => f.isFirstFunnel).reduce(u.weighFunnels, []);
+			const usageFunnels = funnels.filter((f) => !f.isFirstFunnel).reduce(u.weighFunnels, []);
+			if (firstFunnels.length) {
+				/** @type {Funnel} */
+				const firstFunnel = chance.pickone(firstFunnels, user);
+
+				const data = makeFunnel(firstFunnel, user, profile, userSCD, config);
+				numEventsPreformed += data.length;
+				eventData.hookPush(data);
+				debugger;
+			}
+
+			while (numEventsPreformed < numEventsThisUserWillPreform) {
+				if (usageFunnels.length) {
+					/** @type {Funnel} */
+					const currentFunnel = chance.pickone(usageFunnels);
+					const data = makeFunnel(currentFunnel, user, profile, userSCD, config);
+					numEventsPreformed += data.length;
+					eventData.hookPush(data);
+					debugger;
+				}
+
+				debugger;
+			}
+
 		}
 
-		//event loop
-		//todo: funnels
-		for (let j = 0; j < numEventsThisUser; j++) {
-			eventData.hookPush(
-				makeEvent(
-					distinct_id,
-					anonymousIds,
-					sessionIds,
-					dayjs($created).unix(),
-					weightedEvents,
-					superProps,
-					groupKeys
-				)
-			);
+		// we have no funnels, so we're just going to make a bunch of random events
+		else {
+
+			// first event loop
+			if (firstEvents.length) {
+				eventData.hookPush(
+					makeEvent(
+						distinct_id,
+						anonymousIds,
+						sessionIds,
+						dayjs($created).unix(),
+						firstEvents,
+						superProps,
+						groupKeys,
+						true
+					)
+				);
+			}
+
+			// all other event loop
+			for (let j = 0; j < numEventsThisUserWillPreform; j++) {
+				eventData.hookPush(
+					makeEvent(
+						distinct_id,
+						anonymousIds,
+						sessionIds,
+						dayjs($created).unix(),
+						weightedEvents,
+						superProps,
+						groupKeys
+					)
+				);
+			}
 		}
 	}
 
@@ -412,6 +458,7 @@ function makeProfile(props, defaults) {
 
 	return profile;
 }
+
 /**
  * @param  {import('./types.d.ts').ValueValid} prop
  * @param  {string} scdKey
@@ -439,6 +486,27 @@ function makeSCD(prop, scdKey, distinct_id, mutations, $created) {
 	}
 
 	return scdEntries;
+}
+
+/**
+ * @param  {Funnel} funnel
+ * @param  {Person} user
+ * @param  {UserProfile} profile
+ * @param  {Record<string, SCDTable[]>} scd
+ * @param  {Config} config
+ * @return {EventData[]}
+ */
+function makeFunnel(funnel, user, profile, scd, config) {
+	const { hook } = config;
+	hook(funnel, "funnel", { user, profile, scd });
+	const { sequence, conversionRate = 50, order = 'sequential', timeToConvert = 1, props } = funnel;
+	const { distinct_id, $created, anonymousIds, sessionIds } = user;
+	const { superProps, groupKeys } = config;
+	const { $name, $email } = profile;
+	debugger;
+
+
+	return funnel;
 }
 
 /**
@@ -588,7 +656,7 @@ function enrichArray(arr = [], opts = {}) {
 
 
 	enrichedArray.hookPush = transformThenPush;
-	
+
 
 	return enrichedArray;
 };
@@ -627,7 +695,7 @@ if (require.main === module) {
 
 	//override config with cli params
 	if (token) config.token = token;
-	if (seed) config.seed = seed;	
+	if (seed) config.seed = seed;
 	if (format === "csv" && config.format === "json") format = "json";
 	if (format) config.format = format;
 	if (numDays) config.numDays = numDays;

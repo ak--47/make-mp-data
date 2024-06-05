@@ -6,7 +6,7 @@
   "types": "types.d.ts",
   "scripts": {
     "start": "node index.js",
-    "dev": "./scripts/go.sh",
+    "dev": "nodemon scratch.mjs --ignore /data",
     "complex": "nodemon index.js --complex --e 10000 --u 100",
     "simple": "nodemon index.js  --simple --e 10000 --u 100",
     "prune": "rm ./data/*",

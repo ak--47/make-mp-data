@@ -108,11 +108,11 @@ const config = {
 		}
 	],
 	funnels: [{
-		sequence: ["page view", "view item", "add to cart", "add to cart", "sign up", "checkout"],
+		sequence: ["page view", "view item", "page view", "sign up"],
 		weight: 1,
 		isFirstFunnel: true,
 		order: "sequential",
-		conversionRate: 0.1,
+		conversionRate: 50,
 		timeToConvert: 2,
 		props: {
 			variants: ["A", "B", "C", "Control"],
@@ -120,9 +120,45 @@ const config = {
 			flags: ["on", "off"],
 			experiment_ids: ["1234", "5678", "9012", "3456", "7890"],
 			multiVariate: [true, false]
-		
+
 		}
-	}],
+	},
+	{
+		sequence: ["app install", "app open", "tutorial", "sign up"],
+		weight: 2,
+		isFirstFunnel: true,
+		order: "sequential",
+		conversionRate: 50,
+		timeToConvert: 2,
+		props: {
+			variants: ["A", "B", "C", "Control"],
+			flows: ["new", "existing", "loyal", "churned"],
+			flags: ["on", "off"],
+			experiment_ids: ["1234", "5678", "9012", "3456", "7890"],
+			multiVariate: [true, false]
+
+		}
+	},
+	{
+		sequence: ["page view", "view item", "add to cart", "add to cart", "checkout"],
+		weight: 3,
+		isFirstFunnel: false,
+		order: "sequential",
+		conversionRate: 70,
+		timeToConvert: 7 * 24,
+		props: {
+			variants: ["A", "B", "C", "Control"],
+			flows: ["new", "existing", "loyal", "churned"],
+			flags: ["on", "off"],
+			experiment_ids: ["1234", "5678", "9012", "3456", "7890"],
+			multiVariate: [true, false]
+
+		}
+	},
+	{
+		sequence: ["foo", "bar", "baz", "qux"]
+	}
+	],
 	superProps: {
 		platform: ["web", "mobile", "web", "mobile", "web", "web", "kiosk", "smartTV"],
 		currentTheme: ["light", "dark", "custom", "light", "dark"],
@@ -139,7 +175,10 @@ const config = {
 		spiritAnimal: ["duck", "dog", "otter", "penguin", "cat", "elephant", "lion", "cheetah", "giraffe", "zebra", "rhino", "hippo", "whale", "dolphin", "shark", "octopus", "squid", "jellyfish", "starfish", "seahorse", "crab", "lobster", "shrimp", "clam", "snail", "slug", "butterfly", "moth", "bee", "wasp", "ant", "beetle", "ladybug", "caterpillar", "centipede", "millipede", "scorpion", "spider", "tarantula", "tick", "mite", "mosquito", "fly", "dragonfly", "damselfly", "grasshopper", "cricket", "locust", "mantis", "cockroach", "termite", "praying mantis", "walking stick", "stick bug", "leaf insect", "lacewing", "aphid", "cicada", "thrips", "psyllid", "scale insect", "whitefly", "mealybug", "planthopper", "leafhopper", "treehopper", "flea", "louse", "bedbug", "flea beetle", "weevil", "longhorn beetle", "leaf beetle", "tiger beetle", "ground beetle", "lady beetle", "firefly", "click beetle", "rove beetle", "scarab beetle", "dung beetle", "stag beetle", "rhinoceros beetle", "hercules beetle", "goliath beetle", "jewel beetle", "tortoise beetle"]
 	},
 
-	scdProps: {},
+	scdProps: {
+		nps: [1, 1, 1, 4, 4, 4, 5, 5, 6, 7, 8, 9],
+		mrr: () => { weightedRange(10, 1000, 1000, .25); },
+	},
 	mirrorProps: {
 		isBot: { events: "*", values: [false, false, false, false, true] },
 		profit: { events: ["checkout"], values: [4, 2, 42, 420] },

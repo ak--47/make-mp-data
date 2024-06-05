@@ -30,7 +30,7 @@ declare namespace main {
     hook?: Hook<any>;
   }
 
-  type hookTypes = "event" | "user" | "group" | "lookup" | "scd" | "mirror" | "";
+  type hookTypes = "event" | "user" | "group" | "lookup" | "scd" | "mirror" | "funnel"  | "";
   export type Hook<T> = (record: any, type: hookTypes, meta: any) => T;
 
   export interface EnrichArrayOptions<T> {
@@ -53,12 +53,12 @@ declare namespace main {
 
   export interface Funnel {
 	sequence: string[];
-	weight: number;
-	isFirstFunnel: boolean;
-	order: "sequential" | "first-fixed" | "last-fixed" | "random" | 'first-and-last-fixed';
-	conversionRate: number;
-	timeToConvert: number;
-	props: Record<string, ValueValid>;
+	weight?: number;
+	isFirstFunnel?: boolean;
+	order?: "sequential" | "first-fixed" | "last-fixed" | "random" | 'first-and-last-fixed';
+	conversionRate?: number;
+	timeToConvert?: number;
+	props?: Record<string, ValueValid>;
   }
 
   export interface MirrorProps {
@@ -126,6 +126,16 @@ declare namespace main {
     $created: string | undefined;
     anonymousIds: string[];
     sessionIds: string[];
+	distinct_id: string;
+  }
+
+  export interface UserProfile {
+	$name?: string;
+    $email?: string;
+    $avatar?: string;
+    $created: string | undefined;    
+	distinct_id: string;
+	[key: string]: ValueValid;
   }
 }
 
