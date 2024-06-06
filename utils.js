@@ -28,7 +28,7 @@ function pick(items) {
 };
 
 function date(inTheLast = 30, isPast = true, format = 'YYYY-MM-DD') {
-	const now = dayjs.utc();
+	const now = dayjs();
 	// dates must be in the the last 10 years
 	if (Math.abs(inTheLast) > 365 * 10) inTheLast = chance.integer({ min: 1, max: 180 });
 	return function () {

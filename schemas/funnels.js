@@ -125,7 +125,7 @@ const config = {
 	},
 	{
 		sequence: ["app install", "app open", "tutorial", "sign up"],
-		weight: 0,
+		weight: 1,
 		isFirstFunnel: true,
 		order: "sequential",
 		conversionRate: 50,
@@ -156,7 +156,12 @@ const config = {
 		}
 	},
 	{
-		sequence: ["foo", "bar", "baz", "qux"]
+		timeToConvert: 2,
+		conversionRate: 66,
+		sequence: ["foo", "bar", "baz", "qux"],
+	}, {
+		weight: 4,
+		sequence: ["video", "video", "attack", "defend", "click"],
 	}
 	],
 	superProps: {
@@ -193,7 +198,11 @@ const config = {
 	for group analytics keys, we need an array of arrays [[],[],[]] 
 	each pair represents a group_key and the number of profiles for that key
 	*/
-	groupKeys: [],
+	groupKeys: [
+		["company_id", 5000],
+		["team_id", 500],
+		["department_id", 50]
+	],
 	groupProps: {},
 	lookupTables: [],
 	hook: function (record, type, meta) {

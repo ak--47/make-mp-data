@@ -19,7 +19,7 @@ declare namespace main {
     userProps?: Record<string, ValueValid>;
     scdProps?: Record<string, ValueValid>;
     mirrorProps?: Record<string, MirrorProps>;
-    groupKeys?: [string, number][] | [string, number, string[]][];
+    groupKeys?: [string, number][] | [string, number, string[]][]; // [key, numGroups, [events]]
     groupProps?: Record<string, Record<string, ValueValid>>;
     lookupTables?: LookupTable[];
     writeToDisk?: boolean;
@@ -57,6 +57,7 @@ declare namespace main {
     weight?: number;
     properties?: Record<string, ValueValid>;
     isFirstEvent?: boolean;
+	relativeTimeMs?: number;
   }
 
   export interface Funnel {
@@ -86,7 +87,7 @@ declare namespace main {
     attributes: Record<string, ValueValid>;
   }
 
-  export interface SCDTable {
+  export interface SCDTableRow {
     distinct_id: string;
     insertTime: string;
     startTime: string;
@@ -140,7 +141,7 @@ declare namespace main {
     $created: string | undefined;
     anonymousIds: string[];
     sessionIds: string[];
-    distinct_id: string;
+    distinct_id?: string;
   }
 
   export interface UserProfile {

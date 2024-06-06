@@ -34,7 +34,7 @@ function track(name, props, ...rest) {
 /** @typedef {import('./types.d.ts').EventConfig} EventConfig */
 /** @typedef {import('./types.d.ts').Funnel} Funnel */
 /** @typedef {import('./types.d.ts').Person} Person */
-/** @typedef {import('./types.d.ts').SCDTable} SCDTable */
+/** @typedef {import('./types.d.ts').SCDTableRow} SCDTableRow */
 /** @typedef {import('./types.d.ts').UserProfile} UserProfile */
 
 /**
@@ -97,40 +97,10 @@ async function main(config) {
 	log(`------------------SETUP------------------`, "\n");
 
 
-	//the function which generates $distinct_id + $anonymous_ids, $session_ids, and $created, skewing towards the present
-	function generateUser() {
-		const distinct_id = uuidChance.guid();
-		let z = u.boxMullerRandom();
-		const skew = chance.normal({ mean: 10, dev: 3 });
-		z = u.applySkew(z, skew);
 
-		// Scale and shift the normally distributed value to fit the range of days
-		const maxZ = u.integer(2, 4);
-		const scaledZ = (z / maxZ + 1) / 2;
-		const daysAgoBorn = Math.round(scaledZ * (numDays - 1)) + 1;
 
-		return {
-			distinct_id,
-			...u.person(daysAgoBorn),
-		};
-	}
 
-	// weigh events for random selection
-	const weightedEvents = events
-		.reduce((acc, event) => {
-			const weight = event.weight || 1;
-			for (let i = 0; i < weight; i++) {
-
-				// @ts-ignore
-				acc.push(event);
-			}
-			return acc;
-		}, [])
-
-		// @ts-ignore
-		.filter((e) => !e.isFirstEvent);
-
-	const firstEvents = events.filter((e) => e.isFirstEvent);
+	//setup all the data structures we will push into
 	const eventData = enrichArray([], { hook, type: "event", config });
 	const userProfilesData = enrichArray([], { hook, type: "user", config });
 	const scdTableKeys = Object.keys(scdProps);
@@ -138,16 +108,15 @@ async function main(config) {
 	for (const [index, key] of scdTableKeys.entries()) {
 		scdTableData[index] = enrichArray([], { hook, type: "scd", config, scdKey: key });
 	}
-	// const scdTableData = enrichArray([], { hook, type: "scd", config });
 	const groupProfilesData = enrichArray([], { hook, type: "group", config });
 	const lookupTableData = enrichArray([], { hook, type: "lookup", config });
-	const avgEvPerUser = Math.floor(numEvents / numUsers);
+	const avgEvPerUser = Math.ceil(numEvents / numUsers);
 
 	//user loop
 	log(`---------------SIMULATION----------------`, "\n\n");
 	loopUsers: for (let i = 1; i < numUsers + 1; i++) {
 		u.progress("users", i);
-		const user = generateUser();
+		const user = generateUser(uuidChance, numDays);
 		const { distinct_id, $created, anonymousIds, sessionIds } = user;
 		let numEventsPreformed = 0;
 
@@ -156,17 +125,27 @@ async function main(config) {
 		userProfilesData.hookPush(profile);
 
 		//scd creation
+		/** @type {Record<string, SCDTableRow[]>} */
+		// @ts-ignore
 		const userSCD = {};
 		for (const [index, key] of scdTableKeys.entries()) {
 			const mutations = chance.integer({ min: 1, max: 10 });
 			const changes = makeSCD(scdProps[key], key, distinct_id, mutations, $created);
+			// @ts-ignore
 			userSCD[key] = changes;
 			scdTableData[index].hookPush(changes);
 		}
 
-		const numEventsThisUserWillPreform = Math.round(
-			chance.normal({ mean: avgEvPerUser, dev: avgEvPerUser / u.integer(3, 7) })
-		);
+		let numEventsThisUserWillPreform = chance.normal({
+			mean: avgEvPerUser,
+			dev: avgEvPerUser / u.integer(u.integer(3, 5), u.integer(2, 7))
+		}) * 1.242;
+		// power users do 5x more events
+		chance.bool({ likelihood: 20 }) ? numEventsThisUserWillPreform *= 5 : null;
+
+		// shitty users do 1/2 as many events
+		chance.bool({ likelihood: 15 }) ? numEventsThisUserWillPreform *= 0.5 : null;
+		numEventsThisUserWillPreform = Math.round(numEventsThisUserWillPreform);
 
 		if (funnels.length) {
 			//first funnel
@@ -180,27 +159,41 @@ async function main(config) {
 				numEventsPreformed += data.length;
 				eventData.hookPush(data);
 				if (!userConverted) continue loopUsers;
-				debugger;
+
+
 			}
 
 			while (numEventsPreformed < numEventsThisUserWillPreform) {
 				if (usageFunnels.length) {
 					/** @type {Funnel} */
 					const currentFunnel = chance.pickone(usageFunnels);
-					const data = makeFunnel(currentFunnel, user, profile, userSCD, config);
+					const [data, userConverted] = makeFunnel(currentFunnel, user, profile, userSCD, config);
 					numEventsPreformed += data.length;
 					eventData.hookPush(data);
-					debugger;
 				}
 
-				debugger;
+
 			}
 
 		}
 
 		// we have no funnels, so we're just going to make a bunch of random events
 		else {
+			const weightedEvents = events
+				.reduce((acc, event) => {
+					const weight = event.weight || 1;
+					for (let i = 0; i < weight; i++) {
 
+						// @ts-ignore
+						acc.push(event);
+					}
+					return acc;
+				}, [])
+
+				// @ts-ignore
+				.filter((e) => !e.isFirstEvent);
+
+			const firstEvents = events.filter((e) => e.isFirstEvent);
 			// first event loop
 			if (firstEvents.length) {
 				eventData.hookPush(
@@ -369,18 +362,16 @@ async function main(config) {
 			fixData: true,
 			verbose: false,
 			forceStream: true,
-			strict: false,
+			strict: true,
 			dryRun: false,
 			abridged: false,
+			fixJson: true,
 		};
 
 		if (eventData) {
 			log(`importing events to mixpanel...`);
 			const imported = await mp(creds, eventData, {
 				recordType: "event",
-				fixData: true,
-				fixJson: true,
-				strict: false,
 				...commonOpts,
 			});
 			log(`\tsent ${comma(imported.success)} events\n`);
@@ -428,7 +419,7 @@ async function main(config) {
 		isCLI,
 		version
 	});
-	
+
 	return {
 		import: importResults,
 		files: [eventFiles, userFiles, scdFiles, groupFiles, lookupFiles, mirrorFiles, folder],
@@ -436,7 +427,23 @@ async function main(config) {
 }
 
 
+//the function which generates $distinct_id + $anonymous_ids, $session_ids, and $created, skewing towards the present
+function generateUser(uuid, numDays) {
+	const distinct_id = uuid.guid();
+	let z = u.boxMullerRandom();
+	const skew = chance.normal({ mean: 10, dev: 3 });
+	z = u.applySkew(z, skew);
 
+	// Scale and shift the normally distributed value to fit the range of days
+	const maxZ = u.integer(2, 4);
+	const scaledZ = (z / maxZ + 1) / 2;
+	const daysAgoBorn = Math.round(scaledZ * (numDays - 1)) + 1;
+
+	return {
+		distinct_id,
+		...u.person(daysAgoBorn),
+	};
+}
 
 function makeProfile(props, defaults) {
 	//build the spec
@@ -489,10 +496,12 @@ function makeSCD(prop, scdKey, distinct_id, mutations, $created) {
 }
 
 /**
+ * creates a funnel of events for a user
+ * this is called multiple times for a user
  * @param  {Funnel} funnel
  * @param  {Person} user
  * @param  {UserProfile} profile
- * @param  {Record<string, SCDTable[]>} scd
+ * @param  {Record<string, SCDTableRow[]>} scd
  * @param  {Config} config
  * @return {[EventConfig[], Boolean]}
  */
@@ -514,7 +523,7 @@ function makeFunnel(funnel, user, profile, scd, config) {
 		}
 	}
 
-	const funnelPossibleEvents = sequence.map((event, index) => {
+	const funnelPossibleEvents = sequence.map((event) => {
 		const foundEvent = config.events.find((e) => e.event === event);
 		/** @type {EventConfig} */
 		const eventSpec = foundEvent || { event, properties: {} };
@@ -535,7 +544,35 @@ function makeFunnel(funnel, user, profile, scd, config) {
 	const doesUserConvert = chance.bool({ likelihood: conversionRate });
 	let numStepsUserWillTake = sequence.length;
 	if (!doesUserConvert) numStepsUserWillTake = u.integer(1, sequence.length - 1);
-	const funnelActualEvents = funnelPossibleEvents.slice(0, numStepsUserWillTake);
+	const funnelTotalRelativeTimeInHours = timeToConvert / numStepsUserWillTake;
+	const msInHour = 60000 * 60;
+
+	let lastTimeJump = 0;
+	const funnelActualEvents = funnelPossibleEvents.slice(0, numStepsUserWillTake)
+		.map((event, index) => {
+			if (index === 0) {
+				event.relativeTimeMs = 0;
+				return event;
+			}
+
+			// Calculate base increment for each step
+			const baseIncrement = (timeToConvert * msInHour) / numStepsUserWillTake;
+
+			// Introduce a random fluctuation factor
+			const fluctuation = u.integer(-baseIncrement / u.integer(3, 5), baseIncrement / u.integer(3, 5));
+
+			// Ensure the time increments are increasing and add randomness
+			const previousTime = lastTimeJump;
+			const currentTime = previousTime + baseIncrement + fluctuation;
+
+			// Assign the calculated time to the event
+			const chosenTime = Math.max(currentTime, previousTime + 1); // Ensure non-decreasing time
+			lastTimeJump = chosenTime;
+			event.relativeTimeMs = chosenTime;
+			return event;
+		});
+
+
 	let funnelActualOrder = [];
 
 	//todo
@@ -562,10 +599,20 @@ function makeFunnel(funnel, user, profile, scd, config) {
 			funnelActualOrder = funnelActualEvents;
 			break;
 	}
+	let funnelStartTime;
+	let finalEvents = funnelActualOrder
+		.map((event, index) => {
+			const newEvent = makeEvent(distinct_id, anonymousIds, sessionIds, dayjs($created).unix(), [event], {}, groupKeys);
+			if (index === 0) {
+				funnelStartTime = dayjs(newEvent.time);
+				delete newEvent.relativeTimeMs;
+				return newEvent;
+			}
+			newEvent.time = dayjs(funnelStartTime).add(event.relativeTimeMs, "milliseconds").toISOString();
+			delete newEvent.relativeTimeMs;
+			return newEvent;
+		});
 
-	let finalEvents = funnelActualOrder.map((event, index) => {
-		return makeEvent(distinct_id, anonymousIds, sessionIds, dayjs($created).unix(), [event], {}, groupKeys);
-	});
 
 	hook(finalEvents, "funnel-post", { user, profile, scd, funnel, config });
 	return [finalEvents, doesUserConvert];
@@ -709,7 +756,16 @@ function enrichArray(arr = [], opts = {}) {
 	const { hook = a => a, type = "", ...rest } = opts;
 
 	function transformThenPush(item) {
-		return arr.push(hook(item, type, rest));
+		if (Array.isArray(item)) {
+			for (const i of item) {
+				arr.push(hook(i, type, rest));
+			}
+			return -1;
+		}
+		else {
+			return arr.push(hook(item, type, rest));
+		}
+
 	}
 
 	/** @type {EnrichArray} */
