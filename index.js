@@ -6,6 +6,10 @@ by AK
 ak@mixpanel.com
 */
 
+//todos: we are getting events before our start data
+//todos: users are getting events before they are created
+
+
 const RUNTIME = process.env.RUNTIME || "unspecified";
 const mp = require("mixpanel-import");
 const path = require("path");
