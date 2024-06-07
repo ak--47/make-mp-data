@@ -4,9 +4,9 @@ import funnels from "./schemas/funnels.js";
 /** @type {main.Config} */
 const spec = {
 	...funnels,
-	numUsers: 100,
+	numUsers: 1000,
 	writeToDisk: false,
-	numEvents: 10000,
+	numEvents: 100000,
 
 };
 

@@ -9,6 +9,8 @@ declare namespace main {
     token?: string;
     seed?: string;
     numDays?: number;
+	epochStart?: number;
+	epochEnd?: number;
     numEvents?: number;
     numUsers?: number;
     format?: "csv" | "json";

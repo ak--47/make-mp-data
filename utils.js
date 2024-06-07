@@ -6,6 +6,8 @@ const { comma, uid } = require('ak-tools');
 const { spawn } = require('child_process');
 const dayjs = require('dayjs');
 const utc = require('dayjs/plugin/utc');
+const path = require('path');
+const { mkdir } = require('ak-tools');
 
 dayjs.extend(utc);
 
@@ -116,7 +118,6 @@ function exhaust(arr) {
 	};
 };
 
-
 function integer(min = 1, max = 100) {
 	if (min === max) {
 		return min;
@@ -138,7 +139,6 @@ function integer(min = 1, max = 100) {
 
 	return 0;
 };
-
 
 // Box-Muller transform to generate standard normally distributed values
 function boxMullerRandom() {
@@ -197,7 +197,6 @@ function weightedRange(min, max, size = 100, skew = 1) {
 	}
 	return array;
 }
-
 
 function progress(thing, p) {
 	// @ts-ignore
@@ -440,12 +439,126 @@ function shuffleMiddle(array) {
 	return [array[0], ...middleShuffled, array[array.length - 1]];
 };
 
-const shuffleOutside = (array) => {
+function shuffleOutside(array) {
 	if (array.length <= 2) return array;
 	const middleFixed = array.slice(1, -1);
 	const outsideShuffled = shuffleArray([array[0], array[array.length - 1]]);
 	return [outsideShuffled[0], ...middleFixed, outsideShuffled[1]];
 };
+
+
+//the function which generates $distinct_id + $anonymous_ids, $session_ids, and $created, skewing towards the present
+function generateUser(uuid, numDays) {
+	const distinct_id = uuid.guid();
+	let z = boxMullerRandom();
+	const skew = chance.normal({ mean: 10, dev: 3 });
+	z = applySkew(z, skew);
+
+	// Scale and shift the normally distributed value to fit the range of days
+	const maxZ = integer(2, 4);
+	const scaledZ = (z / maxZ + 1) / 2;
+	const daysAgoBorn = Math.round(scaledZ * (numDays - 1)) + 1;
+
+	return {
+		distinct_id,
+		...person(daysAgoBorn),
+	};
+}
+
+/** @typedef {import('./types').EnrichedArray} EnrichArray */
+/** @typedef {import('./types').EnrichArrayOptions} EnrichArrayOptions */
+
+/** 
+ * @param  {any[]} arr
+ * @param  {EnrichArrayOptions} opts
+ * @returns {EnrichArray}}
+ */
+function enrichArray(arr = [], opts = {}) {
+	const { hook = a => a, type = "", ...rest } = opts;
+
+	function transformThenPush(item) {
+		if (Array.isArray(item)) {
+			for (const i of item) {
+				arr.push(hook(i, type, rest));
+			}
+			return -1;
+		}
+		else {
+			return arr.push(hook(item, type, rest));
+		}
+
+	}
+
+	/** @type {EnrichArray} */
+	// @ts-ignore
+	const enrichedArray = arr;
+
+
+	enrichedArray.hookPush = transformThenPush;
+
+
+	return enrichedArray;
+};
+
+function buildFileNames(config) {
+	const { format = "csv", groupKeys = [], lookupTables = [] } = config;
+	let extension = "";
+	extension = format === "csv" ? "csv" : "json";
+	// const current = dayjs.utc().format("MM-DD-HH");
+	const simName = config.simulationName;
+	let writeDir = "./";
+	if (config.writeToDisk) writeDir = mkdir("./data");
+	if (typeof writeDir !== "string") throw new Error("writeDir must be a string");
+	if (typeof simName !== "string") throw new Error("simName must be a string");
+
+	const writePaths = {
+		eventFiles: [path.join(writeDir, `${simName}-EVENTS.${extension}`)],
+		userFiles: [path.join(writeDir, `${simName}-USERS.${extension}`)],
+		scdFiles: [],
+		mirrorFiles: [],
+		groupFiles: [],
+		lookupFiles: [],
+		folder: writeDir,
+	};
+
+	//add SCD files
+	const scdKeys = Object.keys(config?.scdProps || {});
+	for (const key of scdKeys) {
+		writePaths.scdFiles.push(
+			path.join(writeDir, `${simName}-${key}-SCD.${extension}`)
+		);
+	}
+
+	//add group files
+	for (const groupPair of groupKeys) {
+		const groupKey = groupPair[0];
+
+		writePaths.groupFiles.push(
+			path.join(writeDir, `${simName}-${groupKey}-GROUP.${extension}`)
+		);
+	}
+
+	//add lookup files
+	for (const lookupTable of lookupTables) {
+		const { key } = lookupTable;
+		writePaths.lookupFiles.push(
+			//lookups are always CSVs
+			path.join(writeDir, `${simName}-${key}-LOOKUP.csv`)
+		);
+	}
+
+	//add mirror files
+	const mirrorProps = config?.mirrorProps || {};
+	if (Object.keys(mirrorProps).length) {
+		writePaths.mirrorFiles.push(
+			path.join(writeDir, `${simName}-MIRROR.${extension}`)
+		);
+	}
+
+	return writePaths;
+}
+
+
 
 module.exports = {
 	pick,
@@ -477,7 +590,10 @@ module.exports = {
 	shuffleMiddle,
 	shuffleOutside,
 
+	generateUser,
+	enrichArray,
 
+	buildFileNames,
 	streamJSON,
 	streamCSV
 };

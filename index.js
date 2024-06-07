@@ -51,6 +51,8 @@ async function main(config) {
 		numEvents = 100000,
 		numUsers = 1000,
 		numDays = 30,
+		epochStart = 0,
+		epochEnd = 0,
 		events = [{ event: "foo" }, { event: "bar" }, { event: "baz" }],
 		superProps = { platform: ["web", "iOS", "Android"] },
 		funnels = [],
@@ -77,6 +79,15 @@ async function main(config) {
 	VERBOSE = verbose;
 	config.simulationName = makeName();
 	const { simulationName } = config;
+	if (epochStart && epochEnd) numDays = dayjs.unix(epochEnd).diff(dayjs.unix(epochStart), "day");
+	if (epochStart && !epochEnd) numDays = dayjs().diff(dayjs.unix(epochStart), "day");
+	if (numDays && !epochStart) {
+		epochStart = dayjs().subtract(numDays, "day").unix();
+		epochEnd = dayjs().unix();
+	}
+	config.numDays = numDays;
+	config.epochStart = epochStart;
+	config.epochEnd = epochEnd;
 	global.MP_SIMULATION_CONFIG = config;
 	const uuidChance = new Chance(seed);
 	const runId = uid(42);
@@ -100,27 +111,23 @@ async function main(config) {
 	log(`and your configuration is:\n\n`, JSON.stringify({ seed, numEvents, numUsers, numDays, format, token, region, writeToDisk, anonIds, sessionIds }, null, 2));
 	log(`------------------SETUP------------------`, "\n");
 
-
-
-
-
 	//setup all the data structures we will push into
-	const eventData = enrichArray([], { hook, type: "event", config });
-	const userProfilesData = enrichArray([], { hook, type: "user", config });
+	const eventData = u.enrichArray([], { hook, type: "event", config });
+	const userProfilesData = u.enrichArray([], { hook, type: "user", config });
 	const scdTableKeys = Object.keys(scdProps);
 	const scdTableData = [];
 	for (const [index, key] of scdTableKeys.entries()) {
-		scdTableData[index] = enrichArray([], { hook, type: "scd", config, scdKey: key });
+		scdTableData[index] = u.enrichArray([], { hook, type: "scd", config, scdKey: key });
 	}
-	const groupProfilesData = enrichArray([], { hook, type: "group", config });
-	const lookupTableData = enrichArray([], { hook, type: "lookup", config });
+	const groupProfilesData = u.enrichArray([], { hook, type: "group", config });
+	const lookupTableData = u.enrichArray([], { hook, type: "lookup", config });
 	const avgEvPerUser = Math.ceil(numEvents / numUsers);
 
 	//user loop
 	log(`---------------SIMULATION----------------`, "\n\n");
 	loopUsers: for (let i = 1; i < numUsers + 1; i++) {
 		u.progress("users", i);
-		const user = generateUser(uuidChance, numDays);
+		const user = u.generateUser(uuidChance, numDays);
 		const { distinct_id, $created, anonymousIds, sessionIds } = user;
 		let numEventsPreformed = 0;
 
@@ -142,13 +149,14 @@ async function main(config) {
 
 		let numEventsThisUserWillPreform = chance.normal({
 			mean: avgEvPerUser,
-			dev: avgEvPerUser / u.integer(u.integer(3, 5), u.integer(2, 7))
-		}) * 1.242;
+			dev: avgEvPerUser / u.integer(u.integer(2, 5), u.integer(2, 7))
+		}) * 1.2339;
+
 		// power users do 5x more events
 		chance.bool({ likelihood: 20 }) ? numEventsThisUserWillPreform *= 5 : null;
 
-		// shitty users do 1/2 as many events
-		chance.bool({ likelihood: 15 }) ? numEventsThisUserWillPreform *= 0.5 : null;
+		// shitty users do 1/3 as many events
+		chance.bool({ likelihood: 15 }) ? numEventsThisUserWillPreform *= 0.333 : null;
 		numEventsThisUserWillPreform = Math.round(numEventsThisUserWillPreform);
 
 		if (funnels.length) {
@@ -284,7 +292,7 @@ async function main(config) {
 	}
 
 	const { eventFiles, userFiles, scdFiles, groupFiles, lookupFiles, mirrorFiles, folder } =
-		buildFileNames(config);
+		u.buildFileNames(config);
 	const pairs = [
 		[eventFiles, [eventData]],
 		[userFiles, [userProfilesData]],
@@ -430,24 +438,6 @@ async function main(config) {
 	};
 }
 
-
-//the function which generates $distinct_id + $anonymous_ids, $session_ids, and $created, skewing towards the present
-function generateUser(uuid, numDays) {
-	const distinct_id = uuid.guid();
-	let z = u.boxMullerRandom();
-	const skew = chance.normal({ mean: 10, dev: 3 });
-	z = u.applySkew(z, skew);
-
-	// Scale and shift the normally distributed value to fit the range of days
-	const maxZ = u.integer(2, 4);
-	const scaledZ = (z / maxZ + 1) / 2;
-	const daysAgoBorn = Math.round(scaledZ * (numDays - 1)) + 1;
-
-	return {
-		distinct_id,
-		...u.person(daysAgoBorn),
-	};
-}
 
 function makeProfile(props, defaults) {
 	//build the spec
@@ -690,98 +680,9 @@ function makeEvent(distinct_id, anonymousIds, sessionIds, earliestTime, events, 
 	return event;
 }
 
-function buildFileNames(config) {
-	const { format = "csv", groupKeys = [], lookupTables = [], m } = config;
-	let extension = "";
-	extension = format === "csv" ? "csv" : "json";
-	// const current = dayjs.utc().format("MM-DD-HH");
-	const simName = config.simulationName;
-	let writeDir = "./";
-	if (config.writeToDisk) writeDir = mkdir("./data");
-	if (typeof writeDir !== "string") throw new Error("writeDir must be a string");
-	if (typeof simName !== "string") throw new Error("simName must be a string");
-
-	const writePaths = {
-		eventFiles: [path.join(writeDir, `${simName}-EVENTS.${extension}`)],
-		userFiles: [path.join(writeDir, `${simName}-USERS.${extension}`)],
-		scdFiles: [],
-		mirrorFiles: [],
-		groupFiles: [],
-		lookupFiles: [],
-		folder: writeDir,
-	};
-
-	//add SCD files
-	const scdKeys = Object.keys(config?.scdProps || {});
-	for (const key of scdKeys) {
-		writePaths.scdFiles.push(
-			path.join(writeDir, `${simName}-${key}-SCD.${extension}`)
-		);
-	}
-
-	//add group files
-	for (const groupPair of groupKeys) {
-		const groupKey = groupPair[0];
-
-		writePaths.groupFiles.push(
-			path.join(writeDir, `${simName}-${groupKey}-GROUP.${extension}`)
-		);
-	}
-
-	//add lookup files
-	for (const lookupTable of lookupTables) {
-		const { key } = lookupTable;
-		writePaths.lookupFiles.push(
-			//lookups are always CSVs
-			path.join(writeDir, `${simName}-${key}-LOOKUP.csv`)
-		);
-	}
-
-	//add mirror files
-	const mirrorProps = config?.mirrorProps || {};
-	if (Object.keys(mirrorProps).length) {
-		writePaths.mirrorFiles.push(
-			path.join(writeDir, `${simName}-MIRROR.${extension}`)
-		);
-	}
-
-	return writePaths;
-}
-
-/** @typedef {import('./types').EnrichedArray} EnrichArray */
-/** @typedef {import('./types').EnrichArrayOptions} EnrichArrayOptions */
-
-/** 
- * @param  {any[]} arr
- * @param  {EnrichArrayOptions} opts
- * @returns {EnrichArray}}
- */
-function enrichArray(arr = [], opts = {}) {
-	const { hook = a => a, type = "", ...rest } = opts;
-
-	function transformThenPush(item) {
-		if (Array.isArray(item)) {
-			for (const i of item) {
-				arr.push(hook(i, type, rest));
-			}
-			return -1;
-		}
-		else {
-			return arr.push(hook(item, type, rest));
-		}
-
-	}
-
-	/** @type {EnrichArray} */
-	// @ts-ignore
-	const enrichedArray = arr;
 
 
-	enrichedArray.hookPush = transformThenPush;
 
-
-	return enrichedArray;
-};
 
 
 
