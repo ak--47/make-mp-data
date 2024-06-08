@@ -1,3 +1,4 @@
+
 declare namespace main {
   type Primitives = string | number | boolean | Date | Record<string, any>;
 
@@ -15,6 +16,7 @@ declare namespace main {
     numUsers?: number;
     format?: "csv" | "json";
     region?: "US" | "EU";
+	chance?: any;
     events?: EventConfig[];
     superProps?: Record<string, ValueValid>;
     funnels?: Funnel[];
@@ -108,11 +110,11 @@ declare namespace main {
 
   export interface EventData {
     event: string;
-    $source: string;
+    source: string;
     time: string;
-    $device_id?: string;
-    $session_id?: string;
-    $user_id?: string;
+    device_id?: string;
+    session_id?: string;
+    user_id?: string;
     [key: string]: any;
   }
 

@@ -8,24 +8,26 @@ ak@mixpanel.com
 
 //todos: we are getting events before our start data
 //todos: users are getting events before they are created
+//hook needs to be able to remove events
+//todos: everything needs to be derived from the seed.
 
-
-const RUNTIME = process.env.RUNTIME || "unspecified";
-const mp = require("mixpanel-import");
-const path = require("path");
-const Chance = require("chance");
-const chance = new Chance();
-const { comma, bytesHuman, mkdir, makeName, md5, clone, tracker, uid } = require("ak-tools");
-const u = require("./utils.js");
-const AKsTimeSoup = require("./timesoup.js");
 const dayjs = require("dayjs");
 const utc = require("dayjs/plugin/utc");
 dayjs.extend(utc);
+const NOW = dayjs('2024-02-02').unix(); //this is a FIXED POINT and we will shift it later
+global.NOW = NOW;
+const RUNTIME = process.env.RUNTIME || "unspecified";
+const Chance = require("chance");
+const mp = require("mixpanel-import");
+const path = require("path");
+const { comma, bytesHuman, makeName, md5, clone, tracker, uid } = require("ak-tools");
+const u = require("./utils.js");
+const AKsTimeSoup = require("./timesoup.js");
 const cliParams = require("./cli.js");
-const NOW = dayjs().unix();
 let VERBOSE = false;
 let isCLI = false;
-
+let CONFIG;
+require('dotenv').config();
 const { version } = require('./package.json');
 const os = require("os");
 const metrics = tracker("make-mp-data", "db99eb8f67ae50949a13c27cacf57d41", os.userInfo().username);
@@ -46,13 +48,19 @@ function track(name, props, ...rest) {
  * @param  {Config} config
  */
 async function main(config) {
+	//PARAMS
+	const seedWord = process.env.SEED || config.seed || "hello friend!";
+	config.seed = seedWord;
+	u.initChance(seedWord);
+	const chance = u.getChance();
+	config.chance = chance;
 	let {
-		seed = "every time a rug is micturated upon in this fair city...",
+		seed,
 		numEvents = 100000,
 		numUsers = 1000,
 		numDays = 30,
 		epochStart = 0,
-		epochEnd = 0,
+		epochEnd = dayjs().unix(),
 		events = [{ event: "foo" }, { event: "bar" }, { event: "baz" }],
 		superProps = { platform: ["web", "iOS", "Android"] },
 		funnels = [],
@@ -79,17 +87,16 @@ async function main(config) {
 	VERBOSE = verbose;
 	config.simulationName = makeName();
 	const { simulationName } = config;
-	if (epochStart && epochEnd) numDays = dayjs.unix(epochEnd).diff(dayjs.unix(epochStart), "day");
-	if (epochStart && !epochEnd) numDays = dayjs().diff(dayjs.unix(epochStart), "day");
-	if (numDays && !epochStart) {
-		epochStart = dayjs().subtract(numDays, "day").unix();
-		epochEnd = dayjs().unix();
-	}
+	if (epochStart && !numDays) numDays = dayjs.unix(epochEnd).diff(dayjs.unix(epochStart), "day");
+	if (!epochStart && numDays) epochStart = dayjs().subtract(numDays, "day").unix();
+	if (epochStart && numDays) { } //noop
+	if (!epochStart && !numDays) debugger; //never happens	
+
 	config.numDays = numDays;
 	config.epochStart = epochStart;
 	config.epochEnd = epochEnd;
 	global.MP_SIMULATION_CONFIG = config;
-	const uuidChance = new Chance(seed);
+	CONFIG = config;
 	const runId = uid(42);
 	track('start simulation', {
 		runId,
@@ -106,6 +113,8 @@ async function main(config) {
 		isCLI,
 		version
 	});
+
+
 	log(`------------------SETUP------------------`);
 	log(`\nyour data simulation will heretofore be known as: \n\n\t${simulationName.toUpperCase()}...\n`);
 	log(`and your configuration is:\n\n`, JSON.stringify({ seed, numEvents, numUsers, numDays, format, token, region, writeToDisk, anonIds, sessionIds }, null, 2));
@@ -127,7 +136,8 @@ async function main(config) {
 	log(`---------------SIMULATION----------------`, "\n\n");
 	loopUsers: for (let i = 1; i < numUsers + 1; i++) {
 		u.progress("users", i);
-		const user = u.generateUser(uuidChance, numDays);
+		const userId = chance.guid();
+		const user = u.generateUser(userId, numDays);
 		const { distinct_id, $created, anonymousIds, sessionIds } = user;
 		let numEventsPreformed = 0;
 
@@ -183,8 +193,6 @@ async function main(config) {
 					numEventsPreformed += data.length;
 					eventData.hookPush(data);
 				}
-
-
 			}
 
 		}
@@ -206,22 +214,25 @@ async function main(config) {
 				.filter((e) => !e.isFirstEvent);
 
 			const firstEvents = events.filter((e) => e.isFirstEvent);
-			// first event loop
+			let userBornTime;
+			// first event
 			if (firstEvents.length) {
-				eventData.hookPush(
-					makeEvent(
-						distinct_id,
-						anonymousIds,
-						sessionIds,
-						dayjs($created).unix(),
-						firstEvents,
-						superProps,
-						groupKeys,
-						true
-					)
+				const firstEvent = makeEvent(
+					distinct_id,
+					anonymousIds,
+					sessionIds,
+					dayjs($created).unix(),
+					firstEvents,
+					superProps,
+					groupKeys,
+					true
 				);
+				eventData.hookPush(firstEvent);
+				userBornTime = dayjs(firstEvent.time).add(u.integer(1, 100), 'h');
+				if (userBornTime.isAfter(dayjs())) userBornTime = dayjs($created).add(15, 'm');
+				userBornTime = userBornTime.unix();
 			}
-
+			if (!userBornTime) userBornTime = dayjs($created).unix();
 			// all other event loop
 			for (let j = 0; j < numEventsThisUserWillPreform; j++) {
 				eventData.hookPush(
@@ -229,7 +240,7 @@ async function main(config) {
 						distinct_id,
 						anonymousIds,
 						sessionIds,
-						dayjs($created).unix(),
+						userBornTime,
 						weightedEvents,
 						superProps,
 						groupKeys
@@ -277,6 +288,17 @@ async function main(config) {
 		}
 		lookupTableData.hookPush({ key, data });
 	}
+
+	// SHIFT TIME
+	const actualNow = dayjs();
+	const fixedNow = dayjs.unix(global.NOW);
+	const timeShift = actualNow.diff(fixedNow, "second");
+	eventData.forEach((event) => {
+		const newTime = dayjs(event.time).add(timeShift, "second");
+		event.time = newTime.toISOString();
+		if (epochStart && newTime.unix() < epochStart) event = {};
+		if (epochEnd && newTime.unix() > epochEnd) event = {};
+	});
 
 	// deal with mirror props
 	let mirrorEventData = [];
@@ -446,8 +468,8 @@ function makeProfile(props, defaults) {
 	};
 
 	// anonymous and session ids
-	if (!global.MP_SIMULATION_CONFIG?.anonIds) delete profile.anonymousIds;
-	if (!global.MP_SIMULATION_CONFIG?.sessionIds) delete profile.sessionIds;
+	if (!CONFIG?.anonIds) delete profile.anonymousIds;
+	if (!CONFIG?.sessionIds) delete profile.sessionIds;
 
 	for (const key in props) {
 		try {
@@ -535,7 +557,7 @@ function makeFunnel(funnel, user, profile, scd, config) {
 		return eventSpec;
 	});
 
-	const doesUserConvert = chance.bool({ likelihood: conversionRate });
+	const doesUserConvert = config.chance.bool({ likelihood: conversionRate });
 	let numStepsUserWillTake = sequence.length;
 	if (!doesUserConvert) numStepsUserWillTake = u.integer(1, sequence.length - 1);
 	const funnelTotalRelativeTimeInHours = timeToConvert / numStepsUserWillTake;
@@ -624,7 +646,7 @@ function makeFunnel(funnel, user, profile, scd, config) {
  * @param  {Boolean} isFirstEvent=false
  */
 function makeEvent(distinct_id, anonymousIds, sessionIds, earliestTime, events, superProps, groupKeys, isFirstEvent = false) {
-	let chosenEvent = chance.pickone(events);
+	let chosenEvent = CONFIG.chance.pickone(events);
 
 	//allow for a string shorthand
 	if (typeof chosenEvent === "string") {
@@ -634,7 +656,7 @@ function makeEvent(distinct_id, anonymousIds, sessionIds, earliestTime, events, 
 	//event model
 	const event = {
 		event: chosenEvent.event,
-		$source: "AKsTimeSoup",
+		source: "AKsTimeSoup",
 	};
 
 	//event time
@@ -642,14 +664,14 @@ function makeEvent(distinct_id, anonymousIds, sessionIds, earliestTime, events, 
 	if (!isFirstEvent) event.time = AKsTimeSoup(earliestTime, NOW);
 
 	// anonymous and session ids
-	if (global.MP_SIMULATION_CONFIG?.anonIds) event.$device_id = chance.pickone(anonymousIds);
-	if (global.MP_SIMULATION_CONFIG?.sessionIds) event.$session_id = chance.pickone(sessionIds);
+	if (CONFIG?.anonIds) event.device_id = CONFIG.chance.pickone(anonymousIds);
+	if (CONFIG?.sessionIds) event.session_id = CONFIG.chance.pickone(sessionIds);
 
-	//sometimes have a $user_id
-	if (!isFirstEvent && chance.bool({ likelihood: 42 })) event.$user_id = distinct_id;
+	//sometimes have a user_id
+	if (!isFirstEvent && CONFIG.chance.bool({ likelihood: 42 })) event.user_id = distinct_id;
 
-	// ensure that there is a $user_id or $device_id
-	if (!event.$user_id && !event.$device_id) event.$user_id = distinct_id;
+	// ensure that there is a user_id or device_id
+	if (!event.user_id && !event.device_id) event.user_id = distinct_id;
 
 	const props = { ...chosenEvent.properties, ...superProps };
 
@@ -695,8 +717,7 @@ if (require.main === module) {
 	// @ts-ignore
 	const suppliedConfig = args._[0];
 
-	//if the user specifics an separate config file
-	//todo this text isn't displaying
+	//if the user specifies an separate config file
 	let config = null;
 	if (suppliedConfig) {
 		console.log(`using ${suppliedConfig} for data\n`);

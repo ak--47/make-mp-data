@@ -1,6 +1,5 @@
 const fs = require('fs');
 const Chance = require('chance');
-const chance = new Chance();
 const readline = require('readline');
 const { comma, uid } = require('ak-tools');
 const { spawn } = require('child_process');
@@ -8,11 +7,37 @@ const dayjs = require('dayjs');
 const utc = require('dayjs/plugin/utc');
 const path = require('path');
 const { mkdir } = require('ak-tools');
-
 dayjs.extend(utc);
+require('dotenv').config();
+
+
+let globalChance;
+let chanceInitialized = false;
+
+function initChance(seed) {
+	if (process.env.SEED) seed = process.env.SEED;  // Override seed with environment variable if available
+	if (!chanceInitialized) {
+		globalChance = new Chance(seed);
+		if (global.MP_SIMULATION_CONFIG) global.MP_SIMULATION_CONFIG.chance = globalChance;
+		chanceInitialized = true;
+	}
+}
+
+function getChance() {
+	if (!chanceInitialized) {
+		const seed = process.env.SEED || global.MP_SIMULATION_CONFIG?.seed;
+		if (!seed) {
+			return new Chance();
+		}
+		initChance(seed);
+		return globalChance;
+	}
+	return globalChance;
+}
 
 
 function pick(items) {
+	const chance = getChance();
 	if (!Array.isArray(items)) {
 		if (typeof items === 'function') {
 			const selection = items();
@@ -30,34 +55,29 @@ function pick(items) {
 };
 
 function date(inTheLast = 30, isPast = true, format = 'YYYY-MM-DD') {
-	const now = dayjs();
-	// dates must be in the the last 10 years
+	const chance = getChance();
+	const now = global.NOW ? dayjs.unix(global.NOW) : dayjs();
 	if (Math.abs(inTheLast) > 365 * 10) inTheLast = chance.integer({ min: 1, max: 180 });
 	return function () {
-		try {
-			const when = chance.integer({ min: 0, max: Math.abs(inTheLast) });
-			let then;
-			if (isPast) {
-				then = now.subtract(when, 'day')
-					.subtract(integer(0, 23), 'hour')
-					.subtract(integer(0, 59), 'minute')
-					.subtract(integer(0, 59), 'second');
-			}
-			if (!isPast) {
-				then = now.add(when, 'day')
-					.add(integer(0, 23), 'hour')
-					.add(integer(0, 59), 'minute')
-					.add(integer(0, 59), 'second');
-			}
-			if (format) return then?.format(format);
-			if (!format) return then?.toISOString();
+		const when = chance.integer({ min: 0, max: Math.abs(inTheLast) });
+		let then;
+		if (isPast) {
+			then = now.subtract(when, 'day')
+				.subtract(integer(0, 23), 'hour')
+				.subtract(integer(0, 59), 'minute')
+				.subtract(integer(0, 59), 'second');
+		} else {
+			then = now.add(when, 'day')
+				.add(integer(0, 23), 'hour')
+				.add(integer(0, 59), 'minute')
+				.add(integer(0, 59), 'second');
 		}
-		catch (e) {
-			if (format) return now?.format(format);
-			if (!format) return now?.toISOString();
-		}
+		const actualNow = dayjs();
+		const dayShift = actualNow.diff(now, "day");
+		then = then.add(dayShift, "day");
+		return format ? then.format(format) : then.toISOString();
 	};
-};
+}
 
 function dates(inTheLast = 30, numPairs = 5, format = 'YYYY-MM-DD') {
 	const pairs = [];
@@ -67,11 +87,12 @@ function dates(inTheLast = 30, numPairs = 5, format = 'YYYY-MM-DD') {
 	return pairs;
 };
 
-function day(start, end) {
+function day(start, end = global.NOW) {
+	const chance = getChance();
 	const format = 'YYYY-MM-DD';
 	return function (min, max) {
 		start = dayjs(start);
-		end = dayjs(end);
+		end = dayjs.unix(global.NOW);
 		const diff = end.diff(start, 'day');
 		const delta = chance.integer({ min: min, max: diff });
 		const day = start.add(delta, 'day');
@@ -85,6 +106,7 @@ function day(start, end) {
 };
 
 function choose(value) {
+	const chance = getChance();
 	try {
 		// Keep resolving the value if it's a function
 		while (typeof value === 'function') {
@@ -119,6 +141,7 @@ function exhaust(arr) {
 };
 
 function integer(min = 1, max = 100) {
+	const chance = getChance();
 	if (min === max) {
 		return min;
 	}
@@ -142,9 +165,10 @@ function integer(min = 1, max = 100) {
 
 // Box-Muller transform to generate standard normally distributed values
 function boxMullerRandom() {
+	const chance = getChance();
 	let u = 0, v = 0;
-	while (u === 0) u = Math.random();
-	while (v === 0) v = Math.random();
+	while (u === 0) u = chance.floating({ min: 0, max: 1, fixed: 13 });
+	while (v === 0) v = chance.floating({ min: 0, max: 1, fixed: 13 });
 	return Math.sqrt(-2.0 * Math.log(u)) * Math.cos(2.0 * Math.PI * v);
 };
 
@@ -232,25 +256,6 @@ function getUniqueKeys(data) {
 	return Array.from(keysSet);
 };
 
-//
-/**
- * makes a random-sized array of emojis
- * @param  {number} max=10
- * @param  {boolean} array=false
- */
-function generateEmoji(max = 10, array = false) {
-	return function () {
-		const emojis = ['😀', '😂', '😍', '😎', '😜', '😇', '😡', '😱', '😭', '😴', '🤢', '🤠', '🤡', '👽', '👻', '💩', '👺', '👹', '👾', '🤖', '🤑', '🤗', '🤓', '🤔', '🤐', '😀', '😂', '😍', '😎', '😜', '😇', '😡', '😱', '😭', '😴', '🤢', '🤠', '🤡', '👽', '👻', '💩', '👺', '👹', '👾', '🤖', '🤑', '🤗', '🤓', '🤔', '🤐', '😈', '👿', '👦', '👧', '👨', '👩', '👴', '👵', '👶', '🧒', '👮', '👷', '💂', '🕵', '👩‍⚕️', '👨‍⚕️', '👩‍🌾', '👨‍🌾', '👩‍🍳', '👨‍🍳', '👩‍🎓', '👨‍🎓', '👩‍🎤', '👨‍🎤', '👩‍🏫', '👨‍🏫', '👩‍🏭', '👨‍🏭', '👩‍💻', '👨‍💻', '👩‍💼', '👨‍💼', '👩‍🔧', '👨‍🔧', '👩‍🔬', '👨‍🔬', '👩‍🎨', '👨‍🎨', '👩‍🚒', '👨‍🚒', '👩‍✈️', '👨‍✈️', '👩‍🚀', '👨‍🚀', '👩‍⚖️', '👨‍⚖️', '🤶', '🎅', '👸', '🤴', '👰', '🤵', '👼', '🤰', '🙇', '💁', '🙅', '🙆', '🙋', '🤦', '🤷', '🙎', '🙍', '💇', '💆', '🕴', '💃', '🕺', '🚶', '🏃', '🤲', '👐', '🙌', '👏', '🤝', '👍', '👎', '👊', '✊', '🤛', '🤜', '🤞', '✌️', '🤟', '🤘', '👌', '👈', '👉', '👆', '👇', '☝️', '✋', '🤚', '🖐', '🖖', '👋', '🤙', '💪', '🖕', '✍️', '🤳', '💅', '👂', '👃', '👣', '👀', '👁', '🧠', '👅', '👄', '💋', '👓', '🕶', '👔', '👕', '👖', '🧣', '🧤', '🧥', '🧦', '👗', '👘', '👙', '👚', '👛', '👜', '👝', '🛍', '🎒', '👞', '👟', '👠', '👡', '👢', '👑', '👒', '🎩', '🎓', '🧢', '⛑', '📿', '💄', '💍', '💎', '🔇', '🔈', '🔉', '🔊', '📢', '📣', '📯', '🔔', '🔕', '🎼', '🎵', '🎶', '🎙', '🎚', '🎛', '🎤', '🎧', '📻', '🎷', '🎸', '🎹', '🎺', '🎻', '🥁', '📱', '📲', '💻', '🖥', '🖨', '🖱', '🖲', '🕹', '🗜', '💽', '💾', '💿', '📀', '📼', '📷', '📸', '📹', '🎥', '📽', '🎞', '📞', '☎️', '📟', '📠', '📺', '📻', '🎙', '📡', '🔍', '🔎', '🔬', '🔭', '📡', '💡', '🔦', '🏮', '📔', '📕', '📖', '📗', '📘', '📙', '📚', '📓', '📒', '📃', '📜', '📄', '📰', '🗞', '📑', '🔖', '🏷', '💰', '💴', '💵', '💶', '💷', '💸', '💳', '🧾', '💹', '💱', '💲', '✉️', '📧', '📨', '📩', '📤', '📥', '📦', '📫', '📪', '📬', '📭', '📮', '🗳', '✏️', '✒️', '🖋', '🖊', '🖌', '🖍', '📝', '💼', '📁', '📂', '🗂', '📅', '📆', '🗒', '🗓', '📇', '📈', '📉', '📊', '📋', '📌', '📍', '📎', '🖇', '📏', '📐', '✂️', '🗃', '🗄', '🗑', '🔒', '🔓', '🔏', '🔐', '🔑', '🗝', '🔨', '⛏', '⚒', '🛠', '🗡', '⚔️', '🔫', '🏹', '🛡', '🔧', '🔩', '⚙️', '🗜', '⚖️', '🔗', '⛓', '🧰', '🧲', '⚗️', '🧪', '🧫', '🧬', '🔬', '🔭', '📡', '💉', '💊', '🛏', '🛋', '🚪', '🚽', '🚿', '🛁', '🧴', '🧷', '🧹', '🧺', '🧻', '🧼', '🧽', '🧯', '🚬', '⚰️', '⚱️', '🗿', '🏺', '🧱', '🎈', '🎏', '🎀', '🎁', '🎊', '🎉', '🎎', '🏮', '🎐', '🧧', '✉️', '📩', '📨', '📧'];
-		let num = integer(1, max);
-		let arr = [];
-		for (let i = 0; i < num; i++) {
-			arr.push(chance.pickone(emojis));
-		}
-		if (array) return arr;
-		if (!array) return arr.join(', ');
-		return "🤷";
-	};
-};
 
 /** @typedef {import('./types').Person} Person */
 
@@ -259,6 +264,7 @@ function generateEmoji(max = 10, array = false) {
  * @return {Person}
  */
 function person(bornDaysAgo = 30) {
+	const chance = getChance();
 	//names and photos
 	let gender = chance.pickone(['male', 'female']);
 	if (!gender) gender = "female";
@@ -310,6 +316,7 @@ function person(bornDaysAgo = 30) {
 
 
 function pickAWinner(items, mostChosenIndex) {
+	const chance = getChance();
 	if (mostChosenIndex > items.length) mostChosenIndex = items.length;
 	return function () {
 		const weighted = [];
@@ -408,50 +415,50 @@ function weighFunnels(acc, funnel) {
 
 // Function to shuffle array
 function shuffleArray(array) {
-	return array.sort(() => Math.random() - 0.5);
+	const chance = getChance();
+	for (let i = array.length - 1; i > 0; i--) {
+		const j = chance.integer({ min: 0, max: i });
+		[array[i], array[j]] = [array[j], array[i]];
+	}
+	return array;
 }
 
-// Function to shuffle all except the first element
 function shuffleExceptFirst(array) {
 	if (array.length <= 1) return array;
 	const restShuffled = shuffleArray(array.slice(1));
 	return [array[0], ...restShuffled];
-};
+}
 
-// Function to shuffle all except the last element
 function shuffleExceptLast(array) {
 	if (array.length <= 1) return array;
 	const restShuffled = shuffleArray(array.slice(0, -1));
 	return [...restShuffled, array[array.length - 1]];
-};
+}
 
-// Function to fix the first and last elements and shuffle the middle ones
 function fixFirstAndLast(array) {
 	if (array.length <= 2) return array;
 	const middleShuffled = shuffleArray(array.slice(1, -1));
 	return [array[0], ...middleShuffled, array[array.length - 1]];
-};
+}
 
-// Function to shuffle only the middle elements
 function shuffleMiddle(array) {
 	if (array.length <= 2) return array;
 	const middleShuffled = shuffleArray(array.slice(1, -1));
 	return [array[0], ...middleShuffled, array[array.length - 1]];
-};
+}
 
 function shuffleOutside(array) {
 	if (array.length <= 2) return array;
 	const middleFixed = array.slice(1, -1);
 	const outsideShuffled = shuffleArray([array[0], array[array.length - 1]]);
 	return [outsideShuffled[0], ...middleFixed, outsideShuffled[1]];
-};
-
+}
 
 //the function which generates $distinct_id + $anonymous_ids, $session_ids, and $created, skewing towards the present
-function generateUser(uuid, numDays) {
-	const distinct_id = uuid.guid();
+function generateUser(user_id, numDays) {
+	const chance = getChance();
 	let z = boxMullerRandom();
-	const skew = chance.normal({ mean: 10, dev: 3 });
+	const skew = chance.normal({ mean: numDays / 4, dev: 1.25 });
 	z = applySkew(z, skew);
 
 	// Scale and shift the normally distributed value to fit the range of days
@@ -460,7 +467,7 @@ function generateUser(uuid, numDays) {
 	const daysAgoBorn = Math.round(scaledZ * (numDays - 1)) + 1;
 
 	return {
-		distinct_id,
+		distinct_id: user_id,
 		...person(daysAgoBorn),
 	};
 }
@@ -469,6 +476,7 @@ function generateUser(uuid, numDays) {
 /** @typedef {import('./types').EnrichArrayOptions} EnrichArrayOptions */
 
 /** 
+ * allow
  * @param  {any[]} arr
  * @param  {EnrichArrayOptions} opts
  * @returns {EnrichArray}}
@@ -477,6 +485,11 @@ function enrichArray(arr = [], opts = {}) {
 	const { hook = a => a, type = "", ...rest } = opts;
 
 	function transformThenPush(item) {
+		if (item === null) return 0;
+		if (item === undefined) return 0;
+		if (typeof item === 'object') {
+			if (Object.keys(item).length === 0) return 0;
+		}
 		if (Array.isArray(item)) {
 			for (const i of item) {
 				arr.push(hook(i, type, rest));
@@ -558,6 +571,26 @@ function buildFileNames(config) {
 	return writePaths;
 }
 
+//
+/**
+ * makes a random-sized array of emojis
+ * @param  {number} max=10
+ * @param  {boolean} array=false
+ */
+function generateEmoji(max = 10, array = false) {
+	const chance = getChance();
+	return function () {
+		const emojis = ['😀', '😂', '😍', '😎', '😜', '😇', '😡', '😱', '😭', '😴', '🤢', '🤠', '🤡', '👽', '👻', '💩', '👺', '👹', '👾', '🤖', '🤑', '🤗', '🤓', '🤔', '🤐', '😀', '😂', '😍', '😎', '😜', '😇', '😡', '😱', '😭', '😴', '🤢', '🤠', '🤡', '👽', '👻', '💩', '👺', '👹', '👾', '🤖', '🤑', '🤗', '🤓', '🤔', '🤐', '😈', '👿', '👦', '👧', '👨', '👩', '👴', '👵', '👶', '🧒', '👮', '👷', '💂', '🕵', '👩‍⚕️', '👨‍⚕️', '👩‍🌾', '👨‍🌾', '👩‍🍳', '👨‍🍳', '👩‍🎓', '👨‍🎓', '👩‍🎤', '👨‍🎤', '👩‍🏫', '👨‍🏫', '👩‍🏭', '👨‍🏭', '👩‍💻', '👨‍💻', '👩‍💼', '👨‍💼', '👩‍🔧', '👨‍🔧', '👩‍🔬', '👨‍🔬', '👩‍🎨', '👨‍🎨', '👩‍🚒', '👨‍🚒', '👩‍✈️', '👨‍✈️', '👩‍🚀', '👨‍🚀', '👩‍⚖️', '👨‍⚖️', '🤶', '🎅', '👸', '🤴', '👰', '🤵', '👼', '🤰', '🙇', '💁', '🙅', '🙆', '🙋', '🤦', '🤷', '🙎', '🙍', '💇', '💆', '🕴', '💃', '🕺', '🚶', '🏃', '🤲', '👐', '🙌', '👏', '🤝', '👍', '👎', '👊', '✊', '🤛', '🤜', '🤞', '✌️', '🤟', '🤘', '👌', '👈', '👉', '👆', '👇', '☝️', '✋', '🤚', '🖐', '🖖', '👋', '🤙', '💪', '🖕', '✍️', '🤳', '💅', '👂', '👃', '👣', '👀', '👁', '🧠', '👅', '👄', '💋', '👓', '🕶', '👔', '👕', '👖', '🧣', '🧤', '🧥', '🧦', '👗', '👘', '👙', '👚', '👛', '👜', '👝', '🛍', '🎒', '👞', '👟', '👠', '👡', '👢', '👑', '👒', '🎩', '🎓', '🧢', '⛑', '📿', '💄', '💍', '💎', '🔇', '🔈', '🔉', '🔊', '📢', '📣', '📯', '🔔', '🔕', '🎼', '🎵', '🎶', '🎙', '🎚', '🎛', '🎤', '🎧', '📻', '🎷', '🎸', '🎹', '🎺', '🎻', '🥁', '📱', '📲', '💻', '🖥', '🖨', '🖱', '🖲', '🕹', '🗜', '💽', '💾', '💿', '📀', '📼', '📷', '📸', '📹', '🎥', '📽', '🎞', '📞', '☎️', '📟', '📠', '📺', '📻', '🎙', '📡', '🔍', '🔎', '🔬', '🔭', '📡', '💡', '🔦', '🏮', '📔', '📕', '📖', '📗', '📘', '📙', '📚', '📓', '📒', '📃', '📜', '📄', '📰', '🗞', '📑', '🔖', '🏷', '💰', '💴', '💵', '💶', '💷', '💸', '💳', '🧾', '💹', '💱', '💲', '✉️', '📧', '📨', '📩', '📤', '📥', '📦', '📫', '📪', '📬', '📭', '📮', '🗳', '✏️', '✒️', '🖋', '🖊', '🖌', '🖍', '📝', '💼', '📁', '📂', '🗂', '📅', '📆', '🗒', '🗓', '📇', '📈', '📉', '📊', '📋', '📌', '📍', '📎', '🖇', '📏', '📐', '✂️', '🗃', '🗄', '🗑', '🔒', '🔓', '🔏', '🔐', '🔑', '🗝', '🔨', '⛏', '⚒', '🛠', '🗡', '⚔️', '🔫', '🏹', '🛡', '🔧', '🔩', '⚙️', '🗜', '⚖️', '🔗', '⛓', '🧰', '🧲', '⚗️', '🧪', '🧫', '🧬', '🔬', '🔭', '📡', '💉', '💊', '🛏', '🛋', '🚪', '🚽', '🚿', '🛁', '🧴', '🧷', '🧹', '🧺', '🧻', '🧼', '🧽', '🧯', '🚬', '⚰️', '⚱️', '🗿', '🏺', '🧱', '🎈', '🎏', '🎀', '🎁', '🎊', '🎉', '🎎', '🏮', '🎐', '🧧', '✉️', '📩', '📨', '📧'];
+		let num = integer(1, max);
+		let arr = [];
+		for (let i = 0; i < num; i++) {
+			arr.push(chance.pickone(emojis));
+		}
+		if (array) return arr;
+		if (!array) return arr.join(', ');
+		return "🤷";
+	};
+};
 
 
 module.exports = {
@@ -569,6 +602,12 @@ module.exports = {
 	exhaust,
 	integer,
 
+	generateEmoji,
+
+
+	initChance,
+	getChance,
+
 	boxMullerRandom,
 	applySkew,
 	mapToRange,
@@ -577,7 +616,6 @@ module.exports = {
 	range,
 	openFinder,
 	getUniqueKeys,
-	generateEmoji,
 	person,
 	pickAWinner,
 	weighArray,

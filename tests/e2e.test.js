@@ -127,8 +127,8 @@ describe('options + tweaks', () => {
 	test('creates anonymousIds', async () => {
 		const results = await generate({ writeToDisk: false, numEvents: 1000, numUsers: 100, anonIds: true });
 		const { eventData } = results;
-		const anonIds = eventData.map(a => a.$device_id).filter(a => a);
-		const userIds = eventData.map(a => a.$user_id).filter(a => a);
+		const anonIds = eventData.map(a => a.device_id).filter(a => a);
+		const userIds = eventData.map(a => a.user_id).filter(a => a);
 		expect(anonIds.length).toBe(eventData.length);
 		expect(userIds.length).toBeLessThan(anonIds.length);
 	}, timeout);
@@ -136,7 +136,7 @@ describe('options + tweaks', () => {
 	test('no anonymousIds', async () => {
 		const results = await generate({ writeToDisk: false, numEvents: 1000, numUsers: 100, anonIds: false });
 		const { eventData } = results;
-		const anonIds = eventData.map(a => a.$device_id).filter(a => a);
+		const anonIds = eventData.map(a => a.device_id).filter(a => a);
 		expect(anonIds.length).toBe(0);
 	}, timeout);
 
@@ -193,7 +193,7 @@ function clearData() {
 
 function validateEvent(event) {
 	if (!event.event) return false;
-	if (!event.$device_id && !event.$user_id) return false;
+	if (!event.device_id && !event.user_id) return false;
 	if (!event.time) return false;
 	if (!event.$insert_id) return false;
 	return true;

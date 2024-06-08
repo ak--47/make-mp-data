@@ -44,7 +44,8 @@
     "ak-tools": "^1.0.58",
     "chance": "^1.1.11",
     "dayjs": "^1.11.11",
-    "mixpanel-import": "^2.5.51",
+    "dotenv": "^16.4.5",
+    "mixpanel-import": "^2.5.52",
     "yargs": "^17.7.2"
   },
   "devDependencies": {

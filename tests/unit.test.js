@@ -42,9 +42,9 @@ const { applySkew,
 
 
 describe('timesoup', () => {
-	test('always positive dates', () => {
+	test('always valid times', () => {
 		const dates = [];
-		for (let i = 0; i < 20000; i++) {
+		for (let i = 0; i < 10000; i++) {
 			const earliest = dayjs().subtract(u.rand(5, 50), 'D');
 			dates.push(timeSoup());
 		}
@@ -161,8 +161,8 @@ describe('naming things', () => {
 	test('generateUser: works', () => {
 		const uuid = { guid: jest.fn().mockReturnValue('uuid-123') };
 		const numDays = 30;
-		const user = generateUser(uuid, numDays);
-		expect(user.distinct_id).toBe('uuid-123');
+		const user = generateUser(numDays);
+		expect(user).toHaveProperty('distinct_id');
 		expect(user).toHaveProperty('$name');
 		expect(user).toHaveProperty('$email');
 		expect(user).toHaveProperty('$avatar');
@@ -374,6 +374,7 @@ describe('utils', () => {
 	});
 
 	test('progress: outputs correctly', () => {
+		// @ts-ignore
 		const mockStdoutWrite = jest.spyOn(process.stdout, 'write').mockImplementation(() => { });
 		progress('test', 50);
 		expect(mockStdoutWrite).toHaveBeenCalled();

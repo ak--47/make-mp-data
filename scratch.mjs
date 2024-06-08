@@ -1,12 +1,14 @@
 import main from "./index.js";
-import funnels from "./schemas/funnels.js";
+// import funnels from "./schemas/funnels.js";
+import amir from './customers/amir.js'
 
 /** @type {main.Config} */
 const spec = {
-	...funnels,
-	numUsers: 1000,
+	...amir,
+	// numUsers: 500,
 	writeToDisk: false,
-	numEvents: 100000,
+	// numEvents: 10000,
+	verbose: true,
 
 };
 
