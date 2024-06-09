@@ -135,13 +135,31 @@ async function main(config) {
 	const lookupTableData = u.enrichArray([], { hook, type: "lookup", config });
 	const avgEvPerUser = Math.ceil(numEvents / numUsers);
 
+	// if no funnels, make some out of events...
+	if (!funnels || !funnels.length) {
+		const createdFunnels = [];
+		const allEvents = events.map((e) => e.event);
+		/** @type {Funnel} */
+		const funnelTemplate = {
+			sequence: [],
+			conversionRate: 50,
+			order: 'sequential',
+			props: {},
+			timeToConvert: 1,
+			isFirstFunnel: false,
+			weight: 1
+		};
+		debugger;
+
+	}
+
 	//user loop
 	log(`---------------SIMULATION----------------`, "\n\n");
 	loopUsers: for (let i = 1; i < numUsers + 1; i++) {
 		u.progress("users", i);
 		const userId = chance.guid();
 		// const user = u.generateUser(userId, numDays, amp, freq, skew);
-		const user = u.generateUser(userId, numDays)
+		const user = u.generateUser(userId, numDays);
 		const { distinct_id, created, anonymousIds, sessionIds } = user;
 		let numEventsPreformed = 0;
 
@@ -172,86 +190,36 @@ async function main(config) {
 		// shitty users do 1/3 as many events
 		chance.bool({ likelihood: 15 }) ? numEventsThisUserWillPreform *= 0.333 : null;
 		numEventsThisUserWillPreform = Math.round(numEventsThisUserWillPreform);
+		let userFirstEventTime;
 
-		if (funnels.length) {
-			//first funnel
-			const firstFunnels = funnels.filter((f) => f.isFirstFunnel).reduce(u.weighFunnels, []);
-			const usageFunnels = funnels.filter((f) => !f.isFirstFunnel).reduce(u.weighFunnels, []);
-			if (firstFunnels.length) {
+		//first funnel
+		const firstFunnels = funnels.filter((f) => f.isFirstFunnel).reduce(u.weighFunnels, []);
+		const usageFunnels = funnels.filter((f) => !f.isFirstFunnel).reduce(u.weighFunnels, []);
+		if (firstFunnels.length) {
+			/** @type {Funnel} */
+			const firstFunnel = chance.pickone(firstFunnels, user);
+
+			const [data, userConverted] = makeFunnel(firstFunnel, user, profile, userSCD, config);
+			numEventsPreformed += data.length;
+			eventData.hookPush(data);
+			if (!userConverted) continue loopUsers;
+
+
+		}
+
+		while (numEventsPreformed < numEventsThisUserWillPreform) {
+			if (usageFunnels.length) {
 				/** @type {Funnel} */
-				const firstFunnel = chance.pickone(firstFunnels, user);
-
-				const [data, userConverted] = makeFunnel(firstFunnel, user, profile, userSCD, config);
+				const currentFunnel = chance.pickone(usageFunnels);
+				const [data, userConverted] = makeFunnel(currentFunnel, user, profile, userSCD, config);
 				numEventsPreformed += data.length;
 				eventData.hookPush(data);
-				if (!userConverted) continue loopUsers;
-
-
-			}
-
-			while (numEventsPreformed < numEventsThisUserWillPreform) {
-				if (usageFunnels.length) {
-					/** @type {Funnel} */
-					const currentFunnel = chance.pickone(usageFunnels);
-					const [data, userConverted] = makeFunnel(currentFunnel, user, profile, userSCD, config);
-					numEventsPreformed += data.length;
-					eventData.hookPush(data);
-				}
-			}
-
-		}
-
-		// we have no funnels, so we're just going to make a bunch of random events
-		else {
-			const weightedEvents = events
-				.reduce((acc, event) => {
-					const weight = event.weight || 1;
-					for (let i = 0; i < weight; i++) {
-
-						// @ts-ignore
-						acc.push(event);
-					}
-					return acc;
-				}, [])
-
-				// @ts-ignore
-				.filter((e) => !e.isFirstEvent);
-
-			const firstEvents = events.filter((e) => e.isFirstEvent);
-			let userBornTime;
-			// first event
-			if (firstEvents.length) {
-				const firstEvent = makeEvent(
-					distinct_id,
-					anonymousIds,
-					sessionIds,
-					dayjs(created).unix(),
-					firstEvents,
-					superProps,
-					groupKeys,
-					true
-				);
-				eventData.hookPush(firstEvent);
-				userBornTime = dayjs(firstEvent.time).add(u.integer(1, 24), 'h').add(u.integer(1, 23), 'm').add(u.integer(1, 59), 's');
-				if (userBornTime.isAfter(dayjs.unix(global.NOW))) userBornTime = dayjs(created).add(15, 'm');
-				userBornTime = userBornTime.unix();
-			}
-			if (!userBornTime) userBornTime = dayjs(created).unix();
-			// all other event loop
-			for (let j = 0; j < numEventsThisUserWillPreform; j++) {
-				eventData.hookPush(
-					makeEvent(
-						distinct_id,
-						anonymousIds,
-						sessionIds,
-						userBornTime,
-						weightedEvents,
-						superProps,
-						groupKeys
-					)
-				);
 			}
 		}
+
+
+
+		// end user loop
 	}
 
 	//flatten SCD
@@ -297,7 +265,7 @@ async function main(config) {
 	const actualNow = dayjs();
 	const fixedNow = dayjs.unix(global.NOW);
 	const timeShift = actualNow.diff(fixedNow, "second");
-	const dayShift = actualNow.diff(global.NOW, "day");	
+	const dayShift = actualNow.diff(global.NOW, "day");
 	eventData.forEach((event) => {
 		const newTime = dayjs(event.time).add(timeShift, "second");
 		event.time = newTime.toISOString();
@@ -508,7 +476,7 @@ function makeEvent(distinct_id, anonymousIds, sessionIds, earliestTime, events, 
 	};
 
 	if (isFirstEvent) event.time = dayjs.unix(earliestTime).toISOString();
-	if (!isFirstEvent) event.time = u.TimeSoup(earliestTime, NOW, amp, freq, skew, noise);
+	if (!isFirstEvent) event.time = u.TimeSoup(earliestTime, NOW);
 
 	// anonymous and session ids
 	if (CONFIG?.anonIds) event.device_id = CONFIG.chance.pickone(anonymousIds);

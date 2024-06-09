@@ -649,7 +649,7 @@ function generateUser(user_id, numDays, amplitude = 1, frequency = 1, skew = 1) 
 
 	const user = {
 		distinct_id: user_id,
-		...person(daysAgoBorn),
+		...person(numDays),
 	};
 
 
@@ -666,40 +666,54 @@ function generateUser(user_id, numDays, amplitude = 1, frequency = 1, skew = 1) 
  * @param  {number} noise=0
  * @returns {string} in ISO format
  */
-function TimeSoup(earliestTime, latestTime, amplitude = 1, frequency = 1, skew = 1, noise = 0) {
-	let validTime = false;
-	let timestamp;
-	let iterations = 0;
-	if (!earliestTime) {
-		if (global.NOW) earliestTime = global.NOW - 60 * 60 * 24 * 30; // 30 days ago
-		else earliestTime = dayjs().subtract(30, 'days').unix();
-	}
-	if (!latestTime) {
-		if (global.NOW) latestTime = global.NOW;
-		else latestTime = dayjs().unix();
-	}
+// function TimeSoup(earliestTime, latestTime, amplitude = 1, frequency = 1, skew = 1, noise = 0) {
+// 	let validTime = false;
+// 	let timestamp;
+// 	let iterations = 0;
+// 	if (!earliestTime) {
+// 		if (global.NOW) earliestTime = global.NOW - 60 * 60 * 24 * 30; // 30 days ago
+// 		else earliestTime = dayjs().subtract(30, 'days').unix();
+// 	}
+// 	if (!latestTime) {
+// 		if (global.NOW) latestTime = global.NOW;
+// 		else latestTime = dayjs().unix();
+// 	}
 
-	if (earliestTime === latestTime) earliestTime = dayjs.unix(earliestTime).subtract(30, 'days').unix();
-	if (earliestTime > latestTime) debugger;
+// 	if (earliestTime === latestTime) earliestTime = dayjs.unix(earliestTime).subtract(30, 'days').unix();
+// 	if (earliestTime > latestTime) debugger;
 
 
-	const chance = getChance();
+// 	const chance = getChance();
 
-	while (!validTime) {
-        iterations++;
-        // Generate a uniformly distributed value, apply skew, and then adjust for the sine function
-        const u = Math.pow(chance.normal({ mean: 0.5, dev: 0.15 }), skew);
-        const sineValue = (Math.sin(u * Math.PI * frequency - Math.PI / 2) * amplitude + 1) / 2;
+// 	while (!validTime) {
+//         iterations++;
+//         // Generate a uniformly distributed value, apply skew, and then adjust for the sine function
+//         const u = Math.pow(chance.normal({ mean: 0.5, dev: 0.15 }), skew);
+//         const sineValue = (Math.sin(u * Math.PI * frequency - Math.PI / 2) * amplitude + 1) / 2;
 
-        // Calculate the timestamp
-        const range = latestTime - earliestTime;
-        timestamp = earliestTime + sineValue * range + chance.integer({ min: -noise, max: noise });
+//         // Calculate the timestamp
+//         const range = latestTime - earliestTime;
+//         timestamp = earliestTime + sineValue * range + chance.integer({ min: -noise, max: noise });
         
-        // Ensure the timestamp is within valid bounds
-        if (timestamp >= earliestTime && timestamp <= latestTime) validTime = true;
-    }
+//         // Ensure the timestamp is within valid bounds
+//         if (timestamp >= earliestTime && timestamp <= latestTime) validTime = true;
+//     }
 
-	return dayjs.unix(timestamp).toISOString();
+// 	return dayjs.unix(timestamp).toISOString();
+// }
+
+
+function TimeSoup(earliest, latest, amplitude=1, frequency=1, index=1, totalPoints = 100, noiseLevel = 0, skew = 0) {
+    const chance = getChance();
+	const totalTime = latest - earliest;
+    const normalizedIndex = index / totalPoints; // Normalize the index to [0, 1]
+    const phaseShift = skew * normalizedIndex; // Apply skew based on current normalized index
+    const sinValue = Math.sin((2 * Math.PI * normalizedIndex * frequency) + phaseShift); // Calculate sin value with skew
+    const noisySinValue = sinValue + (chance.normal({ mean: 0, dev: noiseLevel })); // Add Gaussian noise
+    const scaledSinValue = (noisySinValue * amplitude / 2) + (amplitude / 2); // Scale sin value to [0, amplitude]
+    const timestamp = Math.round(earliest + scaledSinValue * (latest - earliest) / amplitude);
+
+    return dayjs.unix(timestamp).toISOString();
 }
 
 function fixFunkyTime(earliestTime, latestTime) {

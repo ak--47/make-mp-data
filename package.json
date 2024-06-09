@@ -9,7 +9,7 @@
     "dev": "nodemon scratch.mjs --ignore /data",
     "complex": "nodemon index.js --complex --e 10000 --u 100",
     "simple": "nodemon index.js  --simple --e 10000 --u 100",
-    "prune": "rm ./data/*",
+    "prune": "rm -f ./data/* && rm -f ./tmp/*",
     "post": "npm publish",
     "test": "NODE_ENV=test jest --runInBand",
     "deps": "sh ./scripts/deps.sh",
