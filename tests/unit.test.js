@@ -37,7 +37,10 @@ const { applySkew,
 	streamJSON,
 	weighArray,
 	weighFunnels,
-	buildFileNames
+	buildFileNames,
+	TimeSoup,
+	getChance,
+	initChance
 } = require('../utils');
 
 
@@ -163,9 +166,9 @@ describe('naming things', () => {
 		const numDays = 30;
 		const user = generateUser(numDays);
 		expect(user).toHaveProperty('distinct_id');
-		expect(user).toHaveProperty('$name');
-		expect(user).toHaveProperty('$email');
-		expect(user).toHaveProperty('$avatar');
+		expect(user).toHaveProperty('name');
+		expect(user).toHaveProperty('email');
+		expect(user).toHaveProperty('avatar');
 	});
 
 	test('enrichArray: works', () => {
@@ -212,9 +215,9 @@ describe('utils', () => {
 
 	test('person: fields', () => {
 		const generatedPerson = person();
-		expect(generatedPerson).toHaveProperty('$name');
-		expect(generatedPerson).toHaveProperty('$email');
-		expect(generatedPerson).toHaveProperty('$avatar');
+		expect(generatedPerson).toHaveProperty('name');
+		expect(generatedPerson).toHaveProperty('email');
+		expect(generatedPerson).toHaveProperty('avatar');
 	});
 
 
@@ -261,7 +264,7 @@ describe('utils', () => {
 	});
 
 	test('weightedRange:  within range', () => {
-		const values = weightedRange(5, 15, 100);
+		const values = weightedRange(5, 15);
 		expect(values.every(v => v >= 5 && v <= 15)).toBe(true);
 		expect(values.length).toBe(100);
 	});
@@ -299,6 +302,19 @@ describe('utils', () => {
 		expect(uniqueKeys).toEqual(expect.arrayContaining(['a', 'b', 'c']));
 	});
 
+
+	test('times', () => {
+		const dates = [];
+		for (let i = 0; i < 10000; i++) {
+			const earliest = dayjs().subtract(u.rand(5, 50), 'D');
+			dates.push(TimeSoup());
+		}
+		const tooOld = dates.filter(d => dayjs(d).isBefore(dayjs.unix(0)));
+		const badYear = dates.filter(d => !d.startsWith('202'));
+		expect(dates.every(d => dayjs(d).isAfter(dayjs.unix(0)))).toBe(true);
+		expect(dates.every(d => d.startsWith('202'))).toBe(true);
+
+	});
 
 	test('date', () => {
 		const result = date();

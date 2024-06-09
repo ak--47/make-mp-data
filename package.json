@@ -43,9 +43,11 @@
   "dependencies": {
     "ak-tools": "^1.0.58",
     "chance": "^1.1.11",
+    "chart.js": "^3.9.1",
+    "chartjs-node-canvas": "^4.1.6",
     "dayjs": "^1.11.11",
     "dotenv": "^16.4.5",
-    "mixpanel-import": "^2.5.52",
+    "mixpanel-import": "^2.5.53",
     "yargs": "^17.7.2"
   },
   "devDependencies": {

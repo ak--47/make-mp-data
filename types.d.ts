@@ -31,6 +31,11 @@ declare namespace main {
     verbose?: boolean;
     anonIds?: boolean;
     sessionIds?: boolean;
+	makeChart?: boolean | string;
+	amp?: number;
+	freq?: number;
+	skew?: number;
+	noise?: number;
     hook?: Hook<any>;
   }
 
@@ -139,20 +144,20 @@ declare namespace main {
     bytes: number;
   }
   export interface Person {
-    $name: string;
-    $email: string;
-    $avatar: string;
-    $created: string | undefined;
+    name: string;
+    email: string;
+    avatar: string;
+    created: string | undefined;
     anonymousIds: string[];
     sessionIds: string[];
     distinct_id?: string;
   }
 
   export interface UserProfile {
-    $name?: string;
-    $email?: string;
-    $avatar?: string;
-    $created: string | undefined;
+    name?: string;
+    email?: string;
+    avatar?: string;
+    created: string | undefined;
     distinct_id: string;
     [key: string]: ValueValid;
   }

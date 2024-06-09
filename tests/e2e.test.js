@@ -202,9 +202,9 @@ function validateEvent(event) {
 
 function validateUser(user) {
 	if (!user.distinct_id) return false;
-	if (!user.$name) return false;
-	if (!user.$email) return false;
-	if (!user.$created) return false;
+	if (!user.name) return false;
+	if (!user.email) return false;
+	if (!user.created) return false;
 	return true;
 }
 
