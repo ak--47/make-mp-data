@@ -28,7 +28,7 @@ const config = {
 			"event": "checkout",
 			"weight": 2,
 			"properties": {
-				amount: weightedRange(5, 500, .25, 1000)
+				amount: weightedRange(5, 500, .25, 1000),
 				currency: ["USD", "USD", "USD", "CAD", "EUR", "EUR", "BTC", "BTC", "ETH", "JPY"],
 				cart: makeProducts(12),
 			}
@@ -37,7 +37,7 @@ const config = {
 			"event": "add to cart",
 			"weight": 4,
 			"properties": {
-				amount: weightedRange(5, 500, .25, 1000)
+				amount: weightedRange(5, 500, .25, 1000),
 				qty: integer(1, 5),
 				product_id: weightedRange(1, 1000, 1.4, 42)
 			}
@@ -199,7 +199,7 @@ const config = {
 				"demand": ["high", "medium", "medium", "low"],
 				"supply": ["high", "medium", "medium", "low"],
 				"manufacturer": chance.company.bind(chance),
-				"price": weightedRange(5, 500, 1000, .25)
+				"price": weightedRange(5, 500, 1000, .25),
 				"rating": weightedRange(1, 5),
 				"reviews": weightedRange(0, 35)
 			}

@@ -40,6 +40,7 @@ function track(name, props, ...rest) {
 /** @typedef {import('./types.d.ts').Person} Person */
 /** @typedef {import('./types.d.ts').SCDTableRow} SCDTableRow */
 /** @typedef {import('./types.d.ts').UserProfile} UserProfile */
+/** @typedef {import('./types.d.ts').EventSpec} EventSpec */
 
 /**
  * generates fake mixpanel data
@@ -79,7 +80,7 @@ async function main(config) {
 		writeToDisk = false,
 		verbose = false,
 		makeChart = false,
-		soup = {},		
+		soup = {},
 		hook = (record) => record,
 	} = config;
 	if (!config.superProps) config.superProps = superProps;
@@ -91,29 +92,41 @@ async function main(config) {
 	if (!epochStart && numDays) epochStart = dayjs.unix(epochEnd).subtract(numDays, "day").unix();
 	if (epochStart && numDays) { } //noop
 	if (!epochStart && !numDays) debugger; //never happens	
-
+	config.seed = seed;
+	config.numEvents = numEvents;
+	config.numUsers = numUsers;
 	config.numDays = numDays;
 	config.epochStart = epochStart;
 	config.epochEnd = epochEnd;
+	config.events = events;
+	config.superProps = superProps;
+	config.funnels = funnels;
+	config.userProps = userProps;
+	config.scdProps = scdProps;
+	config.mirrorProps = mirrorProps;
+	config.groupKeys = groupKeys;
+	config.groupProps = groupProps;
+	config.lookupTables = lookupTables;
+	config.anonIds = anonIds;
+	config.sessionIds = sessionIds;
+	config.format = format;
+	config.token = token;
+	config.region = region;
+	config.writeToDisk = writeToDisk;
+	config.verbose = verbose;
+	config.makeChart = makeChart;
+	config.soup = soup;
+	config.hook = hook;
+	
+	//event validation 
+	const validatedEvents = validateEvents(events);
+	events = validatedEvents;
+	config.events = validatedEvents;
 	global.MP_SIMULATION_CONFIG = config;
 	CONFIG = config;
 	const runId = uid(42);
-	track('start simulation', {
-		runId,
-		seed,
-		numEvents,
-		numUsers,
-		numDays,
-		anonIds,
-		sessionIds,
-		format,
-		targetToken: token,
-		region,
-		writeToDisk,
-		isCLI,
-		version
-	});
-
+	let trackingParams = { runId, seed, numEvents, numUsers, numDays, anonIds, sessionIds, format, targetToken: token, region, writeToDisk, isCLI, version };
+	track('start simulation', trackingParams);
 
 	log(`------------------SETUP------------------`);
 	log(`\nyour data simulation will heretofore be known as: \n\n\t${simulationName.toUpperCase()}...\n`);
@@ -133,9 +146,8 @@ async function main(config) {
 	const avgEvPerUser = Math.ceil(numEvents / numUsers);
 
 	// if no funnels, make some out of events...
-	if (!funnels || !funnels.length) {		
+	if (!funnels || !funnels.length) {
 		const createdFunnels = [];
-		// const allEvents = events.map((e) => e.event);
 		const firstEvents = events.filter((e) => e.isFirstEvent).map((e) => e.event);
 		const usageEvents = events.filter((e) => !e.isFirstEvent).map((e) => e.event);
 		const numFunnelsToCreate = Math.ceil(usageEvents.length);
@@ -151,12 +163,14 @@ async function main(config) {
 		};
 		if (firstEvents.length) {
 			for (const event of firstEvents) {
-				createdFunnels.push({ ...clone(funnelTemplate), sequence: [event], isFirstFunnel: true, conversionRate: 100});
+				createdFunnels.push({ ...clone(funnelTemplate), sequence: [event], isFirstFunnel: true, conversionRate: 100 });
 			}
 		}
+
 		//at least one funnel with all usage events
-		createdFunnels.push({ ...clone(funnelTemplate), sequence: usageEvents  });
-		
+		createdFunnels.push({ ...clone(funnelTemplate), sequence: usageEvents });
+
+		//for the rest, make random funnels
 		followUpFunnels: for (let i = 1; i < numFunnelsToCreate; i++) {
 			/** @type {Funnel} */
 			const funnel = { ...clone(funnelTemplate) };
@@ -165,14 +179,14 @@ async function main(config) {
 			funnel.weight = u.integer(1, 10);
 			const sequence = u.shuffleArray(usageEvents).slice(0, u.integer(2, usageEvents.length));
 			funnel.sequence = sequence;
-			funnel.order = 'random'
+			funnel.order = 'random';
 			createdFunnels.push(funnel);
 		}
 
 		funnels = createdFunnels;
 		config.funnels = funnels;
 		CONFIG = config;
-		
+
 	}
 
 	//user loop
@@ -211,40 +225,39 @@ async function main(config) {
 
 		// shitty users do 1/3 as many events
 		chance.bool({ likelihood: 15 }) ? numEventsThisUserWillPreform *= 0.333 : null;
+
 		numEventsThisUserWillPreform = Math.round(numEventsThisUserWillPreform);
+
 		let userFirstEventTime;
 
 		//first funnel
 		const firstFunnels = funnels.filter((f) => f.isFirstFunnel).reduce(u.weighFunnels, []);
 		const usageFunnels = funnels.filter((f) => !f.isFirstFunnel).reduce(u.weighFunnels, []);
-		if (firstFunnels.length) {
+		const userIsBornInDataset = chance.bool({ likelihood: 30 });
+		if (firstFunnels.length && userIsBornInDataset) {
 			/** @type {Funnel} */
 			const firstFunnel = chance.pickone(firstFunnels, user);
 
-			const [data, userConverted] = makeFunnel(firstFunnel, user, profile, userSCD, config);
+			const [data, userConverted] = makeFunnel(firstFunnel, user, profile, userSCD, null, config);
+			userFirstEventTime = dayjs(data[0].time).unix();
 			numEventsPreformed += data.length;
 			eventData.hookPush(data);
 			if (!userConverted) continue loopUsers;
-
-
 		}
 
 		while (numEventsPreformed < numEventsThisUserWillPreform) {
 			if (usageFunnels.length) {
 				/** @type {Funnel} */
 				const currentFunnel = chance.pickone(usageFunnels);
-				const [data, userConverted] = makeFunnel(currentFunnel, user, profile, userSCD, config);
+				const [data, userConverted] = makeFunnel(currentFunnel, user, profile, userSCD, userFirstEventTime, config);
 				numEventsPreformed += data.length;
 				eventData.hookPush(data);
 			}
 		}
-
-
-
-		// end user loop
+		// end individual user loop
 	}
 
-	//flatten SCD
+	//flatten SCD tables
 	scdTableData.forEach((table, index) => scdTableData[index] = table.flat());
 
 	log("\n");
@@ -300,6 +313,8 @@ async function main(config) {
 		profile.created = newTime.toISOString();
 	});
 
+
+	// draw charts
 	if (makeChart) {
 		const bornEvents = config.events?.filter((e) => e.isFirstEvent)?.map(e => e.event) || [];
 		const bornFunnels = config.funnels?.filter((f) => f.isFirstFunnel)?.map(f => f.sequence[0]) || [];
@@ -307,7 +322,7 @@ async function main(config) {
 		const chart = await generateLineChart(eventData, bornBehaviors, makeChart);
 	}
 
-	// deal with mirror props
+	// create mirrorProps
 	let mirrorEventData = [];
 	const mirrorPropKeys = Object.keys(mirrorProps);
 	if (mirrorPropKeys.length) {
@@ -334,20 +349,7 @@ async function main(config) {
 	log(`---------------SIMULATION----------------`, "\n");
 
 	if (!writeToDisk && !token) {
-		track('end simulation', {
-			runId,
-			seed,
-			numEvents,
-			numUsers,
-			numDays,
-			anonIds,
-			sessionIds,
-			format,
-			token,
-			region,
-			writeToDisk,
-			isCLI
-		});
+		track('end simulation', trackingParams);
 		return {
 			eventData,
 			userProfilesData,
@@ -355,7 +357,7 @@ async function main(config) {
 			groupProfilesData,
 			lookupTableData,
 			mirrorEventData,
-			import: {},
+			importResults: {},
 			files: []
 		};
 	}
@@ -407,10 +409,11 @@ async function main(config) {
 			dryRun: false,
 			abridged: false,
 			fixJson: true,
+			showProgress: true
 		};
 
 		if (eventData) {
-			log(`importing events to mixpanel...`);
+			log(`importing events to mixpanel...\n`);
 			const imported = await mp(creds, eventData, {
 				recordType: "event",
 				...commonOpts,
@@ -419,7 +422,7 @@ async function main(config) {
 			importResults.events = imported;
 		}
 		if (userProfilesData) {
-			log(`importing user profiles to mixpanel...`);
+			log(`importing user profiles to mixpanel...\n`);
 			const imported = await mp(creds, userProfilesData, {
 				recordType: "user",
 				...commonOpts,
@@ -431,7 +434,7 @@ async function main(config) {
 			for (const groupProfiles of groupProfilesData) {
 				const groupKey = groupProfiles.key;
 				const data = groupProfiles.data;
-				log(`importing ${groupKey} profiles to mixpanel...`);
+				log(`importing ${groupKey} profiles to mixpanel...\n`);
 				const imported = await mp({ token, groupKey }, data, {
 					recordType: "group",
 					...commonOpts,
@@ -444,26 +447,17 @@ async function main(config) {
 		}
 	}
 	log(`\n-----------------WRITES------------------`, "\n");
-	track('end simulation', {
-		runId,
-		seed,
-		numEvents,
-		numUsers,
-		numDays,
-		events,
-		anonIds,
-		sessionIds,
-		format,
-		targetToken: token,
-		region,
-		writeToDisk,
-		isCLI,
-		version
-	});
+	track('end simulation', trackingParams);
 
 	return {
 		importResults,
 		files: [eventFiles, userFiles, scdFiles, groupFiles, lookupFiles, mirrorFiles, folder],
+		eventData,
+		userProfilesData,
+		scdTableData,
+		groupProfilesData,
+		lookupTableData,
+		mirrorEventData,
 	};
 }
 
@@ -473,21 +467,15 @@ async function main(config) {
  * @param  {string[]} anonymousIds
  * @param  {string[]} sessionIds
  * @param  {number} earliestTime
- * @param  {Object[]} events
+ * @param  {EventConfig} chosenEvent
  * @param  {Object} superProps
  * @param  {Object} groupKeys
  * @param  {Boolean} isFirstEvent=false
  */
-function makeEvent(distinct_id, anonymousIds, sessionIds, earliestTime, events, superProps, groupKeys, isFirstEvent = false) {
-	let chosenEvent = CONFIG.chance.pickone(events);
-	const { amp = 1, freq = 1, skew = 1, noise = 0 } = CONFIG;
-	//allow for a string shorthand
-	if (typeof chosenEvent === "string") {
-		chosenEvent = { event: chosenEvent, properties: {} };
-	}
-
+function makeEvent(distinct_id, anonymousIds, sessionIds, earliestTime, chosenEvent, superProps, groupKeys, isFirstEvent = false) {
+	const { mean = 0, dev = 2, peaks = 5 } = CONFIG.soup;
 	//event model
-	const event = {
+	const eventTemplate = {
 		event: chosenEvent.event,
 		source: "dm4",
 	};
@@ -497,25 +485,25 @@ function makeEvent(distinct_id, anonymousIds, sessionIds, earliestTime, events, 
 		earliestTime = dayjs.unix(NOW).subtract(2, 'd').unix();
 	};
 
-	if (isFirstEvent) event.time = dayjs.unix(earliestTime).toISOString();
-	if (!isFirstEvent) event.time = u.TimeSoup(earliestTime, NOW);
+	if (isFirstEvent) eventTemplate.time = dayjs.unix(earliestTime).toISOString();
+	if (!isFirstEvent) eventTemplate.time = u.TimeSoup(earliestTime, NOW, peaks, dev, mean);
 
 	// anonymous and session ids
-	if (CONFIG?.anonIds) event.device_id = CONFIG.chance.pickone(anonymousIds);
-	if (CONFIG?.sessionIds) event.session_id = CONFIG.chance.pickone(sessionIds);
+	if (CONFIG?.anonIds) eventTemplate.device_id = CONFIG.chance.pickone(anonymousIds);
+	if (CONFIG?.sessionIds) eventTemplate.session_id = CONFIG.chance.pickone(sessionIds);
 
 	//sometimes have a user_id
-	if (!isFirstEvent && CONFIG.chance.bool({ likelihood: 42 })) event.user_id = distinct_id;
+	if (!isFirstEvent && CONFIG.chance.bool({ likelihood: 42 })) eventTemplate.user_id = distinct_id;
 
 	// ensure that there is a user_id or device_id
-	if (!event.user_id && !event.device_id) event.user_id = distinct_id;
+	if (!eventTemplate.user_id && !eventTemplate.device_id) eventTemplate.user_id = distinct_id;
 
 	const props = { ...chosenEvent.properties, ...superProps };
 
 	//iterate through custom properties
 	for (const key in props) {
 		try {
-			event[key] = u.choose(props[key]);
+			eventTemplate[key] = u.choose(props[key]);
 		} catch (e) {
 			console.error(`error with ${key} in ${chosenEvent.event} event`, e);
 			debugger;
@@ -529,14 +517,14 @@ function makeEvent(distinct_id, anonymousIds, sessionIds, earliestTime, events, 
 		const groupEvents = groupPair[2] || [];
 
 		// empty array for group events means all events
-		if (!groupEvents.length) event[groupKey] = u.pick(u.weightedRange(1, groupCardinality));
-		if (groupEvents.includes(event.event)) event[groupKey] = u.pick(u.weightedRange(1, groupCardinality));
+		if (!groupEvents.length) eventTemplate[groupKey] = u.pick(u.weightedRange(1, groupCardinality));
+		if (groupEvents.includes(eventTemplate.event)) eventTemplate[groupKey] = u.pick(u.weightedRange(1, groupCardinality));
 	}
 
 	//make $insert_id
-	event.$insert_id = md5(JSON.stringify(event));
+	eventTemplate.insert_id = md5(JSON.stringify(eventTemplate));
 
-	return event;
+	return eventTemplate;
 }
 
 /**
@@ -546,10 +534,11 @@ function makeEvent(distinct_id, anonymousIds, sessionIds, earliestTime, events, 
  * @param  {Person} user
  * @param  {UserProfile} profile
  * @param  {Record<string, SCDTableRow[]>} scd
+ * @param  {number} firstEventTime
  * @param  {Config} config
- * @return {[EventConfig[], Boolean]}
+ * @return {[EventSpec[], Boolean]}
  */
-function makeFunnel(funnel, user, profile, scd, config) {
+function makeFunnel(funnel, user, profile, scd, firstEventTime, config) {
 	const { hook } = config;
 	hook(funnel, "funnel-pre", { user, profile, scd, funnel, config });
 	const { sequence, conversionRate = 50, order = 'sequential', timeToConvert = 1, props } = funnel;
@@ -643,10 +632,12 @@ function makeFunnel(funnel, user, profile, scd, config) {
 			funnelActualOrder = funnelActualEvents;
 			break;
 	}
+
+	const earliestTime = firstEventTime || dayjs(created).unix();
 	let funnelStartTime;
 	let finalEvents = funnelActualOrder
 		.map((event, index) => {
-			const newEvent = makeEvent(distinct_id, anonymousIds, sessionIds, dayjs(created).unix(), [event], {}, groupKeys);
+			const newEvent = makeEvent(distinct_id, anonymousIds, sessionIds, earliestTime, event, {}, groupKeys);
 			if (index === 0) {
 				funnelStartTime = dayjs(newEvent.time);
 				delete newEvent.relativeTimeMs;
@@ -713,7 +704,29 @@ function makeSCD(prop, scdKey, distinct_id, mutations, created) {
 	return scdEntries;
 }
 
-
+/**
+ * @param  {EventConfig[] | string[]} events
+ */
+function validateEvents(events) {
+	if (!Array.isArray(events)) throw new Error("events must be an array");
+	const cleanEventConfig = [];
+	for (const event of events) {
+		if (typeof event === "string") {
+			/** @type {EventConfig} */
+			const eventTemplate = {
+				event,
+				isFirstEvent: false,
+				properties: {},
+				weight: u.integer(1, 5)
+			};
+			cleanEventConfig.push(eventTemplate);
+		}
+		if (typeof event === "object") {
+			cleanEventConfig.push(event);
+		}
+	}
+	return cleanEventConfig;
+}
 
 
 

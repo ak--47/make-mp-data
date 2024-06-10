@@ -16,7 +16,7 @@ declare namespace main {
     format?: "csv" | "json";
     region?: "US" | "EU";
     chance?: any;
-    events?: EventConfig[];
+    events?: EventConfig[]; //can also be a array of strings
     superProps?: Record<string, ValueValid>;
     funnels?: Funnel[];
     userProps?: Record<string, ValueValid>;
@@ -36,10 +36,11 @@ declare namespace main {
   }
 
   type soup = {
-   dev?: number;
-   peaks?: number;
+    deviation?: number;
+    peaks?: number;
+    mean?: number;
   };
-  
+
   type hookTypes =
     | "event"
     | "user"
@@ -68,6 +69,16 @@ declare namespace main {
     properties?: Record<string, ValueValid>;
     isFirstEvent?: boolean;
     relativeTimeMs?: number;
+  }
+
+  export interface EventSpec {
+	event: string;
+	time: string;
+	insert_id: string;
+	device_id?: string;
+	session_id?: string;
+	user_id?: string;	
+	[key: string]: ValueValid;
   }
 
   export interface Funnel {
@@ -110,7 +121,7 @@ declare namespace main {
     scdTableData: any[];
     groupProfilesData: GroupProfilesData[];
     lookupTableData: LookupTableData[];
-    import?: ImportResults;
+    importResults?: ImportResults;
     files?: string[];
   };
 

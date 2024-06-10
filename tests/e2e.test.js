@@ -25,7 +25,7 @@ describe('module', () => {
 		expect(groupProfilesData.length).toBe(0);
 		expect(lookupTableData.length).toBe(0);
 		expect(scdTableData.length).toBe(0);
-		expect(userProfilesData.length).toBe(100);		
+		expect(userProfilesData.length).toBe(100);
 
 	}, timeout);
 
@@ -68,12 +68,19 @@ describe('module', () => {
 
 	test('fails with invalid configuration', async () => {
 		try {
-		  await generate({ numUsers: -10 });
+			await generate({ numUsers: -10 });
 		} catch (e) {
-		  expect(e).toBeDefined();
+			expect(e).toBeDefined();
 		}
-	  }, timeout);
-	  
+	}, timeout);
+
+
+	test('works with no params', async () => {
+		const { eventData, userProfilesData, groupProfilesData, files, importResults, lookupTableData, mirrorEventData, scdTableData } = await generate({ writeToDisk: false });
+		debugger;
+	}, timeout);
+
+
 
 
 });
@@ -113,14 +120,14 @@ describe('options + tweaks', () => {
 	test('creates sessionIds', async () => {
 		const results = await generate({ writeToDisk: false, numEvents: 1000, numUsers: 100, sessionIds: true });
 		const { eventData } = results;
-		const sessionIds = eventData.map(a => a.$session_id).filter(a => a);
+		const sessionIds = eventData.map(a => a.session_id).filter(a => a);
 		expect(sessionIds.length).toBe(eventData.length);
 	}, timeout);
 
 	test('no sessionIds', async () => {
 		const results = await generate({ writeToDisk: false, numEvents: 1000, numUsers: 100, sessionIds: false });
 		const { eventData } = results;
-		const sessionIds = eventData.map(a => a.$session_id).filter(a => a);
+		const sessionIds = eventData.map(a => a.session_id).filter(a => a);
 		expect(sessionIds.length).toBe(0);
 	}, timeout);
 
@@ -143,7 +150,7 @@ describe('options + tweaks', () => {
 	test('sends data to mixpanel', async () => {
 		console.log('NETWORK TEST');
 		const results = await generate({ verbose: true, writeToDisk: false, numEvents: 1100, numUsers: 100, seed: "deal with it", token: testToken });
-		const { events, users, groups } = results.import;
+		const { events, users, groups } = results.importResults;
 		expect(events.success).toBeGreaterThan(980);
 		expect(users.success).toBe(100);
 		expect(groups.length).toBe(0);
@@ -195,7 +202,7 @@ function validateEvent(event) {
 	if (!event.event) return false;
 	if (!event.device_id && !event.user_id) return false;
 	if (!event.time) return false;
-	if (!event.$insert_id) return false;
+	if (!event.insert_id) return false;
 	return true;
 }
 

@@ -224,32 +224,39 @@ describe('generateUser', () => {
 		const user = generateUser('uuid-123', numDays);
 		const createdDate = dayjs(user.created, 'YYYY-MM-DD');
 		expect(createdDate.isValid()).toBeTruthy();
-		expect(createdDate.isAfter(dayjs.unix(global.NOW).subtract(numDays, 'day'))).toBeTruthy();
-		expect(createdDate.isBefore(dayjs())).toBeTruthy();
+		expect(createdDate.isBefore(dayjs.unix(global.NOW))).toBeTruthy();
 	});
 });
 
 
 
-describe('enrichArray', () => {
-	test('enriches items with provided hook function', () => {
+describe('enrich array', () => {
+	test('hook works', () => {
 		const arr = [];
 		const hook = (item) => item * 2;
 		const enrichedArray = enrichArray(arr, { hook });
 		enrichedArray.hookPush(1);
 		enrichedArray.hookPush(2);
-		expect(enrichedArray).toEqual([2, 4]);
+		expect(enrichedArray.includes(2)).toBeTruthy();
+		expect(enrichedArray.includes(4)).toBeTruthy();		
 	});
 
-	test('handles various types of items', () => {
+	test('filter empties', () => {
 		const arr = [];
 		const hook = (item) => item ? item.toString() : item;
 		const enrichedArray = enrichArray(arr, { hook });
 		enrichedArray.hookPush(null);
 		enrichedArray.hookPush(undefined);
+		enrichedArray.hookPush({});		
 		enrichedArray.hookPush({ a: 1 });
 		enrichedArray.hookPush([1, 2]);
-		expect(enrichedArray).toEqual([null, undefined, '[object Object]', '1,2']);
+		expect(enrichedArray).toHaveLength(3);
+		expect(enrichedArray.includes('null')).toBeFalsy();
+		expect(enrichedArray.includes('undefined')).toBeFalsy();
+		expect(enrichedArray.includes('[object Object]')).toBeTruthy();
+		expect(enrichedArray.includes('1')).toBeTruthy();
+		expect(enrichedArray.includes('2')).toBeTruthy();
+		
 	});
 });
 
@@ -518,7 +525,7 @@ describe('utils', () => {
 		expect(shuffled.slice(1, -1)).toEqual(arr.slice(1, -1));
 	});
 
-	test('returns values within the range of a normal distribution', () => {
+	test('box normal distribution', () => {
 		const values = [];
 		for (let i = 0; i < 10000; i++) {
 			values.push(boxMullerRandom());

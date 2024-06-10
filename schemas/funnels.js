@@ -121,7 +121,14 @@ const config = {
 			experiment_ids: ["1234", "5678", "9012", "3456", "7890"],
 			multiVariate: [true, false]
 
-		}
+		},
+
+		// isInterruptedFunnel: false, // an interrupted funnel will have random events interspersed with the sequence
+		// fixedTimeFunnel: 30, // if set this funnel will occur for all users at the same time ['cart charged', 'charge complete']
+		// churn: {
+		// 	isChurnFunnel: true, //if the user completes this funnel, they churn
+		// 	probabilityToReturn: 0.1, //if the user churns, this is the probability they will return
+		// },
 	},
 	{
 		sequence: ["app install", "app open", "tutorial", "sign up"],

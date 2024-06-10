@@ -636,29 +636,61 @@ function generateUser(user_id, numDays, amplitude = 1, frequency = 1, skew = 1) 
  * build sign waves basically
  * @param  {number} [earliestTime]
  * @param  {number} [latestTime]
- * @param  {number} [numPeaks=5]
+ * @param  {number} [peaks=5]
  */
-function TimeSoup(earliestTime, latestTime, numPeaks = 5, deviation = 2) {
+function TimeSoup(earliestTime, latestTime, peaks = 5, deviation = 2, mean = 0) {
 	if (!earliestTime) earliestTime = global.NOW - (60 * 60 * 24 * 30); // 30 days ago
 	if (!latestTime) latestTime = global.NOW;
 	const chance = getChance();
 	const totalRange = latestTime - earliestTime;
-	const chunkSize = totalRange / numPeaks;
+	const chunkSize = totalRange / peaks;
 
 	// Select a random chunk based on the number of peaks
-	const peakIndex = integer(0, numPeaks - 1);
+	const peakIndex = integer(0, peaks - 1);
 	const chunkStart = earliestTime + peakIndex * chunkSize;
 	const chunkEnd = chunkStart + chunkSize;
 	const chunkMid = (chunkStart + chunkEnd) / 2;
 
 	// Generate a single timestamp within this chunk using a normal distribution centered at chunkMid
 	let offset;
+	let iterations = 0;
+	let isValidTime = false;
 	do {
-		offset = chance.normal({ mean: 0, dev: chunkSize / deviation });
+		iterations++;
+		offset = chance.normal({ mean: mean, dev: chunkSize / deviation });
+		isValidTime = validateTime(chunkMid + offset, earliestTime, latestTime);
+		if (iterations > 10000) throw new Error("Too many iterations");
 	} while (chunkMid + offset < chunkStart || chunkMid + offset > chunkEnd);
 
-	return dayjs.unix(chunkMid + offset).toISOString();
+	try {
+		return dayjs.unix(chunkMid + offset).toISOString();
+	}
+
+	catch (e) {
+		//escape hatch
+		// console.log('BAD TIME', e?.message);
+		return dayjs.unix(integer(earliestTime, latestTime)).toISOString();
+	}
 }
+
+
+function validateTime(chosenTime, earliestTime, latestTime) {
+	if (!earliestTime) earliestTime = global.NOW - (60 * 60 * 24 * 30); // 30 days ago
+	if (!latestTime) latestTime = global.NOW;
+
+	if (typeof chosenTime === 'number') {
+		if (chosenTime > 0) {
+			if (chosenTime > earliestTime) {
+				if (chosenTime < latestTime) {
+					return true;
+				}
+
+			}
+		}
+	}
+	return false;
+}
+
 
 /**
  * @param  {number} bornDaysAgo=30
@@ -681,7 +713,7 @@ function person(bornDaysAgo = 30) {
 	});
 	const avPath = gender === 'male' ? `/men/${randomAvatarNumber}.jpg` : `/women/${randomAvatarNumber}.jpg`;
 	const avatar = avatarPrefix + avPath;
-	const created = dayjs.unix(global.NOW).subtract(bornDaysAgo, 'day').format('YYYY-MM-DD')
+	const created = dayjs.unix(global.NOW).subtract(bornDaysAgo, 'day').format('YYYY-MM-DD');
 	// const created = date(bornDaysAgo, true)();
 
 	/** @type {Person} */
@@ -748,25 +780,6 @@ function fixFunkyTime(earliestTime, latestTime) {
 
 }
 
-
-function isValidTime(chosenTime, earliestTime, latestTime) {
-	if (!earliestTime) earliestTime = global.NOW - (60 * 60 * 24 * 30); // 30 days ago
-	if (!latestTime) latestTime = global.NOW;
-
-	const parsedTime = typeof chosenTime === "number" ? dayjs.unix(chosenTime) : dayjs(chosenTime);
-	const unixTime = parsedTime.unix();
-	if (unixTime > 0) {
-		if (unixTime > earliestTime) {
-			if (unixTime < (latestTime - (60 * 2))) {
-				if (parsedTime.toISOString().startsWith('20')) {
-					return true;
-				}
-			}
-
-		}
-	}
-	return false;
-}
 
 
 /**
