@@ -783,7 +783,7 @@ if (require.main === module) {
 			log(`-----------------SUMMARY-----------------`);
 			const d = { success: 0, bytes: 0 };
 			const darr = [d];
-			const { events = d, groups = darr, users = d } = data.import;
+			const { events = d, groups = darr, users = d } = data.importResults;
 			const files = data.files;
 			const folder = files?.pop();
 			const groupBytes = groups.reduce((acc, group) => {
