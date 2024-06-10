@@ -37,7 +37,7 @@ const config = {
 			event: "checkout",
 			weight: 2,
 			properties: {
-				amount: weightedRange(5, 500, 1000, .25),
+				amount: weightedRange(5, 500, .25, 1000),
 				currency: ["USD", "CAD", "EUR", "BTC", "ETH", "JPY"],
 				coupon: ["none", "none", "none", "none", "10%OFF", "20%OFF", "10%OFF", "20%OFF", "30%OFF", "40%OFF", "50%OFF"],
 				numItems: weightedRange(1, 10),
@@ -48,7 +48,7 @@ const config = {
 			event: "add to cart",
 			weight: 4,
 			properties: {
-				amount: weightedRange(5, 500, 1000, .25),
+				amount: weightedRange(5, 500, .25, 1000),
 				rating: weightedRange(1, 5),
 				reviews: weightedRange(0, 35),
 				isFeaturedItem: [true, false, false],
@@ -71,7 +71,7 @@ const config = {
 			properties: {
 				videoCategory: pickAWinner(videoCategories, integer(0, 9)),
 				isFeaturedItem: [true, false, false],
-				watchTimeSec: weightedRange(10, 600, 1000, .25),
+				watchTimeSec: weightedRange(10, 600, .25, 1000),
 				quality: ["2160p", "1440p", "1080p", "720p", "480p", "360p", "240p"],
 				format: ["mp4", "avi", "mov", "mpg"],
 				uploader_id: chance.guid.bind(chance)
@@ -108,11 +108,11 @@ const config = {
 		}
 	],
 	funnels: [{
-		sequence: ["page view", "view item", "add to cart", "add to cart", "sign up", "checkout"],
+		sequence: ["page view", "view item", "page view", "sign up"],
 		weight: 1,
 		isFirstFunnel: true,
 		order: "sequential",
-		conversionRate: 0.1,
+		conversionRate: 50,
 		timeToConvert: 2,
 		props: {
 			variants: ["A", "B", "C", "Control"],
@@ -120,9 +120,57 @@ const config = {
 			flags: ["on", "off"],
 			experiment_ids: ["1234", "5678", "9012", "3456", "7890"],
 			multiVariate: [true, false]
-		
+
+		},
+
+		// isInterruptedFunnel: false, // an interrupted funnel will have random events interspersed with the sequence
+		// fixedTimeFunnel: 30, // if set this funnel will occur for all users at the same time ['cart charged', 'charge complete']
+		// churn: {
+		// 	isChurnFunnel: true, //if the user completes this funnel, they churn
+		// 	probabilityToReturn: 0.1, //if the user churns, this is the probability they will return
+		// },
+	},
+	{
+		sequence: ["app install", "app open", "tutorial", "sign up"],
+		weight: 1,
+		isFirstFunnel: true,
+		order: "sequential",
+		conversionRate: 50,
+		timeToConvert: 2,
+		props: {
+			variants: ["A", "B", "C", "Control"],
+			flows: ["new", "existing", "loyal", "churned"],
+			flags: ["on", "off"],
+			experiment_ids: ["1234", "5678", "9012", "3456", "7890"],
+			multiVariate: [true, false]
+
 		}
-	}],
+	},
+	{
+		sequence: ["page view", "view item", "add to cart", "add to cart", "checkout"],
+		weight: 3,
+		isFirstFunnel: false,
+		order: "sequential",
+		conversionRate: 70,
+		timeToConvert: 7 * 24,
+		props: {
+			variants: ["A", "B", "C", "Control"],
+			flows: ["new", "existing", "loyal", "churned"],
+			flags: ["on", "off"],
+			experiment_ids: ["1234", "5678", "9012", "3456", "7890"],
+			multiVariate: [true, false]
+
+		}
+	},
+	{
+		timeToConvert: 2,
+		conversionRate: 66,
+		sequence: ["foo", "bar", "baz", "qux"],
+	}, {
+		weight: 4,
+		sequence: ["video", "video", "attack", "defend", "click"],
+	}
+	],
 	superProps: {
 		platform: ["web", "mobile", "web", "mobile", "web", "web", "kiosk", "smartTV"],
 		currentTheme: ["light", "dark", "custom", "light", "dark"],
@@ -139,13 +187,16 @@ const config = {
 		spiritAnimal: ["duck", "dog", "otter", "penguin", "cat", "elephant", "lion", "cheetah", "giraffe", "zebra", "rhino", "hippo", "whale", "dolphin", "shark", "octopus", "squid", "jellyfish", "starfish", "seahorse", "crab", "lobster", "shrimp", "clam", "snail", "slug", "butterfly", "moth", "bee", "wasp", "ant", "beetle", "ladybug", "caterpillar", "centipede", "millipede", "scorpion", "spider", "tarantula", "tick", "mite", "mosquito", "fly", "dragonfly", "damselfly", "grasshopper", "cricket", "locust", "mantis", "cockroach", "termite", "praying mantis", "walking stick", "stick bug", "leaf insect", "lacewing", "aphid", "cicada", "thrips", "psyllid", "scale insect", "whitefly", "mealybug", "planthopper", "leafhopper", "treehopper", "flea", "louse", "bedbug", "flea beetle", "weevil", "longhorn beetle", "leaf beetle", "tiger beetle", "ground beetle", "lady beetle", "firefly", "click beetle", "rove beetle", "scarab beetle", "dung beetle", "stag beetle", "rhinoceros beetle", "hercules beetle", "goliath beetle", "jewel beetle", "tortoise beetle"]
 	},
 
-	scdProps: {},
+	scdProps: {
+		nps: [1, 1, 1, 4, 4, 4, 5, 5, 6, 7, 8, 9],
+		mrr: () => { weightedRange(10, 1000,.25,  1000); },
+	},
 	mirrorProps: {
 		isBot: { events: "*", values: [false, false, false, false, true] },
 		profit: { events: ["checkout"], values: [4, 2, 42, 420] },
 		watchTimeSec: {
 			events: ["watch video"],
-			values: weightedRange(50, 1200, 247, 6)
+			values: weightedRange(50, 1200, 6, 247)
 		}
 
 	},
@@ -154,7 +205,11 @@ const config = {
 	for group analytics keys, we need an array of arrays [[],[],[]] 
 	each pair represents a group_key and the number of profiles for that key
 	*/
-	groupKeys: [],
+	groupKeys: [
+		["company_id", 5000],
+		["team_id", 500],
+		["department_id", 50]
+	],
 	groupProps: {},
 	lookupTables: [],
 	hook: function (record, type, meta) {

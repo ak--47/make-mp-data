@@ -1,53 +1,60 @@
 {
-  "name": "make-mp-data",
-  "version": "1.3.05",
-  "description": "builds all mixpanel primitives for a given project",
-  "main": "index.js",
-  "types": "types.d.ts",
-  "scripts": {
-    "start": "node index.js",
-    "dev": "./scripts/go.sh",
-    "complex": "nodemon index.js --complex --e 10000 --u 100",
-    "simple": "nodemon index.js  --simple --e 10000 --u 100",
-    "prune": "rm ./data/*",
-    "post": "npm publish",
-    "test": "NODE_ENV=test jest --runInBand",
-    "deps": "sh ./scripts/deps.sh",
-    "udacity": "nodemon index.js ./customers/udacity.js"
-  },
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/ak--47/make-mp-data.git"
-  },
-  "bin": {
-    "make-mp-data": "./index.js"
-  },
-  "keywords": [
-    "mixpanel",
-    "stream",
-    "analytics",
-    "tracking",
-    "server",
-    "CLI",
-    "datamart",
-    "scd 2",
-    "dummy data",
-    "fake data"
-  ],
-  "author": "ak@mixpanel.com",
-  "license": "ISC",
-  "bugs": {
-    "url": "https://github.com/ak--47/make-mp-data/issues"
-  },
-  "homepage": "https://github.com/ak--47/make-mp-data#readme",
-  "dependencies": {
-    "ak-tools": "^1.0.58",
-    "chance": "^1.1.11",
-    "dayjs": "^1.11.11",
-    "mixpanel-import": "^2.5.51",
-    "yargs": "^17.7.2"
-  },
-  "devDependencies": {
-    "@types/jest": "^29.5.12"
-  }
+	"name": "make-mp-data",
+	"version": "1.3.05",
+	"description": "builds all mixpanel primitives for a given project",
+	"main": "index.js",
+	"types": "types.d.ts",
+	"scripts": {
+		"start": "node index.js",
+		"dev": "nodemon scratch.mjs --ignore /data",
+		"complex": "nodemon index.js --complex --e 10000 --u 100",
+		"simple": "nodemon index.js  --simple --e 10000 --u 100",
+		"prune": "rm -f ./data/* && rm -f ./tmp/*",
+		"post": "npm publish",
+		"test": "NODE_ENV=test jest --runInBand",
+		"deps": "sh ./scripts/deps.sh",
+		"udacity": "nodemon index.js ./customers/udacity.js"
+	},
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/ak--47/make-mp-data.git"
+	},
+	"bin": {
+		"make-mp-data": "./index.js"
+	},
+	"keywords": [
+		"mixpanel",
+		"stream",
+		"analytics",
+		"tracking",
+		"server",
+		"CLI",
+		"datamart",
+		"scd 2",
+		"dummy data",
+		"fake data"
+	],
+	"author": "ak@mixpanel.com",
+	"license": "ISC",
+	"bugs": {
+		"url": "https://github.com/ak--47/make-mp-data/issues"
+	},
+	"homepage": "https://github.com/ak--47/make-mp-data#readme",
+	"dependencies": {
+		"ak-tools": "^1.0.58",
+		"chance": "^1.1.11",
+		"chart.js": "^3.9.1",
+		"chartjs-node-canvas": "^4.1.6",
+		"dayjs": "^1.11.11",
+		"dotenv": "^16.4.5",
+		"mixpanel-import": "^2.5.54",
+		"yargs": "^17.7.2"
+	},
+	"devDependencies": {
+		"@types/jest": "^29.5.12",
+		"jest": "^29.7.0"
+	},
+	"jest": {
+		"preset": "./tests/jest.config.js"
+	}
 }

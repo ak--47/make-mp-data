@@ -9,17 +9,20 @@ declare namespace main {
     token?: string;
     seed?: string;
     numDays?: number;
+    epochStart?: number;
+    epochEnd?: number;
     numEvents?: number;
     numUsers?: number;
     format?: "csv" | "json";
     region?: "US" | "EU";
-    events?: EventConfig[];
+    chance?: any;
+    events?: EventConfig[]; //can also be a array of strings
     superProps?: Record<string, ValueValid>;
-	funnels?: Funnel[];
+    funnels?: Funnel[];
     userProps?: Record<string, ValueValid>;
     scdProps?: Record<string, ValueValid>;
     mirrorProps?: Record<string, MirrorProps>;
-    groupKeys?: [string, number][] | [string, number, string[]][];
+    groupKeys?: [string, number][] | [string, number, string[]][]; // [key, numGroups, [events]]
     groupProps?: Record<string, Record<string, ValueValid>>;
     lookupTables?: LookupTable[];
     writeToDisk?: boolean;
@@ -27,10 +30,27 @@ declare namespace main {
     verbose?: boolean;
     anonIds?: boolean;
     sessionIds?: boolean;
+    makeChart?: boolean | string;
+    soup?: soup;
     hook?: Hook<any>;
   }
 
-  type hookTypes = "event" | "user" | "group" | "lookup" | "scd" | "mirror" | "";
+  type soup = {
+    deviation?: number;
+    peaks?: number;
+    mean?: number;
+  };
+
+  type hookTypes =
+    | "event"
+    | "user"
+    | "group"
+    | "lookup"
+    | "scd"
+    | "mirror"
+    | "funnel-pre"
+    | "funnel-post"
+    | "";
   export type Hook<T> = (record: any, type: hookTypes, meta: any) => T;
 
   export interface EnrichArrayOptions<T> {
@@ -48,17 +68,33 @@ declare namespace main {
     weight?: number;
     properties?: Record<string, ValueValid>;
     isFirstEvent?: boolean;
+    relativeTimeMs?: number;
   }
 
+  export interface EventSpec {
+	event: string;
+	time: string;
+	insert_id: string;
+	device_id?: string;
+	session_id?: string;
+	user_id?: string;	
+	[key: string]: ValueValid;
+  }
 
   export interface Funnel {
-	sequence: string[];
-	weight: number;
-	isFirstFunnel: boolean;
-	order: "sequential" | "first-fixed" | "last-fixed" | "random" | 'first-and-last-fixed';
-	conversionRate: number;
-	timeToConvert: number;
-	props: Record<string, ValueValid>;
+    sequence: string[];
+    weight?: number;
+    isFirstFunnel?: boolean;
+    order?:
+      | "sequential"
+      | "first-fixed"
+      | "last-fixed"
+      | "random"
+      | "first-and-last-fixed"
+      | "middle-fixed";
+    conversionRate?: number;
+    timeToConvert?: number;
+    props?: Record<string, ValueValid>;
   }
 
   export interface MirrorProps {
@@ -72,7 +108,7 @@ declare namespace main {
     attributes: Record<string, ValueValid>;
   }
 
-  export interface SCDTable {
+  export interface SCDTableRow {
     distinct_id: string;
     insertTime: string;
     startTime: string;
@@ -85,17 +121,17 @@ declare namespace main {
     scdTableData: any[];
     groupProfilesData: GroupProfilesData[];
     lookupTableData: LookupTableData[];
-    import?: ImportResults;
+    importResults?: ImportResults;
     files?: string[];
   };
 
   export interface EventData {
     event: string;
-    $source: string;
+    source: string;
     time: string;
-    $device_id?: string;
-    $session_id?: string;
-    $user_id?: string;
+    device_id?: string;
+    session_id?: string;
+    user_id?: string;
     [key: string]: any;
   }
 
@@ -120,12 +156,22 @@ declare namespace main {
     bytes: number;
   }
   export interface Person {
-    $name: string;
-    $email: string;
-    $avatar: string;
-    $created: string | undefined;
+    name: string;
+    email: string;
+    avatar: string;
+    created: string | undefined;
     anonymousIds: string[];
     sessionIds: string[];
+    distinct_id?: string;
+  }
+
+  export interface UserProfile {
+    name?: string;
+    email?: string;
+    avatar?: string;
+    created: string | undefined;
+    distinct_id: string;
+    [key: string]: ValueValid;
   }
 }
 

@@ -15,7 +15,13 @@
 			"name": "complex",
 			"request": "launch",
 			"type": "node-terminal"
-		},			
+		},
+		{
+			"command": "npm run dev",
+			"name": "dev",
+			"request": "launch",
+			"type": "node-terminal"
+		},
 		{
 			"type": "node",
 			"request": "launch",
@@ -25,8 +31,10 @@
 			"restart": true,
 			"console": "integratedTerminal",
 			"internalConsoleOptions": "neverOpen",
-			"args": ["--ignore", "./data/"]
+			"args": [
+				"--ignore",
+				"./data/"
+			]
 		}
-
 	]
 }

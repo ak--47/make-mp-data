@@ -11,7 +11,7 @@
   },
   "include": [
     "**/*.js"
-  ],
+, "soupTemplates.mjs", "testSoup.mjs", "testCases.mjs"  ],
   "exclude": [
     "node_modules"
   ]
