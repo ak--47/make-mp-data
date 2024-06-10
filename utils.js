@@ -392,7 +392,6 @@ function weightedRange(min, max, skew = 1, size = 100) {
 	return array;
 }
 
-
 function weighArray(arr) {
 
 	// Calculate the upper bound based on the size of the array with added noise
@@ -577,7 +576,6 @@ function buildFileNames(config) {
 }
 
 
-
 function progress(thing, p) {
 	// @ts-ignore
 	readline.cursorTo(process.stdout, 0);
@@ -585,7 +583,6 @@ function progress(thing, p) {
 };
 
 
-//helper to open the finder
 function openFinder(path, callback) {
 	path = path || '/';
 	let p = spawn('open', [path]);
@@ -603,27 +600,6 @@ function getUniqueKeys(data) {
 	return Array.from(keysSet);
 };
 
-
-//
-/**
- * makes a random-sized array of emojis
- * @param  {number} max=10
- * @param  {boolean} array=false
- */
-function generateEmoji(max = 10, array = false) {
-	const chance = getChance();
-	return function () {
-		const emojis = ['😀', '😂', '😍', '😎', '😜', '😇', '😡', '😱', '😭', '😴', '🤢', '🤠', '🤡', '👽', '👻', '💩', '👺', '👹', '👾', '🤖', '🤑', '🤗', '🤓', '🤔', '🤐', '😀', '😂', '😍', '😎', '😜', '😇', '😡', '😱', '😭', '😴', '🤢', '🤠', '🤡', '👽', '👻', '💩', '👺', '👹', '👾', '🤖', '🤑', '🤗', '🤓', '🤔', '🤐', '😈', '👿', '👦', '👧', '👨', '👩', '👴', '👵', '👶', '🧒', '👮', '👷', '💂', '🕵', '👩‍⚕️', '👨‍⚕️', '👩‍🌾', '👨‍🌾', '👩‍🍳', '👨‍🍳', '👩‍🎓', '👨‍🎓', '👩‍🎤', '👨‍🎤', '👩‍🏫', '👨‍🏫', '👩‍🏭', '👨‍🏭', '👩‍💻', '👨‍💻', '👩‍💼', '👨‍💼', '👩‍🔧', '👨‍🔧', '👩‍🔬', '👨‍🔬', '👩‍🎨', '👨‍🎨', '👩‍🚒', '👨‍🚒', '👩‍✈️', '👨‍✈️', '👩‍🚀', '👨‍🚀', '👩‍⚖️', '👨‍⚖️', '🤶', '🎅', '👸', '🤴', '👰', '🤵', '👼', '🤰', '🙇', '💁', '🙅', '🙆', '🙋', '🤦', '🤷', '🙎', '🙍', '💇', '💆', '🕴', '💃', '🕺', '🚶', '🏃', '🤲', '👐', '🙌', '👏', '🤝', '👍', '👎', '👊', '✊', '🤛', '🤜', '🤞', '✌️', '🤟', '🤘', '👌', '👈', '👉', '👆', '👇', '☝️', '✋', '🤚', '🖐', '🖖', '👋', '🤙', '💪', '🖕', '✍️', '🤳', '💅', '👂', '👃', '👣', '👀', '👁', '🧠', '👅', '👄', '💋', '👓', '🕶', '👔', '👕', '👖', '🧣', '🧤', '🧥', '🧦', '👗', '👘', '👙', '👚', '👛', '👜', '👝', '🛍', '🎒', '👞', '👟', '👠', '👡', '👢', '👑', '👒', '🎩', '🎓', '🧢', '⛑', '📿', '💄', '💍', '💎', '🔇', '🔈', '🔉', '🔊', '📢', '📣', '📯', '🔔', '🔕', '🎼', '🎵', '🎶', '🎙', '🎚', '🎛', '🎤', '🎧', '📻', '🎷', '🎸', '🎹', '🎺', '🎻', '🥁', '📱', '📲', '💻', '🖥', '🖨', '🖱', '🖲', '🕹', '🗜', '💽', '💾', '💿', '📀', '📼', '📷', '📸', '📹', '🎥', '📽', '🎞', '📞', '☎️', '📟', '📠', '📺', '📻', '🎙', '📡', '🔍', '🔎', '🔬', '🔭', '📡', '💡', '🔦', '🏮', '📔', '📕', '📖', '📗', '📘', '📙', '📚', '📓', '📒', '📃', '📜', '📄', '📰', '🗞', '📑', '🔖', '🏷', '💰', '💴', '💵', '💶', '💷', '💸', '💳', '🧾', '💹', '💱', '💲', '✉️', '📧', '📨', '📩', '📤', '📥', '📦', '📫', '📪', '📬', '📭', '📮', '🗳', '✏️', '✒️', '🖋', '🖊', '🖌', '🖍', '📝', '💼', '📁', '📂', '🗂', '📅', '📆', '🗒', '🗓', '📇', '📈', '📉', '📊', '📋', '📌', '📍', '📎', '🖇', '📏', '📐', '✂️', '🗃', '🗄', '🗑', '🔒', '🔓', '🔏', '🔐', '🔑', '🗝', '🔨', '⛏', '⚒', '🛠', '🗡', '⚔️', '🔫', '🏹', '🛡', '🔧', '🔩', '⚙️', '🗜', '⚖️', '🔗', '⛓', '🧰', '🧲', '⚗️', '🧪', '🧫', '🧬', '🔬', '🔭', '📡', '💉', '💊', '🛏', '🛋', '🚪', '🚽', '🚿', '🛁', '🧴', '🧷', '🧹', '🧺', '🧻', '🧼', '🧽', '🧯', '🚬', '⚰️', '⚱️', '🗿', '🏺', '🧱', '🎈', '🎏', '🎀', '🎁', '🎊', '🎉', '🎎', '🏮', '🎐', '🧧', '✉️', '📩', '📨', '📧'];
-		let num = integer(1, max);
-		let arr = [];
-		for (let i = 0; i < num; i++) {
-			arr.push(chance.pickone(emojis));
-		}
-		if (array) return arr;
-		if (!array) return arr.join(', ');
-		return "🤷";
-	};
-};
 
 
 /*
@@ -656,65 +632,94 @@ function generateUser(user_id, numDays, amplitude = 1, frequency = 1, skew = 1) 
 	return user;
 }
 
-
 /**
- * Generate a timestamp with a sine curve distribution
+ * build sign waves basically
  * @param  {number} [earliestTime]
  * @param  {number} [latestTime]
- * @param  {number} amplitude=1
- * @param  {number} frequency=1
- * @param  {number} noise=0
- * @returns {string} in ISO format
+ * @param  {number} [numPeaks=5]
  */
-// function TimeSoup(earliestTime, latestTime, amplitude = 1, frequency = 1, skew = 1, noise = 0) {
-// 	let validTime = false;
-// 	let timestamp;
-// 	let iterations = 0;
-// 	if (!earliestTime) {
-// 		if (global.NOW) earliestTime = global.NOW - 60 * 60 * 24 * 30; // 30 days ago
-// 		else earliestTime = dayjs().subtract(30, 'days').unix();
-// 	}
-// 	if (!latestTime) {
-// 		if (global.NOW) latestTime = global.NOW;
-// 		else latestTime = dayjs().unix();
-// 	}
+function TimeSoup(earliestTime, latestTime, numPeaks = 5, deviation = 2) {
+	if (!earliestTime) earliestTime = global.NOW - (60 * 60 * 24 * 30); // 30 days ago
+	if (!latestTime) latestTime = global.NOW;
+	const chance = getChance();
+	const totalRange = latestTime - earliestTime;
+	const chunkSize = totalRange / numPeaks;
 
-// 	if (earliestTime === latestTime) earliestTime = dayjs.unix(earliestTime).subtract(30, 'days').unix();
-// 	if (earliestTime > latestTime) debugger;
+	// Select a random chunk based on the number of peaks
+	const peakIndex = integer(0, numPeaks - 1);
+	const chunkStart = earliestTime + peakIndex * chunkSize;
+	const chunkEnd = chunkStart + chunkSize;
+	const chunkMid = (chunkStart + chunkEnd) / 2;
 
+	// Generate a single timestamp within this chunk using a normal distribution centered at chunkMid
+	let offset;
+	do {
+		offset = chance.normal({ mean: 0, dev: chunkSize / deviation });
+	} while (chunkMid + offset < chunkStart || chunkMid + offset > chunkEnd);
 
-// 	const chance = getChance();
-
-// 	while (!validTime) {
-//         iterations++;
-//         // Generate a uniformly distributed value, apply skew, and then adjust for the sine function
-//         const u = Math.pow(chance.normal({ mean: 0.5, dev: 0.15 }), skew);
-//         const sineValue = (Math.sin(u * Math.PI * frequency - Math.PI / 2) * amplitude + 1) / 2;
-
-//         // Calculate the timestamp
-//         const range = latestTime - earliestTime;
-//         timestamp = earliestTime + sineValue * range + chance.integer({ min: -noise, max: noise });
-        
-//         // Ensure the timestamp is within valid bounds
-//         if (timestamp >= earliestTime && timestamp <= latestTime) validTime = true;
-//     }
-
-// 	return dayjs.unix(timestamp).toISOString();
-// }
-
-
-function TimeSoup(earliest, latest, amplitude=1, frequency=1, index=1, totalPoints = 100, noiseLevel = 0, skew = 0) {
-    const chance = getChance();
-	const totalTime = latest - earliest;
-    const normalizedIndex = index / totalPoints; // Normalize the index to [0, 1]
-    const phaseShift = skew * normalizedIndex; // Apply skew based on current normalized index
-    const sinValue = Math.sin((2 * Math.PI * normalizedIndex * frequency) + phaseShift); // Calculate sin value with skew
-    const noisySinValue = sinValue + (chance.normal({ mean: 0, dev: noiseLevel })); // Add Gaussian noise
-    const scaledSinValue = (noisySinValue * amplitude / 2) + (amplitude / 2); // Scale sin value to [0, amplitude]
-    const timestamp = Math.round(earliest + scaledSinValue * (latest - earliest) / amplitude);
-
-    return dayjs.unix(timestamp).toISOString();
+	return dayjs.unix(chunkMid + offset).toISOString();
 }
+
+/**
+ * @param  {number} bornDaysAgo=30
+ * @return {Person}
+ */
+function person(bornDaysAgo = 30) {
+	const chance = getChance();
+	//names and photos
+	let gender = chance.pickone(['male', 'female']);
+	if (!gender) gender = "female";
+	// @ts-ignore
+	const first = chance.first({ gender });
+	const last = chance.last();
+	const name = `${first} ${last}`;
+	const email = `${first[0]}.${last}@${chance.domain()}.com`;
+	const avatarPrefix = `https://randomuser.me/api/portraits`;
+	const randomAvatarNumber = chance.integer({
+		min: 1,
+		max: 99
+	});
+	const avPath = gender === 'male' ? `/men/${randomAvatarNumber}.jpg` : `/women/${randomAvatarNumber}.jpg`;
+	const avatar = avatarPrefix + avPath;
+	const created = dayjs.unix(global.NOW).subtract(bornDaysAgo, 'day').format('YYYY-MM-DD')
+	// const created = date(bornDaysAgo, true)();
+
+	/** @type {Person} */
+	const user = {
+		name,
+		email,
+		avatar,
+		created,
+		anonymousIds: [],
+		sessionIds: []
+	};
+
+	//anon Ids
+	if (global.MP_SIMULATION_CONFIG?.anonIds) {
+		const clusterSize = integer(2, 10);
+		for (let i = 0; i < clusterSize; i++) {
+			const anonId = uid(42);
+			user.anonymousIds.push(anonId);
+		}
+
+	}
+
+	//session Ids
+	if (global.MP_SIMULATION_CONFIG?.sessionIds) {
+		const sessionSize = integer(5, 30);
+		for (let i = 0; i < sessionSize; i++) {
+			const sessionId = [uid(5), uid(5), uid(5), uid(5)].join("-");
+			user.sessionIds.push(sessionId);
+		}
+	}
+
+	return user;
+};
+
+
+
+
+//UNUSED
 
 function fixFunkyTime(earliestTime, latestTime) {
 	if (!earliestTime) earliestTime = global.NOW - (60 * 60 * 24 * 30); // 30 days ago
@@ -763,63 +768,26 @@ function isValidTime(chosenTime, earliestTime, latestTime) {
 	return false;
 }
 
+
 /**
- * @param  {number} bornDaysAgo=30
- * @return {Person}
+ * makes a random-sized array of emojis
+ * @param  {number} max=10
+ * @param  {boolean} array=false
  */
-function person(bornDaysAgo = 30) {
+function generateEmoji(max = 10, array = false) {
 	const chance = getChance();
-	//names and photos
-	let gender = chance.pickone(['male', 'female']);
-	if (!gender) gender = "female";
-	// @ts-ignore
-	const first = chance.first({ gender });
-	const last = chance.last();
-	const name = `${first} ${last}`;
-	const email = `${first[0]}.${last}@${chance.domain()}.com`;
-	const avatarPrefix = `https://randomuser.me/api/portraits`;
-	const randomAvatarNumber = chance.integer({
-		min: 1,
-		max: 99
-	});
-	const avPath = gender === 'male' ? `/men/${randomAvatarNumber}.jpg` : `/women/${randomAvatarNumber}.jpg`;
-	const avatar = avatarPrefix + avPath;
-	const created = date(bornDaysAgo, true)();
-
-	/** @type {Person} */
-	const user = {
-		name,
-		email,
-		avatar,
-		created,
-		anonymousIds: [],
-		sessionIds: []
+	return function () {
+		const emojis = ['😀', '😂', '😍', '😎', '😜', '😇', '😡', '😱', '😭', '😴', '🤢', '🤠', '🤡', '👽', '👻', '💩', '👺', '👹', '👾', '🤖', '🤑', '🤗', '🤓', '🤔', '🤐', '😀', '😂', '😍', '😎', '😜', '😇', '😡', '😱', '😭', '😴', '🤢', '🤠', '🤡', '👽', '👻', '💩', '👺', '👹', '👾', '🤖', '🤑', '🤗', '🤓', '🤔', '🤐', '😈', '👿', '👦', '👧', '👨', '👩', '👴', '👵', '👶', '🧒', '👮', '👷', '💂', '🕵', '👩‍⚕️', '👨‍⚕️', '👩‍🌾', '👨‍🌾', '👩‍🍳', '👨‍🍳', '👩‍🎓', '👨‍🎓', '👩‍🎤', '👨‍🎤', '👩‍🏫', '👨‍🏫', '👩‍🏭', '👨‍🏭', '👩‍💻', '👨‍💻', '👩‍💼', '👨‍💼', '👩‍🔧', '👨‍🔧', '👩‍🔬', '👨‍🔬', '👩‍🎨', '👨‍🎨', '👩‍🚒', '👨‍🚒', '👩‍✈️', '👨‍✈️', '👩‍🚀', '👨‍🚀', '👩‍⚖️', '👨‍⚖️', '🤶', '🎅', '👸', '🤴', '👰', '🤵', '👼', '🤰', '🙇', '💁', '🙅', '🙆', '🙋', '🤦', '🤷', '🙎', '🙍', '💇', '💆', '🕴', '💃', '🕺', '🚶', '🏃', '🤲', '👐', '🙌', '👏', '🤝', '👍', '👎', '👊', '✊', '🤛', '🤜', '🤞', '✌️', '🤟', '🤘', '👌', '👈', '👉', '👆', '👇', '☝️', '✋', '🤚', '🖐', '🖖', '👋', '🤙', '💪', '🖕', '✍️', '🤳', '💅', '👂', '👃', '👣', '👀', '👁', '🧠', '👅', '👄', '💋', '👓', '🕶', '👔', '👕', '👖', '🧣', '🧤', '🧥', '🧦', '👗', '👘', '👙', '👚', '👛', '👜', '👝', '🛍', '🎒', '👞', '👟', '👠', '👡', '👢', '👑', '👒', '🎩', '🎓', '🧢', '⛑', '📿', '💄', '💍', '💎', '🔇', '🔈', '🔉', '🔊', '📢', '📣', '📯', '🔔', '🔕', '🎼', '🎵', '🎶', '🎙', '🎚', '🎛', '🎤', '🎧', '📻', '🎷', '🎸', '🎹', '🎺', '🎻', '🥁', '📱', '📲', '💻', '🖥', '🖨', '🖱', '🖲', '🕹', '🗜', '💽', '💾', '💿', '📀', '📼', '📷', '📸', '📹', '🎥', '📽', '🎞', '📞', '☎️', '📟', '📠', '📺', '📻', '🎙', '📡', '🔍', '🔎', '🔬', '🔭', '📡', '💡', '🔦', '🏮', '📔', '📕', '📖', '📗', '📘', '📙', '📚', '📓', '📒', '📃', '📜', '📄', '📰', '🗞', '📑', '🔖', '🏷', '💰', '💴', '💵', '💶', '💷', '💸', '💳', '🧾', '💹', '💱', '💲', '✉️', '📧', '📨', '📩', '📤', '📥', '📦', '📫', '📪', '📬', '📭', '📮', '🗳', '✏️', '✒️', '🖋', '🖊', '🖌', '🖍', '📝', '💼', '📁', '📂', '🗂', '📅', '📆', '🗒', '🗓', '📇', '📈', '📉', '📊', '📋', '📌', '📍', '📎', '🖇', '📏', '📐', '✂️', '🗃', '🗄', '🗑', '🔒', '🔓', '🔏', '🔐', '🔑', '🗝', '🔨', '⛏', '⚒', '🛠', '🗡', '⚔️', '🔫', '🏹', '🛡', '🔧', '🔩', '⚙️', '🗜', '⚖️', '🔗', '⛓', '🧰', '🧲', '⚗️', '🧪', '🧫', '🧬', '🔬', '🔭', '📡', '💉', '💊', '🛏', '🛋', '🚪', '🚽', '🚿', '🛁', '🧴', '🧷', '🧹', '🧺', '🧻', '🧼', '🧽', '🧯', '🚬', '⚰️', '⚱️', '🗿', '🏺', '🧱', '🎈', '🎏', '🎀', '🎁', '🎊', '🎉', '🎎', '🏮', '🎐', '🧧', '✉️', '📩', '📨', '📧'];
+		let num = integer(1, max);
+		let arr = [];
+		for (let i = 0; i < num; i++) {
+			arr.push(chance.pickone(emojis));
+		}
+		if (array) return arr;
+		if (!array) return arr.join(', ');
+		return "🤷";
 	};
-
-	//anon Ids
-	if (global.MP_SIMULATION_CONFIG?.anonIds) {
-		const clusterSize = integer(2, 10);
-		for (let i = 0; i < clusterSize; i++) {
-			const anonId = uid(42);
-			user.anonymousIds.push(anonId);
-		}
-
-	}
-
-	//session Ids
-	if (global.MP_SIMULATION_CONFIG?.sessionIds) {
-		const sessionSize = integer(5, 30);
-		for (let i = 0; i < sessionSize; i++) {
-			const sessionId = [uid(5), uid(5), uid(5), uid(5)].join("-");
-			user.sessionIds.push(sessionId);
-		}
-	}
-
-	return user;
 };
-
-
-
 
 
 

@@ -4,7 +4,6 @@ const utc = require("dayjs/plugin/utc");
 const fs = require('fs');
 const u = require('ak-tools');
 dayjs.extend(utc);
-const { timeSoup } = generate;
 require('dotenv').config();
 
 const { applySkew,
@@ -49,7 +48,7 @@ describe('timesoup', () => {
 		const dates = [];
 		for (let i = 0; i < 10000; i++) {
 			const earliest = dayjs().subtract(u.rand(5, 50), 'D');
-			dates.push(timeSoup());
+			dates.push(TimeSoup());
 		}
 		const tooOld = dates.filter(d => dayjs(d).isBefore(dayjs.unix(0)));
 		const badYear = dates.filter(d => !d.startsWith('202'));
@@ -63,81 +62,81 @@ describe('timesoup', () => {
 describe('naming things', () => {
 
 	test('default config', () => {
-        const config = { simulationName: 'testSim' };
-        const result = buildFileNames(config);
-        expect(result.eventFiles).toEqual(['testSim-EVENTS.csv']);
-        expect(result.userFiles).toEqual(['testSim-USERS.csv']);
-        expect(result.scdFiles).toEqual([]);
-        expect(result.groupFiles).toEqual([]);
-        expect(result.lookupFiles).toEqual([]);
-        expect(result.mirrorFiles).toEqual([]);
-        expect(result.folder).toEqual('./');
-    });
+		const config = { simulationName: 'testSim' };
+		const result = buildFileNames(config);
+		expect(result.eventFiles).toEqual(['testSim-EVENTS.csv']);
+		expect(result.userFiles).toEqual(['testSim-USERS.csv']);
+		expect(result.scdFiles).toEqual([]);
+		expect(result.groupFiles).toEqual([]);
+		expect(result.lookupFiles).toEqual([]);
+		expect(result.mirrorFiles).toEqual([]);
+		expect(result.folder).toEqual('./');
+	});
 
-    test('json format', () => {
-        const config = { simulationName: 'testSim', format: 'json' };
-        const result = buildFileNames(config);
-        expect(result.eventFiles).toEqual(['testSim-EVENTS.json']);
-        expect(result.userFiles).toEqual(['testSim-USERS.json']);
-    });
+	test('json format', () => {
+		const config = { simulationName: 'testSim', format: 'json' };
+		const result = buildFileNames(config);
+		expect(result.eventFiles).toEqual(['testSim-EVENTS.json']);
+		expect(result.userFiles).toEqual(['testSim-USERS.json']);
+	});
 
-    test('with scdProps', () => {
-        const config = {
-            simulationName: 'testSim',
-            scdProps: { prop1: {}, prop2: {} }
-        };
-        const result = buildFileNames(config);
-        expect(result.scdFiles).toEqual([
-            'testSim-prop1-SCD.csv',
-            'testSim-prop2-SCD.csv'
-        ]);
-    });
+	test('with scdProps', () => {
+		const config = {
+			simulationName: 'testSim',
+			scdProps: { prop1: {}, prop2: {} }
+		};
+		const result = buildFileNames(config);
+		expect(result.scdFiles).toEqual([
+			'testSim-prop1-SCD.csv',
+			'testSim-prop2-SCD.csv'
+		]);
+	});
 
-    test('with groupKeys', () => {
-        const config = {
-            simulationName: 'testSim',
-            groupKeys: [['group1'], ['group2']]
-        };
-        const result = buildFileNames(config);
-        expect(result.groupFiles).toEqual([
-            'testSim-group1-GROUP.csv',
-            'testSim-group2-GROUP.csv'
-        ]);
-    });
+	test('with groupKeys', () => {
+		const config = {
+			simulationName: 'testSim',
+			groupKeys: [['group1'], ['group2']]
+		};
+		const result = buildFileNames(config);
+		expect(result.groupFiles).toEqual([
+			'testSim-group1-GROUP.csv',
+			'testSim-group2-GROUP.csv'
+		]);
+	});
 
-    test('with lookupTables', () => {
-        const config = {
-            simulationName: 'testSim',
-            lookupTables: [{ key: 'lookup1' }, { key: 'lookup2' }]
-        };
-        const result = buildFileNames(config);
-        expect(result.lookupFiles).toEqual([
-            'testSim-lookup1-LOOKUP.csv',
-            'testSim-lookup2-LOOKUP.csv'
-        ]);
-    });
+	test('with lookupTables', () => {
+		const config = {
+			simulationName: 'testSim',
+			lookupTables: [{ key: 'lookup1' }, { key: 'lookup2' }]
+		};
+		const result = buildFileNames(config);
+		expect(result.lookupFiles).toEqual([
+			'testSim-lookup1-LOOKUP.csv',
+			'testSim-lookup2-LOOKUP.csv'
+		]);
+	});
 
-    test('with mirrorProps', () => {
-        const config = {
-            simulationName: 'testSim',
-            mirrorProps: { prop1: {} }
-        };
-        const result = buildFileNames(config);
-        expect(result.mirrorFiles).toEqual(['testSim-MIRROR.csv']);
-    });
+	test('with mirrorProps', () => {
+		const config = {
+			simulationName: 'testSim',
+			mirrorProps: { prop1: {} }
+		};
+		const result = buildFileNames(config);
+		expect(result.mirrorFiles).toEqual(['testSim-MIRROR.csv']);
+	});
 
-    test('writeToDisk', async () => {
-        const config = { simulationName: 'testSim', writeToDisk: true };
-        const result = await buildFileNames(config);
-        expect(result.folder).toBeDefined();
+	test('writeToDisk', async () => {
+		const config = { simulationName: 'testSim', writeToDisk: true };
+		const result = await buildFileNames(config);
+		expect(result.folder).toBeDefined();
 
-    });
+	});
 
 
-    test('invalid simName', () => {
-        const config = { simulationName: 123 };
-        expect(() => buildFileNames(config)).toThrow('simName must be a string');
-    });
+	test('invalid simName', () => {
+		const config = { simulationName: 123 };
+		expect(() => buildFileNames(config)).toThrow('simName must be a string');
+	});
 
 
 	test('streamJSON: writes to file', async () => {
@@ -182,6 +181,77 @@ describe('naming things', () => {
 
 });
 
+
+describe('determined random', () => {
+	test('initializes RNG with seed from environment variable', () => {
+		process.env.SEED = 'test-seed';
+		// @ts-ignore
+		initChance();
+		const chance = getChance();
+		expect(chance).toBeDefined();
+		expect(chance.random()).toBeGreaterThanOrEqual(0);
+		expect(chance.random()).toBeLessThanOrEqual(1);
+
+	});
+
+	test('initializes RNG only once', () => {
+		const seed = 'initial-seed';
+		initChance(seed);
+		const chance1 = getChance();
+		initChance('new-seed');
+		const chance2 = getChance();
+		expect(chance1).toBe(chance2);
+
+	});
+});
+
+
+describe('generateUser', () => {
+	test('creates a user with valid fields', () => {
+		const numDays = 30;
+		const user = generateUser('uuid-123', numDays);
+		expect(user).toHaveProperty('distinct_id');
+		expect(user).toHaveProperty('name');
+		expect(user).toHaveProperty('email');
+		expect(user).toHaveProperty('avatar');
+		expect(user).toHaveProperty('created');
+		expect(user).toHaveProperty('anonymousIds');
+		expect(user).toHaveProperty('sessionIds');
+	});
+
+	test('creates a user with a created date within the specified range', () => {
+		const numDays = 30;
+		const user = generateUser('uuid-123', numDays);
+		const createdDate = dayjs(user.created, 'YYYY-MM-DD');
+		expect(createdDate.isValid()).toBeTruthy();
+		expect(createdDate.isAfter(dayjs.unix(global.NOW).subtract(numDays, 'day'))).toBeTruthy();
+		expect(createdDate.isBefore(dayjs())).toBeTruthy();
+	});
+});
+
+
+
+describe('enrichArray', () => {
+	test('enriches items with provided hook function', () => {
+		const arr = [];
+		const hook = (item) => item * 2;
+		const enrichedArray = enrichArray(arr, { hook });
+		enrichedArray.hookPush(1);
+		enrichedArray.hookPush(2);
+		expect(enrichedArray).toEqual([2, 4]);
+	});
+
+	test('handles various types of items', () => {
+		const arr = [];
+		const hook = (item) => item ? item.toString() : item;
+		const enrichedArray = enrichArray(arr, { hook });
+		enrichedArray.hookPush(null);
+		enrichedArray.hookPush(undefined);
+		enrichedArray.hookPush({ a: 1 });
+		enrichedArray.hookPush([1, 2]);
+		expect(enrichedArray).toEqual([null, undefined, '[object Object]', '1,2']);
+	});
+});
 
 
 describe('utils', () => {
@@ -230,7 +300,7 @@ describe('utils', () => {
 	test('date: future', () => {
 		const futureDate = date(10, false, 'YYYY-MM-DD')();
 		expect(dayjs(futureDate, 'YYYY-MM-DD').isValid()).toBeTruthy();
-		expect(dayjs(futureDate).isAfter(dayjs())).toBeTruthy();
+		expect(dayjs(futureDate).isAfter(dayjs.unix(global.NOW))).toBeTruthy();
 	});
 
 	test('dates: pairs', () => {
@@ -445,7 +515,19 @@ describe('utils', () => {
 	test('shuffleOutside: works', () => {
 		const arr = [1, 2, 3, 4, 5];
 		const shuffled = shuffleOutside([...arr]);
-		expect(shuffled.slice(1, -1)).toEqual(arr.slice(1, -1));				
+		expect(shuffled.slice(1, -1)).toEqual(arr.slice(1, -1));
+	});
+
+	test('returns values within the range of a normal distribution', () => {
+		const values = [];
+		for (let i = 0; i < 10000; i++) {
+			values.push(boxMullerRandom());
+		}
+		const mean = values.reduce((sum, val) => sum + val, 0) / values.length;
+		const variance = values.reduce((sum, val) => sum + Math.pow(val - mean, 2), 0) / values.length;
+		const stdDev = Math.sqrt(variance);
+		expect(mean).toBeCloseTo(0, 1);
+		expect(stdDev).toBeCloseTo(1, 1);
 	});
 
 

@@ -1,4 +1,3 @@
-
 declare namespace main {
   type Primitives = string | number | boolean | Date | Record<string, any>;
 
@@ -10,13 +9,13 @@ declare namespace main {
     token?: string;
     seed?: string;
     numDays?: number;
-	epochStart?: number;
-	epochEnd?: number;
+    epochStart?: number;
+    epochEnd?: number;
     numEvents?: number;
     numUsers?: number;
     format?: "csv" | "json";
     region?: "US" | "EU";
-	chance?: any;
+    chance?: any;
     events?: EventConfig[];
     superProps?: Record<string, ValueValid>;
     funnels?: Funnel[];
@@ -31,14 +30,16 @@ declare namespace main {
     verbose?: boolean;
     anonIds?: boolean;
     sessionIds?: boolean;
-	makeChart?: boolean | string;
-	amp?: number;
-	freq?: number;
-	skew?: number;
-	noise?: number;
+    makeChart?: boolean | string;
+    soup?: soup;
     hook?: Hook<any>;
   }
 
+  type soup = {
+   dev?: number;
+   peaks?: number;
+  };
+  
   type hookTypes =
     | "event"
     | "user"
@@ -66,7 +67,7 @@ declare namespace main {
     weight?: number;
     properties?: Record<string, ValueValid>;
     isFirstEvent?: boolean;
-	relativeTimeMs?: number;
+    relativeTimeMs?: number;
   }
 
   export interface Funnel {

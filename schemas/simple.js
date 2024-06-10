@@ -24,7 +24,7 @@ const videoCategories = ["funny", "educational", "inspirational", "music", "news
 const config = {
 	token: "",
 	seed: "simple is best",
-	numDays: 30, //how many days worth of data
+	numDays: 30, //how many days worth1 of data
 	numEvents: 50000, //how many events
 	numUsers: 500, //how many users	
 	format: 'csv', //csv or json

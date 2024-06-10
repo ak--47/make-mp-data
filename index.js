@@ -79,10 +79,7 @@ async function main(config) {
 		writeToDisk = false,
 		verbose = false,
 		makeChart = false,
-		amp = 1,
-		freq = 1,
-		skew = 1,
-		noise = 0,
+		soup = {},		
 		hook = (record) => record,
 	} = config;
 	if (!config.superProps) config.superProps = superProps;
@@ -136,9 +133,12 @@ async function main(config) {
 	const avgEvPerUser = Math.ceil(numEvents / numUsers);
 
 	// if no funnels, make some out of events...
-	if (!funnels || !funnels.length) {
+	if (!funnels || !funnels.length) {		
 		const createdFunnels = [];
-		const allEvents = events.map((e) => e.event);
+		// const allEvents = events.map((e) => e.event);
+		const firstEvents = events.filter((e) => e.isFirstEvent).map((e) => e.event);
+		const usageEvents = events.filter((e) => !e.isFirstEvent).map((e) => e.event);
+		const numFunnelsToCreate = Math.ceil(usageEvents.length);
 		/** @type {Funnel} */
 		const funnelTemplate = {
 			sequence: [],
@@ -149,8 +149,30 @@ async function main(config) {
 			isFirstFunnel: false,
 			weight: 1
 		};
-		debugger;
+		if (firstEvents.length) {
+			for (const event of firstEvents) {
+				createdFunnels.push({ ...clone(funnelTemplate), sequence: [event], isFirstFunnel: true, conversionRate: 100});
+			}
+		}
+		//at least one funnel with all usage events
+		createdFunnels.push({ ...clone(funnelTemplate), sequence: usageEvents  });
+		
+		followUpFunnels: for (let i = 1; i < numFunnelsToCreate; i++) {
+			/** @type {Funnel} */
+			const funnel = { ...clone(funnelTemplate) };
+			funnel.conversionRate = u.integer(25, 75);
+			funnel.timeToConvert = u.integer(1, 10);
+			funnel.weight = u.integer(1, 10);
+			const sequence = u.shuffleArray(usageEvents).slice(0, u.integer(2, usageEvents.length));
+			funnel.sequence = sequence;
+			funnel.order = 'random'
+			createdFunnels.push(funnel);
+		}
 
+		funnels = createdFunnels;
+		config.funnels = funnels;
+		CONFIG = config;
+		
 	}
 
 	//user loop
@@ -182,7 +204,7 @@ async function main(config) {
 		let numEventsThisUserWillPreform = Math.floor(chance.normal({
 			mean: avgEvPerUser,
 			dev: avgEvPerUser / u.integer(u.integer(2, 5), u.integer(2, 7))
-		}) * 1.14159265359);
+		}) * 0.714159265359);
 
 		// power users do 5x more events
 		chance.bool({ likelihood: 20 }) ? numEventsThisUserWillPreform *= 5 : null;

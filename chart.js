@@ -100,14 +100,14 @@ async function generateLineChart(rawData, signupEvents = ["sign up"], fileName) 
 				// 	borderColor: '#E34F2F',
 				// 	tension: 0.1
 				// },
-				// {
-				//     label: '# NEW',
-				//     data: newUserValues,
-				//     yAxisID: 'y3',
-				//     fill: true,
-				//     borderColor: '#219464',
-				//     tension: 0.1
-				// }
+				{
+				    label: '# NEW',
+				    data: newUserValues,
+				    yAxisID: 'y3',
+				    fill: true,
+				    borderColor: '#219464',
+				    tension: 0.1
+				}
 			]
 		},
 		options: {
@@ -133,22 +133,6 @@ async function generateLineChart(rawData, signupEvents = ["sign up"], fileName) 
 					},
 					ticks: {
 						color: '#4F44E0'
-					}
-				},
-				y2: {
-					type: 'linear',
-					display: true,
-					position: 'right',
-					title: {
-						display: true,
-						text: 'Count of Users',
-						color: '#E34F2F'
-					},
-					ticks: {
-						color: '#E34F2F'
-					},
-					grid: {
-						drawOnChartArea: false
 					}
 				},
 				y3: {

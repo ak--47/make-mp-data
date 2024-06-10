@@ -1,73 +1,58 @@
 import main from "./index.js";
-// import funnels from "./schemas/funnels.js";
-import amir from './customers/amir.js';
+import { generateLineChart } from './chart.js';
+import { TimeSoup } from './utils.js';
+import dayjs from 'dayjs';
+import simple from './schemas/simple.js';
+import { progress } from 'ak-tools';
+import TEST_CASES from './soupTestCases.js';
+import Chance from 'chance';
+const chance = new Chance('hello');
+
+
+
+/**
+ * 
+ */
+async function genViz(soup) {
+	// const { amplitude, dev, frequency, index, mean, noise, points, skew, name } = soup;
+	const data = [];
+	const start = dayjs().subtract(90, 'd').unix();
+	const end = dayjs().unix();
+	for (let i = 0; i < 100_000; i++) {
+		progress('processing', i);
+		const time = TimeSoup(start, end);
+		// const time = generateTimestamp(start, end);
+		data.push({ time });
+	}
+
+	const chart = await generateLineChart(data, [], soup.name);
+	return chart;
+}
+
+// await genViz(TEST_CASES[0]);
+
+// await Promise.all(TEST_CASES.map(genViz));
+
+
+
+
+
+
+
 
 /** @type {main.Config} */
 const spec = {
-	...amir,
-	numUsers: 5_000,
+	...simple,
 	writeToDisk: false,
-	numEvents: 200_000,
 	verbose: true,
+	makeChart: true,
+	soup: {
+		peaks: 5,
+		dev:4
+
+	}
 
 };
-
-// await Promise.all([
-
-// 	// default
-// 	main({ ...spec, "makeChart": "DEFAULT" }),
-
-// 	// then larger than 1
-// 	main({ ...spec, amp: 2.5, "makeChart": "amplitude-2.5" }),
-// 	main({ ...spec, freq: 2.5, "makeChart": "frequency2.5" }),
-// 	main({ ...spec, skew: 2.5, "makeChart": "skew2.5" }),
-// 	main({ ...spec, noise: 2.5, "makeChart": "noise2.5" }),
-
-// 	//then smaller than 1
-// 	main({ ...spec, amp: 0.5, "makeChart": "amplitude-0.5" }),
-// 	main({ ...spec, freq: 0.5, "makeChart": "frequency-0.5" }),
-// 	main({ ...spec, skew: 0.5, "makeChart": "skew-0.5" }),
-// 	main({ ...spec, noise: 0.5, "makeChart": "noise-0.5" }),
-
-// 	//then huge
-// 	main({ ...spec, amp: 10, "makeChart": "amplitude-10" }),
-// 	main({ ...spec, freq: 10, "makeChart": "frequency-10" }),
-// 	main({ ...spec, skew: 10, "makeChart": "skew-10" }),
-// 	main({ ...spec, noise: 10, "makeChart": "noise-10" }),
-
-// 	//then tiny
-// 	main({ ...spec, amp: 0.1, "makeChart": "amplitude-0.1" }),
-// 	main({ ...spec, freq: 0.1, "makeChart": "frequency-0.1" }),
-// 	main({ ...spec, skew: 0.1, "makeChart": "skew-0.1" }),
-// 	main({ ...spec, noise: 0.1, "makeChart": "noise-0.1" }),
-
-
-// 	//then set them all to strange values
-// 	main({ ...spec, amp: 1, freq: 1, skew: 1, noise: 1, "makeChart": "all-1" }),
-// 	main({ ...spec, amp: 0.1, freq: 0.1, skew: 0.1, noise: 0.1, "makeChart": "all-0.1" }),
-// 	main({ ...spec, amp: 10, freq: 10, skew: 10, noise: 10, "makeChart": "all-10" }),
-
-// 	//big freq, small skew
-// 	main({ ...spec, freq: 10, skew: 0.1, "makeChart": "freq-10-skew-0.1" }),
-// 	main({ ...spec, freq: 10, skew: 0.5, "makeChart": "freq-10-skew-0.5" }),
-// 	main({ ...spec, freq: 10, skew: 0.9, "makeChart": "freq-10-skew-0.9" }),
-
-// 	//big freq, big skew
-// 	main({ ...spec, freq: 10, skew: 10, "makeChart": "freq-10-skew-10" }),
-// 	main({ ...spec, freq: 10, skew: 5, "makeChart": "freq-10-skew-5" }),
-// 	main({ ...spec, freq: 10, skew: 2, "makeChart": "freq-10-skew-2" }),
-
-// 	//small freq, small skew
-// 	main({ ...spec, freq: 0.1, skew: 0.1, "makeChart": "freq-0.1-skew-0.1" }),
-// 	main({ ...spec, freq: 0.1, skew: 0.5, "makeChart": "freq-0.1-skew-0.5" }),
-// 	main({ ...spec, freq: 0.1, skew: 0.9, "makeChart": "freq-0.1-skew-0.9" }),
-
-// 	//small freq, big skew
-// 	main({ ...spec, freq: 0.1, skew: 10, "makeChart": "freq-0.1-skew-10" }),
-// 	main({ ...spec, freq: 0.1, skew: 5, "makeChart": "freq-0.1-skew-5" }),
-// 	main({ ...spec, freq: 0.1, skew: 2, "makeChart": "freq-0.1-skew-2" }),
-
-// ]);
 
 
 
