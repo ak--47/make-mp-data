@@ -28,7 +28,7 @@ const config = {
 			"event": "checkout",
 			"weight": 2,
 			"properties": {
-				amount: weightedRange(5, 500, .25, 1000),
+				amount: weightedRange(5, 500, .25),
 				currency: ["USD", "USD", "USD", "CAD", "EUR", "EUR", "BTC", "BTC", "ETH", "JPY"],
 				cart: makeProducts(12),
 			}
@@ -37,9 +37,9 @@ const config = {
 			"event": "add to cart",
 			"weight": 4,
 			"properties": {
-				amount: weightedRange(5, 500, .25, 1000),
+				amount: weightedRange(5, 500, .25),
 				qty: integer(1, 5),
-				product_id: weightedRange(1, 1000, 1.4, 42)
+				product_id: weightedRange(1, 1000, 1.4)
 			}
 		},
 		{
@@ -56,10 +56,10 @@ const config = {
 			"properties": {
 				category: ["funny", "educational", "inspirational", "music", "news", "sports", "cooking", "DIY", "travel", "gaming"],
 				hashTags: makeHashTags,
-				watchTimeSec: weightedRange(10, 600,.25,  1000),
+				watchTimeSec: weightedRange(10, 600, .25,),
 				quality: ["2160p", "1440p", "1080p", "720p", "480p", "360p", "240p"],
 				format: ["mp4", "avi", "mov", "mpg"],
-				video_id: weightedRange(1, 50000, 1.4, 420000),
+				video_id: weightedRange(1, 50000, 1.4),
 
 			}
 		},
@@ -67,8 +67,8 @@ const config = {
 			"event": "comment",
 			"weight": 2,
 			"properties": {
-				length: weightedRange(1, 500, .25, 1000),
-				video_id: weightedRange(1, 50000, 1.4,  420000),
+				length: weightedRange(1, 500, .25),
+				video_id: weightedRange(1, 50000, 1.4),
 				has_replies: [true, false, false, false, false],
 				has_photo: [true, false, false, false, false],
 
@@ -78,7 +78,7 @@ const config = {
 			"event": "save video",
 			"weight": 4,
 			"properties": {
-				video_id: weightedRange(1, 50000, 1.4,  420000),
+				video_id: weightedRange(1, 50000, 1.4),
 				ui_control: ["toolbar", "menu", "keyboard"]
 
 
@@ -88,7 +88,7 @@ const config = {
 			"event": "view item",
 			"weight": 8,
 			"properties": {
-				product_id: weightedRange(1,  24, 3, 1000),
+				product_id: weightedRange(1, 24, 3),
 				colors: ["light", "dark", "custom", "dark"]
 			}
 		},
@@ -96,7 +96,7 @@ const config = {
 			"event": "save item",
 			"weight": 5,
 			"properties": {
-				product_id: weightedRange(1, 1000, 12, 8 ),
+				product_id: weightedRange(1, 1000, 12),
 				colors: ["light", "dark", "custom", "dark"]
 			}
 		},
@@ -104,7 +104,7 @@ const config = {
 			"event": "support ticket",
 			"weight": 2,
 			"properties": {
-				product_id: weightedRange(1, 1000, .6, 420),
+				product_id: weightedRange(1, 1000, .6),
 				description: chance.sentence.bind(chance),
 				severity: ["low", "medium", "high"],
 				ticket_id: chance.guid.bind(chance)
@@ -144,8 +144,8 @@ const config = {
 	/** each generates it's own table */
 	scdProps: {
 		plan: ["free", "free", "free", "free", "basic", "basic", "basic", "premium", "premium", "enterprise"],
-		MRR: weightedRange(0, 10000,  .15, 1000),
-		NPS: weightedRange(0, 10,  2, 150),
+		MRR: weightedRange(0, 10000, .15),
+		NPS: weightedRange(0, 10, 2, 150),
 		subscribed: [true, true, true, true, true, true, false, false, false, false, "it's complicated"],
 		renewalDate: date(100, false),
 	},
@@ -155,7 +155,7 @@ const config = {
 		profit: { events: ["checkout"], values: [4, 2, 42, 420] },
 		watchTimeSec: {
 			events: ["watch video"],
-			values: weightedRange(50, 1200, 6 ,247)
+			values: weightedRange(50, 1200, 6, 247)
 		}
 	},
 

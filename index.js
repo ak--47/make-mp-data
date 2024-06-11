@@ -6,6 +6,12 @@ by AK
 ak@mixpanel.com
 */
 
+//todo: churn ... is churnFunnel, possible to return, etc
+//todo: fixedTimeFunnel? if set this funnel will occur for all users at the same time ['cart charged', 'charge complete']
+//todo defaults!!!
+//todo ads-data
+		
+		
 const dayjs = require("dayjs");
 const utc = require("dayjs/plugin/utc");
 dayjs.extend(utc);
@@ -119,7 +125,7 @@ async function main(config) {
 	config.hook = hook;
 
 	//event validation 
-	const validatedEvents = validateEvents(events);
+	const validatedEvents = u.validateEventConfig(events);
 	events = validatedEvents;
 	config.events = validatedEvents;
 	global.MP_SIMULATION_CONFIG = config;
@@ -147,46 +153,9 @@ async function main(config) {
 
 	// if no funnels, make some out of events...
 	if (!funnels || !funnels.length) {
-		const createdFunnels = [];
-		const firstEvents = events.filter((e) => e.isFirstEvent).map((e) => e.event);
-		const usageEvents = events.filter((e) => !e.isFirstEvent).map((e) => e.event);
-		const numFunnelsToCreate = Math.ceil(usageEvents.length);
-		/** @type {Funnel} */
-		const funnelTemplate = {
-			sequence: [],
-			conversionRate: 50,
-			order: 'sequential',
-			props: {},
-			timeToConvert: 1,
-			isFirstFunnel: false,
-			weight: 1
-		};
-		if (firstEvents.length) {
-			for (const event of firstEvents) {
-				createdFunnels.push({ ...clone(funnelTemplate), sequence: [event], isFirstFunnel: true, conversionRate: 100 });
-			}
-		}
-
-		//at least one funnel with all usage events
-		createdFunnels.push({ ...clone(funnelTemplate), sequence: usageEvents });
-
-		//for the rest, make random funnels
-		followUpFunnels: for (let i = 1; i < numFunnelsToCreate; i++) {
-			/** @type {Funnel} */
-			const funnel = { ...clone(funnelTemplate) };
-			funnel.conversionRate = u.integer(25, 75);
-			funnel.timeToConvert = u.integer(1, 10);
-			funnel.weight = u.integer(1, 10);
-			const sequence = u.shuffleArray(usageEvents).slice(0, u.integer(2, usageEvents.length));
-			funnel.sequence = sequence;
-			funnel.order = 'random';
-			createdFunnels.push(funnel);
-		}
-
-		funnels = createdFunnels;
+		funnels = inferFunnels(events);
 		config.funnels = funnels;
 		CONFIG = config;
-
 	}
 
 	//user loop
@@ -271,8 +240,7 @@ async function main(config) {
 			u.progress("groups", i);
 			const group = {
 				[groupKey]: i,
-				...makeProfile(groupProps[groupKey]),
-				// $distinct_id: i,
+				...makeProfile(groupProps[groupKey])
 			};
 			group["distinct_id"] = i;
 			groupProfiles.push(group);
@@ -467,6 +435,11 @@ async function main(config) {
 	};
 }
 
+
+
+
+
+
 /**
  * creates a random event
  * @param  {string} distinct_id
@@ -534,8 +507,8 @@ function makeEvent(distinct_id, anonymousIds, sessionIds, earliestTime, chosenEv
 }
 
 /**
- * creates a funnel of events for a user
- * this is called multiple times for a user
+ * from a funnel spec to a funnel that a user completes/doesn't complete
+ * this is called MANY times per user
  * @param  {Funnel} funnel
  * @param  {Person} user
  * @param  {UserProfile} profile
@@ -547,7 +520,14 @@ function makeEvent(distinct_id, anonymousIds, sessionIds, earliestTime, chosenEv
 function makeFunnel(funnel, user, profile, scd, firstEventTime, config) {
 	const { hook } = config;
 	hook(funnel, "funnel-pre", { user, profile, scd, funnel, config });
-	const { sequence, conversionRate = 50, order = 'sequential', timeToConvert = 1, props } = funnel;
+	let {
+		sequence,
+		conversionRate = 50,
+		order = 'sequential',
+		timeToConvert = 1,
+		props,
+		requireRepeats = false,
+	} = funnel;
 	const { distinct_id, created, anonymousIds, sessionIds } = user;
 	const { superProps, groupKeys } = config;
 	const { name, email } = profile;
@@ -562,32 +542,90 @@ function makeFunnel(funnel, user, profile, scd, firstEventTime, config) {
 		}
 	}
 
-	const funnelPossibleEvents = sequence.map((event) => {
-		const foundEvent = config.events.find((e) => e.event === event);
-		/** @type {EventConfig} */
-		const eventSpec = foundEvent || { event, properties: {} };
-		for (const key in eventSpec.properties) {
-			try {
-				eventSpec.properties[key] = u.choose(eventSpec.properties[key]);
-			} catch (e) {
-				console.error(`error with ${key} in ${eventSpec.event} event`, e);
-				debugger;
+	const funnelPossibleEvents = sequence
+		.map((eventName) => {
+			const foundEvent = config.events.find((e) => e.event === eventName);
+			/** @type {EventConfig} */
+			const eventSpec = foundEvent || { event: eventName, properties: {} };
+			for (const key in eventSpec.properties) {
+				try {
+					eventSpec.properties[key] = u.choose(eventSpec.properties[key]);
+				} catch (e) {
+					console.error(`error with ${key} in ${eventSpec.event} event`, e);
+					debugger;
+				}
 			}
-		}
-		delete eventSpec.isFirstEvent;
-		delete eventSpec.weight;
-		eventSpec.properties = { ...eventSpec.properties, ...chosenFunnelProps };
-		return eventSpec;
-	});
+			delete eventSpec.isFirstEvent;
+			delete eventSpec.weight;
+			eventSpec.properties = { ...eventSpec.properties, ...chosenFunnelProps };
+			return eventSpec;
+		})
+		.reduce((acc, step) => {
+			if (!requireRepeats) {
+				if (acc.find(e => e.event === step.event)) {
+					if (config.chance.bool({ likelihood: 50 })) {
+						conversionRate = Math.floor(conversionRate * 1.25); //increase conversion rate
+						acc.push(step);
+					}
+					//A SKIPPED STEP!
+					else {
+						conversionRate = Math.floor(conversionRate * .75); //reduce conversion rate
+						return acc; //early return to skip the step
+					}
+				}
+				else {
+					acc.push(step);
+				}
+			}
+			else {
+				acc.push(step);
+			}
+			return acc;
+		}, []);
 
-	const doesUserConvert = config.chance.bool({ likelihood: conversionRate });
+	let doesUserConvert = config.chance.bool({ likelihood: conversionRate });
 	let numStepsUserWillTake = sequence.length;
 	if (!doesUserConvert) numStepsUserWillTake = u.integer(1, sequence.length - 1);
 	const funnelTotalRelativeTimeInHours = timeToConvert / numStepsUserWillTake;
 	const msInHour = 60000 * 60;
+	const funnelStepsUserWillTake = funnelPossibleEvents.slice(0, numStepsUserWillTake);
+
+	let funnelActualOrder = [];
+
+	switch (order) {
+		case "sequential":
+			funnelActualOrder = funnelStepsUserWillTake;
+			break;
+		case "random":
+			funnelActualOrder = u.shuffleArray(funnelStepsUserWillTake);
+			break;
+		case "first-fixed":
+			funnelActualOrder = u.shuffleExceptFirst(funnelStepsUserWillTake);
+			break;
+		case "last-fixed":
+			funnelActualOrder = u.shuffleExceptLast(funnelStepsUserWillTake);
+			break;
+		case "first-and-last-fixed":
+			funnelActualOrder = u.fixFirstAndLast(funnelStepsUserWillTake);
+			break;
+		case "middle-fixed":
+			funnelActualOrder = u.shuffleOutside(funnelStepsUserWillTake);
+			break;
+		case "interrupted":
+			const potentialSubstitutes = config?.events
+				?.filter(e => !e.isFirstEvent)
+				?.filter(e => !sequence.includes(e.event)) || [];
+			funnelActualOrder = u.interruptArray(funnelStepsUserWillTake, potentialSubstitutes);
+			break;
+		default:
+			funnelActualOrder = funnelStepsUserWillTake;
+			break;
+	}
+
+
 
 	let lastTimeJump = 0;
-	const funnelActualEvents = funnelPossibleEvents.slice(0, numStepsUserWillTake)
+	const funnelActualEventsWithOffset = funnelActualOrder
 		.map((event, index) => {
 			if (index === 0) {
 				event.relativeTimeMs = 0;
@@ -612,36 +650,9 @@ function makeFunnel(funnel, user, profile, scd, firstEventTime, config) {
 		});
 
 
-	let funnelActualOrder = [];
-
-	//todo
-	switch (order) {
-		case "sequential":
-			funnelActualOrder = funnelActualEvents;
-			break;
-		case "random":
-			funnelActualOrder = u.shuffleArray(funnelActualEvents);
-			break;
-		case "first-fixed":
-			funnelActualOrder = u.shuffleExceptFirst(funnelActualEvents);
-			break;
-		case "last-fixed":
-			funnelActualOrder = u.shuffleExceptLast(funnelActualEvents);
-			break;
-		case "first-and-last-fixed":
-			funnelActualOrder = u.fixFirstAndLast(funnelActualEvents);
-			break;
-		case "middle-fixed":
-			funnelActualOrder = u.shuffleOutside(funnelActualEvents);
-			break;
-		default:
-			funnelActualOrder = funnelActualEvents;
-			break;
-	}
-
 	const earliestTime = firstEventTime || dayjs(created).unix();
 	let funnelStartTime;
-	let finalEvents = funnelActualOrder
+	let finalEvents = funnelActualEventsWithOffset
 		.map((event, index) => {
 			const newEvent = makeEvent(distinct_id, anonymousIds, sessionIds, earliestTime, event, {}, groupKeys);
 			if (index === 0) {
@@ -649,14 +660,63 @@ function makeFunnel(funnel, user, profile, scd, firstEventTime, config) {
 				delete newEvent.relativeTimeMs;
 				return newEvent;
 			}
-			newEvent.time = dayjs(funnelStartTime).add(event.relativeTimeMs, "milliseconds").toISOString();
-			delete newEvent.relativeTimeMs;
-			return newEvent;
+			try {
+				newEvent.time = dayjs(funnelStartTime).add(event.relativeTimeMs, "milliseconds").toISOString();
+				delete newEvent.relativeTimeMs;
+				return newEvent;
+			}
+			catch (e) {
+
+				debugger;
+			}
 		});
 
 
 	hook(finalEvents, "funnel-post", { user, profile, scd, funnel, config });
 	return [finalEvents, doesUserConvert];
+}
+
+
+function inferFunnels(events) {
+	const createdFunnels = [];
+	const firstEvents = events.filter((e) => e.isFirstEvent).map((e) => e.event);
+	const usageEvents = events.filter((e) => !e.isFirstEvent).map((e) => e.event);
+	const numFunnelsToCreate = Math.ceil(usageEvents.length);
+	/** @type {Funnel} */
+	const funnelTemplate = {
+		sequence: [],
+		conversionRate: 50,
+		order: 'sequential',
+		requireRepeats: false,
+		props: {},
+		timeToConvert: 1,
+		isFirstFunnel: false,
+		weight: 1
+	};
+	if (firstEvents.length) {
+		for (const event of firstEvents) {
+			createdFunnels.push({ ...clone(funnelTemplate), sequence: [event], isFirstFunnel: true, conversionRate: 100 });
+		}
+	}
+
+	//at least one funnel with all usage events
+	createdFunnels.push({ ...clone(funnelTemplate), sequence: usageEvents });
+
+	//for the rest, make random funnels
+	followUpFunnels: for (let i = 1; i < numFunnelsToCreate; i++) {
+		/** @type {Funnel} */
+		const funnel = { ...clone(funnelTemplate) };
+		funnel.conversionRate = u.integer(25, 75);
+		funnel.timeToConvert = u.integer(1, 10);
+		funnel.weight = u.integer(1, 10);
+		const sequence = u.shuffleArray(usageEvents).slice(0, u.integer(2, usageEvents.length));
+		funnel.sequence = sequence;
+		funnel.order = 'random';
+		createdFunnels.push(funnel);
+	}
+
+	return createdFunnels;
+
 }
 
 
@@ -710,29 +770,8 @@ function makeSCD(prop, scdKey, distinct_id, mutations, created) {
 	return scdEntries;
 }
 
-/**
- * @param  {EventConfig[] | string[]} events
- */
-function validateEvents(events) {
-	if (!Array.isArray(events)) throw new Error("events must be an array");
-	const cleanEventConfig = [];
-	for (const event of events) {
-		if (typeof event === "string") {
-			/** @type {EventConfig} */
-			const eventTemplate = {
-				event,
-				isFirstEvent: false,
-				properties: {},
-				weight: u.integer(1, 5)
-			};
-			cleanEventConfig.push(eventTemplate);
-		}
-		if (typeof event === "object") {
-			cleanEventConfig.push(event);
-		}
-	}
-	return cleanEventConfig;
-}
+
+
 
 
 

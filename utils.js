@@ -11,10 +11,12 @@ dayjs.extend(utc);
 require('dotenv').config();
 
 /** @typedef {import('./types').Config} Config */
+/** @typedef {import('./types').EventConfig} EventConfig */
 /** @typedef {import('./types').ValueValid} ValueValid */
 /** @typedef {import('./types').EnrichedArray} EnrichArray */
 /** @typedef {import('./types').EnrichArrayOptions} EnrichArrayOptions */
 /** @typedef {import('./types').Person} Person */
+/** @typedef {import('./types').Funnel} Funnel */
 
 let globalChance;
 let chanceInitialized = false;
@@ -268,6 +270,14 @@ function boxMullerRandom() {
 	return Math.sqrt(-2.0 * Math.log(u)) * Math.cos(2.0 * Math.PI * v);
 };
 
+function optimizedBoxMuller() {
+	const chance = getChance();
+	const u = Math.max(Math.min(chance.normal({ mean: .5, dev: .25 }), 1), 0);
+	const v = Math.max(Math.min(chance.normal({ mean: .5, dev: .25 }), 1), 0);
+	return Math.sqrt(-2.0 * Math.log(u)) * Math.cos(2.0 * Math.PI * v);
+
+}
+
 /**
  * applies a skew to a value;
  * Skew=0.5: When the skew is 0.5, the distribution becomes more compressed, with values clustering closer to the mean.
@@ -377,12 +387,14 @@ function weighFunnels(acc, funnel) {
  * @param  {number} skew=1
  * @param  {number} size=100
  */
-function weightedRange(min, max, skew = 1, size = 100) {
+function weightedRange(min, max, skew = 1, size = 50) {
+	if (size > 2000) size = 2000;
 	const mean = (max + min) / 2;
 	const sd = (max - min) / 4;
 	const array = [];
 	while (array.length < size) {
-		const normalValue = boxMullerRandom();
+		// const normalValue = boxMullerRandom();
+		const normalValue = optimizedBoxMuller();
 		const skewedValue = applySkew(normalValue, skew);
 		const mappedValue = mapToRange(skewedValue, mean, sd);
 		if (mappedValue >= min && mappedValue <= max) {
@@ -457,6 +469,76 @@ function shuffleOutside(array) {
 	const outsideShuffled = shuffleArray([array[0], array[array.length - 1]]);
 	return [outsideShuffled[0], ...middleFixed, outsideShuffled[1]];
 }
+
+/**
+ * @param  {EventConfig[]} funnel
+ * @param  {EventConfig[]} possibles
+ */
+function interruptArray(funnel, possibles, percent = 50) {
+	if (!Array.isArray(funnel)) return funnel;
+	if (!Array.isArray(possibles)) return funnel;
+	if (!funnel.length) return funnel;
+	if (!possibles.length) return funnel;
+	const ignorePositions = [0, funnel.length - 1];
+	const chance = getChance();
+	loopSteps: for (const [index, event] of funnel.entries()) {
+		if (ignorePositions.includes(index)) continue loopSteps;
+		if (chance.bool({ likelihood: percent })) {
+			funnel[index] = chance.pickone(possibles);
+		}
+	}
+
+	return funnel;
+}
+
+/*
+----
+VALIDATORS
+----
+*/
+
+
+/**
+ * @param  {EventConfig[] | string[]} events
+ */
+function validateEventConfig(events) {
+	if (!Array.isArray(events)) throw new Error("events must be an array");
+	const cleanEventConfig = [];
+	for (const event of events) {
+		if (typeof event === "string") {
+			/** @type {EventConfig} */
+			const eventTemplate = {
+				event,
+				isFirstEvent: false,
+				properties: {},
+				weight: integer(1, 5)
+			};
+			cleanEventConfig.push(eventTemplate);
+		}
+		if (typeof event === "object") {
+			cleanEventConfig.push(event);
+		}
+	}
+	return cleanEventConfig;
+}
+
+function validateTime(chosenTime, earliestTime, latestTime) {
+	if (!earliestTime) earliestTime = global.NOW - (60 * 60 * 24 * 30); // 30 days ago
+	if (!latestTime) latestTime = global.NOW;
+
+	if (typeof chosenTime === 'number') {
+		if (chosenTime > 0) {
+			if (chosenTime > earliestTime) {
+				if (chosenTime < latestTime) {
+					return true;
+				}
+
+			}
+		}
+	}
+	return false;
+}
+
 
 /*
 ----
@@ -684,22 +766,6 @@ function TimeSoup(earliestTime, latestTime, peaks = 5, deviation = 2, mean = 0) 
 }
 
 
-function validateTime(chosenTime, earliestTime, latestTime) {
-	if (!earliestTime) earliestTime = global.NOW - (60 * 60 * 24 * 30); // 30 days ago
-	if (!latestTime) latestTime = global.NOW;
-
-	if (typeof chosenTime === 'number') {
-		if (chosenTime > 0) {
-			if (chosenTime > earliestTime) {
-				if (chosenTime < latestTime) {
-					return true;
-				}
-
-			}
-		}
-	}
-	return false;
-}
 
 
 /**
@@ -829,7 +895,7 @@ module.exports = {
 
 	initChance,
 	getChance,
-
+	validateTime,
 	boxMullerRandom,
 	applySkew,
 	mapToRange,
@@ -842,17 +908,17 @@ module.exports = {
 	pickAWinner,
 	weighArray,
 	weighFunnels,
-
+	validateEventConfig,
 	shuffleArray,
 	shuffleExceptFirst,
 	shuffleExceptLast,
 	fixFirstAndLast,
 	shuffleMiddle,
 	shuffleOutside,
-
+	interruptArray,
 	generateUser,
 	enrichArray,
-
+	optimizedBoxMuller,
 	buildFileNames,
 	streamJSON,
 	streamCSV

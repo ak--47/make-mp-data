@@ -39,7 +39,11 @@ const { applySkew,
 	buildFileNames,
 	TimeSoup,
 	getChance,
-	initChance
+	initChance,
+	validateEventConfig,
+	validateTime,
+	interruptArray,
+	optimizedBoxMuller
 } = require('../utils');
 
 
@@ -59,7 +63,7 @@ describe('timesoup', () => {
 });
 
 
-describe('naming things', () => {
+describe('names', () => {
 
 	test('default config', () => {
 		const config = { simulationName: 'testSim' };
@@ -182,7 +186,7 @@ describe('naming things', () => {
 });
 
 
-describe('determined random', () => {
+describe('determinism', () => {
 	test('initializes RNG with seed from environment variable', () => {
 		process.env.SEED = 'test-seed';
 		// @ts-ignore
@@ -206,8 +210,8 @@ describe('determined random', () => {
 });
 
 
-describe('generateUser', () => {
-	test('creates a user with valid fields', () => {
+describe('generation', () => {
+	test('users: can make', () => {
 		const numDays = 30;
 		const user = generateUser('uuid-123', numDays);
 		expect(user).toHaveProperty('distinct_id');
@@ -219,7 +223,7 @@ describe('generateUser', () => {
 		expect(user).toHaveProperty('sessionIds');
 	});
 
-	test('creates a user with a created date within the specified range', () => {
+	test('user: in time range', () => {
 		const numDays = 30;
 		const user = generateUser('uuid-123', numDays);
 		const createdDate = dayjs(user.created, 'YYYY-MM-DD');
@@ -228,9 +232,86 @@ describe('generateUser', () => {
 	});
 });
 
+describe('validation', () => {
 
+	beforeAll(() => {
+		global.NOW = 1672531200; // fixed point in time for testing
+	});
 
-describe('enrich array', () => {
+	test('events: throws non array', () => {
+		// @ts-ignore
+		expect(() => validateEventConfig("not an array")).toThrow("events must be an array");
+	});
+
+	test('events: strings', () => {
+		const events = ["event1", "event2"];
+		const result = validateEventConfig(events);
+
+		expect(result).toEqual([
+			{ event: "event1", isFirstEvent: false, properties: {}, weight: expect.any(Number) },
+			{ event: "event2", isFirstEvent: false, properties: {}, weight: expect.any(Number) },
+		]);
+
+		result.forEach(event => {
+			expect(event.weight).toBeGreaterThanOrEqual(1);
+			expect(event.weight).toBeLessThanOrEqual(5);
+		});
+	});
+
+	test('events: objects', () => {
+		const events = [{ event: "event1", properties: { a: 1 } }, { event: "event2", properties: { b: 2 } }];
+		const result = validateEventConfig(events);
+
+		expect(result).toEqual(events);
+	});
+
+	test('events: mix', () => {
+		const events = ["event1", { event: "event2", properties: { b: 2 } }];
+		// @ts-ignore
+		const result = validateEventConfig(events);
+
+		expect(result).toEqual([
+			{ event: "event1", isFirstEvent: false, properties: {}, weight: expect.any(Number) },
+			{ event: "event2", properties: { b: 2 } }
+		]);
+
+		expect(result[0].weight).toBeGreaterThanOrEqual(1);
+		expect(result[0].weight).toBeLessThanOrEqual(5);
+	});
+
+	test('dates: between', () => {
+		const chosenTime = global.NOW - (60 * 60 * 24 * 15); // 15 days ago
+		const earliestTime = global.NOW - (60 * 60 * 24 * 30); // 30 days ago
+		const latestTime = global.NOW;
+		expect(validateTime(chosenTime, earliestTime, latestTime)).toBe(true);
+	});
+
+	test('dates: outside earliest', () => {
+		const chosenTime = global.NOW - (60 * 60 * 24 * 31); // 31 days ago
+		const earliestTime = global.NOW - (60 * 60 * 24 * 30); // 30 days ago
+		const latestTime = global.NOW;
+		expect(validateTime(chosenTime, earliestTime, latestTime)).toBe(false);
+	});
+
+	test('dates: outside latest', () => {
+		const chosenTime = -1;
+		const earliestTime = global.NOW - (60 * 60 * 24 * 30); // 30 days ago
+		const latestTime = global.NOW;
+		expect(validateTime(chosenTime, earliestTime, latestTime)).toBe(false);
+	});
+
+	test('dates: inference in', () => {
+		const chosenTime = global.NOW - (60 * 60 * 24 * 15); // 15 days ago
+		expect(validateTime(chosenTime)).toBe(true);
+	});
+
+	test('dates: inference out', () => {
+		const chosenTime = global.NOW - (60 * 60 * 24 * 31); // 31 days ago
+		expect(validateTime(chosenTime)).toBe(false);
+	});
+});
+
+describe('enrichment', () => {
 	test('hook works', () => {
 		const arr = [];
 		const hook = (item) => item * 2;
@@ -238,7 +319,7 @@ describe('enrich array', () => {
 		enrichedArray.hookPush(1);
 		enrichedArray.hookPush(2);
 		expect(enrichedArray.includes(2)).toBeTruthy();
-		expect(enrichedArray.includes(4)).toBeTruthy();		
+		expect(enrichedArray.includes(4)).toBeTruthy();
 	});
 
 	test('filter empties', () => {
@@ -247,7 +328,7 @@ describe('enrich array', () => {
 		const enrichedArray = enrichArray(arr, { hook });
 		enrichedArray.hookPush(null);
 		enrichedArray.hookPush(undefined);
-		enrichedArray.hookPush({});		
+		enrichedArray.hookPush({});
 		enrichedArray.hookPush({ a: 1 });
 		enrichedArray.hookPush([1, 2]);
 		expect(enrichedArray).toHaveLength(3);
@@ -256,12 +337,14 @@ describe('enrich array', () => {
 		expect(enrichedArray.includes('[object Object]')).toBeTruthy();
 		expect(enrichedArray.includes('1')).toBeTruthy();
 		expect(enrichedArray.includes('2')).toBeTruthy();
-		
+
 	});
+
+
 });
 
 
-describe('utils', () => {
+describe('utilities', () => {
 
 	test('pick: works', () => {
 		const array = [1, 2, 3];
@@ -343,13 +426,13 @@ describe('utils', () => {
 	test('weightedRange:  within range', () => {
 		const values = weightedRange(5, 15);
 		expect(values.every(v => v >= 5 && v <= 15)).toBe(true);
-		expect(values.length).toBe(100);
+		expect(values.length).toBe(50);
 	});
 
 	test('applySkew: skews', () => {
 		const value = boxMullerRandom();
 		const skewedValue = applySkew(value, .25);
-		expect(Math.abs(skewedValue)).toBeGreaterThanOrEqual(Math.abs(value));
+		expect(Math.abs(skewedValue)).toBeLessThanOrEqual(Math.abs(value));
 	});
 
 	test('mapToRange: works', () => {
@@ -529,6 +612,18 @@ describe('utils', () => {
 		const values = [];
 		for (let i = 0; i < 10000; i++) {
 			values.push(boxMullerRandom());
+		}
+		const mean = values.reduce((sum, val) => sum + val, 0) / values.length;
+		const variance = values.reduce((sum, val) => sum + Math.pow(val - mean, 2), 0) / values.length;
+		const stdDev = Math.sqrt(variance);
+		expect(mean).toBeCloseTo(0, 1);
+		expect(stdDev).toBeCloseTo(1, 1);
+	});
+
+	test('optimized box normal distribution', () => {
+		const values = [];
+		for (let i = 0; i < 10000; i++) {
+			values.push(optimizedBoxMuller());
 		}
 		const mean = values.reduce((sum, val) => sum + val, 0) / values.length;
 		const variance = values.reduce((sum, val) => sum + Math.pow(val - mean, 2), 0) / values.length;

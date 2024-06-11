@@ -37,7 +37,7 @@ const config = {
 			event: "checkout",
 			weight: 2,
 			properties: {
-				amount: weightedRange(5, 500, .25, 1000),
+				amount: weightedRange(5, 500, .25),
 				currency: ["USD", "CAD", "EUR", "BTC", "ETH", "JPY"],
 				coupon: ["none", "none", "none", "none", "10%OFF", "20%OFF", "10%OFF", "20%OFF", "30%OFF", "40%OFF", "50%OFF"],
 				numItems: weightedRange(1, 10),
@@ -48,7 +48,7 @@ const config = {
 			event: "add to cart",
 			weight: 4,
 			properties: {
-				amount: weightedRange(5, 500, .25, 1000),
+				amount: weightedRange(5, 500, .25),
 				rating: weightedRange(1, 5),
 				reviews: weightedRange(0, 35),
 				isFeaturedItem: [true, false, false],
@@ -71,7 +71,7 @@ const config = {
 			properties: {
 				videoCategory: pickAWinner(videoCategories, integer(0, 9)),
 				isFeaturedItem: [true, false, false],
-				watchTimeSec: weightedRange(10, 600, .25, 1000),
+				watchTimeSec: weightedRange(10, 600, .25),
 				quality: ["2160p", "1440p", "1080p", "720p", "480p", "360p", "240p"],
 				format: ["mp4", "avi", "mov", "mpg"],
 				uploader_id: chance.guid.bind(chance)
@@ -133,7 +133,7 @@ const config = {
 		profit: { events: ["checkout"], values: [4, 2, 42, 420] },
 		watchTimeSec: {
 			events: ["watch video"],
-			values: weightedRange(50, 1200, 6, 247)
+			values: weightedRange(50, 1200, 6)
 		}
 
 	},

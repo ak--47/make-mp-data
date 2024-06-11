@@ -85,13 +85,20 @@ declare namespace main {
     sequence: string[];
     weight?: number;
     isFirstFunnel?: boolean;
+	/**
+	 * If true, the funnel will require the user to repeat the sequence of events in order to convert
+	 * If false, the user does not need to repeat the sequence of events in order to convert
+	 * ^ when false, users who repeat the repetitive steps are more likely to convert
+	 */
+	requireRepeats?: boolean;
     order?:
       | "sequential"
       | "first-fixed"
       | "last-fixed"
       | "random"
       | "first-and-last-fixed"
-      | "middle-fixed";
+      | "middle-fixed"
+	  | "interrupted";
     conversionRate?: number;
     timeToConvert?: number;
     props?: Record<string, ValueValid>;
