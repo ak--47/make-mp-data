@@ -474,33 +474,43 @@ function enrichArray(arr = [], opts = {}) {
 	const { hook = a => a, type = "", ...rest } = opts;
 
 	function transformThenPush(item) {
-		if (item === null) return 0;
-		if (item === undefined) return 0;
+		if (item === null) return false;
+		if (item === undefined) return false;
 		if (typeof item === 'object') {
-			if (Object.keys(item).length === 0) return 0;
+			if (Object.keys(item).length === 0) return false;
 		}
+
+		//hook is passed an array 
 		if (Array.isArray(item)) {
 			for (const i of item) {
 				try {
 					const enriched = hook(i, type, rest);
-					arr.push(enriched);
+					if (Array.isArray(enriched)) enriched.forEach(e => arr.push(e));
+					else arr.push(enriched);
+
 				}
 				catch (e) {
 					console.error(`\n\nyour hook had an error\n\n`, e);
 					arr.push(i);
+					return false;
 				}
 
 			}
-			return -1;
+			return true;
 		}
+
+		//hook is passed a single item
 		else {
 			try {
 				const enriched = hook(item, type, rest);
-				return arr.push(enriched);
+				if (Array.isArray(enriched)) enriched.forEach(e => arr.push(e));
+				else arr.push(enriched);
+				return true;
 			}
 			catch (e) {
 				console.error(`\n\nyour hook had an error\n\n`, e);
-				return arr.push(item);
+				arr.push(item);
+				return false;
 			}
 		}
 

@@ -60,7 +60,7 @@ declare namespace main {
   }
 
   export interface EnrichedArray<T> extends Array<T> {
-    hookPush: (item: T) => number;
+    hookPush: (item: T) => boolean;
   }
 
   export interface EventConfig {

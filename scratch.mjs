@@ -6,12 +6,10 @@ import execSync from 'child_process';
 
 /** @type {main.Config} */
 const spec = {	
-	...amir,
-	numUsers: 1000,
-	numEvents: 100000,
+	...amir,	
 	writeToDisk: false,
 	verbose: true,
-	makeChart: true,	
+	makeChart: false,	
 };
 
 

@@ -117,7 +117,7 @@ async function main(config) {
 	config.makeChart = makeChart;
 	config.soup = soup;
 	config.hook = hook;
-	
+
 	//event validation 
 	const validatedEvents = validateEvents(events);
 	events = validatedEvents;
@@ -300,18 +300,24 @@ async function main(config) {
 	const actualNow = dayjs();
 	const fixedNow = dayjs.unix(global.NOW);
 	const timeShift = actualNow.diff(fixedNow, "second");
-	const dayShift = actualNow.diff(global.NOW, "day");
+
 	eventData.forEach((event) => {
-		const newTime = dayjs(event.time).add(timeShift, "second");
-		event.time = newTime.toISOString();
-		if (epochStart && newTime.unix() < epochStart) event = {};
-		if (epochEnd && newTime.unix() > epochEnd) event = {};
+		try {
+			const newTime = dayjs(event.time).add(timeShift, "second");
+			event.time = newTime.toISOString();
+			if (epochStart && newTime.unix() < epochStart) event = {};
+			if (epochEnd && newTime.unix() > epochEnd) event = {};
+		}
+		catch (e) {
+			//noop
+		}
 	});
 
-	userProfilesData.forEach((profile) => {
-		const newTime = dayjs(profile.created).add(dayShift, "day");
-		profile.created = newTime.toISOString();
-	});
+	// const dayShift = actualNow.diff(global.NOW, "day");
+	// userProfilesData.forEach((profile) => {
+	// 	const newTime = dayjs(profile.created).add(dayShift, "day");
+	// 	profile.created = newTime.toISOString();
+	// });
 
 
 	// draw charts
