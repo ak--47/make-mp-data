@@ -6,7 +6,7 @@ by AK
 ak@mixpanel.com
 */
 
-//todo: ads-data
+//todo: adspend is only getting 1 campaign per day?!?!
 //todo: cart analysis
 //todo: churn ... is churnFunnel, possible to return, etc
 //todo: fixedTimeFunnel? if set this funnel will occur for all users at the same time ['cart charged', 'charge complete']
@@ -874,7 +874,7 @@ function makeAdSpend(day) {
 			const utm_term = u.choose(u.pickAWinner(network.utm_term)());
 
 			adSpendEvents.push({
-				event: "Ad Spend",
+				event: "Ads Data",
 				time: day,
 				source: 'dm4',
 				utm_campaign: campaign,

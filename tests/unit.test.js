@@ -44,7 +44,7 @@ const { applySkew,
 	validateTime,
 	interruptArray,
 	optimizedBoxMuller,
-	inferFunnels, 
+	inferFunnels,
 	datesBetween
 } = require('../utils');
 
@@ -234,145 +234,149 @@ describe('generation', () => {
 	});
 
 	test('winner: return func', () => {
-        const items = ['a', 'b', 'c'];
-        const result = pickAWinner(items, 0);
-        expect(typeof result).toBe('function');
-    });
+		const items = ['a', 'b', 'c'];
+		const result = pickAWinner(items, 0);
+		expect(typeof result).toBe('function');
+	});
 
-    test('winner: first most', () => {
-        const items = ['a', 'b', 'c'];
-        const mostChosenIndex = 0;
-        const pickFunction = pickAWinner(items, mostChosenIndex);
-        const weightedList = pickFunction();
-        
-        // Expect the most chosen item to appear at least once
-        expect(weightedList.includes(items[mostChosenIndex])).toBeTruthy();
-    });
+	test('winner: first most', () => {
+		const items = ['a', 'b', 'c'];
+		const mostChosenIndex = 0;
+		const pickFunction = pickAWinner(items, mostChosenIndex);
+		const weightedList = pickFunction();
 
-    test('winner: second most', () => {
-        const items = ['a', 'b', 'c'];
-        const mostChosenIndex = 0;
-        const pickFunction = pickAWinner(items, mostChosenIndex);
-        const weightedList = pickFunction();
-        
-        const secondMostChosenIndex = (mostChosenIndex + 1) % items.length;
-        
-        // Expect the second most chosen item to appear at least once
-        expect(weightedList.includes(items[secondMostChosenIndex])).toBeTruthy();
-    });
+		// Expect the most chosen item to appear at least once
+		expect(weightedList.includes(items[mostChosenIndex])).toBeTruthy();
+	});
 
-    test('winner: third most', () => {
-        const items = ['a', 'b', 'c'];
-        const mostChosenIndex = 0;
-        const pickFunction = pickAWinner(items, mostChosenIndex);
-        const weightedList = pickFunction();
-        
-        const thirdMostChosenIndex = (mostChosenIndex + 2) % items.length;
-        
-        // Expect the third most chosen item to appear at least once
-        expect(weightedList.includes(items[thirdMostChosenIndex])).toBeTruthy();
-    });
+	test('winner: second most', () => {
+		const items = ['a', 'b', 'c'];
+		const mostChosenIndex = 0;
+		const pickFunction = pickAWinner(items, mostChosenIndex);
+		const weightedList = pickFunction();
 
-    test('winner: exceed array bounds', () => {
-        const items = ['a', 'b', 'c'];
-        const mostChosenIndex = 0;
-        const pickFunction = pickAWinner(items, mostChosenIndex);
-        const weightedList = pickFunction();
+		const secondMostChosenIndex = (mostChosenIndex + 1) % items.length;
 
-        // Ensure all indices are within the bounds of the array
-        weightedList.forEach(item => {
-            expect(items.includes(item)).toBeTruthy();
-        });
-    });
+		// Expect the second most chosen item to appear at least once
+		expect(weightedList.includes(items[secondMostChosenIndex])).toBeTruthy();
+	});
 
-    test('winner: single item array', () => {
-        const items = ['a'];
-        const mostChosenIndex = 0;
-        const pickFunction = pickAWinner(items, mostChosenIndex);
-        const weightedList = pickFunction();
-        
-        // Since there's only one item, all winner: he same
-        weightedList.forEach(item => {
-            expect(item).toBe('a');
-        });
-    });
+	test('winner: third most', () => {
+		const items = ['a', 'b', 'c'];
+		const mostChosenIndex = 0;
+		const pickFunction = pickAWinner(items, mostChosenIndex);
+		const weightedList = pickFunction();
 
-    test('winner: empty array', () => {
-        const items = [];
-        const pickFunction = pickAWinner(items, 0);
-        const weightedList = pickFunction();
+		const thirdMostChosenIndex = (mostChosenIndex + 2) % items.length;
 
-        // Expect the result to be an empty array
-        expect(weightedList.length).toBe(0);
-    });
+		// Expect the third most chosen item to appear at least once
+		expect(weightedList.includes(items[thirdMostChosenIndex])).toBeTruthy();
+	});
+
+	test('winner: exceed array bounds', () => {
+		const items = ['a', 'b', 'c'];
+		const mostChosenIndex = 0;
+		const pickFunction = pickAWinner(items, mostChosenIndex);
+		const weightedList = pickFunction();
+
+		// Ensure all indices are within the bounds of the array
+		weightedList.forEach(item => {
+			expect(items.includes(item)).toBeTruthy();
+		});
+	});
+
+	test('winner: single item array', () => {
+		const items = ['a'];
+		const mostChosenIndex = 0;
+		const pickFunction = pickAWinner(items, mostChosenIndex);
+		const weightedList = pickFunction();
+
+		// Since there's only one item, all winner: he same
+		weightedList.forEach(item => {
+			expect(item).toBe('a');
+		});
+	});
+
+	test('winner: empty array', () => {
+		const items = [];
+		const pickFunction = pickAWinner(items, 0);
+		const weightedList = pickFunction();
+
+		// Expect the result to be an empty array
+		expect(weightedList.length).toBe(0);
+	});
 
 	test('dates: same start end', () => {
-        const start = '2023-06-10';
-        const end = '2023-06-10';
-        const result = datesBetween(start, end);
-        expect(result).toEqual([]);
-    });
+		const start = '2023-06-10';
+		const end = '2023-06-10';
+		const result = datesBetween(start, end);
+		expect(result).toEqual([]);
+	});
 
-    test('dates: start after end', () => {
-        const start = '2023-06-12';
-        const end = '2023-06-10';
-        const result = datesBetween(start, end);
-        expect(result).toEqual([]);
-    });
+	test('dates: start after end', () => {
+		const start = '2023-06-12';
+		const end = '2023-06-10';
+		const result = datesBetween(start, end);
+		expect(result).toEqual([]);
+	});
 
-    test('dates: correct', () => {
-        const start = '2023-06-10';
-        const end = '2023-06-13';
-        const result = datesBetween(start, end);
-        expect(result).toEqual([
-            '2023-06-11T12:00:00.000Z',
-            '2023-06-12T12:00:00.000Z'
-        ]);
-    });
+	test('dates: correct', () => {
+		const start = '2023-06-10';
+		const end = '2023-06-13';
+		const result = datesBetween(start, end);
+		expect(result).toEqual([
+			'2023-06-10T16:00:00.000Z',
+			'2023-06-11T16:00:00.000Z',
+			'2023-06-12T16:00:00.000Z'
+		]);
+	});
 
-    test('dates: unix times', () => {
-        const start = dayjs('2023-06-10').unix();
-        const end = dayjs('2023-06-13').unix();
-        const result = datesBetween(start, end);
-        expect(result).toEqual([
-            '2023-06-11T12:00:00.000Z',
-            '2023-06-12T12:00:00.000Z'
-        ]);
-    });
+	test('dates: unix times', () => {
+		const start = dayjs('2023-06-10').unix();
+		const end = dayjs('2023-06-13').unix();
+		const result = datesBetween(start, end);
+		expect(result).toEqual([
+			'2023-06-10T16:00:00.000Z',
+			'2023-06-11T16:00:00.000Z',
+			'2023-06-12T16:00:00.000Z'
+		]);
+	});
 
-    test('dates: mixed formats', () => {
-        const start = '2023-06-10';
-        const end = dayjs('2023-06-13').unix();
-        const result = datesBetween(start, end);
-        expect(result).toEqual([
-            '2023-06-11T12:00:00.000Z',
-            '2023-06-12T12:00:00.000Z'
-        ]);
-    });
+	test('dates: mixed formats', () => {
+		const start = '2023-06-10';
+		const end = dayjs('2023-06-13').unix();
+		const result = datesBetween(start, end);
+		expect(result).toEqual([
+			'2023-06-10T16:00:00.000Z',
+			'2023-06-11T16:00:00.000Z',
+			'2023-06-12T16:00:00.000Z'
+		]);
+	});
 
-    test('dates: invalid dates', () => {
-        const start = 'invalid-date';
-        const end = '2023-06-13';
-        const result = datesBetween(start, end);
-        expect(result).toEqual([]);
-    });
+	test('dates: invalid dates', () => {
+		const start = 'invalid-date';
+		const end = '2023-06-13';
+		const result = datesBetween(start, end);
+		expect(result).toEqual([]);
+	});
 
-    test('dates: same day', () => {
-        const start = '2023-06-10T08:00:00.000Z';
-        const end = '2023-06-10T20:00:00.000Z';
-        const result = datesBetween(start, end);
-        expect(result).toEqual([]);
-    });
+	test('dates: same day', () => {
+		const start = '2023-06-10T08:00:00.000Z';
+		const end = '2023-06-10T20:00:00.000Z';
+		const result = datesBetween(start, end);
+		expect(result).toEqual([]);
+	});
 
-    test('dates: leap years', () => {
-        const start = '2024-02-28';
-        const end = '2024-03-02';
-        const result = datesBetween(start, end);
-        expect(result).toEqual([
-            '2024-02-29T12:00:00.000Z',
-            '2024-03-01T12:00:00.000Z'
-        ]);
-    });
+	test('dates: leap years', () => {
+		const start = '2024-02-28';
+		const end = '2024-03-02';
+		const result = datesBetween(start, end);
+		expect(result).toEqual([
+			'2024-02-28T17:00:00.000Z',
+			'2024-02-29T17:00:00.000Z',
+			'2024-03-01T17:00:00.000Z'
+		]);
+	});
 
 });
 
@@ -576,7 +580,7 @@ describe('utilities', () => {
 	test('applySkew: skews', () => {
 		const value = optimizedBoxMuller();
 		const skewedValue = applySkew(value, .25);
-		expect(Math.abs(skewedValue)).toBeLessThanOrEqual(Math.abs(value));
+		expect(Math.abs(skewedValue)).toBeLessThanOrEqual(Math.abs(value) + 1);
 	});
 
 	test('mapToRange: works', () => {

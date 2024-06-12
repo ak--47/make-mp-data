@@ -92,7 +92,7 @@ describe('cli', () => {
 		const run = execSync(`node ./index.js --numEvents 1000 --numUsers 100 --seed "deal with it" --complex`, { stdio: 'ignore' });
 		// expect(run.toString().trim().includes('have a wonderful day :)')).toBe(true);
 		const csvs = (await u.ls('./data')).filter(a => a.includes('.csv'));
-		expect(csvs.length).toBe(12);
+		expect(csvs.length).toBe(13);
 		clearData();
 	}, timeout);
 
@@ -101,7 +101,7 @@ describe('cli', () => {
 		const run = execSync(`node ./index.js --numEvents 1000 --numUsers 100 --seed "deal with it"`);
 		expect(run.toString().trim().includes('have a wonderful day :)')).toBe(true);
 		const csvs = (await u.ls('./data')).filter(a => a.includes('.csv'));
-		expect(csvs.length).toBe(3);
+		expect(csvs.length).toBe(4);
 		clearData();
 	}, timeout);
 
@@ -110,7 +110,7 @@ describe('cli', () => {
 		const run = execSync(`node ./index.js ./schemas/deepNest.js`);
 		expect(run.toString().trim().includes('have a wonderful day :)')).toBe(true);
 		const csvs = (await u.ls('./data')).filter(a => a.includes('.csv'));
-		expect(csvs.length).toBe(2);
+		expect(csvs.length).toBe(3);
 		clearData();
 	}, timeout);
 
