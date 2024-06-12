@@ -12,10 +12,21 @@ declare namespace main {
     epochStart?: number;
     epochEnd?: number;
     numEvents?: number;
-    numUsers?: number;
+    numUsers?: number;	
+	
+	//switches 
+	isAnonymous?: boolean;
+	hasLocation?: boolean;
+	hasCampaigns?: boolean;
+	hasAdSpend?: boolean;
+	hasIOSDevices?: boolean;		
+	hasAndroidDevices?: boolean;
+	hasDesktopDevices?: boolean;
+	hasBrowser?: boolean;
+
+
     format?: "csv" | "json";
     region?: "US" | "EU";
-    chance?: any;
     events?: EventConfig[]; //can also be a array of strings
     superProps?: Record<string, ValueValid>;
     funnels?: Funnel[];
@@ -50,6 +61,8 @@ declare namespace main {
     | "mirror"
     | "funnel-pre"
     | "funnel-post"
+	| "ad-spend"
+	| "churn"
     | "";
   export type Hook<T> = (record: any, type: hookTypes, meta: any) => T;
 

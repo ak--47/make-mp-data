@@ -1,7 +1,7 @@
 const fs = require('fs');
 const Chance = require('chance');
 const readline = require('readline');
-const { comma, uid } = require('ak-tools');
+const { comma, uid, clone } = require('ak-tools');
 const { spawn } = require('child_process');
 const dayjs = require('dayjs');
 const utc = require('dayjs/plugin/utc');
@@ -225,6 +225,7 @@ function integer(min = 1, max = 100) {
 
 function pickAWinner(items, mostChosenIndex) {
 	const chance = getChance();
+	if (!mostChosenIndex) mostChosenIndex = integer(0, items.length);
 	if (mostChosenIndex > items.length) mostChosenIndex = items.length;
 	return function () {
 		const weighted = [];
@@ -252,6 +253,48 @@ function pickAWinner(items, mostChosenIndex) {
 }
 
 
+function inferFunnels(events) {
+	const createdFunnels = [];
+	const firstEvents = events.filter((e) => e.isFirstEvent).map((e) => e.event);
+	const usageEvents = events.filter((e) => !e.isFirstEvent).map((e) => e.event);
+	const numFunnelsToCreate = Math.ceil(usageEvents.length);
+	/** @type {Funnel} */
+	const funnelTemplate = {
+		sequence: [],
+		conversionRate: 50,
+		order: 'sequential',
+		requireRepeats: false,
+		props: {},
+		timeToConvert: 1,
+		isFirstFunnel: false,
+		weight: 1
+	};
+	if (firstEvents.length) {
+		for (const event of firstEvents) {
+			createdFunnels.push({ ...clone(funnelTemplate), sequence: [event], isFirstFunnel: true, conversionRate: 100 });
+		}
+	}
+
+	//at least one funnel with all usage events
+	createdFunnels.push({ ...clone(funnelTemplate), sequence: usageEvents });
+
+	//for the rest, make random funnels
+	followUpFunnels: for (let i = 1; i < numFunnelsToCreate; i++) {
+		/** @type {Funnel} */
+		const funnel = { ...clone(funnelTemplate) };
+		funnel.conversionRate = integer(25, 75);
+		funnel.timeToConvert = integer(1, 10);
+		funnel.weight = integer(1, 10);
+		const sequence = shuffleArray(usageEvents).slice(0, integer(2, usageEvents.length));
+		funnel.sequence = sequence;
+		funnel.order = 'random';
+		createdFunnels.push(funnel);
+	}
+
+	return createdFunnels;
+
+}
+
 /*
 ----
 GENERATORS
@@ -274,7 +317,10 @@ function optimizedBoxMuller() {
 	const chance = getChance();
 	const u = Math.max(Math.min(chance.normal({ mean: .5, dev: .25 }), 1), 0);
 	const v = Math.max(Math.min(chance.normal({ mean: .5, dev: .25 }), 1), 0);
-	return Math.sqrt(-2.0 * Math.log(u)) * Math.cos(2.0 * Math.PI * v);
+	const result = Math.sqrt(-2.0 * Math.log(u)) * Math.cos(2.0 * Math.PI * v);
+	//ensure we didn't get infinity
+	if (result === Infinity || result === -Infinity) return chance.floating({ min: 0, max: 1 });
+	return result;
 
 }
 
@@ -769,31 +815,36 @@ function TimeSoup(earliestTime, latestTime, peaks = 5, deviation = 2, mean = 0) 
 
 
 /**
+ * @param {string} userId
  * @param  {number} bornDaysAgo=30
+ * @param {boolean} isAnonymous
  * @return {Person}
  */
-function person(bornDaysAgo = 30) {
+function person(userId, bornDaysAgo = 30, isAnonymous = false) {
 	const chance = getChance();
 	//names and photos
+	const l = chance.letter;
 	let gender = chance.pickone(['male', 'female']);
 	if (!gender) gender = "female";
 	// @ts-ignore
-	const first = chance.first({ gender });
-	const last = chance.last();
-	const name = `${first} ${last}`;
-	const email = `${first[0]}.${last}@${chance.domain()}.com`;
-	const avatarPrefix = `https://randomuser.me/api/portraits`;
-	const randomAvatarNumber = chance.integer({
+	let first = chance.first({ gender });
+	let last = chance.last();
+	let name = `${first} ${last}`;
+	let email = `${first[0]}.${last}@${chance.domain()}.com`;
+	let avatarPrefix = `https://randomuser.me/api/portraits`;
+	let randomAvatarNumber = chance.integer({
 		min: 1,
 		max: 99
 	});
-	const avPath = gender === 'male' ? `/men/${randomAvatarNumber}.jpg` : `/women/${randomAvatarNumber}.jpg`;
-	const avatar = avatarPrefix + avPath;
-	const created = dayjs.unix(global.NOW).subtract(bornDaysAgo, 'day').format('YYYY-MM-DD');
+	let avPath = gender === 'male' ? `/men/${randomAvatarNumber}.jpg` : `/women/${randomAvatarNumber}.jpg`;
+	let avatar = avatarPrefix + avPath;
+	let created = dayjs.unix(global.NOW).subtract(bornDaysAgo, 'day').format('YYYY-MM-DD');
 	// const created = date(bornDaysAgo, true)();
+
 
 	/** @type {Person} */
 	const user = {
+		distinct_id: userId,
 		name,
 		email,
 		avatar,
@@ -801,6 +852,13 @@ function person(bornDaysAgo = 30) {
 		anonymousIds: [],
 		sessionIds: []
 	};
+
+	if (isAnonymous) {
+		user.name = "Anonymous User";
+		user.email = `${l()}${l()}****${l()}${l()}@${l()}**${l()}*.com`;		
+		delete user.avatar;		
+
+	}
 
 	//anon Ids
 	if (global.MP_SIMULATION_CONFIG?.anonIds) {
@@ -921,5 +979,6 @@ module.exports = {
 	optimizedBoxMuller,
 	buildFileNames,
 	streamJSON,
-	streamCSV
+	streamCSV,
+	inferFunnels
 };

@@ -31,6 +31,16 @@ const config = {
 	region: "US",
 	anonIds: false, //if true, anonymousIds are created for each user
 	sessionIds: false, //if true, sessionIds are created for each user
+	hasAdSpend: false,
+
+	hasLocation: true,
+	hasAndroidDevices: true,
+	hasIOSDevices: true,
+	hasDesktopDevices: true,
+	hasBrowser: true,
+	hasCampaigns: true,
+	isAnonymous: false,
+	
 
 	events: [
 		{

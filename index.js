@@ -6,39 +6,10 @@ by AK
 ak@mixpanel.com
 */
 
+//todo: ads-data
+//todo: cart analysis
 //todo: churn ... is churnFunnel, possible to return, etc
 //todo: fixedTimeFunnel? if set this funnel will occur for all users at the same time ['cart charged', 'charge complete']
-//todo defaults!!!
-//todo ads-data
-		
-		
-const dayjs = require("dayjs");
-const utc = require("dayjs/plugin/utc");
-dayjs.extend(utc);
-const NOW = dayjs('2024-02-02').unix(); //this is a FIXED POINT and we will shift it later
-global.NOW = NOW;
-const mp = require("mixpanel-import");
-const path = require("path");
-const { comma, bytesHuman, makeName, md5, clone, tracker, uid } = require("ak-tools");
-const { generateLineChart } = require('./chart.js');
-const { version } = require('./package.json');
-const os = require("os");
-const metrics = tracker("make-mp-data", "db99eb8f67ae50949a13c27cacf57d41", os.userInfo().username);
-
-
-const u = require("./utils.js");
-const cliParams = require("./cli.js");
-
-let VERBOSE = false;
-let isCLI = false;
-let CONFIG;
-require('dotenv').config();
-
-
-function track(name, props, ...rest) {
-	if (process.env.NODE_ENV === 'test') return;
-	metrics(name, props, ...rest);
-}
 
 /** @typedef {import('./types.d.ts').Config} Config */
 /** @typedef {import('./types.d.ts').EventConfig} EventConfig */
@@ -48,17 +19,52 @@ function track(name, props, ...rest) {
 /** @typedef {import('./types.d.ts').UserProfile} UserProfile */
 /** @typedef {import('./types.d.ts').EventSpec} EventSpec */
 
+const dayjs = require("dayjs");
+const utc = require("dayjs/plugin/utc");
+dayjs.extend(utc);
+const NOW = dayjs('2024-02-02').unix(); //this is a FIXED POINT and we will shift it later
+global.NOW = NOW;
+
+const os = require("os");
+const path = require("path");
+const { comma, bytesHuman, makeName, md5, clone, tracker, uid } = require("ak-tools");
+const { generateLineChart } = require('./chart.js');
+const { version } = require('./package.json');
+const mp = require("mixpanel-import");
+const metrics = tracker("make-mp-data", "db99eb8f67ae50949a13c27cacf57d41", os.userInfo().username);
+
+const u = require("./utils.js");
+const getCliParams = require("./cli.js");
+const { campaigns, devices, locations } = require('./defaults.js');
+
+let VERBOSE = false;
+let isCLI = false;
+/** @type {Config} */
+let CONFIG;
+
+let DEFAULTS;
+require('dotenv').config();
+
+
+function track(name, props, ...rest) {
+	if (process.env.NODE_ENV === 'test') return;
+	metrics(name, props, ...rest);
+}
+
+
+
 /**
  * generates fake mixpanel data
  * @param  {Config} config
  */
 async function main(config) {
-	//PARAMS
+
+	//seed the random number generator
+	// ^ this is critical; same seed = same data; seed can be passed in as an env var or in the config
 	const seedWord = process.env.SEED || config.seed || "hello friend!";
 	config.seed = seedWord;
 	u.initChance(seedWord);
-	const chance = u.getChance();
-	config.chance = chance;
+	const chance = u.getChance(); // ! this is the only safe way to get the chance instance
 	let {
 		seed,
 		numEvents = 100000,
@@ -67,10 +73,9 @@ async function main(config) {
 		epochStart = 0,
 		epochEnd = dayjs().unix(),
 		events = [{ event: "foo" }, { event: "bar" }, { event: "baz" }],
-		superProps = { platform: ["web", "iOS", "Android"] },
+		superProps = { luckyNumber: [2, 2, 4, 4, 42, 42, 42, 2, 2, 4, 4, 42, 42, 42, 420] },
 		funnels = [],
 		userProps = {
-			favoriteColor: ["red", "green", "blue", "yellow"],
 			spiritAnimal: chance.animal.bind(chance),
 		},
 		scdProps = {},
@@ -88,10 +93,20 @@ async function main(config) {
 		makeChart = false,
 		soup = {},
 		hook = (record) => record,
+		hasAdSpend = false,
+		hasCampaigns = false,
+		hasLocation = false,
+		isAnonymous = false,
+		hasBrowser = false,
+		hasAndroidDevices = false,
+		hasDesktopDevices = false,
+		hasIOSDevices = false
 	} = config;
+
 	if (!config.superProps) config.superProps = superProps;
 	if (!config.userProps || Object.keys(config?.userProps)) config.userProps = userProps;
-	VERBOSE = verbose;
+
+
 	config.simulationName = makeName();
 	const { simulationName } = config;
 	if (epochStart && !numDays) numDays = dayjs.unix(epochEnd).diff(dayjs.unix(epochStart), "day");
@@ -123,13 +138,33 @@ async function main(config) {
 	config.makeChart = makeChart;
 	config.soup = soup;
 	config.hook = hook;
+	config.hasAdSpend = hasAdSpend;
+	config.hasCampaigns = hasCampaigns;
+	config.hasLocation = hasLocation;
+	config.isAnonymous = isAnonymous;
+	config.hasBrowser = hasBrowser;
+	config.hasAndroidDevices = hasAndroidDevices;
+	config.hasDesktopDevices = hasDesktopDevices;
+	config.hasIOSDevices = hasIOSDevices;
 
 	//event validation 
 	const validatedEvents = u.validateEventConfig(events);
 	events = validatedEvents;
 	config.events = validatedEvents;
+
+	//globals
 	global.MP_SIMULATION_CONFIG = config;
 	CONFIG = config;
+	VERBOSE = verbose;
+	DEFAULTS = {
+		locations: u.pickAWinner(locations, 0),
+		iOSDevices: u.pickAWinner(devices.iosDevices, 0),
+		androidDevices: u.pickAWinner(devices.androidDevices, 0),
+		desktopDevices: u.pickAWinner(devices.desktopDevices, 0),
+		browsers: u.pickAWinner(devices.browsers, 0),
+		campaigns: u.pickAWinner(campaigns, 0),
+	};
+
 	const runId = uid(42);
 	let trackingParams = { runId, seed, numEvents, numUsers, numDays, anonIds, sessionIds, format, targetToken: token, region, writeToDisk, isCLI, version };
 	track('start simulation', trackingParams);
@@ -153,7 +188,7 @@ async function main(config) {
 
 	// if no funnels, make some out of events...
 	if (!funnels || !funnels.length) {
-		funnels = inferFunnels(events);
+		funnels = u.inferFunnels(events);
 		config.funnels = funnels;
 		CONFIG = config;
 	}
@@ -163,10 +198,18 @@ async function main(config) {
 	loopUsers: for (let i = 1; i < numUsers + 1; i++) {
 		u.progress("users", i);
 		const userId = chance.guid();
-		// const user = u.generateUser(userId, numDays, amp, freq, skew);
-		const user = u.generateUser(userId, numDays);
+		const user = u.person(userId, numDays, isAnonymous);
 		const { distinct_id, created, anonymousIds, sessionIds } = user;
 		let numEventsPreformed = 0;
+
+		if (hasLocation) {
+			const location = u.choose(DEFAULTS.locations().map(l => { delete l.country; return l; }));
+			for (const key in location) {
+				user[key] = location[key];
+			}
+		}
+
+
 
 		// profile creation
 		const profile = makeProfile(userProps, user);
@@ -379,7 +422,7 @@ async function main(config) {
 			fixData: true,
 			verbose: false,
 			forceStream: true,
-			strict: true,
+			strict: false, //! sometimes we get events in the future... it happens
 			dryRun: false,
 			abridged: false,
 			fixJson: true,
@@ -452,12 +495,27 @@ async function main(config) {
  * @param  {Boolean} isFirstEvent=false
  */
 function makeEvent(distinct_id, anonymousIds, sessionIds, earliestTime, chosenEvent, superProps, groupKeys, isFirstEvent = false) {
-	const { mean = 0, dev = 2, peaks = 5 } = CONFIG.soup;
+	const chance = u.getChance();
+	const { mean = 0, deviation = 2, peaks = 5 } = CONFIG.soup;
+	const { hasAndroidDevices, hasBrowser, hasCampaigns, hasDesktopDevices, hasIOSDevices, hasLocation } = CONFIG;
 	//event model
 	const eventTemplate = {
 		event: chosenEvent.event,
 		source: "dm4",
 	};
+
+	let defaultProps = {};
+	let devicePool = [];
+	if (hasLocation) defaultProps.location = DEFAULTS.locations().map(l => { delete l.country_code; return l; });
+	if (hasBrowser) defaultProps.browser = DEFAULTS.browsers();
+	if (hasAndroidDevices) devicePool.push(DEFAULTS.androidDevices());
+	if (hasIOSDevices) devicePool.push(DEFAULTS.iOSDevices());
+	if (hasDesktopDevices) devicePool.push(DEFAULTS.desktopDevices());
+	// we don't always have campaigns, because of attribution
+	if (hasCampaigns && chance.bool({ likelihood: 25 })) defaultProps.campaigns = DEFAULTS.campaigns();
+	const devices = devicePool.flat();
+	if (devices.length) defaultProps.device = devices;
+
 
 	//event time
 	if (earliestTime > NOW) {
@@ -465,14 +523,14 @@ function makeEvent(distinct_id, anonymousIds, sessionIds, earliestTime, chosenEv
 	};
 
 	if (isFirstEvent) eventTemplate.time = dayjs.unix(earliestTime).toISOString();
-	if (!isFirstEvent) eventTemplate.time = u.TimeSoup(earliestTime, NOW, peaks, dev, mean);
+	if (!isFirstEvent) eventTemplate.time = u.TimeSoup(earliestTime, NOW, peaks, deviation, mean);
 
 	// anonymous and session ids
-	if (CONFIG?.anonIds) eventTemplate.device_id = CONFIG.chance.pickone(anonymousIds);
-	if (CONFIG?.sessionIds) eventTemplate.session_id = CONFIG.chance.pickone(sessionIds);
+	if (CONFIG?.anonIds) eventTemplate.device_id = chance.pickone(anonymousIds);
+	if (CONFIG?.sessionIds) eventTemplate.session_id = chance.pickone(sessionIds);
 
 	//sometimes have a user_id
-	if (!isFirstEvent && CONFIG.chance.bool({ likelihood: 42 })) eventTemplate.user_id = distinct_id;
+	if (!isFirstEvent && chance.bool({ likelihood: 42 })) eventTemplate.user_id = distinct_id;
 
 	// ensure that there is a user_id or device_id
 	if (!eventTemplate.user_id && !eventTemplate.device_id) eventTemplate.user_id = distinct_id;
@@ -486,6 +544,34 @@ function makeEvent(distinct_id, anonymousIds, sessionIds, earliestTime, chosenEv
 		} catch (e) {
 			console.error(`error with ${key} in ${chosenEvent.event} event`, e);
 			debugger;
+		}
+	}
+
+	//iterate through default properties
+	for (const key in defaultProps) {
+		if (Array.isArray(defaultProps[key])) {
+			const choice = u.choose(defaultProps[key]);
+			if (typeof choice === "string") {
+				if (!eventTemplate[key]) eventTemplate[key] = choice;
+			}
+
+			else if (Array.isArray(choice)) {
+				for (const subChoice of choice) {
+					if (!eventTemplate[key]) eventTemplate[key] = subChoice;
+				}
+			}
+
+			else if (typeof choice === "object") {
+				for (const subKey in choice) {
+					if (Array.isArray(choice[subKey])) {
+						const subChoice = u.choose(choice[subKey]);
+						if (!eventTemplate[subKey]) eventTemplate[subKey] = subChoice;
+					}
+					if (!eventTemplate[subKey]) eventTemplate[subKey] = choice[subKey];
+				}
+			}
+
+
 		}
 	}
 
@@ -518,6 +604,7 @@ function makeEvent(distinct_id, anonymousIds, sessionIds, earliestTime, chosenEv
  * @return {[EventSpec[], Boolean]}
  */
 function makeFunnel(funnel, user, profile, scd, firstEventTime, config) {
+	const chance = u.getChance();
 	const { hook } = config;
 	hook(funnel, "funnel-pre", { user, profile, scd, funnel, config });
 	let {
@@ -532,6 +619,7 @@ function makeFunnel(funnel, user, profile, scd, firstEventTime, config) {
 	const { superProps, groupKeys } = config;
 	const { name, email } = profile;
 
+	//choose the properties for this funnel
 	const chosenFunnelProps = { ...props, ...superProps };
 	for (const key in props) {
 		try {
@@ -563,7 +651,7 @@ function makeFunnel(funnel, user, profile, scd, firstEventTime, config) {
 		.reduce((acc, step) => {
 			if (!requireRepeats) {
 				if (acc.find(e => e.event === step.event)) {
-					if (config.chance.bool({ likelihood: 50 })) {
+					if (chance.bool({ likelihood: 50 })) {
 						conversionRate = Math.floor(conversionRate * 1.25); //increase conversion rate
 						acc.push(step);
 					}
@@ -583,7 +671,7 @@ function makeFunnel(funnel, user, profile, scd, firstEventTime, config) {
 			return acc;
 		}, []);
 
-	let doesUserConvert = config.chance.bool({ likelihood: conversionRate });
+	let doesUserConvert = chance.bool({ likelihood: conversionRate });
 	let numStepsUserWillTake = sequence.length;
 	if (!doesUserConvert) numStepsUserWillTake = u.integer(1, sequence.length - 1);
 	const funnelTotalRelativeTimeInHours = timeToConvert / numStepsUserWillTake;
@@ -677,49 +765,6 @@ function makeFunnel(funnel, user, profile, scd, firstEventTime, config) {
 }
 
 
-function inferFunnels(events) {
-	const createdFunnels = [];
-	const firstEvents = events.filter((e) => e.isFirstEvent).map((e) => e.event);
-	const usageEvents = events.filter((e) => !e.isFirstEvent).map((e) => e.event);
-	const numFunnelsToCreate = Math.ceil(usageEvents.length);
-	/** @type {Funnel} */
-	const funnelTemplate = {
-		sequence: [],
-		conversionRate: 50,
-		order: 'sequential',
-		requireRepeats: false,
-		props: {},
-		timeToConvert: 1,
-		isFirstFunnel: false,
-		weight: 1
-	};
-	if (firstEvents.length) {
-		for (const event of firstEvents) {
-			createdFunnels.push({ ...clone(funnelTemplate), sequence: [event], isFirstFunnel: true, conversionRate: 100 });
-		}
-	}
-
-	//at least one funnel with all usage events
-	createdFunnels.push({ ...clone(funnelTemplate), sequence: usageEvents });
-
-	//for the rest, make random funnels
-	followUpFunnels: for (let i = 1; i < numFunnelsToCreate; i++) {
-		/** @type {Funnel} */
-		const funnel = { ...clone(funnelTemplate) };
-		funnel.conversionRate = u.integer(25, 75);
-		funnel.timeToConvert = u.integer(1, 10);
-		funnel.weight = u.integer(1, 10);
-		const sequence = u.shuffleArray(usageEvents).slice(0, u.integer(2, usageEvents.length));
-		funnel.sequence = sequence;
-		funnel.order = 'random';
-		createdFunnels.push(funnel);
-	}
-
-	return createdFunnels;
-
-}
-
-
 function makeProfile(props, defaults) {
 	//build the spec
 	const profile = {
@@ -770,8 +815,69 @@ function makeSCD(prop, scdKey, distinct_id, mutations, created) {
 	return scdEntries;
 }
 
+//todo
+// function makeAdSpend(spec, usersCreated, specialDays = []) {
+//     const networks = [
+//         ...new Set(
+//             attribution
+//                 .filter(camp => !["$organic", "$referral"].includes(camp.utm_source.join()))
+//                 .map(network => network.utm_source)
+//                 .flat()
+//         )
+//     ];
 
+//     const campaigns = attribution.slice().pop().utm_campaign;
+// 	const campaignParams = attribution.slice().pop();
+//     const { startDate, endDate } = spec;
+//     const days = getDeltaDays(startDate, endDate);
+//     const numDays = days.length;
+//     const data = [];
+//     for (const network of networks) {
+//         for (const day of days) {
+//             //cost per acquisition ~ $10-50
+//             let CAC = chance.integer({ min: 10, max: 50 });
+//             // daily spend is total users / total days * CAC / num networks
+//             let cost = Math.floor(((usersCreated / numDays) * CAC) / networks.length);
+//             // CTR ~ 0.5-10%
+//             let clicks = Math.floor(cost / chance.floating({ min: 0.5, max: 10 }));
+//             //boost CTR on "special days" ~ 15-50%
+//             if (day in specialDays) clicks *= Math.floor(clicks * chance.floating({ min: 1.15, max: 1.5 }));
+//             //impressions ~100-500 * cost
+//             let impressions = Math.floor(cost * chance.integer({ min: 100, max: 500 }));
+//             // views ~ 25-80% of impressions
+//             let views = Math.floor(impressions * chance.floating({ min: 0.25, max: 0.8 }));
 
+//             let campaign_name = chance.pickone(campaigns);
+//             let campaign_id = md5(campaign_name);
+//             data.push({
+//                 event: "ad data",
+//                 properties: {
+//                     cost,
+//                     clicks,
+//                     impressions,
+//                     campaign_name,
+//                     campaign_id,
+//                     network,
+//                     views,
+
+//                     //addendum
+//                     utm_campaign: campaign_name,
+// 					utm_source: network,
+// 					utm_medium: campaignParams.utm_medium,                    
+// 					utm_content: campaignParams.utm_content,
+// 					utm_term: campaignParams.utm_term,
+
+//                     source: network,
+//                     $insert_id: campaign_id,
+//                     time: dayjs.utc(day).hour(12).unix(),
+//                     $source: "DM3",
+//                     $mp_lib: "DM3"
+//                 }
+//             });
+//         }
+//     }
+//     return data;
+// }
 
 
 
@@ -782,7 +888,7 @@ function makeSCD(prop, scdKey, distinct_id, mutations, created) {
 // this is for CLI
 if (require.main === module) {
 	isCLI = true;
-	const args = cliParams();
+	const args = getCliParams();
 	// @ts-ignore
 	let { token, seed, format, numDays, numUsers, numEvents, region, writeToDisk, complex = false, sessionIds, anonIds } = args;
 	// @ts-ignore

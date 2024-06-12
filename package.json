@@ -1,6 +1,6 @@
 {
 	"name": "make-mp-data",
-	"version": "1.4.01",
+	"version": "1.4.02",
 	"description": "builds all mixpanel primitives for a given project",
 	"main": "index.js",
 	"types": "types.d.ts",
@@ -47,7 +47,7 @@
 		"chartjs-node-canvas": "^4.1.6",
 		"dayjs": "^1.11.11",
 		"dotenv": "^16.4.5",
-		"mixpanel-import": "^2.5.54",
+		"mixpanel-import": "^2.5.55",
 		"yargs": "^17.7.2"
 	},
 	"devDependencies": {

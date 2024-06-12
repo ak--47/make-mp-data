@@ -10,10 +10,11 @@ import execSync from 'child_process';
 
 /** @type {main.Config} */
 const spec = {	
-	...funnels,	
+	...simple,	
 	writeToDisk: false,
 	verbose: true,
-	makeChart: false,	
+	makeChart: false,
+	token: "e98e6af94f6ddfb5e967fa265484539a"
 };
 
 
