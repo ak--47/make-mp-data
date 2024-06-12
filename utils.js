@@ -130,6 +130,21 @@ function dates(inTheLast = 30, numPairs = 5, format = 'YYYY-MM-DD') {
 	return pairs;
 };
 
+function datesBetween(start, end) {
+	const result = [];
+	if (typeof start === 'number') start = dayjs.unix(start);
+	if (typeof start !== 'number') start = dayjs(start);
+	if (typeof end === 'number') end = dayjs.unix(end);
+	if (typeof end !== 'number') end = dayjs(end);
+	const diff = end.diff(start, 'day');
+	for (let i = 0; i < diff; i++) {
+		const day = start.add(i, 'day').startOf('day').add(12, 'hour');
+		result.push(day.toISOString());
+	}
+
+	return result;
+}
+
 /**
  * returns a random date
  * @param  {any} start
@@ -226,77 +241,66 @@ function integer(min = 1, max = 100) {
 };
 
 
+/**
+ * Creates a function that generates a weighted list of items
+ * with a higher likelihood of picking a specified index and clear second and third place indices.
+ * 
+ * @param {Array} items - The list of items to pick from.
+ * @param {number} [mostChosenIndex] - The index of the item to be most favored.
+ * @returns {function} - A function that returns a weighted list of items.
+ */
 function pickAWinner(items, mostChosenIndex) {
 	const chance = getChance();
-	if (!mostChosenIndex) mostChosenIndex = integer(0, items.length);
-	if (mostChosenIndex > items.length) mostChosenIndex = items.length;
+
+	// Ensure mostChosenIndex is within the bounds of the items array
+	if (!items) return () => { return ""; };
+	if (!items.length) return () => { return ""; };
+	if (!mostChosenIndex) mostChosenIndex = chance.integer({ min: 0, max: items.length - 1 });
+	if (mostChosenIndex >= items.length) mostChosenIndex = items.length - 1;
+
+	// Calculate second and third most chosen indices
+	const secondMostChosenIndex = (mostChosenIndex + 1) % items.length;
+	const thirdMostChosenIndex = (mostChosenIndex + 2) % items.length;
+
+	// Return a function that generates a weighted list
 	return function () {
 		const weighted = [];
 		for (let i = 0; i < 10; i++) {
-			if (chance.bool({ likelihood: integer(10, 35) })) {
+			const rand = chance.d10(); // Random number between 1 and 10
+
+			// 35% chance to favor the most chosen index
+			if (chance.bool({ likelihood: 35 })) {
+				// 50% chance to slightly alter the index
 				if (chance.bool({ likelihood: 50 })) {
 					weighted.push(items[mostChosenIndex]);
-				}
-				else {
-					const rand = chance.d10();
+				} else {
 					const addOrSubtract = chance.bool({ likelihood: 50 }) ? -rand : rand;
 					let newIndex = mostChosenIndex + addOrSubtract;
+
+					// Ensure newIndex is within bounds
 					if (newIndex < 0) newIndex = 0;
-					if (newIndex > items.length) newIndex = items.length;
+					if (newIndex >= items.length) newIndex = items.length - 1;
 					weighted.push(items[newIndex]);
 				}
 			}
+			// 25% chance to favor the second most chosen index
+			else if (chance.bool({ likelihood: 25 })) {
+				weighted.push(items[secondMostChosenIndex]);
+			}
+			// 15% chance to favor the third most chosen index
+			else if (chance.bool({ likelihood: 15 })) {
+				weighted.push(items[thirdMostChosenIndex]);
+			}
+			// Otherwise, pick a random item from the list
 			else {
 				weighted.push(chance.pickone(items));
 			}
 		}
 		return weighted;
-
 	};
 }
 
 
-function inferFunnels(events) {
-	const createdFunnels = [];
-	const firstEvents = events.filter((e) => e.isFirstEvent).map((e) => e.event);
-	const usageEvents = events.filter((e) => !e.isFirstEvent).map((e) => e.event);
-	const numFunnelsToCreate = Math.ceil(usageEvents.length);
-	/** @type {Funnel} */
-	const funnelTemplate = {
-		sequence: [],
-		conversionRate: 50,
-		order: 'sequential',
-		requireRepeats: false,
-		props: {},
-		timeToConvert: 1,
-		isFirstFunnel: false,
-		weight: 1
-	};
-	if (firstEvents.length) {
-		for (const event of firstEvents) {
-			createdFunnels.push({ ...clone(funnelTemplate), sequence: [event], isFirstFunnel: true, conversionRate: 100 });
-		}
-	}
-
-	//at least one funnel with all usage events
-	createdFunnels.push({ ...clone(funnelTemplate), sequence: usageEvents });
-
-	//for the rest, make random funnels
-	followUpFunnels: for (let i = 1; i < numFunnelsToCreate; i++) {
-		/** @type {Funnel} */
-		const funnel = { ...clone(funnelTemplate) };
-		funnel.conversionRate = integer(25, 75);
-		funnel.timeToConvert = integer(1, 10);
-		funnel.weight = integer(1, 10);
-		const sequence = shuffleArray(usageEvents).slice(0, integer(2, usageEvents.length));
-		funnel.sequence = sequence;
-		funnel.order = 'random';
-		createdFunnels.push(funnel);
-	}
-
-	return createdFunnels;
-
-}
 
 /*
 ----
@@ -361,6 +365,53 @@ function range(a, b, step = 1) {
 	}
 	return this;
 };
+
+
+/**
+ * create funnels out of random events
+ * @param {EventConfig[]} events
+ */
+function inferFunnels(events) {
+	const createdFunnels = [];
+	const firstEvents = events.filter((e) => e.isFirstEvent).map((e) => e.event);
+	const usageEvents = events.filter((e) => !e.isFirstEvent).map((e) => e.event);
+	const numFunnelsToCreate = Math.ceil(usageEvents.length);
+	/** @type {Funnel} */
+	const funnelTemplate = {
+		sequence: [],
+		conversionRate: 50,
+		order: 'sequential',
+		requireRepeats: false,
+		props: {},
+		timeToConvert: 1,
+		isFirstFunnel: false,
+		weight: 1
+	};
+	if (firstEvents.length) {
+		for (const event of firstEvents) {
+			createdFunnels.push({ ...clone(funnelTemplate), sequence: [event], isFirstFunnel: true, conversionRate: 100 });
+		}
+	}
+
+	//at least one funnel with all usage events
+	createdFunnels.push({ ...clone(funnelTemplate), sequence: usageEvents });
+
+	//for the rest, make random funnels
+	followUpFunnels: for (let i = 1; i < numFunnelsToCreate; i++) {
+		/** @type {Funnel} */
+		const funnel = { ...clone(funnelTemplate) };
+		funnel.conversionRate = integer(25, 75);
+		funnel.timeToConvert = integer(1, 10);
+		funnel.weight = integer(1, 10);
+		const sequence = shuffleArray(usageEvents).slice(0, integer(2, usageEvents.length));
+		funnel.sequence = sequence;
+		funnel.order = 'random';
+		createdFunnels.push(funnel);
+	}
+
+	return createdFunnels;
+
+}
 
 
 /*
@@ -520,6 +571,7 @@ function shuffleOutside(array) {
 }
 
 /**
+ * given a funnel, shuffle the events in the sequence with random events
  * @param  {EventConfig[]} funnel
  * @param  {EventConfig[]} possibles
  */
@@ -672,6 +724,7 @@ function buildFileNames(config) {
 	const writePaths = {
 		eventFiles: [path.join(writeDir, `${simName}-EVENTS.${extension}`)],
 		userFiles: [path.join(writeDir, `${simName}-USERS.${extension}`)],
+		adSpendFiles: [path.join(writeDir, `${simName}-AD-SPEND.${extension}`)],
 		scdFiles: [],
 		mirrorFiles: [],
 		groupFiles: [],
@@ -863,7 +916,7 @@ function person(userId, bornDaysAgo = 30, isAnonymous = false) {
 
 	if (isAnonymous) {
 		user.name = "Anonymous User";
-		user.email = l() + l() + `*`.repeat(integer(3,6)) + l() + `@` + l() + `*`.repeat(integer(3,6)) + l() + `.` + choose(domainSuffix);		
+		user.email = l() + l() + `*`.repeat(integer(3, 6)) + l() + `@` + l() + `*`.repeat(integer(3, 6)) + l() + `.` + choose(domainSuffix);
 		delete user.avatar;
 
 	}
@@ -988,5 +1041,6 @@ module.exports = {
 	buildFileNames,
 	streamJSON,
 	streamCSV,
-	inferFunnels
+	inferFunnels,
+	datesBetween
 };

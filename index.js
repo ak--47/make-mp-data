@@ -33,6 +33,7 @@ const { version } = require('./package.json');
 const mp = require("mixpanel-import");
 const metrics = tracker("make-mp-data", "db99eb8f67ae50949a13c27cacf57d41", os.userInfo().username);
 
+
 const u = require("./utils.js");
 const getCliParams = require("./cli.js");
 const { campaigns, devices, locations } = require('./defaults.js');
@@ -41,7 +42,7 @@ let VERBOSE = false;
 let isCLI = false;
 /** @type {Config} */
 let CONFIG;
-
+let CAMPAIGNS;
 let DEFAULTS;
 require('dotenv').config();
 
@@ -156,6 +157,7 @@ async function main(config) {
 	global.MP_SIMULATION_CONFIG = config;
 	CONFIG = config;
 	VERBOSE = verbose;
+	CAMPAIGNS = campaigns;
 	DEFAULTS = {
 		locations: u.pickAWinner(locations, 0),
 		iOSDevices: u.pickAWinner(devices.iosDevices, 0),
@@ -177,6 +179,7 @@ async function main(config) {
 	//setup all the data structures we will push into
 	const eventData = u.enrichArray([], { hook, type: "event", config });
 	const userProfilesData = u.enrichArray([], { hook, type: "user", config });
+	const adSpendData = u.enrichArray([], { hook, type: "ad-spend", config });
 	const scdTableKeys = Object.keys(scdProps);
 	const scdTableData = [];
 	for (const [index, key] of scdTableKeys.entries()) {
@@ -269,6 +272,17 @@ async function main(config) {
 		// end individual user loop
 	}
 
+	if (hasAdSpend) {
+		const days = u.datesBetween(epochStart, epochEnd);
+		for (const day of days) {
+			const dailySpendData = makeAdSpend(day);
+			for (const spendEvent of dailySpendData) {
+				adSpendData.hookPush(spendEvent);
+			}
+		}
+
+	}
+
 	//flatten SCD tables
 	scdTableData.forEach((table, index) => scdTableData[index] = table.flat());
 
@@ -352,11 +366,12 @@ async function main(config) {
 		}
 	}
 
-	const { eventFiles, userFiles, scdFiles, groupFiles, lookupFiles, mirrorFiles, folder } =
+	const { eventFiles, userFiles, scdFiles, groupFiles, lookupFiles, mirrorFiles, folder, adSpendFiles } =
 		u.buildFileNames(config);
 	const pairs = [
 		[eventFiles, [eventData]],
 		[userFiles, [userProfilesData]],
+		[adSpendFiles, [adSpendData]],
 		[scdFiles, scdTableData],
 		[groupFiles, groupProfilesData],
 		[lookupFiles, lookupTableData],
@@ -447,6 +462,15 @@ async function main(config) {
 			log(`\tsent ${comma(imported.success)} user profiles\n`);
 			importResults.users = imported;
 		}
+		if (adSpendData) {
+			log(`importing ad spend data to mixpanel...\n`);
+			const imported = await mp(creds, adSpendData, {
+				recordType: "event",
+				...commonOpts,
+			});
+			log(`\tsent ${comma(imported.success)} ad spend events\n`);
+			importResults.adSpend = imported;
+		}
 		if (groupProfilesData) {
 			for (const groupProfiles of groupProfilesData) {
 				const groupKey = groupProfiles.key;
@@ -475,6 +499,7 @@ async function main(config) {
 		groupProfilesData,
 		lookupTableData,
 		mirrorEventData,
+		adSpendData
 	};
 }
 
@@ -563,11 +588,20 @@ function makeEvent(distinct_id, anonymousIds, sessionIds, earliestTime, chosenEv
 
 			else if (typeof choice === "object") {
 				for (const subKey in choice) {
-					if (Array.isArray(choice[subKey])) {
+					if (typeof choice[subKey] === "string") {
+						if (!eventTemplate[subKey]) eventTemplate[subKey] = choice[subKey];
+					}
+					else if (Array.isArray(choice[subKey])) {
 						const subChoice = u.choose(choice[subKey]);
 						if (!eventTemplate[subKey]) eventTemplate[subKey] = subChoice;
 					}
-					if (!eventTemplate[subKey]) eventTemplate[subKey] = choice[subKey];
+
+					else if (typeof choice[subKey] === "object") {
+						for (const subSubKey in choice[subKey]) {
+							if (!eventTemplate[subSubKey]) eventTemplate[subSubKey] = choice[subKey][subSubKey];
+						}
+					}
+
 				}
 			}
 
@@ -816,68 +850,53 @@ function makeSCD(prop, scdKey, distinct_id, mutations, created) {
 }
 
 //todo
-// function makeAdSpend(spec, usersCreated, specialDays = []) {
-//     const networks = [
-//         ...new Set(
-//             attribution
-//                 .filter(camp => !["$organic", "$referral"].includes(camp.utm_source.join()))
-//                 .map(network => network.utm_source)
-//                 .flat()
-//         )
-//     ];
+function makeAdSpend(day) {
+	const chance = u.getChance();
+	const adSpendEvents = [];
+	for (const network of CAMPAIGNS) {
+		const campaigns = network.utm_campaign;
+		loopCampaigns: for (const campaign of campaigns) {
+			if (campaign === "$organic") continue loopCampaigns;
+			//cost per acquisition ~ $42-420
+			const CAC = u.integer(42, 420); //todo: get the # of users created in this day from eventData
+			//cost ~ $50-500
+			const cost = chance.floating({ min: 50, max: 500, fixed: 2 });
+			//impressions ~100-500 * cost
+			const impressions = Math.floor(cost * u.integer(100, 500));
+			//views ~ 25-80% of impressions
+			const views = Math.floor(impressions * chance.floating({ min: 0.25, max: 0.8 }));
+			// clicks  ~ 25-80% of views
+			const clicks = Math.floor(views * chance.floating({ min: 0.25, max: 0.8 }));
 
-//     const campaigns = attribution.slice().pop().utm_campaign;
-// 	const campaignParams = attribution.slice().pop();
-//     const { startDate, endDate } = spec;
-//     const days = getDeltaDays(startDate, endDate);
-//     const numDays = days.length;
-//     const data = [];
-//     for (const network of networks) {
-//         for (const day of days) {
-//             //cost per acquisition ~ $10-50
-//             let CAC = chance.integer({ min: 10, max: 50 });
-//             // daily spend is total users / total days * CAC / num networks
-//             let cost = Math.floor(((usersCreated / numDays) * CAC) / networks.length);
-//             // CTR ~ 0.5-10%
-//             let clicks = Math.floor(cost / chance.floating({ min: 0.5, max: 10 }));
-//             //boost CTR on "special days" ~ 15-50%
-//             if (day in specialDays) clicks *= Math.floor(clicks * chance.floating({ min: 1.15, max: 1.5 }));
-//             //impressions ~100-500 * cost
-//             let impressions = Math.floor(cost * chance.integer({ min: 100, max: 500 }));
-//             // views ~ 25-80% of impressions
-//             let views = Math.floor(impressions * chance.floating({ min: 0.25, max: 0.8 }));
+			//tags 
+			const utm_medium = u.choose(u.pickAWinner(network.utm_medium)());
+			const utm_content = u.choose(u.pickAWinner(network.utm_content)());
+			const utm_term = u.choose(u.pickAWinner(network.utm_term)());
 
-//             let campaign_name = chance.pickone(campaigns);
-//             let campaign_id = md5(campaign_name);
-//             data.push({
-//                 event: "ad data",
-//                 properties: {
-//                     cost,
-//                     clicks,
-//                     impressions,
-//                     campaign_name,
-//                     campaign_id,
-//                     network,
-//                     views,
+			adSpendEvents.push({
+				event: "Ad Spend",
+				time: day,
+				source: 'dm4',
+				utm_campaign: campaign,
+				campaign_id: md5(network.utm_source[0] + '-' + campaign),
 
-//                     //addendum
-//                     utm_campaign: campaign_name,
-// 					utm_source: network,
-// 					utm_medium: campaignParams.utm_medium,                    
-// 					utm_content: campaignParams.utm_content,
-// 					utm_term: campaignParams.utm_term,
+				utm_source: network.utm_source[0],
+				utm_medium,
+				utm_content,
+				utm_term,
+				
+				clicks,
+				views,
+				impressions,
+				cost,
 
-//                     source: network,
-//                     $insert_id: campaign_id,
-//                     time: dayjs.utc(day).hour(12).unix(),
-//                     $source: "DM3",
-//                     $mp_lib: "DM3"
-//                 }
-//             });
-//         }
-//     }
-//     return data;
-// }
+			});
+		}
+
+
+	}
+	return adSpendEvents;
+}
 
 
 

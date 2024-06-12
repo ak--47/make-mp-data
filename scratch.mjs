@@ -10,15 +10,27 @@ import execSync from 'child_process';
 
 
 /** @type {main.Config} */
-const spec = {	
-	...simple,	
+const spec = {
+	...complex,
 	writeToDisk: false,
 	verbose: true,
 	makeChart: false,
-	token: "e5e05b441046a1dce320f1aa26697055"
+	numUsers: 500,
+	numEvents: 25000,
+	numDays: 90,
+	token: "4fa8df8bc677bec67162d6ebcc155053"
 };
 
 
 execSync.execSync('npm run prune');
-const { eventData, groupProfilesData, lookupTableData, mirrorEventData, scdTableData, userProfilesData, importResults } = await main(spec);
+const { eventData,
+	groupProfilesData,
+	lookupTableData,
+	mirrorEventData,
+	scdTableData,
+	userProfilesData,
+	importResults,
+	files,
+	adSpendData
+} = await main(spec);
 debugger;

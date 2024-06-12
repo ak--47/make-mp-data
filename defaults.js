@@ -2,7 +2,7 @@
 //? https://docs.mixpanel.com/docs/data-structure/property-reference#default-properties
 
 const domainSuffix = ["com", "com", "com", "com", "net", "org", "net", "org", "io", "co", "co.uk", "us", "biz", "info", "gov", "edu"];
-const domainPrefix = ["gmail", "gmail", "gmail", "gmail", "gmail", "gmail", "yahoo", "yahoo", "icloud", "icloud", "icloud","icloud", "hotmail", "hotmail", "gmail", "gmail", "gmail", "gmail", "gmail", "gmail", "yahoo", "yahoo", "icloud", "icloud", "icloud", "hotmail", "hotmail", "outlook", "aol", "outlook", "aol", "protonmail", "zoho", "gmx", "yandex", "mail", "inbox", "fastmail", "tutanota", "mailfence", "disroot", "riseup", "posteo", "runbox", "kolabnow", "mailbox", "scryptmail", "ctemplar", "countermail", "hushmail", "startmail", "privatemail"];
+const domainPrefix = ["gmail", "gmail", "gmail", "gmail", "gmail", "gmail", "yahoo", "yahoo", "icloud", "icloud", "icloud", "icloud", "hotmail", "hotmail", "gmail", "gmail", "gmail", "gmail", "gmail", "gmail", "yahoo", "yahoo", "icloud", "icloud", "icloud", "hotmail", "hotmail", "outlook", "aol", "outlook", "aol", "protonmail", "zoho", "gmx", "yandex", "mail", "inbox", "fastmail", "tutanota", "mailfence", "disroot", "riseup", "posteo", "runbox", "kolabnow", "mailbox", "scryptmail", "ctemplar", "countermail", "hushmail", "startmail", "privatemail"];
 const campaigns = [
 	{
 		utm_campaign: ["$organic"],
@@ -13,77 +13,73 @@ const campaigns = [
 	},
 	{
 		utm_source: ["facebook"],
-		utm_campaign: ["free trial", "discount country_code", "all for one", "one for all", "look-alike"],
-		utm_medium: ["influencer", "promoted", "sidebar", "search"],
-		utm_content: ["control group", "variant A", "variant B", "variant C", "variant D"],
-		utm_term: ["Jan-Feb", "Mar-Apr", "May-June", "July-Aug", "Sept-Oct", "Nov-Dec"]
+		utm_campaign: ["fb_free_trial", "fb_discount_US", "fb_summer_sale", "fb_black_friday", "fb_lookalike_audience"],
+		utm_medium: ["social_influencer", "paid_promoted", "ad_sidebar", "sponsored_search"],
+		utm_content: ["fb_control_group", "fb_variant_A", "fb_variant_B", "fb_variant_C", "fb_variant_D"],
+		utm_term: ["fb_jan_feb", "fb_mar_apr", "fb_may_jun", "fb_jul_aug", "fb_sep_oct", "fb_nov_dec"]
 	},
 	{
-		utm_source: ["x"],
-		utm_campaign: ["free trial", "discount country_code", "all for one", "one for all", "look-alike"],
-		utm_medium: ["influencer", "promoted", "sidebar", "search"],
-		utm_content: ["control group", "variant A", "variant B", "variant C", "variant D"],
-		utm_term: ["Jan-Feb", "Mar-Apr", "May-June", "July-Aug", "Sept-Oct", "Nov-Dec"]
+		utm_source: ["twitter"],
+		utm_campaign: ["tw_free_trial", "tw_discount_US", "tw_spring_sale", "tw_cyber_monday", "tw_lookalike_audience"],
+		utm_medium: ["promoted_tweet", "sponsored_post", "sidebar_ad", "search_ad"],
+		utm_content: ["tw_control_group", "tw_variant_A", "tw_variant_B", "tw_variant_C", "tw_variant_D"],
+		utm_term: ["tw_jan_feb", "tw_mar_apr", "tw_may_jun", "tw_jul_aug", "tw_sep_oct", "tw_nov_dec"]
 	},
 	{
 		utm_source: ["linkedin"],
-		utm_campaign: ["free trial", "discount country_code", "all for one", "one for all", "look-alike"],
-		utm_medium: ["influencer", "promoted", "sidebar", "search"],
-		utm_content: ["control group", "variant A", "variant B", "variant C", "variant D"],
-		utm_term: ["Jan-Feb", "Mar-Apr", "May-June", "July-Aug", "Sept-Oct", "Nov-Dec"]
+		utm_campaign: ["li_free_trial", "li_discount_US", "li_fall_sale", "li_holiday_special", "li_lookalike_audience"],
+		utm_medium: ["influencer_post", "promoted_content", "sidebar_ad", "search_ad"],
+		utm_content: ["li_control_group", "li_variant_A", "li_variant_B", "li_variant_C", "li_variant_D"],
+		utm_term: ["li_jan_feb", "li_mar_apr", "li_may_jun", "li_jul_aug", "li_sep_oct", "li_nov_dec"]
 	},
-
 	{
 		utm_source: ["instagram"],
-		utm_campaign: ["free trial", "discount country_code", "all for one", "one for all", "look-alike"],
-		utm_medium: ["influencer", "promoted", "sidebar", "search"],
-		utm_content: ["control group", "variant A", "variant B", "variant C", "variant D"],
-		utm_term: ["Jan-Feb", "Mar-Apr", "May-June", "July-Aug", "Sept-Oct", "Nov-Dec"]
+		utm_campaign: ["ig_free_trial", "ig_discount_US", "ig_winter_sale", "ig_flash_sale", "ig_lookalike_audience"],
+		utm_medium: ["story_ad", "influencer_post", "promoted_post", "search_ad"],
+		utm_content: ["ig_control_group", "ig_variant_A", "ig_variant_B", "ig_variant_C", "ig_variant_D"],
+		utm_term: ["ig_jan_feb", "ig_mar_apr", "ig_may_jun", "ig_jul_aug", "ig_sep_oct", "ig_nov_dec"]
 	},
-
 	{
-		utm_source: ["google ads"],
-		utm_campaign: ["free trial", "discount country_code", "all for one", "one for all", "look-alike"],
-		utm_medium: ["search", "promoted", "sidebar"],
-		utm_content: ["control group", "variant A", "variant B", "variant C", "variant D"],
-		utm_term: ["Jan-Feb", "Mar-Apr", "May-June", "July-Aug", "Sept-Oct", "Nov-Dec"]
+		utm_source: ["google_ads"],
+		utm_campaign: ["ga_free_trial", "ga_discount_US", "ga_spring_promo", "ga_summer_promo", "ga_lookalike_audience"],
+		utm_medium: ["search_ad", "display_ad", "sidebar_ad"],
+		utm_content: ["ga_control_group", "ga_variant_A", "ga_variant_B", "ga_variant_C", "ga_variant_D"],
+		utm_term: ["ga_jan_feb", "ga_mar_apr", "ga_may_jun", "ga_jul_aug", "ga_sep_oct", "ga_nov_dec"]
 	},
 	{
 		utm_source: ["youtube"],
-		utm_campaign: ["free trial", "discount country_code", "all for one", "one for all", "look-alike"],
-		utm_medium: ["search", "promoted", "sidebar"],
-		utm_content: ["control group", "variant A", "variant B", "variant C", "variant D"],
-		utm_term: ["Jan-Feb", "Mar-Apr", "May-June", "July-Aug", "Sept-Oct", "Nov-Dec"]
+		utm_campaign: ["yt_free_trial", "yt_discount_US", "yt_autumn_promo", "yt_end_of_year", "yt_lookalike_audience"],
+		utm_medium: ["video_ad", "display_ad", "sidebar_ad"],
+		utm_content: ["yt_control_group", "yt_variant_A", "yt_variant_B", "yt_variant_C", "yt_variant_D"],
+		utm_term: ["yt_jan_feb", "yt_mar_apr", "yt_may_jun", "yt_jul_aug", "yt_sep_oct", "yt_nov_dec"]
 	},
 	{
-		utm_source: ["$referral"],
-		utm_campaign: ["free trial", "discount country_code", "all for one", "one for all", "look-alike"],
-		utm_medium: ["email", "referral link"],
-		utm_content: ["control group", "variant A", "variant B", "variant C", "variant D"],
-		utm_term: ["Jan-Feb", "Mar-Apr", "May-June", "July-Aug", "Sept-Oct", "Nov-Dec"]
+		utm_source: ["referral"],
+		utm_campaign: ["ref_free_trial", "ref_discount_US", "ref_referral_promo", "ref_loyalty_program", "ref_lookalike_audience"],
+		utm_medium: ["email_campaign", "referral_link"],
+		utm_content: ["ref_control_group", "ref_variant_A", "ref_variant_B", "ref_variant_C", "ref_variant_D"],
+		utm_term: ["ref_jan_feb", "ref_mar_apr", "ref_may_jun", "ref_jul_aug", "ref_sep_oct", "ref_nov_dec"]
 	},
 	{
-		utm_source: ["google ads"],
-		utm_campaign: ["free trial", "discount country_code", "all for one", "one for all", "look-alike"],
-		utm_medium: ["inbox", "sidebar", "keywords"],
-		utm_content: ["control group", "variant A", "variant B", "variant C", "variant D"],
-		utm_term: ["Jan-Feb", "Mar-Apr", "May-June", "July-Aug", "Sept-Oct", "Nov-Dec"]
+		utm_source: ["bing_ads"],
+		utm_campaign: ["ba_free_trial", "ba_discount_US", "ba_back_to_school", "ba_holiday_promo", "ba_lookalike_audience"],
+		utm_medium: ["search_ad", "display_ad", "sidebar_ad"],
+		utm_content: ["ba_control_group", "ba_variant_A", "ba_variant_B", "ba_variant_C", "ba_variant_D"],
+		utm_term: ["ba_jan_feb", "ba_mar_apr", "ba_may_jun", "ba_jul_aug", "ba_sep_oct", "ba_nov_dec"]
 	},
-
-
 	{
 		utm_source: ["tiktok"],
-		utm_campaign: ["free trial", "discount country_code", "all for one", "one for all", "look-alike"],
-		utm_medium: ["search", "promoted", "sidebar"],
-		utm_content: ["control group", "variant A", "variant B", "variant C", "variant D"],
-		utm_term: ["Jan-Feb", "Mar-Apr", "May-June", "July-Aug", "Sept-Oct", "Nov-Dec"]
+		utm_campaign: ["tt_free_trial", "tt_discount_US", "tt_flash_sale", "tt_special_offer", "tt_lookalike_audience"],
+		utm_medium: ["video_ad", "promoted_content", "sidebar_ad"],
+		utm_content: ["tt_control_group", "tt_variant_A", "tt_variant_B", "tt_variant_C", "tt_variant_D"],
+		utm_term: ["tt_jan_feb", "tt_mar_apr", "tt_may_jun", "tt_jul_aug", "tt_sep_oct", "tt_nov_dec"]
 	},
 	{
 		utm_source: ["reddit"],
-		utm_campaign: ["free trial", "discount country_code", "all for one", "one for all", "look-alike"],
-		utm_medium: ["search", "promoted", "sidebar"],
-		utm_content: ["control group", "variant A", "variant B", "variant C", "variant D"],
-		utm_term: ["Jan-Feb", "Mar-Apr", "May-June", "July-Aug", "Sept-Oct", "Nov-Dec"]
+		utm_campaign: ["rd_free_trial", "rd_discount_US", "rd_winter_promo", "rd_new_year_offer", "rd_lookalike_audience"],
+		utm_medium: ["promoted_post", "display_ad", "sidebar_ad"],
+		utm_content: ["rd_control_group", "rd_variant_A", "rd_variant_B", "rd_variant_C", "rd_variant_D"],
+		utm_term: ["rd_jan_feb", "rd_mar_apr", "rd_may_jun", "rd_jul_aug", "rd_sep_oct", "rd_nov_dec"]
 	}
 ];
 

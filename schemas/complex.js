@@ -131,7 +131,7 @@ const config = {
 		}
 	],
 	superProps: {
-		device: deviceAttributes()
+		linked_device: deviceAttributes()
 		// emotions: generateEmoji(),
 
 	},
