@@ -47,7 +47,7 @@
 		"chartjs-node-canvas": "^4.1.6",
 		"dayjs": "^1.11.11",
 		"dotenv": "^16.4.5",
-		"mixpanel-import": "^2.5.55",
+		"mixpanel-import": "^2.5.552",
 		"yargs": "^17.7.2"
 	},
 	"devDependencies": {

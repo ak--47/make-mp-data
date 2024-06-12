@@ -118,7 +118,8 @@ declare namespace main {
   }
 
   export interface MirrorProps {
-    events: string[] | "*";
+    events?: string[] | "*";
+	strategy?: "delete" | "append" | "replace" | "fill" | ""
     values: ValueValid[];
   }
 

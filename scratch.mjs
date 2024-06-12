@@ -5,6 +5,7 @@ import funnels from './schemas/funnels.js';
 import foobar from './schemas/foobar.js';
 import complex from './schemas/complex.js';
 import deepNest from './schemas/deepNest.js';
+import anon from './schemas/anon.js';
 import execSync from 'child_process';
 
 
@@ -14,7 +15,7 @@ const spec = {
 	writeToDisk: false,
 	verbose: true,
 	makeChart: false,
-	token: "e98e6af94f6ddfb5e967fa265484539a"
+	token: "e5e05b441046a1dce320f1aa26697055"
 };
 
 

@@ -196,14 +196,14 @@ async function main(config) {
 	//user loop
 	log(`---------------SIMULATION----------------`, "\n\n");
 	loopUsers: for (let i = 1; i < numUsers + 1; i++) {
-		u.progress("users", i);
+		u.progress([["users", i], ["events", eventData.length]]);
 		const userId = chance.guid();
 		const user = u.person(userId, numDays, isAnonymous);
 		const { distinct_id, created, anonymousIds, sessionIds } = user;
 		let numEventsPreformed = 0;
 
 		if (hasLocation) {
-			const location = u.choose(DEFAULTS.locations().map(l => { delete l.country; return l; }));
+			const location = u.choose(clone(DEFAULTS.locations()).map(l => { delete l.country; return l; }));
 			for (const key in location) {
 				user[key] = location[key];
 			}
@@ -280,7 +280,7 @@ async function main(config) {
 		const groupCardinality = groupPair[1];
 		const groupProfiles = [];
 		for (let i = 1; i < groupCardinality + 1; i++) {
-			u.progress("groups", i);
+			u.progress([["groups", i]]);
 			const group = {
 				[groupKey]: i,
 				...makeProfile(groupProps[groupKey])
@@ -297,7 +297,7 @@ async function main(config) {
 		const { key, entries, attributes } = lookupTable;
 		const data = [];
 		for (let i = 1; i < entries + 1; i++) {
-			u.progress("lookups", i);
+			u.progress([["lookups", i]]);
 			const item = {
 				[key]: i,
 				...makeProfile(attributes),
@@ -506,7 +506,7 @@ function makeEvent(distinct_id, anonymousIds, sessionIds, earliestTime, chosenEv
 
 	let defaultProps = {};
 	let devicePool = [];
-	if (hasLocation) defaultProps.location = DEFAULTS.locations().map(l => { delete l.country_code; return l; });
+	if (hasLocation) defaultProps.location = clone(DEFAULTS.locations()).map(l => { delete l.country_code; return l; });
 	if (hasBrowser) defaultProps.browser = DEFAULTS.browsers();
 	if (hasAndroidDevices) devicePool.push(DEFAULTS.androidDevices());
 	if (hasIOSDevices) devicePool.push(DEFAULTS.iOSDevices());

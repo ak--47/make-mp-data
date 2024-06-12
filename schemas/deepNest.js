@@ -1,5 +1,9 @@
 const Chance = require('chance');
 const chance = new Chance();
+const u = require('../utils');
+
+const plans = ['free', 'premium', 'casual', 'influencer'];
+const marketingChannels = ["Organic", "Organic", "Organic", "Organic", "Instagram Ads", "Facebook Ads", "Google Ads", "Youtube Ads", "Instagram Post", "Instagram Post", "Facebook Post"];
 
 const config = {
 	token: "",
@@ -35,7 +39,7 @@ function generateVideoMeta() {
 			availableFormats: chance.pickset(formats, int(1, formats.length)),
 			availableAspectRatios: chance.pickset(ratios, int(1, ratios.length)),
 			availableContainerFormats: chance.pickset(containers, int(1, containers.length)),
-			observedLatencyTimestamps: chance.pickset([].range(1, 300000), int(1, 40))
+			observedLatencyTimestamps: chance.pickset(u.range(1, 300000), int(1, 40))
 		},
 		videoStats: {
 			numberOfPlays: int(10, 10000000),

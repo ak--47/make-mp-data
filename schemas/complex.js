@@ -23,6 +23,15 @@ const config = {
 	anonIds: true, //if true, anonymousIds are created for each user
 	sessionIds: true, //if true, sessionIds are created for each user
 
+	hasLocation: true,
+	hasAndroidDevices: true,
+	hasIOSDevices: true,
+	hasDesktopDevices: true,
+	hasBrowser: true,
+	hasCampaigns: true,
+	isAnonymous: false,
+	hasAdSpend: true,
+
 	events: [
 		{
 			"event": "checkout",

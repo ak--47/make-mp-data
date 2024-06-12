@@ -11,6 +11,7 @@ const u = require('ak-tools');
 const simple = require('../schemas/simple.js');
 const complex = require('../schemas/complex.js');
 const deep = require('../schemas/deepNest.js');
+const anon = require('../schemas/anon.js');
 
 const timeout = 60000;
 const testToken = process.env.TEST_TOKEN;
@@ -176,6 +177,14 @@ describe('options + tweaks', () => {
 		const { eventData } = results;
 		const invalidDates = eventData.filter(e => !validateTime(e.time));
 		expect(eventData.every(e => validateTime(e.time))).toBe(true);
+
+	}, timeout);
+
+	test('anonymous users', async () => {
+		console.log('ANON TEST');
+		const results = await generate({ ...anon, writeToDisk: false, verbose: true });
+		const { userProfilesData } = results;
+		expect(userProfilesData.every(u => u.name === 'Anonymous User')).toBe(true);
 
 	}, timeout);
 

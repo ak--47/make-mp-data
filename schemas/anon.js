@@ -16,22 +16,21 @@ dayjs.extend(utc);
 const { uid, comma } = require('ak-tools');
 const { pickAWinner, weightedRange, date, integer } = require('../utils');
 
-const itemCategories = ["Books", "Movies", "Music", "Games", "Electronics", "Computers", "Smart Home", "Home", "Garden", "Pet", "Beauty", "Health", "Toys", "Kids", "Baby", "Handmade", "Sports", "Outdoors", "Automotive", "Industrial", "Entertainment", "Art", "Food", "Appliances", "Office", "Wedding", "Software"];
 
-const videoCategories = ["funny", "educational", "inspirational", "music", "news", "sports", "cooking", "DIY", "travel", "gaming"];
 
 /** @type {import('../types').Config} */
 const config = {
 	token: "",
 	seed: "foo bar",
 	numDays: 365, //how many days worth of data
-	numEvents: 10000000, //how many events
-	numUsers: 25000, //how many users	
+	numEvents: 100000, //how many events
+	numUsers: 10000, //how many users	
 	format: 'json', //csv or json
 	region: "US",
 	anonIds: true, //if true, anonymousIds are created for each user
 	sessionIds: false, //if true, sessionIds are created for each user
-	
+	isAnonymous: true,
+	hasLocation: true, 
 	events: [
 		{
 			event: "foo",
@@ -84,17 +83,12 @@ const config = {
 			properties: {}
 		}
 	],
-	superProps: {
-		color: ["red", "orange", "yellow", "green", "blue", "indigo", "violet"],
-		number: integer,
-
-	},
+	superProps: {},
 	userProps: {
 		title: chance.profession.bind(chance),
 		luckyNumber: weightedRange(42, 420),
 		spiritAnimal: ["duck", "dog", "otter", "penguin", "cat", "elephant", "lion", "cheetah", "giraffe", "zebra", "rhino", "hippo", "whale", "dolphin", "shark", "octopus", "squid", "jellyfish", "starfish", "seahorse", "crab", "lobster", "shrimp", "clam", "snail", "slug", "butterfly", "moth", "bee", "wasp", "ant", "beetle", "ladybug", "caterpillar", "centipede", "millipede", "scorpion", "spider", "tarantula", "tick", "mite", "mosquito", "fly", "dragonfly", "damselfly", "grasshopper", "cricket", "locust", "mantis", "cockroach", "termite", "praying mantis", "walking stick", "stick bug", "leaf insect", "lacewing", "aphid", "cicada", "thrips", "psyllid", "scale insect", "whitefly", "mealybug", "planthopper", "leafhopper", "treehopper", "flea", "louse", "bedbug", "flea beetle", "weevil", "longhorn beetle", "leaf beetle", "tiger beetle", "ground beetle", "lady beetle", "firefly", "click beetle", "rove beetle", "scarab beetle", "dung beetle", "stag beetle", "rhinoceros beetle", "hercules beetle", "goliath beetle", "jewel beetle", "tortoise beetle"]
 	},
-
 	scdProps: {},
 	mirrorProps: {},
 	groupKeys: [],

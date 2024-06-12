@@ -553,7 +553,7 @@ describe('utilities', () => {
 	test('progress: outputs correctly', () => {
 		// @ts-ignore
 		const mockStdoutWrite = jest.spyOn(process.stdout, 'write').mockImplementation(() => { });
-		progress('test', 50);
+		progress([['test', 50]]);
 		expect(mockStdoutWrite).toHaveBeenCalled();
 		mockStdoutWrite.mockRestore();
 	});

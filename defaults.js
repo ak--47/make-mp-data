@@ -1,7 +1,8 @@
 /* cSpell:disable */
 //? https://docs.mixpanel.com/docs/data-structure/property-reference#default-properties
 
-
+const domainSuffix = ["com", "com", "com", "com", "net", "org", "net", "org", "io", "co", "co.uk", "us", "biz", "info", "gov", "edu"];
+const domainPrefix = ["gmail", "gmail", "gmail", "gmail", "gmail", "gmail", "yahoo", "yahoo", "icloud", "icloud", "icloud","icloud", "hotmail", "hotmail", "gmail", "gmail", "gmail", "gmail", "gmail", "gmail", "yahoo", "yahoo", "icloud", "icloud", "icloud", "hotmail", "hotmail", "outlook", "aol", "outlook", "aol", "protonmail", "zoho", "gmx", "yandex", "mail", "inbox", "fastmail", "tutanota", "mailfence", "disroot", "riseup", "posteo", "runbox", "kolabnow", "mailbox", "scryptmail", "ctemplar", "countermail", "hushmail", "startmail", "privatemail"];
 const campaigns = [
 	{
 		utm_campaign: ["$organic"],
@@ -338,13 +339,13 @@ const desktopDevices = [
 		screen_height: '2520',
 		screen_width: '4480',
 		os: 'macOS',
-		Platform : 'Desktop'
+		Platform: 'Desktop'
 	}, {
 		model: 'iMac 27-inch (2020)',
 		screen_height: '2880',
 		screen_width: '5120',
 		os: 'macOS',
-		Platform : 'Desktop'
+		Platform: 'Desktop'
 	}, {
 		model: 'Mac Mini (M2, 2023)',
 		screen_height: '2160',
@@ -356,31 +357,31 @@ const desktopDevices = [
 		screen_height: '1664',
 		screen_width: '2560',
 		os: 'macOS',
-		Platform : 'Desktop'
+		Platform: 'Desktop'
 	}, {
 		model: 'MacBook Pro 14-inch (M2, 2023)',
 		screen_height: '1964',
 		screen_width: '3024',
 		os: 'macOS',
-		Platform : 'Desktop'
+		Platform: 'Desktop'
 	}, {
 		model: 'MacBook Pro 16-inch (M2, 2023)',
 		screen_height: '2234',
 		screen_width: '3456',
 		os: 'macOS',
-		Platform : 'Desktop'
+		Platform: 'Desktop'
 	}, {
 		model: 'Mac Pro (2019)',
 		screen_height: '2160',
 		screen_width: '3840',
 		os: 'macOS',
-		Platform : 'Desktop'
+		Platform: 'Desktop'
 	}, {
 		model: 'iMac Pro (2017)',
 		screen_height: '2880',
 		screen_width: '5120',
 		os: 'macOS',
-		Platform : 'Desktop'
+		Platform: 'Desktop'
 	}, {
 		model: 'Dell XPS 15',
 		screen_height: '2160',
@@ -970,5 +971,7 @@ module.exports = {
 		iosDevices,
 		desktopDevices
 	},
-	locations
+	locations,
+	domainSuffix,
+	domainPrefix
 };

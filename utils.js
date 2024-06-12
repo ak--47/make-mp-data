@@ -9,6 +9,7 @@ const path = require('path');
 const { mkdir } = require('ak-tools');
 dayjs.extend(utc);
 require('dotenv').config();
+const { domainSuffix, domainPrefix } = require('./defaults');
 
 /** @typedef {import('./types').Config} Config */
 /** @typedef {import('./types').EventConfig} EventConfig */
@@ -20,6 +21,8 @@ require('dotenv').config();
 
 let globalChance;
 let chanceInitialized = false;
+
+
 
 /*
 ----
@@ -713,11 +716,19 @@ function buildFileNames(config) {
 	return writePaths;
 }
 
-
-function progress(thing, p) {
+/**
+ * @param  {[string, number][]} arrayOfArrays
+ */
+function progress(arrayOfArrays) {
 	// @ts-ignore
 	readline.cursorTo(process.stdout, 0);
-	process.stdout.write(`${thing} processed ... ${comma(p)}`);
+	let message = "";
+	for (const status of arrayOfArrays) {
+		const [thing, p] = status;
+		message += `${thing} processed: ${comma(p)}\t\t`;
+	}
+
+	process.stdout.write(message);
 };
 
 
@@ -823,19 +834,16 @@ function TimeSoup(earliestTime, latestTime, peaks = 5, deviation = 2, mean = 0) 
 function person(userId, bornDaysAgo = 30, isAnonymous = false) {
 	const chance = getChance();
 	//names and photos
-	const l = chance.letter;
+	const l = chance.letter.bind(chance);
 	let gender = chance.pickone(['male', 'female']);
 	if (!gender) gender = "female";
 	// @ts-ignore
 	let first = chance.first({ gender });
 	let last = chance.last();
 	let name = `${first} ${last}`;
-	let email = `${first[0]}.${last}@${chance.domain()}.com`;
+	let email = `${first[0]}.${last}@${choose(domainPrefix)}.${choose(domainSuffix)}`;
 	let avatarPrefix = `https://randomuser.me/api/portraits`;
-	let randomAvatarNumber = chance.integer({
-		min: 1,
-		max: 99
-	});
+	let randomAvatarNumber = integer(1, 99);
 	let avPath = gender === 'male' ? `/men/${randomAvatarNumber}.jpg` : `/women/${randomAvatarNumber}.jpg`;
 	let avatar = avatarPrefix + avPath;
 	let created = dayjs.unix(global.NOW).subtract(bornDaysAgo, 'day').format('YYYY-MM-DD');
@@ -855,8 +863,8 @@ function person(userId, bornDaysAgo = 30, isAnonymous = false) {
 
 	if (isAnonymous) {
 		user.name = "Anonymous User";
-		user.email = `${l()}${l()}****${l()}${l()}@${l()}**${l()}*.com`;		
-		delete user.avatar;		
+		user.email = l() + l() + `*`.repeat(integer(3,6)) + l() + `@` + l() + `*`.repeat(integer(3,6)) + l() + `.` + choose(domainSuffix);		
+		delete user.avatar;
 
 	}
 
