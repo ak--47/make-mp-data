@@ -3,8 +3,15 @@ const fs = require('fs');
 const u = require('ak-tools');
 const dayjs = require('dayjs');
 const { openFinder } = require('./utils');
+const { existsSync } = fs;
+const path = require('path');
 
-const tempDir = u.mkdir('./tmp');
+
+let tempDir;
+const dataFolder = path.resolve("./data");
+if (existsSync(dataFolder)) tempDir = dataFolder;
+else tempDir = path.resolve("./");
+
 
 // Function to count events per day
 function countDailyEvents(eventData) {
@@ -168,9 +175,9 @@ async function generateLineChart(rawData, signupEvents = ["sign up"], fileName) 
 	if (typeof fileName !== 'string') fileName = 'chart';
 	// @ts-ignore
 	const imageBuffer = await chartJSNodeCanvas.renderToBuffer(configuration);
-	const path = `./tmp/${fileName}.png`;
-	const removed = await u.rm(path);
-	const file = await u.touch(path, imageBuffer);
+	const filePath = path.join(tempDir, `${fileName}.png`);
+	const removed = await u.rm(filePath);
+	const file = await u.touch(filePath, imageBuffer);
 
 	console.log(`Chart saved as ${fileName}.png`);
 	openFinder(path)

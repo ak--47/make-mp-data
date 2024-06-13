@@ -66,6 +66,18 @@ DATA MODEL: https://github.com/ak--47/make-mp-data/blob/main/default.js
 			describe: 'number of events to model',
 			type: 'number',
 		})
+		.option("epochStart", {
+			alias: 'start',
+			demandOption: false,
+			describe: 'start epoch time',
+			type: 'number',
+		})
+		.option("epochEnd", {
+			alias: 'end',
+			demandOption: false,
+			describe: 'end epoch time',
+			type: 'number',
+		})
 		.option("region", {
 			demandOption: false,
 			default: 'US',
@@ -105,16 +117,82 @@ DATA MODEL: https://github.com/ak--47/make-mp-data/blob/main/default.js
 			type: 'boolean',
 			coerce: boolCoerce
 		})
-
+		.option("verbose", {
+			alias: 'v',
+			demandOption: false,
+			describe: 'enable verbose logging',
+			type: 'boolean',
+			coerce: boolCoerce
+		})
+		.option("makeChart", {
+			alias: 'mc',
+			demandOption: false,
+			describe: 'create a PNG chart from data',
+			type: 'boolean',
+			coerce: boolCoerce
+		})		
+		.option("hasAdSpend", {
+			alias: 'ads',
+			demandOption: false,
+			describe: 'include ad spend data',
+			type: 'boolean',
+			coerce: boolCoerce
+		})
+		.option("hasCampaigns", {
+			alias: 'camp',
+			demandOption: false,
+			describe: 'include campaign data',
+			type: 'boolean',
+			coerce: boolCoerce
+		})
+		.option("hasLocation", {
+			alias: 'loc',
+			demandOption: false,
+			describe: 'include location data',
+			type: 'boolean',
+			coerce: boolCoerce
+		})
+		.option("isAnonymous", {
+			alias: 'anon',
+			demandOption: false,
+			describe: 'generate anonymous data',
+			type: 'boolean',
+			coerce: boolCoerce
+		})
+		.option("hasBrowser", {
+			alias: 'browser',
+			demandOption: false,
+			describe: 'include browser data',
+			type: 'boolean',
+			coerce: boolCoerce
+		})
+		.option("hasAndroidDevices", {
+			alias: 'android',
+			demandOption: false,
+			describe: 'include Android device data',
+			type: 'boolean',
+			coerce: boolCoerce
+		})
+		.option("hasDesktopDevices", {
+			alias: 'desktop',
+			demandOption: false,
+			describe: 'include desktop device data',
+			type: 'boolean',
+			coerce: boolCoerce
+		})
+		.option("hasIOSDevices", {
+			alias: 'ios',
+			demandOption: false,
+			describe: 'include iOS device data',
+			type: 'boolean',
+			coerce: boolCoerce
+		})
 		.help()
 		.wrap(null)
 		.argv;
 
-	// if (args._.length === 0 && !args.type?.toLowerCase()?.includes('export')) {
-	// 	yargs.showHelp();
-	// 	process.exit();
-	// }
 	return args;
+
 }
 
 
