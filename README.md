@@ -9,7 +9,7 @@ the CLI looks like this:
 
 ![Generate Mixpanel data](https://aktunes.neocities.org/makeDataDemo.gif)
 
-under the hood, `make-mp-data` is modeling data adherent to match [Mixpanel's data model](https://docs.mixpanel.com/docs/data-structure/concepts), giving you the tools you need for robust, realistical field ready test data.
+under the hood, `make-mp-data` is modeling data adherent to match [Mixpanel's data model](https://docs.mixpanel.com/docs/data-structure/concepts), giving you the tools you need for robust, realistic field ready test data.
 
 ## 🚀 Quick Start
 
@@ -64,8 +64,9 @@ npx make-mp-data [dataModel.js] [options]
 Example:
 
 ```bash
-npx make-mp-data ecommSpec.js --token 1234 --numDays 30 --numUsers 1000 --numEvents 1000000
+npx make-mp-data myDataSpec.js --token 1234 --numDays 30 --numUsers 1000 --numEvents 1000000
 ```
+where `myDataSpec.js` exports a [JS object of this shape](https://github.com/ak--47/make-mp-data/blob/main/types.d.ts#L8) ... (see [`./schemas`](https://github.com/ak--47/make-mp-data/tree/main/schemas) for examples)
 
 ### Data Models
 

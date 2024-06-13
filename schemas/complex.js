@@ -8,7 +8,7 @@
 
 const Chance = require('chance');
 const chance = new Chance();
-const { weightedRange, date, integer } = require('../utils.js');
+const { weightedRange, date, integer } = require('../core/utils.js');
 const u = require('ak-tools');
 
 /** @type {import('../types.js').Config} */

@@ -1,4 +1,4 @@
-const generate = require('../index.js');
+const generate = require('../core/index.js');
 const dayjs = require("dayjs");
 const utc = require("dayjs/plugin/utc");
 const fs = require('fs');
@@ -46,7 +46,7 @@ const { applySkew,
 	optimizedBoxMuller,
 	inferFunnels,
 	datesBetween
-} = require('../utils');
+} = require('../core/utils.js');
 
 
 describe('timesoup', () => {
@@ -325,9 +325,9 @@ describe('generation', () => {
 		const end = '2023-06-13';
 		const result = datesBetween(start, end);
 		expect(result).toEqual([
-			'2023-06-10T16:00:00.000Z',
-			'2023-06-11T16:00:00.000Z',
-			'2023-06-12T16:00:00.000Z'
+			'2023-06-10T12:00:00.000Z',
+			'2023-06-11T12:00:00.000Z',
+			'2023-06-12T12:00:00.000Z'
 		]);
 	});
 
@@ -336,9 +336,9 @@ describe('generation', () => {
 		const end = dayjs('2023-06-13').unix();
 		const result = datesBetween(start, end);
 		expect(result).toEqual([
-			'2023-06-10T16:00:00.000Z',
-			'2023-06-11T16:00:00.000Z',
-			'2023-06-12T16:00:00.000Z'
+			'2023-06-10T12:00:00.000Z',
+			'2023-06-11T12:00:00.000Z',
+			'2023-06-12T12:00:00.000Z'
 		]);
 	});
 
@@ -347,9 +347,9 @@ describe('generation', () => {
 		const end = dayjs('2023-06-13').unix();
 		const result = datesBetween(start, end);
 		expect(result).toEqual([
-			'2023-06-10T16:00:00.000Z',
-			'2023-06-11T16:00:00.000Z',
-			'2023-06-12T16:00:00.000Z'
+			'2023-06-10T12:00:00.000Z',
+			'2023-06-11T12:00:00.000Z',
+			'2023-06-12T12:00:00.000Z'
 		]);
 	});
 
@@ -372,9 +372,9 @@ describe('generation', () => {
 		const end = '2024-03-02';
 		const result = datesBetween(start, end);
 		expect(result).toEqual([
-			'2024-02-28T17:00:00.000Z',
-			'2024-02-29T17:00:00.000Z',
-			'2024-03-01T17:00:00.000Z'
+			'2024-02-28T12:00:00.000Z',
+			'2024-02-29T12:00:00.000Z',
+			'2024-03-01T12:00:00.000Z'
 		]);
 	});
 

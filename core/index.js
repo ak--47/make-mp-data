@@ -6,18 +6,18 @@ by AK
 ak@mixpanel.com
 */
 
-//todo: adspend is only getting 1 campaign per day?!?!
-//todo: cart analysis
 //todo: churn ... is churnFunnel, possible to return, etc
-//todo: fixedTimeFunnel? if set this funnel will occur for all users at the same time ['cart charged', 'charge complete']
+//todo: fixedTimeFunnel? if set this funnel will occur for all users at the same time ['cards charged', 'charge complete']
+//todo: send SCD data to mixpanel
+//todo: send and map lookup tables to mixpanel
 
-/** @typedef {import('./types.d.ts').Config} Config */
-/** @typedef {import('./types.d.ts').EventConfig} EventConfig */
-/** @typedef {import('./types.d.ts').Funnel} Funnel */
-/** @typedef {import('./types.d.ts').Person} Person */
-/** @typedef {import('./types.d.ts').SCDTableRow} SCDTableRow */
-/** @typedef {import('./types.d.ts').UserProfile} UserProfile */
-/** @typedef {import('./types.d.ts').EventSpec} EventSpec */
+/** @typedef {import('../types').Config} Config */
+/** @typedef {import('../types').EventConfig} EventConfig */
+/** @typedef {import('../types').Funnel} Funnel */
+/** @typedef {import('../types').Person} Person */
+/** @typedef {import('../types').SCDTableRow} SCDTableRow */
+/** @typedef {import('../types').UserProfile} UserProfile */
+/** @typedef {import('../types').EventSpec} EventSpec */
 
 const dayjs = require("dayjs");
 const utc = require("dayjs/plugin/utc");
@@ -29,7 +29,7 @@ const os = require("os");
 const path = require("path");
 const { comma, bytesHuman, makeName, md5, clone, tracker, uid } = require("ak-tools");
 const { generateLineChart } = require('./chart.js');
-const { version } = require('./package.json');
+const { version } = require('../package.json');
 const mp = require("mixpanel-import");
 const metrics = tracker("make-mp-data", "db99eb8f67ae50949a13c27cacf57d41", os.userInfo().username);
 
@@ -446,7 +446,7 @@ async function main(config) {
 
 		if (eventData) {
 			log(`importing events to mixpanel...\n`);
-			const imported = await mp(creds, eventData, {
+			const imported = await mp(creds, clone(eventData), {
 				recordType: "event",
 				...commonOpts,
 			});
@@ -455,7 +455,7 @@ async function main(config) {
 		}
 		if (userProfilesData) {
 			log(`importing user profiles to mixpanel...\n`);
-			const imported = await mp(creds, userProfilesData, {
+			const imported = await mp(creds, clone(userProfilesData), {
 				recordType: "user",
 				...commonOpts,
 			});
@@ -464,7 +464,7 @@ async function main(config) {
 		}
 		if (adSpendData) {
 			log(`importing ad spend data to mixpanel...\n`);
-			const imported = await mp(creds, adSpendData, {
+			const imported = await mp(creds, clone(adSpendData), {
 				recordType: "event",
 				...commonOpts,
 			});
@@ -476,7 +476,7 @@ async function main(config) {
 				const groupKey = groupProfiles.key;
 				const data = groupProfiles.data;
 				log(`importing ${groupKey} profiles to mixpanel...\n`);
-				const imported = await mp({ token, groupKey }, data, {
+				const imported = await mp({ token, groupKey }, clone(data), {
 					recordType: "group",
 					...commonOpts,
 
@@ -821,7 +821,7 @@ function makeProfile(props, defaults) {
 }
 
 /**
- * @param  {import('./types.d.ts').ValueValid} prop
+ * @param  {import('../types').ValueValid} prop
  * @param  {string} scdKey
  * @param  {string} distinct_id
  * @param  {number} mutations
@@ -857,40 +857,45 @@ function makeAdSpend(day) {
 		const campaigns = network.utm_campaign;
 		loopCampaigns: for (const campaign of campaigns) {
 			if (campaign === "$organic") continue loopCampaigns;
-			//cost per acquisition ~ $42-420
+
 			const CAC = u.integer(42, 420); //todo: get the # of users created in this day from eventData
-			//cost ~ $50-500
-			const cost = chance.floating({ min: 50, max: 500, fixed: 2 });
-			//impressions ~100-500 * cost
-			const impressions = Math.floor(cost * u.integer(100, 500));
-			//views ~ 25-80% of impressions
-			const views = Math.floor(impressions * chance.floating({ min: 0.25, max: 0.8 }));
-			// clicks  ~ 25-80% of views
-			const clicks = Math.floor(views * chance.floating({ min: 0.25, max: 0.8 }));
+			// Randomly generating cost
+			const cost = chance.floating({ min: 10, max: 250, fixed: 2 });
+
+			// Ensuring realistic CPC and CTR
+			const avgCPC = chance.floating({ min: 0.33, max: 2.00, fixed: 4 });
+			const avgCTR = chance.floating({ min: 0.05, max: 0.25, fixed: 4 });
+
+			// Deriving impressions from cost and avg CPC
+			const clicks = Math.floor(cost / avgCPC);
+			const impressions = Math.floor(clicks / avgCTR);
+			const views = Math.floor(impressions * avgCTR);
 
 			//tags 
 			const utm_medium = u.choose(u.pickAWinner(network.utm_medium)());
 			const utm_content = u.choose(u.pickAWinner(network.utm_content)());
 			const utm_term = u.choose(u.pickAWinner(network.utm_term)());
-
-			adSpendEvents.push({
-				event: "Ads Data",
+			//each of these is a campaign
+			const adSpendEvent = {
+				event: "Ad Data",
 				time: day,
 				source: 'dm4',
 				utm_campaign: campaign,
 				campaign_id: md5(network.utm_source[0] + '-' + campaign),
-
+				network: network.utm_source[0].toUpperCase(),
+				distinct_id: network.utm_source[0].toUpperCase(),
 				utm_source: network.utm_source[0],
 				utm_medium,
 				utm_content,
 				utm_term,
-				
+
 				clicks,
 				views,
 				impressions,
 				cost,
-
-			});
+				date: dayjs(day).format("YYYY-MM-DD"),
+			};
+			adSpendEvents.push(adSpendEvent);
 		}
 
 
@@ -924,12 +929,12 @@ if (require.main === module) {
 			console.log(`... using default COMPLEX configuration [everything] ...\n`);
 			console.log(`... for more simple data, don't use the --complex flag ...\n`);
 			console.log(`... or specify your own js config file (see docs or --help) ...\n`);
-			config = require(path.resolve(__dirname, "./schemas/complex.js"));
+			config = require(path.resolve(__dirname, "../schemas/complex.js"));
 		}
 		else {
 			console.log(`... using default SIMPLE configuration [events + users] ...\n`);
 			console.log(`... for more complex data, use the --complex flag ...\n`);
-			config = require(path.resolve(__dirname, "./schemas/simple.js"));
+			config = require(path.resolve(__dirname, "../schemas/simple.js"));
 		}
 	}
 

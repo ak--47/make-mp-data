@@ -1,4 +1,4 @@
-import main from "./index.js";
+import main from "./core/index.js";
 import amir from './customers/amir.js';
 import simple from './schemas/simple.js';
 import funnels from './schemas/funnels.js';
@@ -15,10 +15,10 @@ const spec = {
 	writeToDisk: false,
 	verbose: true,
 	makeChart: false,
-	numUsers: 500,
-	numEvents: 25000,
+	numUsers: 100,
+	numEvents: 10000,
 	numDays: 90,
-	token: "4fa8df8bc677bec67162d6ebcc155053"
+	token: ""
 };
 
 

@@ -1,26 +1,25 @@
 {
 	"name": "make-mp-data",
-	"version": "1.4.02",
+	"version": "1.4.03",
 	"description": "builds all mixpanel primitives for a given project",
 	"main": "index.js",
 	"types": "types.d.ts",
 	"scripts": {
-		"start": "node index.js",
+		"start": "node ./core/index.js",
 		"dev": "nodemon scratch.mjs --ignore /data",
-		"complex": "nodemon index.js --complex --e 10000 --u 100",
-		"simple": "nodemon index.js  --simple --e 10000 --u 100",
+		"complex": "nodemon ./core/index.js --complex --e 10000 --u 100",
+		"simple": "nodemon ./core/index.js  --simple --e 10000 --u 100",
 		"prune": "rm -f ./data/* && rm -f ./tmp/*",
 		"post": "npm publish",
 		"test": "NODE_ENV=test jest --runInBand",
-		"deps": "sh ./scripts/deps.sh",
-		"udacity": "nodemon index.js ./customers/udacity.js"
+		"deps": "sh ./scripts/deps.sh"
 	},
 	"repository": {
 		"type": "git",
 		"url": "git+https://github.com/ak--47/make-mp-data.git"
 	},
 	"bin": {
-		"make-mp-data": "./index.js"
+		"make-mp-data": "./core/index.js"
 	},
 	"keywords": [
 		"mixpanel",

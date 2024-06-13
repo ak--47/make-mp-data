@@ -7,17 +7,18 @@ const dayjs = require('dayjs');
 const utc = require('dayjs/plugin/utc');
 const path = require('path');
 const { mkdir } = require('ak-tools');
+const { existsSync } = require('fs');
 dayjs.extend(utc);
 require('dotenv').config();
 const { domainSuffix, domainPrefix } = require('./defaults');
 
-/** @typedef {import('./types').Config} Config */
-/** @typedef {import('./types').EventConfig} EventConfig */
-/** @typedef {import('./types').ValueValid} ValueValid */
-/** @typedef {import('./types').EnrichedArray} EnrichArray */
-/** @typedef {import('./types').EnrichArrayOptions} EnrichArrayOptions */
-/** @typedef {import('./types').Person} Person */
-/** @typedef {import('./types').Funnel} Funnel */
+/** @typedef {import('../types').Config} Config */
+/** @typedef {import('../types').EventConfig} EventConfig */
+/** @typedef {import('../types').ValueValid} ValueValid */
+/** @typedef {import('../types').EnrichedArray} EnrichArray */
+/** @typedef {import('../types').EnrichArrayOptions} EnrichArrayOptions */
+/** @typedef {import('../types').Person} Person */
+/** @typedef {import('../types').Funnel} Funnel */
 
 let globalChance;
 let chanceInitialized = false;
@@ -132,10 +133,10 @@ function dates(inTheLast = 30, numPairs = 5, format = 'YYYY-MM-DD') {
 
 function datesBetween(start, end) {
 	const result = [];
-	if (typeof start === 'number') start = dayjs.unix(start);
-	if (typeof start !== 'number') start = dayjs(start);
-	if (typeof end === 'number') end = dayjs.unix(end);
-	if (typeof end !== 'number') end = dayjs(end);
+	if (typeof start === 'number') start = dayjs.unix(start).utc();
+	if (typeof start !== 'number') start = dayjs(start).utc();
+	if (typeof end === 'number') end = dayjs.unix(end).utc();
+	if (typeof end !== 'number') end = dayjs(end).utc();
 	const diff = end.diff(start, 'day');
 	for (let i = 0; i < diff; i++) {
 		const day = start.add(i, 'day').startOf('day').add(12, 'hour');
@@ -479,8 +480,11 @@ function weighFunnels(acc, funnel) {
 /**
  * a utility function to generate a range of numbers within a given skew
  * Skew = 0.5: The values are more concentrated towards the extremes (both ends of the range) with a noticeable dip in the middle. The distribution appears more "U" shaped. Larger sizes result in smoother distributions but maintain the overall shape.
+ * 
  * Skew = 1: This represents the default normal distribution without skew. The values are normally distributed around the mean. Larger sizes create a clearer bell-shaped curve.
+ * 
  * Skew = 2: The values are more concentrated towards the mean, with a steeper drop-off towards the extremes. The distribution appears more peaked, resembling a "sharper" bell curve. Larger sizes enhance the clarity of this peaked distribution.
+ * 
  * Size represents the size of the pool to choose from; Larger sizes result in smoother distributions but maintain the overall shape.
  * @param  {number} min
  * @param  {number} max
@@ -717,7 +721,11 @@ function buildFileNames(config) {
 	// const current = dayjs.utc().format("MM-DD-HH");
 	const simName = config.simulationName;
 	let writeDir = "./";
-	if (config.writeToDisk) writeDir = mkdir("./data");
+	if (config.writeToDisk) {
+		const dataFolder = path.resolve("./data");
+		if (existsSync(dataFolder)) writeDir = dataFolder;
+		else writeDir = path.resolve("./");
+	}
 	if (typeof writeDir !== "string") throw new Error("writeDir must be a string");
 	if (typeof simName !== "string") throw new Error("simName must be a string");
 

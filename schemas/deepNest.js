@@ -1,6 +1,6 @@
 const Chance = require('chance');
 const chance = new Chance();
-const u = require('../utils');
+const u = require('../core/utils');
 
 const plans = ['free', 'premium', 'casual', 'influencer'];
 const marketingChannels = ["Organic", "Organic", "Organic", "Organic", "Instagram Ads", "Facebook Ads", "Google Ads", "Youtube Ads", "Instagram Post", "Instagram Post", "Facebook Post"];

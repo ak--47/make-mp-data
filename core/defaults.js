@@ -19,12 +19,13 @@ const campaigns = [
 		utm_term: ["fb_jan_feb", "fb_mar_apr", "fb_may_jun", "fb_jul_aug", "fb_sep_oct", "fb_nov_dec"]
 	},
 	{
-		utm_source: ["twitter"],
-		utm_campaign: ["tw_free_trial", "tw_discount_US", "tw_spring_sale", "tw_cyber_monday", "tw_lookalike_audience"],
+		utm_source: ["snapchat"],
+		utm_campaign: ["sc_free_trial", "sc_discount_US", "sc_spring_sale", "sc_cyber_monday", "sc_lookalike_audience"],
 		utm_medium: ["promoted_tweet", "sponsored_post", "sidebar_ad", "search_ad"],
-		utm_content: ["tw_control_group", "tw_variant_A", "tw_variant_B", "tw_variant_C", "tw_variant_D"],
-		utm_term: ["tw_jan_feb", "tw_mar_apr", "tw_may_jun", "tw_jul_aug", "tw_sep_oct", "tw_nov_dec"]
+		utm_content: ["sc_control_group", "sc_variant_A", "sc_variant_B", "sc_variant_C", "sc_variant_D"],
+		utm_term: ["sc_jan_feb", "sc_mar_apr", "sc_may_jun", "sc_jul_aug", "sc_sep_oct", "sc_nov_dec"]
 	},
+	
 	{
 		utm_source: ["linkedin"],
 		utm_campaign: ["li_free_trial", "li_discount_US", "li_fall_sale", "li_holiday_special", "li_lookalike_audience"],
@@ -40,7 +41,7 @@ const campaigns = [
 		utm_term: ["ig_jan_feb", "ig_mar_apr", "ig_may_jun", "ig_jul_aug", "ig_sep_oct", "ig_nov_dec"]
 	},
 	{
-		utm_source: ["google_ads"],
+		utm_source: ["google"],
 		utm_campaign: ["ga_free_trial", "ga_discount_US", "ga_spring_promo", "ga_summer_promo", "ga_lookalike_audience"],
 		utm_medium: ["search_ad", "display_ad", "sidebar_ad"],
 		utm_content: ["ga_control_group", "ga_variant_A", "ga_variant_B", "ga_variant_C", "ga_variant_D"],
@@ -52,21 +53,7 @@ const campaigns = [
 		utm_medium: ["video_ad", "display_ad", "sidebar_ad"],
 		utm_content: ["yt_control_group", "yt_variant_A", "yt_variant_B", "yt_variant_C", "yt_variant_D"],
 		utm_term: ["yt_jan_feb", "yt_mar_apr", "yt_may_jun", "yt_jul_aug", "yt_sep_oct", "yt_nov_dec"]
-	},
-	{
-		utm_source: ["referral"],
-		utm_campaign: ["ref_free_trial", "ref_discount_US", "ref_referral_promo", "ref_loyalty_program", "ref_lookalike_audience"],
-		utm_medium: ["email_campaign", "referral_link"],
-		utm_content: ["ref_control_group", "ref_variant_A", "ref_variant_B", "ref_variant_C", "ref_variant_D"],
-		utm_term: ["ref_jan_feb", "ref_mar_apr", "ref_may_jun", "ref_jul_aug", "ref_sep_oct", "ref_nov_dec"]
-	},
-	{
-		utm_source: ["bing_ads"],
-		utm_campaign: ["ba_free_trial", "ba_discount_US", "ba_back_to_school", "ba_holiday_promo", "ba_lookalike_audience"],
-		utm_medium: ["search_ad", "display_ad", "sidebar_ad"],
-		utm_content: ["ba_control_group", "ba_variant_A", "ba_variant_B", "ba_variant_C", "ba_variant_D"],
-		utm_term: ["ba_jan_feb", "ba_mar_apr", "ba_may_jun", "ba_jul_aug", "ba_sep_oct", "ba_nov_dec"]
-	},
+	},	
 	{
 		utm_source: ["tiktok"],
 		utm_campaign: ["tt_free_trial", "tt_discount_US", "tt_flash_sale", "tt_special_offer", "tt_lookalike_audience"],

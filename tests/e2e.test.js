@@ -3,7 +3,7 @@
 /* eslint-disable no-undef */
 /* eslint-disable no-debugger */
 /* eslint-disable no-unused-vars */
-const generate = require('../index.js');
+const generate = require('../core/index.js');
 require('dotenv').config();
 const { execSync } = require("child_process");
 const u = require('ak-tools');
@@ -87,9 +87,18 @@ describe('module', () => {
 });
 
 describe('cli', () => {
+	test('works as CLI (no args)', async () => {
+		console.log('COMPLEX CLI TEST');
+		const run = execSync(`node ./core/index.js --numEvents 1000 --numUsers 100`, { stdio: 'ignore' });
+		// expect(run.toString().trim().includes('have a wonderful day :)')).toBe(true);
+		const csvs = (await u.ls('./data')).filter(a => a.includes('.csv'));
+		expect(csvs.length).toBe(4);
+		clearData();
+	}, timeout);
+
 	test('works as CLI (complex)', async () => {
 		console.log('COMPLEX CLI TEST');
-		const run = execSync(`node ./index.js --numEvents 1000 --numUsers 100 --seed "deal with it" --complex`, { stdio: 'ignore' });
+		const run = execSync(`node ./core/index.js --numEvents 1000 --numUsers 100 --seed "deal with it" --complex`, { stdio: 'ignore' });
 		// expect(run.toString().trim().includes('have a wonderful day :)')).toBe(true);
 		const csvs = (await u.ls('./data')).filter(a => a.includes('.csv'));
 		expect(csvs.length).toBe(13);
@@ -98,7 +107,7 @@ describe('cli', () => {
 
 	test('works as CLI (simple)', async () => {
 		console.log('simple CLI TEST');
-		const run = execSync(`node ./index.js --numEvents 1000 --numUsers 100 --seed "deal with it"`);
+		const run = execSync(`node ./core/index.js --numEvents 1000 --numUsers 100 --seed "deal with it" --simple`);
 		expect(run.toString().trim().includes('have a wonderful day :)')).toBe(true);
 		const csvs = (await u.ls('./data')).filter(a => a.includes('.csv'));
 		expect(csvs.length).toBe(4);
@@ -107,7 +116,7 @@ describe('cli', () => {
 
 	test('works as CLI (custom)', async () => {
 		console.log('custom CLI TEST');
-		const run = execSync(`node ./index.js ./schemas/deepNest.js`);
+		const run = execSync(`node ./core/index.js ./schemas/deepNest.js`);
 		expect(run.toString().trim().includes('have a wonderful day :)')).toBe(true);
 		const csvs = (await u.ls('./data')).filter(a => a.includes('.csv'));
 		expect(csvs.length).toBe(3);
