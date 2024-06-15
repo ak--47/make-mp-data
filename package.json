@@ -7,7 +7,7 @@
 	"scripts": {
 		"start": "node ./core/index.js",
 		"dev": "nodemon scratch.mjs --ignore /data",		
-		"prune": "rm -f ./data/* && rm -f ./tmp/*",
+		"prune": "rm -f ./data/* && rm -f ./tmp/* && rm vscode-profile-*",
 		"post": "npm publish",
 		"test": "NODE_ENV=test jest --runInBand",
 		"coverage": "node --no-warnings --experimental-vm-modules node_modules/jest/bin/jest.js --coverage && open ./tests/coverage/lcov-report/index.html",

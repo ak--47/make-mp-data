@@ -4,18 +4,22 @@ import simple from './schemas/simple.js';
 import funnels from './schemas/funnels.js';
 import foobar from './schemas/foobar.js';
 import complex from './schemas/complex.js';
-import deepNest from './schemas/deepNest.js';
+
 import anon from './schemas/anon.js';
 import execSync from 'child_process';
 import gio from './dungeons/gio-apt-list.js';
 
+const numEvents = 1000;
 
 /** @type {main.Config} */
 const spec = {
-	...gio,
+	...simple,
 	writeToDisk: false,
 	verbose: true,
 	makeChart: false,	
+	numEvents,
+	numUsers: numEvents / 100,
+	
 };
 
 

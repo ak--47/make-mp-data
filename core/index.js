@@ -164,13 +164,16 @@ async function main(config) {
 	VERBOSE = verbose;
 	CAMPAIGNS = campaigns;
 	DEFAULTS = {
-		locations: u.pickAWinner(locations, 0),
+		// locations: u.pickAWinner(locations, 0),
+		locationsUsers: u.pickAWinner(clone(locations).map(l => { delete l.country; return l; }), 0),
+		locationsEvents: u.pickAWinner(clone(locations).map(l => { delete l.country_code; return l; }), 0),
 		iOSDevices: u.pickAWinner(devices.iosDevices, 0),
 		androidDevices: u.pickAWinner(devices.androidDevices, 0),
 		desktopDevices: u.pickAWinner(devices.desktopDevices, 0),
 		browsers: u.pickAWinner(devices.browsers, 0),
 		campaigns: u.pickAWinner(campaigns, 0),
 	};
+
 
 	const runId = uid(42);
 	let trackingParams = { runId, seed, numEvents, numUsers, numDays, anonIds, sessionIds, format, targetToken: token, region, writeToDisk, isCLI, version };
@@ -211,7 +214,7 @@ async function main(config) {
 		let numEventsPreformed = 0;
 
 		if (hasLocation) {
-			const location = u.choose(clone(DEFAULTS.locations()).map(l => { delete l.country; return l; }));
+			const location = u.choose(DEFAULTS.locationsUsers);
 			for (const key in location) {
 				user[key] = location[key];
 			}
@@ -536,7 +539,7 @@ function makeEvent(distinct_id, anonymousIds, sessionIds, earliestTime, chosenEv
 
 	let defaultProps = {};
 	let devicePool = [];
-	if (hasLocation) defaultProps.location = clone(DEFAULTS.locations()).map(l => { delete l.country_code; return l; });
+	if (hasLocation) defaultProps.location = DEFAULTS.locationsEvents();
 	if (hasBrowser) defaultProps.browser = DEFAULTS.browsers();
 	if (hasAndroidDevices) devicePool.push(DEFAULTS.androidDevices());
 	if (hasIOSDevices) devicePool.push(DEFAULTS.iOSDevices());
