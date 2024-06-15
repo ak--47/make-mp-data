@@ -23,8 +23,9 @@ const jestConfig = {
 			],
 			// @ts-ignore
 			maxWorkers: "50%"
-		}
-	]
+		},		
+	],
+	coverageDirectory: "./tests/coverage",
 };
 
 module.exports = jestConfig;

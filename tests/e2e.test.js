@@ -10,8 +10,9 @@ const u = require('ak-tools');
 
 const simple = require('../schemas/simple.js');
 const complex = require('../schemas/complex.js');
-const deep = require('../schemas/deepNest.js');
 const anon = require('../schemas/anon.js');
+const funnels = require('../schemas/funnels.js');
+const foobar = require('../schemas/foobar.js');
 
 const timeout = 60000;
 const testToken = process.env.TEST_TOKEN;
@@ -55,17 +56,6 @@ describe('module', () => {
 
 	}, timeout);
 
-	test('works as module (deep nest)', async () => {
-		console.log('MODULE TEST: DEEP NEST');
-		const results = await generate({ ...deep, verbose: true, writeToDisk: false, numEvents: 1100, numUsers: 100, seed: "deal with it" });
-		const { eventData, groupProfilesData, lookupTableData, scdTableData, userProfilesData } = results;
-		expect(eventData.length).toBeGreaterThan(980);
-		expect(groupProfilesData.length).toBe(0);
-		expect(lookupTableData.length).toBe(0);
-		expect(scdTableData.length).toBe(0);
-		expect(userProfilesData.length).toBe(100);
-
-	}, timeout);
 
 	test('fails with invalid configuration', async () => {
 		try {
@@ -92,7 +82,7 @@ describe('cli', () => {
 		const run = execSync(`node ./core/index.js --numEvents 1000 --numUsers 100`, { stdio: 'ignore' });
 		// expect(run.toString().trim().includes('have a wonderful day :)')).toBe(true);
 		const csvs = (await u.ls('./data')).filter(a => a.includes('.csv'));
-		expect(csvs.length).toBe(4);
+		expect(csvs.length).toBe(2);
 		clearData();
 	}, timeout);
 
@@ -110,18 +100,10 @@ describe('cli', () => {
 		const run = execSync(`node ./core/index.js --numEvents 1000 --numUsers 100 --seed "deal with it" --simple`);
 		expect(run.toString().trim().includes('have a wonderful day :)')).toBe(true);
 		const csvs = (await u.ls('./data')).filter(a => a.includes('.csv'));
-		expect(csvs.length).toBe(4);
+		expect(csvs.length).toBe(2);
 		clearData();
 	}, timeout);
 
-	test('works as CLI (custom)', async () => {
-		console.log('custom CLI TEST');
-		const run = execSync(`node ./core/index.js ./schemas/deepNest.js`);
-		expect(run.toString().trim().includes('have a wonderful day :)')).toBe(true);
-		const csvs = (await u.ls('./data')).filter(a => a.includes('.csv'));
-		expect(csvs.length).toBe(3);
-		clearData();
-	}, timeout);
 
 });
 

@@ -1,18 +1,18 @@
 {
 	"name": "make-mp-data",
-	"version": "1.4.04",
+	"version": "1.4.05",
 	"description": "builds all mixpanel primitives for a given project",
 	"main": "index.js",
 	"types": "types.d.ts",
 	"scripts": {
 		"start": "node ./core/index.js",
-		"dev": "nodemon scratch.mjs --ignore /data",
-		"complex": "nodemon ./core/index.js --complex --e 10000 --u 100",
-		"simple": "nodemon ./core/index.js  --simple --e 10000 --u 100",
+		"dev": "nodemon scratch.mjs --ignore /data",		
 		"prune": "rm -f ./data/* && rm -f ./tmp/*",
 		"post": "npm publish",
 		"test": "NODE_ENV=test jest --runInBand",
-		"deps": "sh ./scripts/deps.sh"
+		"coverage": "node --no-warnings --experimental-vm-modules node_modules/jest/bin/jest.js --coverage && open ./tests/coverage/lcov-report/index.html",
+		"deps": "sh ./scripts/deps.sh",
+		"new": "sh ./scripts/new.sh"
 	},
 	"repository": {
 		"type": "git",

@@ -8,7 +8,7 @@
 
 const Chance = require('chance');
 const chance = new Chance();
-const { weightedRange, date, integer } = require('../core/utils.js');
+const { weighNumRange, date, integer } = require('../core/utils.js');
 const u = require('ak-tools');
 
 /** @type {import('../types.js').Config} */
@@ -37,7 +37,7 @@ const config = {
 			"event": "checkout",
 			"weight": 2,
 			"properties": {
-				amount: weightedRange(5, 500, .25),
+				amount: weighNumRange(5, 500, .25),
 				currency: ["USD", "USD", "USD", "CAD", "EUR", "EUR", "BTC", "BTC", "ETH", "JPY"],
 				cart: makeProducts(12),
 			}
@@ -46,9 +46,9 @@ const config = {
 			"event": "add to cart",
 			"weight": 4,
 			"properties": {
-				amount: weightedRange(5, 500, .25),
+				amount: weighNumRange(5, 500, .25),
 				qty: integer(1, 5),
-				product_id: weightedRange(1, 1000, 1.4)
+				product_id: weighNumRange(1, 1000, 1.4)
 			}
 		},
 		{
@@ -65,10 +65,10 @@ const config = {
 			"properties": {
 				category: ["funny", "educational", "inspirational", "music", "news", "sports", "cooking", "DIY", "travel", "gaming"],
 				hashTags: makeHashTags,
-				watchTimeSec: weightedRange(10, 600, .25,),
+				watchTimeSec: weighNumRange(10, 600, .25,),
 				quality: ["2160p", "1440p", "1080p", "720p", "480p", "360p", "240p"],
 				format: ["mp4", "avi", "mov", "mpg"],
-				video_id: weightedRange(1, 50000, 1.4),
+				video_id: weighNumRange(1, 50000, 1.4),
 
 			}
 		},
@@ -76,8 +76,8 @@ const config = {
 			"event": "comment",
 			"weight": 2,
 			"properties": {
-				length: weightedRange(1, 500, .25),
-				video_id: weightedRange(1, 50000, 1.4),
+				length: weighNumRange(1, 500, .25),
+				video_id: weighNumRange(1, 50000, 1.4),
 				has_replies: [true, false, false, false, false],
 				has_photo: [true, false, false, false, false],
 
@@ -87,7 +87,7 @@ const config = {
 			"event": "save video",
 			"weight": 4,
 			"properties": {
-				video_id: weightedRange(1, 50000, 1.4),
+				video_id: weighNumRange(1, 50000, 1.4),
 				ui_control: ["toolbar", "menu", "keyboard"]
 
 
@@ -97,7 +97,7 @@ const config = {
 			"event": "view item",
 			"weight": 8,
 			"properties": {
-				product_id: weightedRange(1, 24, 3),
+				product_id: weighNumRange(1, 24, 3),
 				colors: ["light", "dark", "custom", "dark"]
 			}
 		},
@@ -105,7 +105,7 @@ const config = {
 			"event": "save item",
 			"weight": 5,
 			"properties": {
-				product_id: weightedRange(1, 1000, 12),
+				product_id: weighNumRange(1, 1000, 12),
 				colors: ["light", "dark", "custom", "dark"]
 			}
 		},
@@ -113,7 +113,7 @@ const config = {
 			"event": "support ticket",
 			"weight": 2,
 			"properties": {
-				product_id: weightedRange(1, 1000, .6),
+				product_id: weighNumRange(1, 1000, .6),
 				description: chance.sentence.bind(chance),
 				severity: ["low", "medium", "high"],
 				ticket_id: chance.guid.bind(chance)
@@ -141,7 +141,7 @@ const config = {
 	*/
 	userProps: {
 		title: chance.profession.bind(chance),
-		luckyNumber: weightedRange(42, 420),
+		luckyNumber: weighNumRange(42, 420),
 		experiment: designExperiment(),
 		spiritAnimal: ["unicorn", "dragon", "phoenix", "sasquatch", "yeti", "kraken", "jackalope", "thunderbird", "mothman", "nessie", "chupacabra", "jersey devil", "bigfoot", "weindgo", "bunyip", "mokele-mbembe", "tatzelwurm", "megalodon"],
 		timezone: chance.timezone.bind(chance), // ["America/New_York", "America/Los_Angeles", "America/Chicago", "America/Denver", "America/Phoenix", "America/Anchorage", "Pacific/Honolulu"]
@@ -153,8 +153,8 @@ const config = {
 	/** each generates it's own table */
 	scdProps: {
 		plan: ["free", "free", "free", "free", "basic", "basic", "basic", "premium", "premium", "enterprise"],
-		MRR: weightedRange(0, 10000, .15),
-		NPS: weightedRange(0, 10, 2, 150),
+		MRR: weighNumRange(0, 10000, .15),
+		NPS: weighNumRange(0, 10, 2, 150),
 		subscribed: [true, true, true, true, true, true, false, false, false, false, "it's complicated"],
 		renewalDate: date(100, false),
 	},
@@ -164,7 +164,7 @@ const config = {
 		profit: { events: ["checkout"], values: [4, 2, 42, 420] },
 		watchTimeSec: {
 			events: ["watch video"],
-			values: weightedRange(50, 1200, 6, 247)
+			values: weighNumRange(50, 1200, 6)
 		}
 	},
 
@@ -181,7 +181,7 @@ const config = {
 		company_id: {
 			name: () => { return chance.company(); },
 			email: () => { return `CSM: ${chance.pickone(["AK", "Jessica", "Michelle", "Dana", "Brian", "Dave"])}`; },
-			"# of employees": weightedRange(3, 10000),
+			"# of employees": weighNumRange(3, 10000),
 			"industry": ["tech", "finance", "healthcare", "education", "government", "non-profit"],
 			"segment": ["enterprise", "SMB", "mid-market"],
 			"products": [["core"], ["core"], ["core", "add-ons"], ["core", "pro-serve"], ["core", "add-ons", "pro-serve"], ["core", "BAA", "enterprise"], ["free"], ["free"], ["free", "addons"]],
@@ -190,7 +190,7 @@ const config = {
 			name: () => { return `#${chance.word({ length: integer(4, 24), capitalize: true })}`; },
 			email: ["public", "private"],
 			"room provider": ["partner", "core", "core", "core"],
-			"room capacity": weightedRange(3, 1000000),
+			"room capacity": weighNumRange(3, 1000000),
 			"isPublic": [true, false, false, false, false],
 			"country": chance.country.bind(chance),
 			"isVerified": [true, true, false, false, false],
@@ -208,9 +208,9 @@ const config = {
 				"demand": ["high", "medium", "medium", "low"],
 				"supply": ["high", "medium", "medium", "low"],
 				"manufacturer": chance.company.bind(chance),
-				"price": weightedRange(5, 500, 1000, .25),
-				"rating": weightedRange(1, 5),
-				"reviews": weightedRange(0, 35)
+				"price": weighNumRange(5, 500, 1000, .25),
+				"rating": weighNumRange(1, 5),
+				"reviews": weighNumRange(0, 35)
 			}
 
 		},
@@ -222,7 +222,7 @@ const config = {
 				copyright: ["all rights reserved", "creative commons", "creative commons", "public domain", "fair use"],
 				uploader_id: chance.guid.bind(chance),
 				"uploader influence": ["low", "low", "low", "medium", "medium", "high"],
-				thumbs: weightedRange(0, 35),
+				thumbs: weighNumRange(0, 35),
 				rating: ["G", "PG", "PG-13", "R", "NC-17", "PG-13", "R", "NC-17", "R", "PG", "PG"]
 			}
 

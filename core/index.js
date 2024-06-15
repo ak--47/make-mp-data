@@ -6,18 +6,23 @@ by AK
 ak@mixpanel.com
 */
 
-//todo: churn ... is churnFunnel, possible to return, etc
-//todo: fixedTimeFunnel? if set this funnel will occur for all users at the same time ['cards charged', 'charge complete']
-//todo: send SCD data to mixpanel
-//todo: send and map lookup tables to mixpanel
+
+//!feature: mirror strategies
+//!feature: fixedTimeFunnel? if set this funnel will occur for all users at the same time ['cards charged', 'charge complete']
+//!feature: churn ... is churnFunnel, possible to return, etc
+//!bug: not writing adspend CSV
+//!bug: using --mc flag reverts to --complex for some reason
+
+//todo: send SCD data to mixpanel (blocked on dev)
+//todo: send and map lookup tables to mixpanel (also blocked on dev)
 
 /** @typedef {import('../types').Config} Config */
 /** @typedef {import('../types').EventConfig} EventConfig */
 /** @typedef {import('../types').Funnel} Funnel */
 /** @typedef {import('../types').Person} Person */
-/** @typedef {import('../types').SCDTableRow} SCDTableRow */
+/** @typedef {import('../types').SCDSchema} SCDTableRow */
 /** @typedef {import('../types').UserProfile} UserProfile */
-/** @typedef {import('../types').EventSpec} EventSpec */
+/** @typedef {import('../types').EventSchema} EventSpec */
 
 const dayjs = require("dayjs");
 const utc = require("dayjs/plugin/utc");
@@ -177,16 +182,16 @@ async function main(config) {
 	log(`------------------SETUP------------------`, "\n");
 
 	//setup all the data structures we will push into
-	const eventData = u.enrichArray([], { hook, type: "event", config });
-	const userProfilesData = u.enrichArray([], { hook, type: "user", config });
-	const adSpendData = u.enrichArray([], { hook, type: "ad-spend", config });
+	const eventData = u.hookArray([], { hook, type: "event", config });
+	const userProfilesData = u.hookArray([], { hook, type: "user", config });
+	const adSpendData = u.hookArray([], { hook, type: "ad-spend", config });
 	const scdTableKeys = Object.keys(scdProps);
 	const scdTableData = [];
 	for (const [index, key] of scdTableKeys.entries()) {
-		scdTableData[index] = u.enrichArray([], { hook, type: "scd", config, scdKey: key });
+		scdTableData[index] = u.hookArray([], { hook, type: "scd", config, scdKey: key });
 	}
-	const groupProfilesData = u.enrichArray([], { hook, type: "group", config });
-	const lookupTableData = u.enrichArray([], { hook, type: "lookup", config });
+	const groupProfilesData = u.hookArray([], { hook, type: "group", config });
+	const lookupTableData = u.hookArray([], { hook, type: "lookup", config });
 	const avgEvPerUser = Math.ceil(numEvents / numUsers);
 
 	// if no funnels, make some out of events...
@@ -331,7 +336,7 @@ async function main(config) {
 			const newTime = dayjs(event.time).add(timeShift, "second");
 			event.time = newTime.toISOString();
 			if (epochStart && newTime.unix() < epochStart) event = {};
-			if (epochEnd && newTime.unix() > epochEnd) event = {};
+			if (epochEnd && newTime.unix() > (epochEnd - 60 * 60)) event = {};
 		}
 		catch (e) {
 			//noop
@@ -453,7 +458,7 @@ async function main(config) {
 			log(`\tsent ${comma(imported.success)} events\n`);
 			importResults.events = imported;
 		}
-		if (userProfilesData) {
+		if (userProfilesData && userProfilesData.length) {
 			log(`importing user profiles to mixpanel...\n`);
 			const imported = await mp(creds, clone(userProfilesData), {
 				recordType: "user",
@@ -462,7 +467,7 @@ async function main(config) {
 			log(`\tsent ${comma(imported.success)} user profiles\n`);
 			importResults.users = imported;
 		}
-		if (adSpendData) {
+		if (adSpendData && adSpendData.length) {
 			log(`importing ad spend data to mixpanel...\n`);
 			const imported = await mp(creds, clone(adSpendData), {
 				recordType: "event",
@@ -616,8 +621,8 @@ function makeEvent(distinct_id, anonymousIds, sessionIds, earliestTime, chosenEv
 		const groupEvents = groupPair[2] || [];
 
 		// empty array for group events means all events
-		if (!groupEvents.length) eventTemplate[groupKey] = u.pick(u.weightedRange(1, groupCardinality));
-		if (groupEvents.includes(eventTemplate.event)) eventTemplate[groupKey] = u.pick(u.weightedRange(1, groupCardinality));
+		if (!groupEvents.length) eventTemplate[groupKey] = u.pick(u.weighNumRange(1, groupCardinality));
+		if (groupEvents.includes(eventTemplate.event)) eventTemplate[groupKey] = u.pick(u.weighNumRange(1, groupCardinality));
 	}
 
 	//make $insert_id
@@ -668,7 +673,7 @@ function makeFunnel(funnel, user, profile, scd, firstEventTime, config) {
 		.map((eventName) => {
 			const foundEvent = config.events.find((e) => e.event === eventName);
 			/** @type {EventConfig} */
-			const eventSpec = foundEvent || { event: eventName, properties: {} };
+			const eventSpec = clone(foundEvent) || { event: eventName, properties: {} };
 			for (const key in eventSpec.properties) {
 				try {
 					eventSpec.properties[key] = u.choose(eventSpec.properties[key]);
@@ -877,7 +882,7 @@ function makeAdSpend(day) {
 			const utm_term = u.choose(u.pickAWinner(network.utm_term)());
 			//each of these is a campaign
 			const adSpendEvent = {
-				event: "Ad Data",
+				event: "$ad_spend",
 				time: day,
 				source: 'dm4',
 				utm_campaign: campaign,

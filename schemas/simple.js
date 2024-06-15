@@ -14,7 +14,7 @@ const dayjs = require("dayjs");
 const utc = require("dayjs/plugin/utc");
 dayjs.extend(utc);
 const { uid, comma } = require('ak-tools');
-const { pickAWinner, weightedRange, date, integer } = require('../core/utils');
+const { pickAWinner, weighNumRange, date, integer, weighChoices } = require('../core/utils');
 
 const itemCategories = ["Books", "Movies", "Music", "Games", "Electronics", "Computers", "Smart Home", "Home", "Garden", "Pet", "Beauty", "Health", "Toys", "Kids", "Baby", "Handmade", "Sports", "Outdoors", "Automotive", "Industrial", "Entertainment", "Art", "Food", "Appliances", "Office", "Wedding", "Software"];
 
@@ -40,17 +40,17 @@ const config = {
 	hasBrowser: true,
 	hasCampaigns: true,
 	isAnonymous: false,
-	
+
 
 	events: [
 		{
 			event: "checkout",
 			weight: 2,
 			properties: {
-				amount: weightedRange(5, 500, .25),
-				currency: ["USD", "CAD", "EUR", "BTC", "ETH", "JPY"],
-				coupon: ["none", "none", "none", "none", "10%OFF", "20%OFF", "10%OFF", "20%OFF", "30%OFF", "40%OFF", "50%OFF"],
-				numItems: weightedRange(1, 10),
+				amount: weighNumRange(5, 500, .25),
+				currency: pickAWinner(["USD", "CAD", "EUR", "BTC", "ETH", "JPY"], 0),
+				coupon: weighChoices(["none", "none", "none", "none", "10%OFF", "20%OFF", "10%OFF", "20%OFF", "30%OFF", "40%OFF", "50%OFF"]),
+				numItems: weighNumRange(1, 10),
 
 			}
 		},
@@ -58,21 +58,20 @@ const config = {
 			event: "add to cart",
 			weight: 4,
 			properties: {
-				amount: weightedRange(5, 500, .25),
-				rating: weightedRange(1, 5),
-				reviews: weightedRange(0, 35),
+				amount: weighNumRange(5, 500, .25),
+				rating: weighNumRange(1, 5),
+				reviews: weighNumRange(0, 35),
 				isFeaturedItem: [true, false, false],
 				itemCategory: pickAWinner(itemCategories, integer(0, 27)),
 				dateItemListed: date(30, true, 'YYYY-MM-DD'),
-				itemId: integer(1000, 9999),
 			}
 		},
 		{
 			event: "page view",
 			weight: 10,
 			properties: {
-				page: ["/", "/", "/help", "/account", "/watch", "/listen", "/product", "/people", "/peace"],
-				utm_source: ["$organic", "$organic", "$organic", "$organic", "google", "google", "google", "facebook", "facebook", "twitter", "linkedin"],
+				page: pickAWinner(["/", "/", "/help", "/account", "/watch", "/listen", "/product", "/people", "/peace"]),
+				utm_source: pickAWinner(["$organic", "$organic", "$organic", "$organic", "google", "google", "google", "facebook", "facebook", "twitter", "linkedin"]),
 			}
 		},
 		{
@@ -81,7 +80,7 @@ const config = {
 			properties: {
 				videoCategory: pickAWinner(videoCategories, integer(0, 9)),
 				isFeaturedItem: [true, false, false],
-				watchTimeSec: weightedRange(10, 600, .25),
+				watchTimeSec: weighNumRange(10, 600, .25),
 				quality: ["2160p", "1440p", "1080p", "720p", "480p", "360p", "240p"],
 				format: ["mp4", "avi", "mov", "mpg"],
 				uploader_id: chance.guid.bind(chance)
@@ -95,7 +94,6 @@ const config = {
 				isFeaturedItem: [true, false, false],
 				itemCategory: pickAWinner(itemCategories, integer(0, 27)),
 				dateItemListed: date(30, true, 'YYYY-MM-DD'),
-				itemId: integer(1000, 9999),
 			}
 		},
 		{
@@ -105,7 +103,6 @@ const config = {
 				isFeaturedItem: [true, false, false],
 				itemCategory: pickAWinner(itemCategories, integer(0, 27)),
 				dateItemListed: date(30, true, 'YYYY-MM-DD'),
-				itemId: integer(1000, 9999),
 			}
 		},
 		{
@@ -123,9 +120,7 @@ const config = {
 	],
 	superProps: {
 		platform: ["web", "mobile", "web", "mobile", "web", "web", "kiosk", "smartTV"],
-		currentTheme: ["light", "dark", "custom", "light", "dark"],
-		// emotions: generateEmoji(),
-
+		currentTheme: weighChoices(["light", "dark", "custom", "light", "dark"]),
 	},
 	/*
 	user properties work the same as event properties
@@ -133,20 +128,11 @@ const config = {
 	*/
 	userProps: {
 		title: chance.profession.bind(chance),
-		luckyNumber: weightedRange(42, 420),
-		spiritAnimal: ["duck", "dog", "otter", "penguin", "cat", "elephant", "lion", "cheetah", "giraffe", "zebra", "rhino", "hippo", "whale", "dolphin", "shark", "octopus", "squid", "jellyfish", "starfish", "seahorse", "crab", "lobster", "shrimp", "clam", "snail", "slug", "butterfly", "moth", "bee", "wasp", "ant", "beetle", "ladybug", "caterpillar", "centipede", "millipede", "scorpion", "spider", "tarantula", "tick", "mite", "mosquito", "fly", "dragonfly", "damselfly", "grasshopper", "cricket", "locust", "mantis", "cockroach", "termite", "praying mantis", "walking stick", "stick bug", "leaf insect", "lacewing", "aphid", "cicada", "thrips", "psyllid", "scale insect", "whitefly", "mealybug", "planthopper", "leafhopper", "treehopper", "flea", "louse", "bedbug", "flea beetle", "weevil", "longhorn beetle", "leaf beetle", "tiger beetle", "ground beetle", "lady beetle", "firefly", "click beetle", "rove beetle", "scarab beetle", "dung beetle", "stag beetle", "rhinoceros beetle", "hercules beetle", "goliath beetle", "jewel beetle", "tortoise beetle"]
+		luckyNumber: weighNumRange(42, 420, .3),
+		spiritAnimal: pickAWinner(["duck", "dog", "otter", "penguin", "cat", "elephant", "lion", "cheetah", "giraffe", "zebra", "rhino", "hippo", "whale", "dolphin", "shark", "octopus", "squid", "jellyfish", "starfish", "seahorse", "crab", "lobster", "shrimp", "clam", "snail", "slug", "butterfly", "moth", "bee", "wasp", "ant", "beetle", "ladybug", "caterpillar", "centipede", "millipede", "scorpion", "spider", "tarantula", "tick", "mite", "mosquito", "fly", "dragonfly", "damselfly", "grasshopper", "cricket", "locust", "mantis", "cockroach", "termite", "praying mantis", "walking stick", "stick bug", "leaf insect", "lacewing", "aphid", "cicada", "thrips", "psyllid", "scale insect", "whitefly", "mealybug", "planthopper", "leafhopper", "treehopper", "flea", "louse", "bedbug", "flea beetle", "weevil", "longhorn beetle", "leaf beetle", "tiger beetle", "ground beetle", "lady beetle", "firefly", "click beetle", "rove beetle", "scarab beetle", "dung beetle", "stag beetle", "rhinoceros beetle", "hercules beetle", "goliath beetle", "jewel beetle", "tortoise beetle"])
 	},
-
 	scdProps: {},
-	mirrorProps: {
-		isBot: { events: "*", values: [false, false, false, false, true] },
-		profit: { events: ["checkout"], values: [4, 2, 42, 420] },
-		watchTimeSec: {
-			events: ["watch video"],
-			values: weightedRange(50, 1200, 6)
-		}
-
-	},
+	mirrorProps: {},
 
 	/*
 	for group analytics keys, we need an array of arrays [[],[],[]] 

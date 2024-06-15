@@ -15,8 +15,8 @@ const { domainSuffix, domainPrefix } = require('./defaults');
 /** @typedef {import('../types').Config} Config */
 /** @typedef {import('../types').EventConfig} EventConfig */
 /** @typedef {import('../types').ValueValid} ValueValid */
-/** @typedef {import('../types').EnrichedArray} EnrichArray */
-/** @typedef {import('../types').EnrichArrayOptions} EnrichArrayOptions */
+/** @typedef {import('../types').EnrichedArray} hookArray */
+/** @typedef {import('../types').hookArrayOptions} hookArrayOptions */
 /** @typedef {import('../types').Person} Person */
 /** @typedef {import('../types').Funnel} Funnel */
 
@@ -34,6 +34,7 @@ RNG
 /**
  * the random number generator initialization function
  * @param  {string} seed
+ * @returns {Chance}
  */
 function initChance(seed) {
 	if (process.env.SEED) seed = process.env.SEED;  // Override seed with environment variable if available
@@ -42,6 +43,7 @@ function initChance(seed) {
 		if (global.MP_SIMULATION_CONFIG) global.MP_SIMULATION_CONFIG.chance = globalChance;
 		chanceInitialized = true;
 	}
+	return globalChance;
 }
 
 /**
@@ -54,8 +56,7 @@ function getChance() {
 		if (!seed) {
 			return new Chance();
 		}
-		initChance(seed);
-		return globalChance;
+		return initChance(seed);		
 	}
 	return globalChance;
 }
@@ -242,64 +243,6 @@ function integer(min = 1, max = 100) {
 };
 
 
-/**
- * Creates a function that generates a weighted list of items
- * with a higher likelihood of picking a specified index and clear second and third place indices.
- * 
- * @param {Array} items - The list of items to pick from.
- * @param {number} [mostChosenIndex] - The index of the item to be most favored.
- * @returns {function} - A function that returns a weighted list of items.
- */
-function pickAWinner(items, mostChosenIndex) {
-	const chance = getChance();
-
-	// Ensure mostChosenIndex is within the bounds of the items array
-	if (!items) return () => { return ""; };
-	if (!items.length) return () => { return ""; };
-	if (!mostChosenIndex) mostChosenIndex = chance.integer({ min: 0, max: items.length - 1 });
-	if (mostChosenIndex >= items.length) mostChosenIndex = items.length - 1;
-
-	// Calculate second and third most chosen indices
-	const secondMostChosenIndex = (mostChosenIndex + 1) % items.length;
-	const thirdMostChosenIndex = (mostChosenIndex + 2) % items.length;
-
-	// Return a function that generates a weighted list
-	return function () {
-		const weighted = [];
-		for (let i = 0; i < 10; i++) {
-			const rand = chance.d10(); // Random number between 1 and 10
-
-			// 35% chance to favor the most chosen index
-			if (chance.bool({ likelihood: 35 })) {
-				// 50% chance to slightly alter the index
-				if (chance.bool({ likelihood: 50 })) {
-					weighted.push(items[mostChosenIndex]);
-				} else {
-					const addOrSubtract = chance.bool({ likelihood: 50 }) ? -rand : rand;
-					let newIndex = mostChosenIndex + addOrSubtract;
-
-					// Ensure newIndex is within bounds
-					if (newIndex < 0) newIndex = 0;
-					if (newIndex >= items.length) newIndex = items.length - 1;
-					weighted.push(items[newIndex]);
-				}
-			}
-			// 25% chance to favor the second most chosen index
-			else if (chance.bool({ likelihood: 25 })) {
-				weighted.push(items[secondMostChosenIndex]);
-			}
-			// 15% chance to favor the third most chosen index
-			else if (chance.bool({ likelihood: 15 })) {
-				weighted.push(items[thirdMostChosenIndex]);
-			}
-			// Otherwise, pick a random item from the list
-			else {
-				weighted.push(chance.pickone(items));
-			}
-		}
-		return weighted;
-	};
-}
 
 
 
@@ -359,12 +302,13 @@ function mapToRange(value, mean, sd) {
  * @param  {number} step=1
  */
 function range(a, b, step = 1) {
+	const arr = [];
 	step = !step ? 1 : step;
 	b = b / step;
 	for (var i = a; i <= b; i++) {
-		this.push(i * step);
+		arr.push(i * step);
 	}
-	return this;
+	return arr;
 };
 
 
@@ -491,7 +435,7 @@ function weighFunnels(acc, funnel) {
  * @param  {number} skew=1
  * @param  {number} size=100
  */
-function weightedRange(min, max, skew = 1, size = 50) {
+function weighNumRange(min, max, skew = 1, size = 50) {
 	if (size > 2000) size = 2000;
 	const mean = (max + min) / 2;
 	const sd = (max - min) / 4;
@@ -508,13 +452,16 @@ function weightedRange(min, max, skew = 1, size = 50) {
 	return array;
 }
 
+/**
+ * arbitrarily weigh an array of values to create repeats
+ * @param  {Array<any>} arr
+ */
 function weighArray(arr) {
-
 	// Calculate the upper bound based on the size of the array with added noise
 	const maxCopies = arr.length + integer(1, arr.length);
 
 	// Create an empty array to store the weighted elements
-	let weightedArray = [];
+	const weightedArray = [];
 
 	// Iterate over the input array and copy each element a random number of times
 	arr.forEach(element => {
@@ -525,6 +472,106 @@ function weighArray(arr) {
 	});
 
 	return weightedArray;
+}
+
+/**
+ * Creates a function that generates a weighted array of values.
+ * 
+ * @overload
+ * @param {Array<{value: string, weight: number}>} items - An array of weighted objects or an array of strings.
+ * @returns {function(): Array<string>} A function that returns a weighted array of values when called.
+ * 
+ * @overload
+ * @param {Array<string>} items - An array of strings.
+ * @returns {function(): Array<string>} A function that returns a weighted array with automatically assigned random weights to each string.
+ */
+
+function weighChoices(items) {
+	let weightedItems;
+
+	// If items are strings, assign unique random weights
+	if (items.every(item => typeof item === 'string')) {
+		const weights = shuffleArray(range(1, items.length));
+		weightedItems = items.map((item, index) => ({
+			value: item,
+			weight: weights[index]
+		}));
+	} else {
+		weightedItems = items;
+	}
+
+	return function generateWeightedArray() {
+		const weightedArray = [];
+
+		// Add each value to the array the number of times specified by its weight
+		weightedItems.forEach(({ value, weight }) => {
+			if (!weight) weight = 1;
+			for (let i = 0; i < weight; i++) {
+				weightedArray.push(value);
+			}
+		});
+
+		return weightedArray;
+	};
+}
+
+/**
+ * Creates a function that generates a weighted list of items
+ * with a higher likelihood of picking a specified index and clear second and third place indices.
+ * 
+ * @param {Array} items - The list of items to pick from.
+ * @param {number} [mostChosenIndex] - The index of the item to be most favored.
+ * @returns {function} - A function that returns a weighted list of items.
+ */
+function pickAWinner(items, mostChosenIndex) {
+	const chance = getChance();
+
+	// Ensure mostChosenIndex is within the bounds of the items array
+	if (!items) return () => { return ""; };
+	if (!items.length) return () => { return ""; };
+	if (!mostChosenIndex) mostChosenIndex = chance.integer({ min: 0, max: items.length - 1 });
+	if (mostChosenIndex >= items.length) mostChosenIndex = items.length - 1;
+
+	// Calculate second and third most chosen indices
+	const secondMostChosenIndex = (mostChosenIndex + 1) % items.length;
+	const thirdMostChosenIndex = (mostChosenIndex + 2) % items.length;
+
+	// Return a function that generates a weighted list
+	return function () {
+		const weighted = [];
+		for (let i = 0; i < 10; i++) {
+			const rand = chance.d10(); // Random number between 1 and 10
+
+			// 35% chance to favor the most chosen index
+			if (chance.bool({ likelihood: 35 })) {
+				// 50% chance to slightly alter the index
+				if (chance.bool({ likelihood: 50 })) {
+					weighted.push(items[mostChosenIndex]);
+				} else {
+					const addOrSubtract = chance.bool({ likelihood: 50 }) ? -rand : rand;
+					let newIndex = mostChosenIndex + addOrSubtract;
+
+					// Ensure newIndex is within bounds
+					if (newIndex < 0) newIndex = 0;
+					if (newIndex >= items.length) newIndex = items.length - 1;
+					weighted.push(items[newIndex]);
+				}
+			}
+			// 25% chance to favor the second most chosen index
+			else if (chance.bool({ likelihood: 25 })) {
+				weighted.push(items[secondMostChosenIndex]);
+			}
+			// 15% chance to favor the third most chosen index
+			else if (chance.bool({ likelihood: 15 })) {
+				weighted.push(items[thirdMostChosenIndex]);
+			}
+			// Otherwise, pick a random item from the list
+			else {
+				weighted.push(chance.pickone(items));
+			}
+		}
+		return weighted;
+	};
 }
 
 /*
@@ -654,10 +701,10 @@ META
 /** 
  * our meta programming function which lets you mutate items as they are pushed into an array
  * @param  {any[]} arr
- * @param  {EnrichArrayOptions} opts
- * @returns {EnrichArray}}
+ * @param  {hookArrayOptions} opts
+ * @returns {hookArray}}
  */
-function enrichArray(arr = [], opts = {}) {
+function hookArray(arr = [], opts = {}) {
 	const { hook = a => a, type = "", ...rest } = opts;
 
 	function transformThenPush(item) {
@@ -703,7 +750,7 @@ function enrichArray(arr = [], opts = {}) {
 
 	}
 
-	/** @type {EnrichArray} */
+	/** @type {hookArray} */
 	// @ts-ignore
 	const enrichedArray = arr;
 
@@ -714,12 +761,15 @@ function enrichArray(arr = [], opts = {}) {
 	return enrichedArray;
 };
 
+/**
+ * @param  {Config} config
+ */
 function buildFileNames(config) {
 	const { format = "csv", groupKeys = [], lookupTables = [] } = config;
 	let extension = "";
 	extension = format === "csv" ? "csv" : "json";
 	// const current = dayjs.utc().format("MM-DD-HH");
-	const simName = config.simulationName;
+	let simName = config.simulationName;
 	let writeDir = "./";
 	if (config.writeToDisk) {
 		const dataFolder = path.resolve("./data");
@@ -732,13 +782,17 @@ function buildFileNames(config) {
 	const writePaths = {
 		eventFiles: [path.join(writeDir, `${simName}-EVENTS.${extension}`)],
 		userFiles: [path.join(writeDir, `${simName}-USERS.${extension}`)],
-		adSpendFiles: [path.join(writeDir, `${simName}-AD-SPEND.${extension}`)],
+		adSpendFiles: [],
 		scdFiles: [],
 		mirrorFiles: [],
 		groupFiles: [],
 		lookupFiles: [],
 		folder: writeDir,
 	};
+	//add ad spend files
+	if (config?.hasAdSpend) {
+		writePaths.adSpendFiles.push(path.join(writeDir, `${simName}-AD-SPEND.${extension}`));
+	}
 
 	//add SCD files
 	const scdKeys = Object.keys(config?.scdProps || {});
@@ -869,7 +923,9 @@ function TimeSoup(earliestTime, latestTime, peaks = 5, deviation = 2, mean = 0) 
 		iterations++;
 		offset = chance.normal({ mean: mean, dev: chunkSize / deviation });
 		isValidTime = validateTime(chunkMid + offset, earliestTime, latestTime);
-		if (iterations > 10000) throw new Error("Too many iterations");
+		if (iterations > 25000) {
+			throw `${iterations} iterations... exceeded`;
+		}
 	} while (chunkMid + offset < chunkStart || chunkMid + offset > chunkEnd);
 
 	try {
@@ -1026,7 +1082,7 @@ module.exports = {
 	boxMullerRandom,
 	applySkew,
 	mapToRange,
-	weightedRange,
+	weighNumRange,
 	progress,
 	range,
 	openFinder,
@@ -1044,11 +1100,12 @@ module.exports = {
 	shuffleOutside,
 	interruptArray,
 	generateUser,
-	enrichArray,
+	hookArray,
 	optimizedBoxMuller,
 	buildFileNames,
 	streamJSON,
 	streamCSV,
 	inferFunnels,
-	datesBetween
+	datesBetween,
+	weighChoices
 };

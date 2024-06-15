@@ -6,7 +6,17 @@ const u = require('ak-tools');
 dayjs.extend(utc);
 require('dotenv').config();
 
-const { applySkew,
+/** @typedef {import('../types').Config} Config */
+/** @typedef {import('../types').EventConfig} EventConfig */
+/** @typedef {import('../types').ValueValid} ValueValid */
+/** @typedef {import('../types').EnrichedArray} hookArray */
+/** @typedef {import('../types').hookArrayOptions} hookArrayOptions */
+/** @typedef {import('../types').Person} Person */
+/** @typedef {import('../types').Funnel} Funnel */
+
+
+const {
+	applySkew,
 	boxMullerRandom,
 	choose,
 	date,
@@ -21,8 +31,8 @@ const { applySkew,
 	pick,
 	range,
 	pickAWinner,
-	weightedRange,
-	enrichArray,
+	weighNumRange,
+	hookArray,
 	fixFirstAndLast,
 	generateUser,
 	openFinder,
@@ -45,63 +55,115 @@ const { applySkew,
 	interruptArray,
 	optimizedBoxMuller,
 	inferFunnels,
-	datesBetween
+	datesBetween,
+	weighChoices
 } = require('../core/utils.js');
 
 
 describe('timesoup', () => {
+
 	test('always valid times', () => {
 		const dates = [];
+		const earliest = dayjs().subtract(50, 'D').unix();
+		const latest = dayjs().subtract(1, "D").unix();
 		for (let i = 0; i < 10000; i++) {
-			const earliest = dayjs().subtract(u.rand(5, 50), 'D');
-			dates.push(TimeSoup());
+			dates.push(TimeSoup(earliest, latest));
 		}
 		const tooOld = dates.filter(d => dayjs(d).isBefore(dayjs.unix(0)));
 		const badYear = dates.filter(d => !d.startsWith('202'));
 		expect(dates.every(d => dayjs(d).isAfter(dayjs.unix(0)))).toBe(true);
 		expect(dates.every(d => d.startsWith('202'))).toBe(true);
-
+		expect(tooOld.length).toBe(0);
+		expect(badYear.length).toBe(0);
 	});
+
+	test('custom peaks', () => {
+		const dates = [];
+		const earliest = dayjs().subtract(50, 'D').unix();
+		const latest = dayjs().subtract(1, "D").unix();
+		for (let i = 0; i < 10000; i++) {
+			dates.push(TimeSoup(earliest, latest, 10));
+		}
+		const tooOld = dates.filter(d => dayjs(d).isBefore(dayjs.unix(0)));
+		const badYear = dates.filter(d => !d.startsWith('202'));
+		expect(dates.every(d => dayjs(d).isAfter(dayjs.unix(0)))).toBe(true);
+		expect(dates.every(d => d.startsWith('202'))).toBe(true);
+		expect(tooOld.length).toBe(0);
+		expect(badYear.length).toBe(0);
+	});
+
+	test('custom deviation', () => {
+		const dates = [];
+		const earliest = dayjs().subtract(50, 'D').unix();
+		const latest = dayjs().subtract(1, "D").unix();
+		for (let i = 0; i < 10000; i++) {
+			dates.push(TimeSoup(earliest, latest, 10, .5));
+		}
+		const tooOld = dates.filter(d => dayjs(d).isBefore(dayjs.unix(0)));
+		const badYear = dates.filter(d => !d.startsWith('202'));
+		expect(dates.every(d => dayjs(d).isAfter(dayjs.unix(0)))).toBe(true);
+		expect(dates.every(d => d.startsWith('202'))).toBe(true);
+		expect(tooOld.length).toBe(0);
+		expect(badYear.length).toBe(0);
+	});
+
+
 });
 
 
-describe('names', () => {
+describe('filenames', () => {
 
 	test('default config', () => {
 		const config = { simulationName: 'testSim' };
 		const result = buildFileNames(config);
-		expect(result.eventFiles).toEqual(['testSim-EVENTS.csv']);
-		expect(result.userFiles).toEqual(['testSim-USERS.csv']);
-		expect(result.scdFiles).toEqual([]);
-		expect(result.groupFiles).toEqual([]);
-		expect(result.lookupFiles).toEqual([]);
-		expect(result.mirrorFiles).toEqual([]);
-		expect(result.folder).toEqual('./');
+		const { eventFiles, folder, groupFiles, lookupFiles, mirrorFiles, scdFiles, userFiles, adSpendFiles } = result;
+		expect(eventFiles).toEqual(['testSim-EVENTS.csv']);
+		expect(userFiles).toEqual(['testSim-USERS.csv']);
+		expect(scdFiles).toEqual([]);
+		expect(groupFiles).toEqual([]);
+		expect(lookupFiles).toEqual([]);
+		expect(mirrorFiles).toEqual([]);
+		expect(adSpendFiles).toEqual([]);
+		expect(folder).toEqual('./');
 	});
 
 	test('json format', () => {
+		/** @type {Config} */
 		const config = { simulationName: 'testSim', format: 'json' };
 		const result = buildFileNames(config);
-		expect(result.eventFiles).toEqual(['testSim-EVENTS.json']);
-		expect(result.userFiles).toEqual(['testSim-USERS.json']);
+		const { eventFiles, folder, groupFiles, lookupFiles, mirrorFiles, scdFiles, userFiles, adSpendFiles } = result;
+		expect(eventFiles).toEqual(['testSim-EVENTS.json']);
+		expect(userFiles).toEqual(['testSim-USERS.json']);
+		expect(scdFiles).toEqual([]);
+		expect(groupFiles).toEqual([]);
+		expect(lookupFiles).toEqual([]);
+		expect(mirrorFiles).toEqual([]);
+		expect(adSpendFiles).toEqual([]);
+		expect(folder).toEqual('./');
 	});
 
-	test('with scdProps', () => {
+	test('scd tables', () => {
 		const config = {
 			simulationName: 'testSim',
 			scdProps: { prop1: {}, prop2: {} }
 		};
 		const result = buildFileNames(config);
-		expect(result.scdFiles).toEqual([
-			'testSim-prop1-SCD.csv',
-			'testSim-prop2-SCD.csv'
-		]);
+		const { eventFiles, folder, groupFiles, lookupFiles, mirrorFiles, scdFiles, userFiles, adSpendFiles } = result;
+		expect(eventFiles).toEqual(['testSim-EVENTS.csv']);
+		expect(userFiles).toEqual(['testSim-USERS.csv']);
+		expect(scdFiles).toEqual(['testSim-prop1-SCD.csv', 'testSim-prop2-SCD.csv']);
+		expect(groupFiles).toEqual([]);
+		expect(lookupFiles).toEqual([]);
+		expect(mirrorFiles).toEqual([]);
+		expect(adSpendFiles).toEqual([]);
+		expect(folder).toEqual('./');
 	});
 
-	test('with groupKeys', () => {
+	test('group keys', () => {
+		/** @type {Config} */
 		const config = {
 			simulationName: 'testSim',
-			groupKeys: [['group1'], ['group2']]
+			groupKeys: [['group1', 10], ['group2', 20]]
 		};
 		const result = buildFileNames(config);
 		expect(result.groupFiles).toEqual([
@@ -110,10 +172,11 @@ describe('names', () => {
 		]);
 	});
 
-	test('with lookupTables', () => {
+	test('lookup tables', () => {
+		/** @type {Config} */
 		const config = {
 			simulationName: 'testSim',
-			lookupTables: [{ key: 'lookup1' }, { key: 'lookup2' }]
+			lookupTables: [{ key: 'lookup1', attributes: {}, entries: 10 }, { key: 'lookup2', attributes: {}, entries: 10 }]
 		};
 		const result = buildFileNames(config);
 		expect(result.lookupFiles).toEqual([
@@ -122,43 +185,45 @@ describe('names', () => {
 		]);
 	});
 
-	test('with mirrorProps', () => {
+	test('mirror tables', () => {
+		/** @type {Config} */
 		const config = {
 			simulationName: 'testSim',
-			mirrorProps: { prop1: {} }
+			mirrorProps: { prop1: { values: [] } }
 		};
 		const result = buildFileNames(config);
 		expect(result.mirrorFiles).toEqual(['testSim-MIRROR.csv']);
 	});
 
-	test('writeToDisk', async () => {
+	test('validate disk path', async () => {
 		const config = { simulationName: 'testSim', writeToDisk: true };
 		const result = await buildFileNames(config);
 		expect(result.folder).toBeDefined();
-
 	});
 
 
-	test('invalid simName', () => {
+	test('bad name', () => {
+		/** @type {Config} */
+		// @ts-ignore
 		const config = { simulationName: 123 };
 		expect(() => buildFileNames(config)).toThrow('simName must be a string');
 	});
 
 
-	test('streamJSON: writes to file', async () => {
+	test('JSON: writes', async () => {
 		const path = 'test.json';
 		const data = [{ a: 1, b: 2 }, { a: 3, b: 4 }];
-		await streamJSON(path, data);
+		const streamed = await streamJSON(path, data);
 		const content = fs.readFileSync(path, 'utf8');
 		const lines = content.trim().split('\n').map(line => JSON.parse(line));
 		expect(lines).toEqual(data);
 		fs.unlinkSync(path);
 	});
 
-	test('streamCSV: writes to file', async () => {
+	test('CSV: writes', async () => {
 		const path = 'test.csv';
 		const data = [{ a: 1, b: 2 }, { a: 3, b: 4 }];
-		await streamCSV(path, data);
+		const streamed = await streamCSV(path, data);
 		const content = fs.readFileSync(path, 'utf8');
 		const lines = content.trim().split('\n');
 		expect(lines.length).toBe(3); // Including header
@@ -166,30 +231,12 @@ describe('names', () => {
 	});
 
 
-	test('generateUser: works', () => {
-		const uuid = { guid: jest.fn().mockReturnValue('uuid-123') };
-		const numDays = 30;
-		const user = generateUser(numDays);
-		expect(user).toHaveProperty('distinct_id');
-		expect(user).toHaveProperty('name');
-		expect(user).toHaveProperty('email');
-		expect(user).toHaveProperty('avatar');
-	});
-
-	test('enrichArray: works', () => {
-		const arr = [];
-		const enrichedArray = enrichArray(arr);
-		enrichedArray.hookPush(1);
-		enrichedArray.hookPush(2);
-		const match = JSON.stringify(enrichedArray) === JSON.stringify([1, 2]);
-		expect(match).toEqual(true);
-	});
-
 });
 
 
 describe('determinism', () => {
-	test('initializes RNG with seed from environment variable', () => {
+
+	test('seed from env', () => {
 		process.env.SEED = 'test-seed';
 		// @ts-ignore
 		initChance();
@@ -200,22 +247,24 @@ describe('determinism', () => {
 
 	});
 
-	test('initializes RNG only once', () => {
+	test('seed explicitly passed', () => {
 		const seed = 'initial-seed';
 		initChance(seed);
 		const chance1 = getChance();
 		initChance('new-seed');
 		const chance2 = getChance();
 		expect(chance1).toBe(chance2);
-
 	});
+
 });
 
 
 describe('generation', () => {
-	test('users: can make', () => {
+
+	test('user: works', () => {
+		const uuid = { guid: jest.fn().mockReturnValue('uuid-123') };
 		const numDays = 30;
-		const user = generateUser('uuid-123', numDays);
+		const user = generateUser(numDays);
 		expect(user).toHaveProperty('distinct_id');
 		expect(user).toHaveProperty('name');
 		expect(user).toHaveProperty('email');
@@ -233,78 +282,34 @@ describe('generation', () => {
 		expect(createdDate.isBefore(dayjs.unix(global.NOW))).toBeTruthy();
 	});
 
-	test('winner: return func', () => {
-		const items = ['a', 'b', 'c'];
-		const result = pickAWinner(items, 0);
-		expect(typeof result).toBe('function');
+
+	test('person: works', () => {
+		const numDays = 30;
+		const user = person('uuid-123', numDays, false);
+		expect(user).toHaveProperty('distinct_id');
+		expect(user.distinct_id).toBe('uuid-123');
+		expect(user).toHaveProperty('name');
+		expect(user).toHaveProperty('email');
+		expect(user).toHaveProperty('avatar');
+		expect(user).toHaveProperty('created');
+		expect(user).toHaveProperty('anonymousIds');
+		expect(user).toHaveProperty('sessionIds');
 	});
 
-	test('winner: first most', () => {
-		const items = ['a', 'b', 'c'];
-		const mostChosenIndex = 0;
-		const pickFunction = pickAWinner(items, mostChosenIndex);
-		const weightedList = pickFunction();
-
-		// Expect the most chosen item to appear at least once
-		expect(weightedList.includes(items[mostChosenIndex])).toBeTruthy();
+	test('person: anon', () => {
+		const numDays = 30;
+		const user = person('uuid-123', numDays, true);
+		expect(user).toHaveProperty('distinct_id');
+		expect(user).toHaveProperty('name');
+		expect(user.name).toBe('Anonymous User')
+		expect(user).toHaveProperty('email');
+		expect(user.email.includes('*')).toBeTruthy();
+		expect(user).not.toHaveProperty('avatar');
+		expect(user).toHaveProperty('created');
+		expect(user).toHaveProperty('anonymousIds');
+		expect(user).toHaveProperty('sessionIds');
 	});
 
-	test('winner: second most', () => {
-		const items = ['a', 'b', 'c'];
-		const mostChosenIndex = 0;
-		const pickFunction = pickAWinner(items, mostChosenIndex);
-		const weightedList = pickFunction();
-
-		const secondMostChosenIndex = (mostChosenIndex + 1) % items.length;
-
-		// Expect the second most chosen item to appear at least once
-		expect(weightedList.includes(items[secondMostChosenIndex])).toBeTruthy();
-	});
-
-	test('winner: third most', () => {
-		const items = ['a', 'b', 'c'];
-		const mostChosenIndex = 0;
-		const pickFunction = pickAWinner(items, mostChosenIndex);
-		const weightedList = pickFunction();
-
-		const thirdMostChosenIndex = (mostChosenIndex + 2) % items.length;
-
-		// Expect the third most chosen item to appear at least once
-		expect(weightedList.includes(items[thirdMostChosenIndex])).toBeTruthy();
-	});
-
-	test('winner: exceed array bounds', () => {
-		const items = ['a', 'b', 'c'];
-		const mostChosenIndex = 0;
-		const pickFunction = pickAWinner(items, mostChosenIndex);
-		const weightedList = pickFunction();
-
-		// Ensure all indices are within the bounds of the array
-		weightedList.forEach(item => {
-			expect(items.includes(item)).toBeTruthy();
-		});
-	});
-
-	test('winner: single item array', () => {
-		const items = ['a'];
-		const mostChosenIndex = 0;
-		const pickFunction = pickAWinner(items, mostChosenIndex);
-		const weightedList = pickFunction();
-
-		// Since there's only one item, all winner: he same
-		weightedList.forEach(item => {
-			expect(item).toBe('a');
-		});
-	});
-
-	test('winner: empty array', () => {
-		const items = [];
-		const pickFunction = pickAWinner(items, 0);
-		const weightedList = pickFunction();
-
-		// Expect the result to be an empty array
-		expect(weightedList.length).toBe(0);
-	});
 
 	test('dates: same start end', () => {
 		const start = '2023-06-10';
@@ -380,13 +385,14 @@ describe('generation', () => {
 
 });
 
+
 describe('validation', () => {
 
 	beforeAll(() => {
 		global.NOW = 1672531200; // fixed point in time for testing
 	});
 
-	test('events: throws non array', () => {
+	test('events: non arrays', () => {
 		// @ts-ignore
 		expect(() => validateEventConfig("not an array")).toThrow("events must be an array");
 	});
@@ -427,53 +433,63 @@ describe('validation', () => {
 		expect(result[0].weight).toBeLessThanOrEqual(5);
 	});
 
-	test('dates: between', () => {
+	test('time: between', () => {
 		const chosenTime = global.NOW - (60 * 60 * 24 * 15); // 15 days ago
 		const earliestTime = global.NOW - (60 * 60 * 24 * 30); // 30 days ago
 		const latestTime = global.NOW;
 		expect(validateTime(chosenTime, earliestTime, latestTime)).toBe(true);
 	});
 
-	test('dates: outside earliest', () => {
+	test('time: outside earliest', () => {
 		const chosenTime = global.NOW - (60 * 60 * 24 * 31); // 31 days ago
 		const earliestTime = global.NOW - (60 * 60 * 24 * 30); // 30 days ago
 		const latestTime = global.NOW;
 		expect(validateTime(chosenTime, earliestTime, latestTime)).toBe(false);
 	});
 
-	test('dates: outside latest', () => {
+	test('time: outside latest', () => {
 		const chosenTime = -1;
 		const earliestTime = global.NOW - (60 * 60 * 24 * 30); // 30 days ago
 		const latestTime = global.NOW;
 		expect(validateTime(chosenTime, earliestTime, latestTime)).toBe(false);
 	});
 
-	test('dates: inference in', () => {
+	test('time: inference in', () => {
 		const chosenTime = global.NOW - (60 * 60 * 24 * 15); // 15 days ago
 		expect(validateTime(chosenTime)).toBe(true);
 	});
 
-	test('dates: inference out', () => {
+	test('time: inference out', () => {
 		const chosenTime = global.NOW - (60 * 60 * 24 * 31); // 31 days ago
 		expect(validateTime(chosenTime)).toBe(false);
 	});
 });
 
 describe('enrichment', () => {
-	test('hook works', () => {
+
+	test('hooks: noop', () => {
+		const arr = [];
+		const enrichedArray = hookArray(arr);
+		enrichedArray.hookPush(1);
+		enrichedArray.hookPush(2);
+		const match = JSON.stringify(enrichedArray) === JSON.stringify([1, 2]);
+		expect(match).toEqual(true);
+	});
+
+	test('hook: double', () => {
 		const arr = [];
 		const hook = (item) => item * 2;
-		const enrichedArray = enrichArray(arr, { hook });
+		const enrichedArray = hookArray(arr, { hook });
 		enrichedArray.hookPush(1);
 		enrichedArray.hookPush(2);
 		expect(enrichedArray.includes(2)).toBeTruthy();
 		expect(enrichedArray.includes(4)).toBeTruthy();
 	});
 
-	test('filter empties', () => {
+	test('hooks: filter', () => {
 		const arr = [];
 		const hook = (item) => item ? item.toString() : item;
-		const enrichedArray = enrichArray(arr, { hook });
+		const enrichedArray = hookArray(arr, { hook });
 		enrichedArray.hookPush(null);
 		enrichedArray.hookPush(undefined);
 		enrichedArray.hookPush({});
@@ -505,7 +521,6 @@ describe('utilities', () => {
 	});
 
 
-
 	test('integer: diff', () => {
 		const min = 5;
 		const max = 10;
@@ -516,16 +531,6 @@ describe('utilities', () => {
 
 	test('integer: same', () => {
 		expect(integer(7, 7)).toBe(7);
-	});
-
-
-
-
-	test('person: fields', () => {
-		const generatedPerson = person('myId');
-		expect(generatedPerson).toHaveProperty('name');
-		expect(generatedPerson).toHaveProperty('email');
-		expect(generatedPerson).toHaveProperty('avatar');
 	});
 
 
@@ -571,28 +576,6 @@ describe('utilities', () => {
 		expect(result).toBe('nested');
 	});
 
-	test('weightedRange:  within range', () => {
-		const values = weightedRange(5, 15);
-		expect(values.every(v => v >= 5 && v <= 15)).toBe(true);
-		expect(values.length).toBe(50);
-	});
-
-	test('applySkew: skews', () => {
-		const value = optimizedBoxMuller();
-		const skewedValue = applySkew(value, .25);
-		expect(Math.abs(skewedValue)).toBeLessThanOrEqual(Math.abs(value) + 1);
-	});
-
-	test('mapToRange: works', () => {
-		const value = 0;
-		const mean = 10;
-		const sd = 5;
-		const mappedValue = mapToRange(value, mean, sd);
-		expect(mappedValue).toBe(10);
-	});
-
-
-
 	test('exhaust: elements', () => {
 		const arr = [1, 2, 3];
 		const exhaustFn = exhaust([...arr]);
@@ -611,25 +594,12 @@ describe('utilities', () => {
 	});
 
 
-	test('times', () => {
-		const dates = [];
-		for (let i = 0; i < 10000; i++) {
-			const earliest = dayjs().subtract(u.rand(5, 50), 'D');
-			dates.push(TimeSoup());
-		}
-		const tooOld = dates.filter(d => dayjs(d).isBefore(dayjs.unix(0)));
-		const badYear = dates.filter(d => !d.startsWith('202'));
-		expect(dates.every(d => dayjs(d).isAfter(dayjs.unix(0)))).toBe(true);
-		expect(dates.every(d => d.startsWith('202'))).toBe(true);
-
-	});
-
-	test('date', () => {
+	test('date: valid', () => {
 		const result = date();
 		expect(dayjs(result()).isValid()).toBe(true);
 	});
 
-	test('dates', () => {
+	test('dates: valid', () => {
 		const result = dates();
 		expect(result).toBeInstanceOf(Array);
 		expect(result.length).toBe(5); // Assuming default numPairs is 5
@@ -641,7 +611,7 @@ describe('utilities', () => {
 		});
 	});
 
-	test('day', () => {
+	test('day: works', () => {
 		const start = '2020-01-01';
 		const end = '2020-01-30';
 		const result = day(start, end);
@@ -650,7 +620,7 @@ describe('utilities', () => {
 		expect(dayjs(dayResult.day).isBefore(dayjs(dayResult.end))).toBe(true);
 	});
 
-	test('exhaust', () => {
+	test('exhaust: works', () => {
 		const arr = [1, 2, 3];
 		const next = exhaust(arr);
 		expect(next()).toBe(1);
@@ -684,20 +654,8 @@ describe('utilities', () => {
 	});
 
 
-	test('weighArray: works', () => {
-		const arr = ['a', 'b', 'c'];
-		const weightedArr = weighArray(arr);
-		expect(weightedArr.length).toBeGreaterThanOrEqual(arr.length);
-	});
 
-	test('weighFunnels: works', () => {
-		const acc = [];
-		const funnel = { weight: 3 };
-		const result = weighFunnels(acc, funnel);
-		expect(result.length).toBe(3);
-	});
-
-	test('progress: outputs correctly', () => {
+	test('progress: output', () => {
 		// @ts-ignore
 		const mockStdoutWrite = jest.spyOn(process.stdout, 'write').mockImplementation(() => { });
 		progress([['test', 50]]);
@@ -706,11 +664,9 @@ describe('utilities', () => {
 	});
 
 	test('range: works', () => {
-		const result = [];
-		range.call(result, 1, 5);
+		const result = range(1,5);
 		expect(result).toEqual([1, 2, 3, 4, 5]);
 	});
-
 
 
 	test('shuffleArray: works', () => {
@@ -756,7 +712,7 @@ describe('utilities', () => {
 		expect(shuffled.slice(1, -1)).toEqual(arr.slice(1, -1));
 	});
 
-	test('box normal distribution', () => {
+	test('box: distribution', () => {
 		const values = [];
 		for (let i = 0; i < 10000; i++) {
 			values.push(boxMullerRandom());
@@ -768,7 +724,7 @@ describe('utilities', () => {
 		expect(stdDev).toBeCloseTo(1, 1);
 	});
 
-	test('optimized box normal distribution', () => {
+	test('optimized box: distribution', () => {
 		const values = [];
 		for (let i = 0; i < 10000; i++) {
 			values.push(optimizedBoxMuller());
@@ -778,6 +734,170 @@ describe('utilities', () => {
 		const stdDev = Math.sqrt(variance);
 		expect(mean).toBeLessThan(1);
 		expect(stdDev).toBeLessThan(1);
+	});
+
+
+});
+
+
+describe('weights', () => {
+	test('weighChoices: objects', () => {
+		const items = [
+			{ value: 'foo', weight: 3 },
+			{ value: 'bar', weight: 2 }
+		];
+		const generateWeightedArray = weighChoices(items);
+		const result = generateWeightedArray();
+
+		expect(result.filter(item => item === 'foo').length).toBe(3);
+		expect(result.filter(item => item === 'bar').length).toBe(2);
+	});
+
+	test('weighChoices: strings', () => {
+		const items = ['foo', 'bar', 'baz'];
+		const generateWeightedArray = weighChoices(items);
+		const result = generateWeightedArray();
+
+		// Check that each item has a unique weight
+		const counts = items.map(item => result.filter(r => r === item).length);
+		const uniqueCounts = new Set(counts);
+
+		expect(uniqueCounts.size).toBe(items.length);
+		counts.forEach(count => {
+			expect(count).toBeGreaterThanOrEqual(1);
+			expect(count).toBeLessThanOrEqual(items.length);
+		});
+	});
+
+	test('weighChoices: empty', () => {
+		const items = [];
+		const generateWeightedArray = weighChoices(items);
+		const result = generateWeightedArray();
+
+		expect(result).toEqual([]);
+	});
+
+	test('weighChoices: one string', () => {
+		const items = ['foo'];
+		const generateWeightedArray = weighChoices(items);
+		const result = generateWeightedArray();
+
+		expect(result).toEqual(['foo']);
+	});
+
+	test('weighChoices: one obj', () => {
+		const items = [{ value: 'foo', weight: 5 }];
+		const generateWeightedArray = weighChoices(items);
+		const result = generateWeightedArray();
+
+		expect(result).toEqual(['foo', 'foo', 'foo', 'foo', 'foo']);
+	});
+
+
+	test('winner: return func', () => {
+		const items = ['a', 'b', 'c'];
+		const result = pickAWinner(items, 0);
+		expect(typeof result).toBe('function');
+	});
+
+	test('winner: first most', () => {
+		const items = ['a', 'b', 'c'];
+		const mostChosenIndex = 0;
+		const pickFunction = pickAWinner(items, mostChosenIndex);
+		const weightedList = pickFunction();
+
+		// Expect the most chosen item to appear at least once
+		expect(weightedList.includes(items[mostChosenIndex])).toBeTruthy();
+	});
+
+	test('winner: second most', () => {
+		const items = ['a', 'b', 'c'];
+		const mostChosenIndex = 0;
+		const pickFunction = pickAWinner(items, mostChosenIndex);
+		const weightedList = pickFunction();
+
+		const secondMostChosenIndex = (mostChosenIndex + 1) % items.length;
+
+		// Expect the second most chosen item to appear at least once
+		expect(weightedList.includes(items[secondMostChosenIndex])).toBeTruthy();
+	});
+
+	test('winner: third most', () => {
+		const items = ['a', 'b', 'c'];
+		const mostChosenIndex = 0;
+		const pickFunction = pickAWinner(items, mostChosenIndex);
+		const weightedList = pickFunction();
+
+		const thirdMostChosenIndex = (mostChosenIndex + 2) % items.length;
+
+		// Expect the third most chosen item to appear at least once
+		expect(weightedList.includes(items[thirdMostChosenIndex])).toBeTruthy();
+	});
+
+	test('winner: exceed array bounds', () => {
+		const items = ['a', 'b', 'c'];
+		const mostChosenIndex = 0;
+		const pickFunction = pickAWinner(items, mostChosenIndex);
+		const weightedList = pickFunction();
+
+		// Ensure all indices are within the bounds of the array
+		weightedList.forEach(item => {
+			expect(items.includes(item)).toBeTruthy();
+		});
+	});
+
+	test('winner: single item array', () => {
+		const items = ['a'];
+		const mostChosenIndex = 0;
+		const pickFunction = pickAWinner(items, mostChosenIndex);
+		const weightedList = pickFunction();
+
+		// Since there's only one item, all winner: he same
+		weightedList.forEach(item => {
+			expect(item).toBe('a');
+		});
+	});
+
+	test('winner: empty array', () => {
+		const items = [];
+		const pickFunction = pickAWinner(items, 0);
+		const weightedList = pickFunction();
+
+		// Expect the result to be an empty array
+		expect(weightedList.length).toBe(0);
+	});
+
+	test('weighNumRange:  within range', () => {
+		const values = weighNumRange(5, 15);
+		expect(values.every(v => v >= 5 && v <= 15)).toBe(true);
+		expect(values.length).toBe(50);
+	});
+
+	test('applySkew: skews', () => {
+		const value = optimizedBoxMuller();
+		const skewedValue = applySkew(value, .25);
+		expect(Math.abs(skewedValue)).toBeLessThanOrEqual(Math.abs(value) + 1);
+	});
+
+	test('mapToRange: works', () => {
+		const value = 0;
+		const mean = 10;
+		const sd = 5;
+		const mappedValue = mapToRange(value, mean, sd);
+		expect(mappedValue).toBe(10);
+	});
+
+	test('weighArray: works', () => {
+		const arr = ['a', 'b', 'c'];
+		const weightedArr = weighArray(arr);
+		expect(weightedArr.length).toBeGreaterThanOrEqual(arr.length);
+	});
+
+	test('weighFunnels: works', () => {
+		const acc = [];
+		const funnel = { weight: 3 };
+		const result = weighFunnels(acc, funnel);
+		expect(result.length).toBe(3);
 	});
 
 

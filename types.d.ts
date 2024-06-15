@@ -1,10 +1,17 @@
 declare namespace main {
+  /**
+   * most of the time, the value of a property is a primitive
+   */
   type Primitives = string | number | boolean | Date | Record<string, any>;
 
-  // Recursive type to handle functions returning functions that eventually return Primitives or arrays of Primitives
+  /**
+   * a "validValue" can be a primitive, an array of primitives, or a function that returns a primitive
+   */
   export type ValueValid = Primitives | ValueValid[] | (() => ValueValid);
 
-  // MAIN CONFIGURATION OBJECT
+  /**
+   * main config object for the entire data generation
+   */
   export interface Config {
     token?: string;
     seed?: string;
@@ -12,18 +19,17 @@ declare namespace main {
     epochStart?: number;
     epochEnd?: number;
     numEvents?: number;
-    numUsers?: number;	
-	
-	//switches 
-	isAnonymous?: boolean;
-	hasLocation?: boolean;
-	hasCampaigns?: boolean;
-	hasAdSpend?: boolean;
-	hasIOSDevices?: boolean;		
-	hasAndroidDevices?: boolean;
-	hasDesktopDevices?: boolean;
-	hasBrowser?: boolean;
+    numUsers?: number;
 
+    //switches
+    isAnonymous?: boolean;
+    hasLocation?: boolean;
+    hasCampaigns?: boolean;
+    hasAdSpend?: boolean;
+    hasIOSDevices?: boolean;
+    hasAndroidDevices?: boolean;
+    hasDesktopDevices?: boolean;
+    hasBrowser?: boolean;
 
     format?: "csv" | "json";
     region?: "US" | "EU";
@@ -35,7 +41,7 @@ declare namespace main {
     mirrorProps?: Record<string, MirrorProps>;
     groupKeys?: [string, number][] | [string, number, string[]][]; // [key, numGroups, [events]]
     groupProps?: Record<string, Record<string, ValueValid>>;
-    lookupTables?: LookupTable[];
+    lookupTables?: LookupTableSchema[];
     writeToDisk?: boolean;
     simulationName?: string;
     verbose?: boolean;
@@ -46,12 +52,18 @@ declare namespace main {
     hook?: Hook<any>;
   }
 
+  /**
+   * the soup is a set of parameters that determine the distribution of events over time
+   */
   type soup = {
     deviation?: number;
     peaks?: number;
     mean?: number;
   };
 
+  /**
+   * the types of hooks that can be used
+   */
   type hookTypes =
     | "event"
     | "user"
@@ -61,90 +73,125 @@ declare namespace main {
     | "mirror"
     | "funnel-pre"
     | "funnel-post"
-	| "ad-spend"
-	| "churn"
+    | "ad-spend"
+    | "churn"
     | "";
+
+  /**
+   * a hook is a function that can be called before each entity is created, and can be used to modify attributes
+   */
   export type Hook<T> = (record: any, type: hookTypes, meta: any) => T;
 
-  export interface EnrichArrayOptions<T> {
+  export interface hookArrayOptions<T> {
     hook?: Hook<T>;
     type?: hookTypes;
     [key: string]: any;
   }
 
+  /**
+   * an enriched array is an array that has a hookPush method that can be used to transform-then-push items into the array
+   */
   export interface EnrichedArray<T> extends Array<T> {
     hookPush: (item: T) => boolean;
   }
 
+  /**
+   * how we define events and their properties
+   */
   export interface EventConfig {
     event?: string;
     weight?: number;
     properties?: Record<string, ValueValid>;
     isFirstEvent?: boolean;
+    isChurnEvent?: boolean;
     relativeTimeMs?: number;
   }
 
-  export interface EventSpec {
-	event: string;
-	time: string;
-	insert_id: string;
-	device_id?: string;
-	session_id?: string;
-	user_id?: string;	
-	[key: string]: ValueValid;
-  }
-
+  /**
+   * how we define funnels and their properties
+   */
   export interface Funnel {
+    /**
+     * the sequence of events that define the funnel
+     */
     sequence: string[];
+    /**
+     * how likely the funnel is to be selected
+     */
     weight?: number;
+    /**
+     * If true, the funnel will be the first thing the user does
+     */
     isFirstFunnel?: boolean;
-	/**
-	 * If true, the funnel will require the user to repeat the sequence of events in order to convert
-	 * If false, the user does not need to repeat the sequence of events in order to convert
-	 * ^ when false, users who repeat the repetitive steps are more likely to convert
-	 */
-	requireRepeats?: boolean;
+    /**
+     * If true, the funnel will require the user to repeat the sequence of events in order to convert
+     * If false, the user does not need to repeat the sequence of events in order to convert
+     * ^ when false, users who repeat the repetitive steps are more likely to convert
+     */
+    requireRepeats?: boolean;
+    /**
+     * how the events in the funnel are ordered for each user
+     */
     order?:
       | "sequential"
       | "first-fixed"
       | "last-fixed"
-      | "random"
+      | "random" //totally shuffled
       | "first-and-last-fixed"
       | "middle-fixed"
-	  | "interrupted";
+      | "interrupted"; //todo: explain this
+    /**
+     * todo: implement this
+     * if set, the funnel might be the last thing the user does
+     * ^ the numerical value is the likelihood that the user will churn
+     * todo: allow for users to be resurrected
+     */
+    isChurnFunnel?: void | number;
+    /**
+     * the likelihood that a user will convert (0-100%)
+     */
     conversionRate?: number;
+    /**
+     * the time it takes (on average) to convert in hours
+     */
     timeToConvert?: number;
+    /**
+     * funnel properties go onto each event in the funnel and are held constant
+     */
     props?: Record<string, ValueValid>;
   }
 
+  /**
+   * mirror props are used to show mutations of event data over time
+   * there are different strategies for how to mutate the data
+   */
   export interface MirrorProps {
+    /**
+     * the event that will be mutated in the new version
+     */
     events?: string[] | "*";
-	strategy?: "delete" | "append" | "replace" | "fill" | ""
-    values: ValueValid[];
+    /**
+     * "create" - create this key in the new version; value are chosen
+     * "update" - update this key in the new version; values are chosen
+     * "fill" - update this key in the new version, but only if the existing key is null or unset
+     * "delete" - delete this key in the new version; values are ignored
+     */
+    strategy?: "create" | "update" | "fill" | "delete" | "";
+    values?: ValueValid[];
   }
 
-  export interface LookupTable {
-    key: string;
-    entries: number;
-    attributes: Record<string, ValueValid>;
-  }
-
-  export interface SCDTableRow {
-    distinct_id: string;
-    insertTime: string;
-    startTime: string;
+  /**
+   * the generated event data
+   */
+  export interface EventSchema {
+    event: string;
+    time: string;
+    insert_id: string;
+    device_id?: string;
+    session_id?: string;
+    user_id?: string;
     [key: string]: ValueValid;
   }
-
-  export type Result = {
-    eventData: EventData[];
-    userProfilesData: any[];
-    scdTableData: any[];
-    groupProfilesData: GroupProfilesData[];
-    lookupTableData: LookupTableData[];
-    importResults?: ImportResults;
-    files?: string[];
-  };
 
   export interface EventData {
     event: string;
@@ -156,26 +203,15 @@ declare namespace main {
     [key: string]: any;
   }
 
-  export interface GroupProfilesData {
-    key: string;
-    data: any[];
+  export interface UserProfile {
+    name?: string;
+    email?: string;
+    avatar?: string;
+    created: string | undefined;
+    distinct_id: string;
+    [key: string]: ValueValid;
   }
 
-  export interface LookupTableData {
-    key: string;
-    data: any[];
-  }
-
-  export interface ImportResults {
-    events: ImportResult;
-    users: ImportResult;
-    groups: ImportResult[];
-  }
-
-  export interface ImportResult {
-    success: number;
-    bytes: number;
-  }
   export interface Person {
     name: string;
     email: string;
@@ -186,14 +222,55 @@ declare namespace main {
     distinct_id?: string;
   }
 
-  export interface UserProfile {
-    name?: string;
-    email?: string;
-    avatar?: string;
-    created: string | undefined;
+  /**
+   * the generated user data
+   */
+  export interface LookupTableSchema {
+    key: string;
+    entries: number;
+    attributes: Record<string, ValueValid>;
+  }
+
+  export interface LookupTableData {
+    key: string;
+    data: any[];
+  }
+
+  export interface SCDSchema {
     distinct_id: string;
+    insertTime: string;
+    startTime: string;
     [key: string]: ValueValid;
   }
+
+  export interface GroupProfileSchema {
+    key: string;
+    data: any[];
+  }
+
+  /**
+   * the end result of importing data into mixpanel
+   */
+  export interface ImportResults {
+    events: ImportResult;
+    users: ImportResult;
+    groups: ImportResult[];
+  }
+  type ImportResult = import("mixpanel-import").ImportResults;
+
+  /**
+   * the end result of the data generation
+   */
+  export type Result = {
+    eventData: EventData[];
+    userProfilesData: any[];
+    scdTableData: any[];
+    adSpendData: EventData[];
+    groupProfilesData: GroupProfileSchema[];
+    lookupTableData: LookupTableData[];
+    importResults?: ImportResults;
+    files?: string[];
+  };
 }
 
 /**
