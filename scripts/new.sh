@@ -27,8 +27,8 @@ const config = {
     format: "csv", //csv or json
     region: "US",
     makeChart: false,
-    anonIds: false,
-    sessionIds: false,
+    hasAnonIds: false,
+    hasSessionIds: false,
     writeToDisk: false,
     events: [],
     superProps: {},

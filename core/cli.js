@@ -101,7 +101,7 @@ DATA MODEL: https://github.com/ak--47/make-mp-data/blob/main/default.js
 			type: 'boolean',
 			coerce: boolCoerce
 		})
-		.option("sessionIds", {
+		.option("hasSessionIds", {
 			demandOption: false,
 			default: false,
 			describe: 'create session ids in the data',
@@ -109,7 +109,7 @@ DATA MODEL: https://github.com/ak--47/make-mp-data/blob/main/default.js
 			type: 'boolean',
 			coerce: boolCoerce
 		})
-		.option("anonIds", {
+		.option("hasAnonIds", {
 			demandOption: false,
 			default: false,
 			describe: 'create anonymous ids in the data',

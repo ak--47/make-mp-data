@@ -29,8 +29,8 @@ const config = {
 	numUsers: 500, //how many users	
 	format: 'csv', //csv or json
 	region: "US",
-	anonIds: false, //if true, anonymousIds are created for each user
-	sessionIds: false, //if true, sessionIds are created for each user
+	hasAnonIds: false, //if true, anonymousIds are created for each user
+	hasSessionIds: false, //if true, hasSessionIds are created for each user
 	hasAdSpend: false,
 
 	hasLocation: true,

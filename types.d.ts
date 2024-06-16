@@ -13,6 +13,7 @@ declare namespace main {
    * main config object for the entire data generation
    */
   export interface Config {
+    // constants
     token?: string;
     seed?: string;
     numDays?: number;
@@ -20,6 +21,9 @@ declare namespace main {
     epochEnd?: number;
     numEvents?: number;
     numUsers?: number;
+    format?: "csv" | "json" | string;
+    region?: "US" | "EU";
+    simulationName?: string;
 
     //switches
     isAnonymous?: boolean;
@@ -30,9 +34,13 @@ declare namespace main {
     hasAndroidDevices?: boolean;
     hasDesktopDevices?: boolean;
     hasBrowser?: boolean;
+    writeToDisk?: boolean;
+    verbose?: boolean;
+    hasAnonIds?: boolean;
+    hasSessionIds?: boolean;
+    makeChart?: boolean | string;
 
-    format?: "csv" | "json";
-    region?: "US" | "EU";
+    //models
     events?: EventConfig[]; //can also be a array of strings
     superProps?: Record<string, ValueValid>;
     funnels?: Funnel[];
@@ -42,14 +50,11 @@ declare namespace main {
     groupKeys?: [string, number][] | [string, number, string[]][]; // [key, numGroups, [events]]
     groupProps?: Record<string, Record<string, ValueValid>>;
     lookupTables?: LookupTableSchema[];
-    writeToDisk?: boolean;
-    simulationName?: string;
-    verbose?: boolean;
-    anonIds?: boolean;
-    sessionIds?: boolean;
-    makeChart?: boolean | string;
     soup?: soup;
     hook?: Hook<any>;
+
+    //allow anything to be on the config
+    [key: string]: any;
   }
 
   /**
@@ -92,7 +97,20 @@ declare namespace main {
    * an enriched array is an array that has a hookPush method that can be used to transform-then-push items into the array
    */
   export interface EnrichedArray<T> extends Array<T> {
-    hookPush: (item: T) => boolean;
+    hookPush: (item: T | T[]) => boolean;
+  }
+
+  /**
+   * the storage object is a key-value store that holds arrays of data
+   */
+  export interface Storage {
+    eventData?: EnrichedArray<EventSchema>;
+    mirrorEventData?: EventSchema[];
+    userProfilesData?: EnrichedArray<UserProfile>;
+    groupProfilesData?: EnrichedArray<GroupProfileSchema>;
+    lookupTableData?: EnrichedArray<LookupTableSchema>;
+    adSpendData?: EnrichedArray<EventSchema>;
+    scdTableData?: EnrichedArray<SCDSchema>[];
   }
 
   /**
@@ -132,15 +150,17 @@ declare namespace main {
     /**
      * how the events in the funnel are ordered for each user
      */
-    order?:
+    order?: string 
       | "sequential"
       | "first-fixed"
       | "last-fixed"
       | "random" //totally shuffled
       | "first-and-last-fixed"
       | "middle-fixed"
-      | "interrupted"; //todo: explain this
-    /**
+      | "interrupted";
+	   
+   
+	  /**
      * todo: implement this
      * if set, the funnel might be the last thing the user does
      * ^ the numerical value is the likelihood that the user will churn

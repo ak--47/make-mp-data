@@ -24,6 +24,14 @@ const jestConfig = {
 			// @ts-ignore
 			maxWorkers: "50%"
 		},		
+		{
+			displayName: "integration",
+			testMatch: [
+				"<rootDir>/tests/int.test.js"
+			],
+			// @ts-ignore
+			maxWorkers: "50%"
+		},		
 	],
 	coverageDirectory: "./tests/coverage",
 };

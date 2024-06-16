@@ -271,7 +271,7 @@ describe('generation', () => {
 		expect(user).toHaveProperty('avatar');
 		expect(user).toHaveProperty('created');
 		expect(user).toHaveProperty('anonymousIds');
-		expect(user).toHaveProperty('sessionIds');
+		expect(user).toHaveProperty('hasSessionIds');
 	});
 
 	test('user: in time range', () => {
@@ -293,7 +293,7 @@ describe('generation', () => {
 		expect(user).toHaveProperty('avatar');
 		expect(user).toHaveProperty('created');
 		expect(user).toHaveProperty('anonymousIds');
-		expect(user).toHaveProperty('sessionIds');
+		expect(user).toHaveProperty('hasSessionIds');
 	});
 
 	test('person: anon', () => {
@@ -307,7 +307,7 @@ describe('generation', () => {
 		expect(user).not.toHaveProperty('avatar');
 		expect(user).toHaveProperty('created');
 		expect(user).toHaveProperty('anonymousIds');
-		expect(user).toHaveProperty('sessionIds');
+		expect(user).toHaveProperty('hasSessionIds');
 	});
 
 

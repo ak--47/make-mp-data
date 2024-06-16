@@ -20,8 +20,8 @@ const config = {
 	numUsers: 1000, //how many users	
 	format: 'csv', //csv or json
 	region: "US",
-	anonIds: true, //if true, anonymousIds are created for each user
-	sessionIds: true, //if true, sessionIds are created for each user
+	hasAnonIds: true, //if true, anonymousIds are created for each user
+	hasSessionIds: true, //if true, hasSessionIds are created for each user
 
 	hasLocation: true,
 	hasAndroidDevices: true,
