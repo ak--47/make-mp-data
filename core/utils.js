@@ -673,7 +673,7 @@ function validateEventConfig(events) {
 	return cleanEventConfig;
 }
 
-function validateTime(chosenTime, earliestTime, latestTime) {
+function validTime(chosenTime, earliestTime, latestTime) {
 	if (!earliestTime) earliestTime = global.NOW - (60 * 60 * 24 * 30); // 30 days ago
 	if (!latestTime) latestTime = global.NOW;
 
@@ -688,6 +688,17 @@ function validateTime(chosenTime, earliestTime, latestTime) {
 		}
 	}
 	return false;
+}
+
+function validEvent(row) {
+	if (!row) return false;
+	if (!row.event) return false;
+	if (!row.time) return false;
+	if (!row.device_id && !row.user_id) return false;
+	if (!row.insert_id) return false;
+	if (!row.source) return false;
+	if (typeof row.time !== 'string') return false;
+	return true;
 }
 
 
@@ -769,7 +780,7 @@ function buildFileNames(config) {
 	extension = format === "csv" ? "csv" : "json";
 	// const current = dayjs.utc().format("MM-DD-HH");
 	let simName = config.simulationName;
-	let writeDir = "./";
+	let writeDir = typeof config.writeToDisk === 'string' ? config.writeToDisk : "./";
 	if (config.writeToDisk) {
 		const dataFolder = path.resolve("./data");
 		if (existsSync(dataFolder)) writeDir = dataFolder;
@@ -923,7 +934,7 @@ function TimeSoup(earliestTime, latestTime, peaks = 5, deviation = 2, mean = 0) 
 		iterations++;
 		soupHits++;
 		offset = chance.normal({ mean: mean, dev: chunkSize / deviation });
-		isValidTime = validateTime(chunkMid + offset, earliestTime, latestTime);
+		isValidTime = validTime(chunkMid + offset, earliestTime, latestTime);
 		if (iterations > 25000) {
 			throw `${iterations} iterations... exceeded`;
 		}
@@ -1081,7 +1092,10 @@ module.exports = {
 
 	initChance,
 	getChance,
-	validateTime,
+
+	validTime,
+	validEvent,
+
 	boxMullerRandom,
 	applySkew,
 	mapToRange,

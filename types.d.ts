@@ -34,7 +34,7 @@ declare namespace main {
     hasAndroidDevices?: boolean;
     hasDesktopDevices?: boolean;
     hasBrowser?: boolean;
-    writeToDisk?: boolean;
+    writeToDisk?: boolean | string;
     verbose?: boolean;
     hasAnonIds?: boolean;
     hasSessionIds?: boolean;
@@ -206,6 +206,7 @@ declare namespace main {
   export interface EventSchema {
     event: string;
     time: string;
+	source: string;
     insert_id: string;
     device_id?: string;
     session_id?: string;
@@ -213,15 +214,6 @@ declare namespace main {
     [key: string]: ValueValid;
   }
 
-  export interface EventData {
-    event: string;
-    source: string;
-    time: string;
-    device_id?: string;
-    session_id?: string;
-    user_id?: string;
-    [key: string]: any;
-  }
 
   export interface UserProfile {
     name?: string;
@@ -234,8 +226,8 @@ declare namespace main {
 
   export interface Person {
     name: string;
-    email: string;
-    avatar: string;
+    email?: string;
+    avatar?: string;
     created: string | undefined;
     anonymousIds: string[];
     sessionIds: string[];
@@ -282,10 +274,10 @@ declare namespace main {
    * the end result of the data generation
    */
   export type Result = {
-    eventData: EventData[];
+    eventData: EventSchema[];
     userProfilesData: any[];
     scdTableData: any[];
-    adSpendData: EventData[];
+    adSpendData: EventSchema[];
     groupProfilesData: GroupProfileSchema[];
     lookupTableData: LookupTableData[];
     importResults?: ImportResults;

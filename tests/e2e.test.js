@@ -166,8 +166,8 @@ describe('options + tweaks', () => {
 		console.log('DATE TEST');
 		const results = await generate({ ...simple, writeToDisk: false, verbose: true,  numEvents: 10000, numUsers: 500 });
 		const { eventData } = results;
-		const invalidDates = eventData.filter(e => !validateTime(e.time));
-		expect(eventData.every(e => validateTime(e.time))).toBe(true);
+		const invalidDates = eventData.filter(e => !validTime(e.time));
+		expect(eventData.every(e => validTime(e.time))).toBe(true);
 
 	}, timeout);
 
@@ -216,7 +216,7 @@ function validateUser(user) {
 }
 
 
-function validateTime(str) {
+function validTime(str) {
 	if (!str) return false;
 	if (str.startsWith('-')) return false;
 	if (!str.startsWith('20')) return false;

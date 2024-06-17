@@ -25,6 +25,7 @@ ak@mixpanel.com
 /** @typedef {import('../types').EventSchema} EventSchema */
 /** @typedef {import('../types').Storage} Storage */
 /** @typedef {import('../types').Result} Result */
+/** @typedef {import('../types').ValueValid} ValueValid */
 
 const dayjs = require("dayjs");
 const utc = require("dayjs/plugin/utc");
@@ -269,24 +270,43 @@ GENERATORS
 /**
  * creates a random event
  * @param  {string} distinct_id
- * @param  {string[]} anonymousIds
- * @param  {string[]} sessionIds
  * @param  {number} earliestTime
  * @param  {EventConfig} chosenEvent
- * @param  {Object} superProps
- * @param  {Object} groupKeys
- * @param  {Boolean} isFirstEvent=false
+ * @param  {string[]} [anonymousIds]
+ * @param  {string[]} [sessionIds] 
+ * @param  {Object} [superProps]
+ * @param  {Object} [groupKeys]
+ * @param  {Boolean} [isFirstEvent]
+ * @return {EventSchema}
  */
-function makeEvent(distinct_id, anonymousIds, sessionIds, earliestTime, chosenEvent, superProps, groupKeys, isFirstEvent = false) {
+function makeEvent(distinct_id, earliestTime, chosenEvent, anonymousIds, sessionIds, superProps, groupKeys, isFirstEvent) {
 	operations++;
 	//todo... this takes too many params!
+	if (!distinct_id) throw new Error("no distinct_id");
+	if (!anonymousIds) anonymousIds = [];
+	if (!sessionIds) sessionIds = [];
+	if (!earliestTime) throw new Error("no earliestTime");
+	if (!chosenEvent) throw new Error("no chosenEvent");
+	if (!superProps) superProps = {};
+	if (!groupKeys) groupKeys = [];
+	if (!isFirstEvent) isFirstEvent = false;
 	const chance = u.getChance();
-	const { mean = 0, deviation = 2, peaks = 5 } = CONFIG.soup;
-	const { hasAndroidDevices, hasBrowser, hasCampaigns, hasDesktopDevices, hasIOSDevices, hasLocation } = CONFIG;
+	const { mean = 0, deviation = 2, peaks = 5 } = CONFIG?.soup || {};
+	const {
+		hasAndroidDevices = false,
+		hasBrowser = false,
+		hasCampaigns = false,
+		hasDesktopDevices = false,
+		hasIOSDevices = false,
+		hasLocation = false
+	} = CONFIG || {};
+
 	//event model
 	const eventTemplate = {
 		event: chosenEvent.event,
 		source: "dm4",
+		time: "",
+		insert_id: "",
 	};
 
 	let defaultProps = {};
@@ -311,8 +331,8 @@ function makeEvent(distinct_id, anonymousIds, sessionIds, earliestTime, chosenEv
 	if (!isFirstEvent) eventTemplate.time = u.TimeSoup(earliestTime, NOW, peaks, deviation, mean);
 
 	// anonymous and session ids
-	if (CONFIG?.hasAnonIds) eventTemplate.device_id = chance.pickone(anonymousIds);
-	if (CONFIG?.hasSessionIds) eventTemplate.session_id = chance.pickone(sessionIds);
+	if (anonymousIds.length) eventTemplate.device_id = chance.pickone(anonymousIds);
+	if (sessionIds.length) eventTemplate.session_id = chance.pickone(sessionIds);
 
 	//sometimes have a user_id
 	if (!isFirstEvent && chance.bool({ likelihood: 42 })) eventTemplate.user_id = distinct_id;
@@ -391,15 +411,20 @@ function makeEvent(distinct_id, anonymousIds, sessionIds, earliestTime, chosenEv
  * this is called MANY times per user
  * @param  {Funnel} funnel
  * @param  {Person} user
- * @param  {UserProfile} profile
- * @param  {Record<string, SCDTableRow[]>} scd
  * @param  {number} firstEventTime
- * @param  {Config} config
+ * @param  {UserProfile | Object} [profile]
+ * @param  {Record<string, SCDTableRow[]>} [scd]
+ * @param  {Config} [config]
  * @return {[EventSchema[], Boolean]}
  */
-function makeFunnel(funnel, user, profile, scd, firstEventTime, config) {
+function makeFunnel(funnel, user, firstEventTime, profile, scd, config) {
+	if (!funnel) throw new Error("no funnel");
+	if (!user) throw new Error("no user");
+	if (!profile) profile = {};
+	if (!scd) scd = {};
+
 	const chance = u.getChance();
-	const { hook } = config;
+	const { hook = (a) => a } = config;
 	hook(funnel, "funnel-pre", { user, profile, scd, funnel, config });
 	let {
 		sequence,
@@ -411,7 +436,7 @@ function makeFunnel(funnel, user, profile, scd, firstEventTime, config) {
 	} = funnel;
 	const { distinct_id, created, anonymousIds, sessionIds } = user;
 	const { superProps, groupKeys } = config;
-	const { name, email } = profile;
+
 
 	//choose the properties for this funnel
 	const chosenFunnelProps = { ...props, ...superProps };
@@ -426,7 +451,7 @@ function makeFunnel(funnel, user, profile, scd, firstEventTime, config) {
 
 	const funnelPossibleEvents = sequence
 		.map((eventName) => {
-			const foundEvent = config.events.find((e) => e.event === eventName);
+			const foundEvent = config?.events?.find((e) => e.event === eventName);
 			/** @type {EventConfig} */
 			const eventSpec = clone(foundEvent) || { event: eventName, properties: {} };
 			for (const key in eventSpec.properties) {
@@ -446,12 +471,12 @@ function makeFunnel(funnel, user, profile, scd, firstEventTime, config) {
 			if (!requireRepeats) {
 				if (acc.find(e => e.event === step.event)) {
 					if (chance.bool({ likelihood: 50 })) {
-						conversionRate = Math.floor(conversionRate * 1.25); //increase conversion rate
+						conversionRate = Math.floor(conversionRate * 1.35); //increase conversion rate
 						acc.push(step);
 					}
 					//A SKIPPED STEP!
 					else {
-						conversionRate = Math.floor(conversionRate * .75); //reduce conversion rate
+						conversionRate = Math.floor(conversionRate * .70); //reduce conversion rate
 						return acc; //early return to skip the step
 					}
 				}
@@ -536,7 +561,7 @@ function makeFunnel(funnel, user, profile, scd, firstEventTime, config) {
 	let funnelStartTime;
 	let finalEvents = funnelActualEventsWithOffset
 		.map((event, index) => {
-			const newEvent = makeEvent(distinct_id, anonymousIds, sessionIds, earliestTime, event, {}, groupKeys);
+			const newEvent = makeEvent(distinct_id, earliestTime, event, anonymousIds, sessionIds, {}, groupKeys);
 			if (index === 0) {
 				funnelStartTime = dayjs(newEvent.time);
 				delete newEvent.relativeTimeMs;
@@ -580,7 +605,7 @@ function makeProfile(props, defaults) {
 }
 
 /**
- * @param  {import('../types').ValueValid} prop
+ * @param  {ValueValid} prop
  * @param  {string} scdKey
  * @param  {string} distinct_id
  * @param  {number} mutations
@@ -681,6 +706,7 @@ ORCHESTRATORS
  * a loop that creates users and their events; the loop is inside this function
  * @param  {Config} config
  * @param  {Storage} storage
+ * @return {void}
  */
 function userLoop(config, storage) {
 	const chance = u.getChance();
@@ -740,23 +766,38 @@ function userLoop(config, storage) {
 		const firstFunnels = funnels.filter((f) => f.isFirstFunnel).reduce(u.weighFunnels, []);
 		const usageFunnels = funnels.filter((f) => !f.isFirstFunnel).reduce(u.weighFunnels, []);
 		const userIsBornInDataset = chance.bool({ likelihood: 30 });
+		
 		if (firstFunnels.length && userIsBornInDataset) {
 			/** @type {Funnel} */
 			const firstFunnel = chance.pickone(firstFunnels, user);
 
-			const [data, userConverted] = makeFunnel(firstFunnel, user, profile, userSCD, null, config);
+			const [data, userConverted] = makeFunnel(firstFunnel, user, null, profile, userSCD, config);
 			userFirstEventTime = dayjs(data[0].time).unix();
 			numEventsPreformed += data.length;
 			eventData.hookPush(data);
 			if (!userConverted) continue loopUsers;
 		}
 
+		else if (firstFunnels.length && !userIsBornInDataset) {
+			userFirstEventTime = dayjs(created).unix();
+		}
+
+		// user was not born in dataset
+		else {
+			userFirstEventTime = dayjs(created).unix();
+		}
+
 		while (numEventsPreformed < numEventsThisUserWillPreform) {
 			if (usageFunnels.length) {
 				/** @type {Funnel} */
 				const currentFunnel = chance.pickone(usageFunnels);
-				const [data, userConverted] = makeFunnel(currentFunnel, user, profile, userSCD, userFirstEventTime, config);
+				const [data, userConverted] = makeFunnel(currentFunnel, user, userFirstEventTime, profile, userSCD,  config);
 				numEventsPreformed += data.length;
+				eventData.hookPush(data);
+			}
+			else {
+				const data = makeEvent(distinct_id, userFirstEventTime, u.choose(config.events), user.anonymousIds, user.sessionIds, {}, config.groupKeys, true);
+				numEventsPreformed++;
 				eventData.hookPush(data);
 			}
 		}
@@ -879,7 +920,7 @@ async function writeFiles(config, storage) {
 	];
 	const writeFilePromises = [];
 
-	if (verbose) log(`writing files... for ${simulationName}`);
+	log(`writing files... for ${simulationName}`);
 	loopFiles: for (const ENTITY of pairs) {
 		const [paths, data] = ENTITY;
 		if (!data.length) continue loopFiles;

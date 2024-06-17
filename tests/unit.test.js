@@ -51,7 +51,7 @@ const {
 	getChance,
 	initChance,
 	validateEventConfig,
-	validateTime,
+	validTime,
 	interruptArray,
 	optimizedBoxMuller,
 	inferFunnels,
@@ -271,7 +271,7 @@ describe('generation', () => {
 		expect(user).toHaveProperty('avatar');
 		expect(user).toHaveProperty('created');
 		expect(user).toHaveProperty('anonymousIds');
-		expect(user).toHaveProperty('hasSessionIds');
+		expect(user).toHaveProperty('sessionIds');
 	});
 
 	test('user: in time range', () => {
@@ -293,7 +293,7 @@ describe('generation', () => {
 		expect(user).toHaveProperty('avatar');
 		expect(user).toHaveProperty('created');
 		expect(user).toHaveProperty('anonymousIds');
-		expect(user).toHaveProperty('hasSessionIds');
+		expect(user).toHaveProperty('sessionIds');
 	});
 
 	test('person: anon', () => {
@@ -307,7 +307,7 @@ describe('generation', () => {
 		expect(user).not.toHaveProperty('avatar');
 		expect(user).toHaveProperty('created');
 		expect(user).toHaveProperty('anonymousIds');
-		expect(user).toHaveProperty('hasSessionIds');
+		expect(user).toHaveProperty('sessionIds');
 	});
 
 
@@ -437,31 +437,31 @@ describe('validation', () => {
 		const chosenTime = global.NOW - (60 * 60 * 24 * 15); // 15 days ago
 		const earliestTime = global.NOW - (60 * 60 * 24 * 30); // 30 days ago
 		const latestTime = global.NOW;
-		expect(validateTime(chosenTime, earliestTime, latestTime)).toBe(true);
+		expect(validTime(chosenTime, earliestTime, latestTime)).toBe(true);
 	});
 
 	test('time: outside earliest', () => {
 		const chosenTime = global.NOW - (60 * 60 * 24 * 31); // 31 days ago
 		const earliestTime = global.NOW - (60 * 60 * 24 * 30); // 30 days ago
 		const latestTime = global.NOW;
-		expect(validateTime(chosenTime, earliestTime, latestTime)).toBe(false);
+		expect(validTime(chosenTime, earliestTime, latestTime)).toBe(false);
 	});
 
 	test('time: outside latest', () => {
 		const chosenTime = -1;
 		const earliestTime = global.NOW - (60 * 60 * 24 * 30); // 30 days ago
 		const latestTime = global.NOW;
-		expect(validateTime(chosenTime, earliestTime, latestTime)).toBe(false);
+		expect(validTime(chosenTime, earliestTime, latestTime)).toBe(false);
 	});
 
 	test('time: inference in', () => {
 		const chosenTime = global.NOW - (60 * 60 * 24 * 15); // 15 days ago
-		expect(validateTime(chosenTime)).toBe(true);
+		expect(validTime(chosenTime)).toBe(true);
 	});
 
 	test('time: inference out', () => {
 		const chosenTime = global.NOW - (60 * 60 * 24 * 31); // 31 days ago
-		expect(validateTime(chosenTime)).toBe(false);
+		expect(validTime(chosenTime)).toBe(false);
 	});
 });
 
