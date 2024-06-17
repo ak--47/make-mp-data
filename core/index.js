@@ -22,7 +22,10 @@ ak@mixpanel.com
 /** @typedef {import('../types').Person} Person */
 /** @typedef {import('../types').SCDSchema} SCDTableRow */
 /** @typedef {import('../types').UserProfile} UserProfile */
-/** @typedef {import('../types').EventSchema} EventSpec */
+/** @typedef {import('../types').EventSchema} EventSchema */
+/** @typedef {import('../types').Storage} Storage */
+/** @typedef {import('../types').Result} Result */
+/** @typedef {import('../types').ValueValid} ValueValid */
 
 const dayjs = require("dayjs");
 const utc = require("dayjs/plugin/utc");
@@ -45,10 +48,15 @@ const { campaigns, devices, locations } = require('./defaults.js');
 
 let VERBOSE = false;
 let isCLI = false;
-/** @type {Config} */
-let CONFIG;
+let isBATCH_MODE = false; // if we are running in batch mode, we MUST write to disk before we can send to mixpanel
+let BATCH_SIZE = 1_000_000;
+let operations = 0;
 let CAMPAIGNS;
 let DEFAULTS;
+/** @type {Storage} */
+let STORAGE;
+/** @type {Config} */
+let CONFIG;
 require('dotenv').config();
 
 
@@ -64,107 +72,19 @@ function track(name, props, ...rest) {
  * @param  {Config} config
  */
 async function main(config) {
-
-	//seed the random number generator
-	// ^ this is critical; same seed = same data; seed can be passed in as an env var or in the config
+	//seeding
 	const seedWord = process.env.SEED || config.seed || "hello friend!";
 	config.seed = seedWord;
-	u.initChance(seedWord);
-	const chance = u.getChance(); // ! this is the only safe way to get the chance instance
-	let {
-		seed,
-		numEvents = 100000,
-		numUsers = 1000,
-		numDays = 30,
-		epochStart = 0,
-		epochEnd = dayjs().unix(),
-		events = [{ event: "foo" }, { event: "bar" }, { event: "baz" }],
-		superProps = { luckyNumber: [2, 2, 4, 4, 42, 42, 42, 2, 2, 4, 4, 42, 42, 42, 420] },
-		funnels = [],
-		userProps = {
-			spiritAnimal: chance.animal.bind(chance),
-		},
-		scdProps = {},
-		mirrorProps = {},
-		groupKeys = [],
-		groupProps = {},
-		lookupTables = [],
-		anonIds = false,
-		sessionIds = false,
-		format = "csv",
-		token = null,
-		region = "US",
-		writeToDisk = false,
-		verbose = false,
-		makeChart = false,
-		soup = {},
-		hook = (record) => record,
-		hasAdSpend = false,
-		hasCampaigns = false,
-		hasLocation = false,
-		isAnonymous = false,
-		hasBrowser = false,
-		hasAndroidDevices = false,
-		hasDesktopDevices = false,
-		hasIOSDevices = false
-	} = config;
-
-	if (!config.superProps) config.superProps = superProps;
-	if (!config.userProps || Object.keys(config?.userProps)) config.userProps = userProps;
-
-
-	config.simulationName = makeName();
-	const { simulationName } = config;
-	if (epochStart && !numDays) numDays = dayjs.unix(epochEnd).diff(dayjs.unix(epochStart), "day");
-	if (!epochStart && numDays) epochStart = dayjs.unix(epochEnd).subtract(numDays, "day").unix();
-	if (epochStart && numDays) { } //noop
-	if (!epochStart && !numDays) debugger; //never happens	
-	config.seed = seed;
-	config.numEvents = numEvents;
-	config.numUsers = numUsers;
-	config.numDays = numDays;
-	config.epochStart = epochStart;
-	config.epochEnd = epochEnd;
-	config.events = events;
-	config.superProps = superProps;
-	config.funnels = funnels;
-	config.userProps = userProps;
-	config.scdProps = scdProps;
-	config.mirrorProps = mirrorProps;
-	config.groupKeys = groupKeys;
-	config.groupProps = groupProps;
-	config.lookupTables = lookupTables;
-	config.anonIds = anonIds;
-	config.sessionIds = sessionIds;
-	config.format = format;
-	config.token = token;
-	config.region = region;
-	config.writeToDisk = writeToDisk;
-	config.verbose = verbose;
-	config.makeChart = makeChart;
-	config.soup = soup;
-	config.hook = hook;
-	config.hasAdSpend = hasAdSpend;
-	config.hasCampaigns = hasCampaigns;
-	config.hasLocation = hasLocation;
-	config.isAnonymous = isAnonymous;
-	config.hasBrowser = hasBrowser;
-	config.hasAndroidDevices = hasAndroidDevices;
-	config.hasDesktopDevices = hasDesktopDevices;
-	config.hasIOSDevices = hasIOSDevices;
-
-	//event validation 
-	const validatedEvents = u.validateEventConfig(events);
-	events = validatedEvents;
-	config.events = validatedEvents;
+	const chance = u.initChance(seedWord);
+	//seed the random number generator, get it with getChance()
+	// ^ this is critical; same seed = same data; seed can be passed in as an env var or in the config
+	validateDungeonConfig(config); // ! this is going to mutate the config to make sure we have everything we need
 
 	//globals
-	global.MP_SIMULATION_CONFIG = config;
 	CONFIG = config;
-	VERBOSE = verbose;
+	VERBOSE = config.verbose;
 	CAMPAIGNS = campaigns;
 	DEFAULTS = {
-		// locations: u.pickAWinner(locations, 0),
 		locationsUsers: u.pickAWinner(clone(locations).map(l => { delete l.country; return l; }), 0),
 		locationsEvents: u.pickAWinner(clone(locations).map(l => { delete l.country_code; return l; }), 0),
 		iOSDevices: u.pickAWinner(devices.iosDevices, 0),
@@ -175,16 +95,14 @@ async function main(config) {
 	};
 
 
+	//tracking
 	const runId = uid(42);
-	let trackingParams = { runId, seed, numEvents, numUsers, numDays, anonIds, sessionIds, format, targetToken: token, region, writeToDisk, isCLI, version };
-	track('start simulation', trackingParams);
+	const { events, superProps, userProps, scdProps, groupKeys, groupProps, lookupTables, soup, hook, ...trackingParams } = config;
+	let { funnels } = config;
+	trackingParams.runId = runId;
+	trackingParams.version = version;
 
-	log(`------------------SETUP------------------`);
-	log(`\nyour data simulation will heretofore be known as: \n\n\t${simulationName.toUpperCase()}...\n`);
-	log(`and your configuration is:\n\n`, JSON.stringify({ seed, numEvents, numUsers, numDays, format, token, region, writeToDisk, anonIds, sessionIds }, null, 2));
-	log(`------------------SETUP------------------`, "\n");
-
-	//setup all the data structures we will push into
+	//storage
 	const eventData = u.hookArray([], { hook, type: "event", config });
 	const userProfilesData = u.hookArray([], { hook, type: "user", config });
 	const adSpendData = u.hookArray([], { hook, type: "ad-spend", config });
@@ -195,7 +113,17 @@ async function main(config) {
 	}
 	const groupProfilesData = u.hookArray([], { hook, type: "group", config });
 	const lookupTableData = u.hookArray([], { hook, type: "lookup", config });
-	const avgEvPerUser = Math.ceil(numEvents / numUsers);
+	STORAGE = { eventData, userProfilesData, scdTableData, groupProfilesData, lookupTableData };
+
+
+	track('start simulation', trackingParams);
+
+	log(`------------------SETUP------------------`);
+	log(`\nyour data simulation will heretofore be known as: \n\n\t${config.simulationName.toUpperCase()}...\n`);
+	log(`and your configuration is:\n\n`, JSON.stringify(trackingParams, null, 2));
+	log(`------------------SETUP------------------`, "\n");
+
+	//setup all the data structures we will push into
 
 	// if no funnels, make some out of events...
 	if (!funnels || !funnels.length) {
@@ -206,80 +134,10 @@ async function main(config) {
 
 	//user loop
 	log(`---------------SIMULATION----------------`, "\n\n");
-	loopUsers: for (let i = 1; i < numUsers + 1; i++) {
-		u.progress([["users", i], ["events", eventData.length]]);
-		const userId = chance.guid();
-		const user = u.person(userId, numDays, isAnonymous);
-		const { distinct_id, created, anonymousIds, sessionIds } = user;
-		let numEventsPreformed = 0;
+	userLoop(config, STORAGE);
+	const { hasAdSpend, epochStart, epochEnd } = config;
 
-		if (hasLocation) {
-			const location = u.choose(DEFAULTS.locationsUsers);
-			for (const key in location) {
-				user[key] = location[key];
-			}
-		}
-
-
-
-		// profile creation
-		const profile = makeProfile(userProps, user);
-		userProfilesData.hookPush(profile);
-
-		//scd creation
-		/** @type {Record<string, SCDTableRow[]>} */
-		// @ts-ignore
-		const userSCD = {};
-		for (const [index, key] of scdTableKeys.entries()) {
-			const mutations = chance.integer({ min: 1, max: 10 });
-			const changes = makeSCD(scdProps[key], key, distinct_id, mutations, created);
-			// @ts-ignore
-			userSCD[key] = changes;
-			scdTableData[index].hookPush(changes);
-		}
-
-		let numEventsThisUserWillPreform = Math.floor(chance.normal({
-			mean: avgEvPerUser,
-			dev: avgEvPerUser / u.integer(u.integer(2, 5), u.integer(2, 7))
-		}) * 0.714159265359);
-
-		// power users do 5x more events
-		chance.bool({ likelihood: 20 }) ? numEventsThisUserWillPreform *= 5 : null;
-
-		// shitty users do 1/3 as many events
-		chance.bool({ likelihood: 15 }) ? numEventsThisUserWillPreform *= 0.333 : null;
-
-		numEventsThisUserWillPreform = Math.round(numEventsThisUserWillPreform);
-
-		let userFirstEventTime;
-
-		//first funnel
-		const firstFunnels = funnels.filter((f) => f.isFirstFunnel).reduce(u.weighFunnels, []);
-		const usageFunnels = funnels.filter((f) => !f.isFirstFunnel).reduce(u.weighFunnels, []);
-		const userIsBornInDataset = chance.bool({ likelihood: 30 });
-		if (firstFunnels.length && userIsBornInDataset) {
-			/** @type {Funnel} */
-			const firstFunnel = chance.pickone(firstFunnels, user);
-
-			const [data, userConverted] = makeFunnel(firstFunnel, user, profile, userSCD, null, config);
-			userFirstEventTime = dayjs(data[0].time).unix();
-			numEventsPreformed += data.length;
-			eventData.hookPush(data);
-			if (!userConverted) continue loopUsers;
-		}
-
-		while (numEventsPreformed < numEventsThisUserWillPreform) {
-			if (usageFunnels.length) {
-				/** @type {Funnel} */
-				const currentFunnel = chance.pickone(usageFunnels);
-				const [data, userConverted] = makeFunnel(currentFunnel, user, profile, userSCD, userFirstEventTime, config);
-				numEventsPreformed += data.length;
-				eventData.hookPush(data);
-			}
-		}
-		// end individual user loop
-	}
-
+	// ad spend loop
 	if (hasAdSpend) {
 		const days = u.datesBetween(epochStart, epochEnd);
 		for (const day of days) {
@@ -291,12 +149,12 @@ async function main(config) {
 
 	}
 
-	//flatten SCD tables
+	//cleanup
 	scdTableData.forEach((table, index) => scdTableData[index] = table.flat());
 
 	log("\n");
 
-	// make group profiles
+	//group profiles
 	for (const groupPair of groupKeys) {
 		const groupKey = groupPair[0];
 		const groupCardinality = groupPair[1];
@@ -314,7 +172,7 @@ async function main(config) {
 	}
 	log("\n");
 
-	// make lookup tables
+	//lookup tables
 	for (const lookupTable of lookupTables) {
 		const { key, entries, attributes } = lookupTable;
 		const data = [];
@@ -328,6 +186,7 @@ async function main(config) {
 		}
 		lookupTableData.hookPush({ key, data });
 	}
+	log("\n");
 
 	// SHIFT TIME
 	const actualNow = dayjs();
@@ -346,23 +205,9 @@ async function main(config) {
 		}
 	});
 
-	// const dayShift = actualNow.diff(global.NOW, "day");
-	// userProfilesData.forEach((profile) => {
-	// 	const newTime = dayjs(profile.created).add(dayShift, "day");
-	// 	profile.created = newTime.toISOString();
-	// });
-
-
-	// draw charts
-	if (makeChart) {
-		const bornEvents = config.events?.filter((e) => e.isFirstEvent)?.map(e => e.event) || [];
-		const bornFunnels = config.funnels?.filter((f) => f.isFirstFunnel)?.map(f => f.sequence[0]) || [];
-		const bornBehaviors = [...bornEvents, ...bornFunnels];
-		const chart = await generateLineChart(eventData, bornBehaviors, makeChart);
-	}
-
-	// create mirrorProps
-	let mirrorEventData = [];
+	// mirror props
+	const { mirrorProps } = config;
+	let mirrorEventData;
 	const mirrorPropKeys = Object.keys(mirrorProps);
 	if (mirrorPropKeys.length) {
 		mirrorEventData = clone(eventData);
@@ -372,169 +217,96 @@ async function main(config) {
 				if (mirrorProps[key]?.events === "*") row[key] = hook(u.choose(mirrorProps[key]?.values), "mirror", { config, row, key });
 			}
 		}
+		STORAGE.mirrorEventData = mirrorEventData;
 	}
-
-	const { eventFiles, userFiles, scdFiles, groupFiles, lookupFiles, mirrorFiles, folder, adSpendFiles } =
-		u.buildFileNames(config);
-	const pairs = [
-		[eventFiles, [eventData]],
-		[userFiles, [userProfilesData]],
-		[adSpendFiles, [adSpendData]],
-		[scdFiles, scdTableData],
-		[groupFiles, groupProfilesData],
-		[lookupFiles, lookupTableData],
-		[mirrorFiles, [mirrorEventData]],
-	];
 	log("\n");
 	log(`---------------SIMULATION----------------`, "\n");
 
-	if (!writeToDisk && !token) {
-		track('end simulation', trackingParams);
-		return {
-			eventData,
-			userProfilesData,
-			scdTableData,
-			groupProfilesData,
-			lookupTableData,
-			mirrorEventData,
-			importResults: {},
-			files: []
-		};
+	// draw charts
+	const { makeChart } = config;
+	if (makeChart) {
+		const bornEvents = config.events?.filter((e) => e.isFirstEvent)?.map(e => e.event) || [];
+		const bornFunnels = config.funnels?.filter((f) => f.isFirstFunnel)?.map(f => f.sequence[0]) || [];
+		const bornBehaviors = [...bornEvents, ...bornFunnels];
+		const chart = await generateLineChart(eventData, bornBehaviors, makeChart);
 	}
+	const { writeToDisk, token } = config;
+	if (!writeToDisk && !token) {
+		// this is awkward, but i couldn't figure out any other way to assert a type in jsdoc
+		const i =  /** @type {unknown} */ (STORAGE);
+		const j = /** @type {Result} */ (i);
+		return j;
+
+	}
+
 	log(`-----------------WRITES------------------`, `\n\n`);
 
-	let writeFilePromises = [];
-	if (writeToDisk) {
-		if (verbose) log(`writing files... for ${simulationName}`);
-		loopFiles: for (const ENTITY of pairs) {
-			const [paths, data] = ENTITY;
-			if (!data.length) continue loopFiles;
-			for (const [index, path] of paths.entries()) {
-				let TABLE;
-				//group + lookup tables are structured differently
-				if (data?.[index]?.["key"]) {
-					TABLE = data[index].data;
-				}
-				else {
-					TABLE = data[index];
-				}
+	// write to disk and/or send to mixpanel
+	let files;
+	if (writeToDisk) files = await writeFiles(config, STORAGE);
+	let importResults;
+	if (token) importResults = await sendToMixpanel(config, STORAGE);
 
-				log(`\twriting ${path}`);
-				//if it's a lookup table, it's always a CSV
-				if (format === "csv" || path.includes("-LOOKUP.csv")) {
-					writeFilePromises.push(u.streamCSV(path, TABLE));
-				}
-				else {
-					writeFilePromises.push(u.streamJSON(path, TABLE));
-				}
 
-			}
-		}
-	}
-	const fileWriteResults = await Promise.all(writeFilePromises);
-
-	const importResults = { events: {}, users: {}, groups: [] };
-
-	//send to mixpanel
-	if (token) {
-		/** @type {import('mixpanel-import').Creds} */
-		const creds = { token };
-		/** @type {import('mixpanel-import').Options} */
-		const commonOpts = {
-			region,
-			fixData: true,
-			verbose: false,
-			forceStream: true,
-			strict: false, //! sometimes we get events in the future... it happens
-			dryRun: false,
-			abridged: false,
-			fixJson: true,
-			showProgress: true
-		};
-
-		if (eventData) {
-			log(`importing events to mixpanel...\n`);
-			const imported = await mp(creds, clone(eventData), {
-				recordType: "event",
-				...commonOpts,
-			});
-			log(`\tsent ${comma(imported.success)} events\n`);
-			importResults.events = imported;
-		}
-		if (userProfilesData && userProfilesData.length) {
-			log(`importing user profiles to mixpanel...\n`);
-			const imported = await mp(creds, clone(userProfilesData), {
-				recordType: "user",
-				...commonOpts,
-			});
-			log(`\tsent ${comma(imported.success)} user profiles\n`);
-			importResults.users = imported;
-		}
-		if (adSpendData && adSpendData.length) {
-			log(`importing ad spend data to mixpanel...\n`);
-			const imported = await mp(creds, clone(adSpendData), {
-				recordType: "event",
-				...commonOpts,
-			});
-			log(`\tsent ${comma(imported.success)} ad spend events\n`);
-			importResults.adSpend = imported;
-		}
-		if (groupProfilesData) {
-			for (const groupProfiles of groupProfilesData) {
-				const groupKey = groupProfiles.key;
-				const data = groupProfiles.data;
-				log(`importing ${groupKey} profiles to mixpanel...\n`);
-				const imported = await mp({ token, groupKey }, clone(data), {
-					recordType: "group",
-					...commonOpts,
-
-				});
-				log(`\tsent ${comma(imported.success)} ${groupKey} profiles\n`);
-
-				importResults.groups.push(imported);
-			}
-		}
-	}
 	log(`\n-----------------WRITES------------------`, "\n");
 	track('end simulation', trackingParams);
 
 	return {
+		...STORAGE,
 		importResults,
-		files: [eventFiles, userFiles, scdFiles, groupFiles, lookupFiles, mirrorFiles, folder],
-		eventData,
-		userProfilesData,
-		scdTableData,
-		groupProfilesData,
-		lookupTableData,
-		mirrorEventData,
-		adSpendData
+		files,
 	};
 }
 
 
 
 
-
+/*
+-----------
+GENERATORS
+-----------
+*/
 
 /**
  * creates a random event
  * @param  {string} distinct_id
- * @param  {string[]} anonymousIds
- * @param  {string[]} sessionIds
  * @param  {number} earliestTime
  * @param  {EventConfig} chosenEvent
- * @param  {Object} superProps
- * @param  {Object} groupKeys
- * @param  {Boolean} isFirstEvent=false
+ * @param  {string[]} [anonymousIds]
+ * @param  {string[]} [sessionIds] 
+ * @param  {Object} [superProps]
+ * @param  {Object} [groupKeys]
+ * @param  {Boolean} [isFirstEvent]
+ * @return {EventSchema}
  */
-function makeEvent(distinct_id, anonymousIds, sessionIds, earliestTime, chosenEvent, superProps, groupKeys, isFirstEvent = false) {
+function makeEvent(distinct_id, earliestTime, chosenEvent, anonymousIds, sessionIds, superProps, groupKeys, isFirstEvent) {
+	operations++;
+	//todo... this takes too many params!
+	if (!distinct_id) throw new Error("no distinct_id");
+	if (!anonymousIds) anonymousIds = [];
+	if (!sessionIds) sessionIds = [];
+	if (!earliestTime) throw new Error("no earliestTime");
+	if (!chosenEvent) throw new Error("no chosenEvent");
+	if (!superProps) superProps = {};
+	if (!groupKeys) groupKeys = [];
+	if (!isFirstEvent) isFirstEvent = false;
 	const chance = u.getChance();
-	const { mean = 0, deviation = 2, peaks = 5 } = CONFIG.soup;
-	const { hasAndroidDevices, hasBrowser, hasCampaigns, hasDesktopDevices, hasIOSDevices, hasLocation } = CONFIG;
+	const { mean = 0, deviation = 2, peaks = 5 } = CONFIG?.soup || {};
+	const {
+		hasAndroidDevices = false,
+		hasBrowser = false,
+		hasCampaigns = false,
+		hasDesktopDevices = false,
+		hasIOSDevices = false,
+		hasLocation = false
+	} = CONFIG || {};
+
 	//event model
 	const eventTemplate = {
 		event: chosenEvent.event,
 		source: "dm4",
+		time: "",
+		insert_id: "",
 	};
 
 	let defaultProps = {};
@@ -559,8 +331,8 @@ function makeEvent(distinct_id, anonymousIds, sessionIds, earliestTime, chosenEv
 	if (!isFirstEvent) eventTemplate.time = u.TimeSoup(earliestTime, NOW, peaks, deviation, mean);
 
 	// anonymous and session ids
-	if (CONFIG?.anonIds) eventTemplate.device_id = chance.pickone(anonymousIds);
-	if (CONFIG?.sessionIds) eventTemplate.session_id = chance.pickone(sessionIds);
+	if (anonymousIds.length) eventTemplate.device_id = chance.pickone(anonymousIds);
+	if (sessionIds.length) eventTemplate.session_id = chance.pickone(sessionIds);
 
 	//sometimes have a user_id
 	if (!isFirstEvent && chance.bool({ likelihood: 42 })) eventTemplate.user_id = distinct_id;
@@ -639,15 +411,20 @@ function makeEvent(distinct_id, anonymousIds, sessionIds, earliestTime, chosenEv
  * this is called MANY times per user
  * @param  {Funnel} funnel
  * @param  {Person} user
- * @param  {UserProfile} profile
- * @param  {Record<string, SCDTableRow[]>} scd
  * @param  {number} firstEventTime
- * @param  {Config} config
- * @return {[EventSpec[], Boolean]}
+ * @param  {UserProfile | Object} [profile]
+ * @param  {Record<string, SCDTableRow[]>} [scd]
+ * @param  {Config} [config]
+ * @return {[EventSchema[], Boolean]}
  */
-function makeFunnel(funnel, user, profile, scd, firstEventTime, config) {
+function makeFunnel(funnel, user, firstEventTime, profile, scd, config) {
+	if (!funnel) throw new Error("no funnel");
+	if (!user) throw new Error("no user");
+	if (!profile) profile = {};
+	if (!scd) scd = {};
+
 	const chance = u.getChance();
-	const { hook } = config;
+	const { hook = (a) => a } = config;
 	hook(funnel, "funnel-pre", { user, profile, scd, funnel, config });
 	let {
 		sequence,
@@ -659,7 +436,7 @@ function makeFunnel(funnel, user, profile, scd, firstEventTime, config) {
 	} = funnel;
 	const { distinct_id, created, anonymousIds, sessionIds } = user;
 	const { superProps, groupKeys } = config;
-	const { name, email } = profile;
+
 
 	//choose the properties for this funnel
 	const chosenFunnelProps = { ...props, ...superProps };
@@ -674,7 +451,7 @@ function makeFunnel(funnel, user, profile, scd, firstEventTime, config) {
 
 	const funnelPossibleEvents = sequence
 		.map((eventName) => {
-			const foundEvent = config.events.find((e) => e.event === eventName);
+			const foundEvent = config?.events?.find((e) => e.event === eventName);
 			/** @type {EventConfig} */
 			const eventSpec = clone(foundEvent) || { event: eventName, properties: {} };
 			for (const key in eventSpec.properties) {
@@ -694,12 +471,12 @@ function makeFunnel(funnel, user, profile, scd, firstEventTime, config) {
 			if (!requireRepeats) {
 				if (acc.find(e => e.event === step.event)) {
 					if (chance.bool({ likelihood: 50 })) {
-						conversionRate = Math.floor(conversionRate * 1.25); //increase conversion rate
+						conversionRate = Math.floor(conversionRate * 1.35); //increase conversion rate
 						acc.push(step);
 					}
 					//A SKIPPED STEP!
 					else {
-						conversionRate = Math.floor(conversionRate * .75); //reduce conversion rate
+						conversionRate = Math.floor(conversionRate * .70); //reduce conversion rate
 						return acc; //early return to skip the step
 					}
 				}
@@ -784,7 +561,7 @@ function makeFunnel(funnel, user, profile, scd, firstEventTime, config) {
 	let funnelStartTime;
 	let finalEvents = funnelActualEventsWithOffset
 		.map((event, index) => {
-			const newEvent = makeEvent(distinct_id, anonymousIds, sessionIds, earliestTime, event, {}, groupKeys);
+			const newEvent = makeEvent(distinct_id, earliestTime, event, anonymousIds, sessionIds, {}, groupKeys);
 			if (index === 0) {
 				funnelStartTime = dayjs(newEvent.time);
 				delete newEvent.relativeTimeMs;
@@ -796,7 +573,6 @@ function makeFunnel(funnel, user, profile, scd, firstEventTime, config) {
 				return newEvent;
 			}
 			catch (e) {
-
 				debugger;
 			}
 		});
@@ -806,16 +582,16 @@ function makeFunnel(funnel, user, profile, scd, firstEventTime, config) {
 	return [finalEvents, doesUserConvert];
 }
 
-
 function makeProfile(props, defaults) {
-	//build the spec
+	operations++;
+
 	const profile = {
 		...defaults,
 	};
 
 	// anonymous and session ids
-	if (!CONFIG?.anonIds) delete profile.anonymousIds;
-	if (!CONFIG?.sessionIds) delete profile.sessionIds;
+	if (!CONFIG?.hasAnonIds) delete profile.anonymousIds;
+	if (!CONFIG?.hasSessionIds) delete profile.hasSessionIds;
 
 	for (const key in props) {
 		try {
@@ -829,20 +605,22 @@ function makeProfile(props, defaults) {
 }
 
 /**
- * @param  {import('../types').ValueValid} prop
+ * @param  {ValueValid} prop
  * @param  {string} scdKey
  * @param  {string} distinct_id
  * @param  {number} mutations
  * @param  {string} created
+ * @return {SCDTableRow[]}
  */
 function makeSCD(prop, scdKey, distinct_id, mutations, created) {
-	if (JSON.stringify(prop) === "{}") return {};
+	if (JSON.stringify(prop) === "{}") return [];
 	if (JSON.stringify(prop) === "[]") return [];
 	const scdEntries = [];
 	let lastInserted = dayjs(created);
 	const deltaDays = dayjs().diff(lastInserted, "day");
 
 	for (let i = 0; i < mutations; i++) {
+		operations++;
 		if (lastInserted.isAfter(dayjs())) break;
 		const scd = makeProfile({ [scdKey]: prop }, { distinct_id });
 		scd.startTime = lastInserted.toISOString();
@@ -857,11 +635,15 @@ function makeSCD(prop, scdKey, distinct_id, mutations, created) {
 	return scdEntries;
 }
 
-//todo
-function makeAdSpend(day) {
+/**
+ * creates ad spend events for a given day for all campaigns in default campaigns
+ * @param  {string} day
+ */
+function makeAdSpend(day, campaigns = CAMPAIGNS) {
+	operations++;
 	const chance = u.getChance();
 	const adSpendEvents = [];
-	for (const network of CAMPAIGNS) {
+	for (const network of campaigns) {
 		const campaigns = network.utm_campaign;
 		loopCampaigns: for (const campaign of campaigns) {
 			if (campaign === "$organic") continue loopCampaigns;
@@ -913,16 +695,337 @@ function makeAdSpend(day) {
 
 
 
+/*
+--------------
+ORCHESTRATORS
+--------------
+*/
+
+
+/**
+ * a loop that creates users and their events; the loop is inside this function
+ * @param  {Config} config
+ * @param  {Storage} storage
+ * @return {void}
+ */
+function userLoop(config, storage) {
+	const chance = u.getChance();
+	const { numUsers, numDays, numEvents, isAnonymous, hasAnonIds, hasSessionIds, hasLocation, funnels, userProps, scdProps } = config;
+	const { eventData, userProfilesData, scdTableData } = storage;
+	const avgEvPerUser = numEvents / numUsers;
+
+	loopUsers: for (let i = 1; i < numUsers + 1; i++) {
+		u.progress([["users", i], ["events", eventData.length]]);
+		const userId = chance.guid();
+		const user = u.person(userId, numDays, isAnonymous, hasAnonIds, hasSessionIds);
+		const { distinct_id, created } = user;
+		let numEventsPreformed = 0;
+
+		if (hasLocation) {
+			const location = u.choose(DEFAULTS.locationsUsers);
+			for (const key in location) {
+				user[key] = location[key];
+			}
+		}
 
 
 
+		// profile creation
+		const profile = makeProfile(userProps, user);
+		userProfilesData.hookPush(profile);
+
+		//scd creation
+		const scdTableKeys = Object.keys(scdProps);
+
+		/** @type {Record<string, SCDTableRow[]>} */
+		const userSCD = {};
+		for (const [index, key] of scdTableKeys.entries()) {
+			const mutations = chance.integer({ min: 1, max: 10 });
+			const changes = makeSCD(scdProps[key], key, distinct_id, mutations, created);
+			// @ts-ignore
+			userSCD[key] = changes;
+			scdTableData[index].hookPush(changes);
+		}
+
+		let numEventsThisUserWillPreform = Math.floor(chance.normal({
+			mean: avgEvPerUser,
+			dev: avgEvPerUser / u.integer(u.integer(2, 5), u.integer(2, 7))
+		}) * 0.714159265359);
+
+		// power users do 5x more events
+		chance.bool({ likelihood: 20 }) ? numEventsThisUserWillPreform *= 5 : null;
+
+		// shitty users do 1/3 as many events
+		chance.bool({ likelihood: 15 }) ? numEventsThisUserWillPreform *= 0.333 : null;
+
+		numEventsThisUserWillPreform = Math.round(numEventsThisUserWillPreform);
+
+		let userFirstEventTime;
+
+		//first funnel
+		const firstFunnels = funnels.filter((f) => f.isFirstFunnel).reduce(u.weighFunnels, []);
+		const usageFunnels = funnels.filter((f) => !f.isFirstFunnel).reduce(u.weighFunnels, []);
+		const userIsBornInDataset = chance.bool({ likelihood: 30 });
+		
+		if (firstFunnels.length && userIsBornInDataset) {
+			/** @type {Funnel} */
+			const firstFunnel = chance.pickone(firstFunnels, user);
+
+			const [data, userConverted] = makeFunnel(firstFunnel, user, null, profile, userSCD, config);
+			userFirstEventTime = dayjs(data[0].time).unix();
+			numEventsPreformed += data.length;
+			eventData.hookPush(data);
+			if (!userConverted) continue loopUsers;
+		}
+
+		else if (firstFunnels.length && !userIsBornInDataset) {
+			userFirstEventTime = dayjs(created).unix();
+		}
+
+		// user was not born in dataset
+		else {
+			userFirstEventTime = dayjs(created).unix();
+		}
+
+		while (numEventsPreformed < numEventsThisUserWillPreform) {
+			if (usageFunnels.length) {
+				/** @type {Funnel} */
+				const currentFunnel = chance.pickone(usageFunnels);
+				const [data, userConverted] = makeFunnel(currentFunnel, user, userFirstEventTime, profile, userSCD,  config);
+				numEventsPreformed += data.length;
+				eventData.hookPush(data);
+			}
+			else {
+				const data = makeEvent(distinct_id, userFirstEventTime, u.choose(config.events), user.anonymousIds, user.sessionIds, {}, config.groupKeys, true);
+				numEventsPreformed++;
+				eventData.hookPush(data);
+			}
+		}
+		// end individual user loop
+	}
+}
+
+/**
+ * ensures that the config is valid and has all the necessary fields
+ * also adds some defaults
+ * @param  {Config} config
+ */
+function validateDungeonConfig(config) {
+	const chance = u.getChance();
+	let {
+		seed,
+		numEvents = 100_000,
+		numUsers = 1000,
+		numDays = 30,
+		epochStart = 0,
+		epochEnd = dayjs().unix(),
+		events = [{ event: "foo" }, { event: "bar" }, { event: "baz" }],
+		superProps = { luckyNumber: [2, 2, 4, 4, 42, 42, 42, 2, 2, 4, 4, 42, 42, 42, 420] },
+		funnels = [],
+		userProps = {
+			spiritAnimal: chance.animal.bind(chance),
+		},
+		scdProps = {},
+		mirrorProps = {},
+		groupKeys = [],
+		groupProps = {},
+		lookupTables = [],
+		hasAnonIds = false,
+		hasSessionIds = false,
+		format = "csv",
+		token = null,
+		region = "US",
+		writeToDisk = false,
+		verbose = false,
+		makeChart = false,
+		soup = {},
+		hook = (record) => record,
+		hasAdSpend = false,
+		hasCampaigns = false,
+		hasLocation = false,
+		isAnonymous = false,
+		hasBrowser = false,
+		hasAndroidDevices = false,
+		hasDesktopDevices = false,
+		hasIOSDevices = false
+	} = config;
+
+	if (!config.superProps) config.superProps = superProps;
+	if (!config.userProps || Object.keys(config?.userProps)) config.userProps = userProps;
+
+	config.simulationName = makeName();
+	if (epochStart && !numDays) numDays = dayjs.unix(epochEnd).diff(dayjs.unix(epochStart), "day");
+	if (!epochStart && numDays) epochStart = dayjs.unix(epochEnd).subtract(numDays, "day").unix();
+	if (epochStart && numDays) { } //noop
+	if (!epochStart && !numDays) debugger; //never happens	
+	config.seed = seed;
+	config.numEvents = numEvents;
+	config.numUsers = numUsers;
+	config.numDays = numDays;
+	config.epochStart = epochStart;
+	config.epochEnd = epochEnd;
+	config.events = events;
+	config.superProps = superProps;
+	config.funnels = funnels;
+	config.userProps = userProps;
+	config.scdProps = scdProps;
+	config.mirrorProps = mirrorProps;
+	config.groupKeys = groupKeys;
+	config.groupProps = groupProps;
+	config.lookupTables = lookupTables;
+	config.hasAnonIds = hasAnonIds;
+	config.hasSessionIds = hasSessionIds;
+	config.format = format;
+	config.token = token;
+	config.region = region;
+	config.writeToDisk = writeToDisk;
+	config.verbose = verbose;
+	config.makeChart = makeChart;
+	config.soup = soup;
+	config.hook = hook;
+	config.hasAdSpend = hasAdSpend;
+	config.hasCampaigns = hasCampaigns;
+	config.hasLocation = hasLocation;
+	config.isAnonymous = isAnonymous;
+	config.hasBrowser = hasBrowser;
+	config.hasAndroidDevices = hasAndroidDevices;
+	config.hasDesktopDevices = hasDesktopDevices;
+	config.hasIOSDevices = hasIOSDevices;
+
+	//event validation 
+	const validatedEvents = u.validateEventConfig(events);
+	events = validatedEvents;
+	config.events = validatedEvents;
+
+	return config;
+}
+
+/**
+ * @param  {Config} config
+ * @param  {Storage} storage
+ */
+async function writeFiles(config, storage) {
+	const { adSpendData, eventData, groupProfilesData, lookupTableData, mirrorEventData, scdTableData, userProfilesData } = storage;
+	const { eventFiles, userFiles, scdFiles, groupFiles, lookupFiles, mirrorFiles, folder, adSpendFiles } =
+		u.buildFileNames(config);
+	const { verbose, simulationName, format } = config;
+	const pairs = [
+		[eventFiles, [eventData]],
+		[userFiles, [userProfilesData]],
+		[adSpendFiles, [adSpendData]],
+		[scdFiles, scdTableData],
+		[groupFiles, groupProfilesData],
+		[lookupFiles, lookupTableData],
+		[mirrorFiles, [mirrorEventData]],
+	];
+	const writeFilePromises = [];
+
+	log(`writing files... for ${simulationName}`);
+	loopFiles: for (const ENTITY of pairs) {
+		const [paths, data] = ENTITY;
+		if (!data.length) continue loopFiles;
+		for (const [index, path] of paths.entries()) {
+			let TABLE;
+			//group + lookup tables are structured differently
+			if (data?.[index]?.["key"]) {
+				TABLE = data[index].data;
+			}
+			else {
+				TABLE = data[index];
+			}
+
+			log(`\twriting ${path}`);
+			//if it's a lookup table, it's always a CSV
+			if (format === "csv" || path.includes("-LOOKUP.csv")) {
+				writeFilePromises.push(u.streamCSV(path, TABLE));
+			}
+			else {
+				writeFilePromises.push(u.streamJSON(path, TABLE));
+			}
+
+		}
+	}
+
+	const fileWriteResults = await Promise.all(writeFilePromises);
+	return fileWriteResults;
+}
+
+/**
+ * sends the data to mixpanel
+ * @param  {Config} config
+ * @param  {Storage} storage
+ */
+async function sendToMixpanel(config, storage) {
+	const { adSpendData, eventData, groupProfilesData, lookupTableData, mirrorEventData, scdTableData, userProfilesData } = storage;
+	const { token, region } = config;
+	const importResults = { events: {}, users: {}, groups: [] };
+
+	/** @type {import('mixpanel-import').Creds} */
+	const creds = { token };
+	/** @type {import('mixpanel-import').Options} */
+	const commonOpts = {
+		region,
+		fixData: true,
+		verbose: false,
+		forceStream: true,
+		strict: false, //! sometimes we get events in the future... it happens
+		dryRun: false,
+		abridged: false,
+		fixJson: true,
+		showProgress: true
+	};
+
+	if (eventData) {
+		log(`importing events to mixpanel...\n`);
+		const imported = await mp(creds, clone(eventData), {
+			recordType: "event",
+			...commonOpts,
+		});
+		log(`\tsent ${comma(imported.success)} events\n`);
+		importResults.events = imported;
+	}
+	if (userProfilesData && userProfilesData.length) {
+		log(`importing user profiles to mixpanel...\n`);
+		const imported = await mp(creds, clone(userProfilesData), {
+			recordType: "user",
+			...commonOpts,
+		});
+		log(`\tsent ${comma(imported.success)} user profiles\n`);
+		importResults.users = imported;
+	}
+	if (adSpendData && adSpendData.length) {
+		log(`importing ad spend data to mixpanel...\n`);
+		const imported = await mp(creds, clone(adSpendData), {
+			recordType: "event",
+			...commonOpts,
+		});
+		log(`\tsent ${comma(imported.success)} ad spend events\n`);
+		importResults.adSpend = imported;
+	}
+	if (groupProfilesData) {
+		for (const groupProfiles of groupProfilesData) {
+			const groupKey = groupProfiles.key;
+			const data = groupProfiles.data;
+			log(`importing ${groupKey} profiles to mixpanel...\n`);
+			const imported = await mp({ token, groupKey }, clone(data), {
+				recordType: "group",
+				...commonOpts,
+
+			});
+			log(`\tsent ${comma(imported.success)} ${groupKey} profiles\n`);
+
+			importResults.groups.push(imported);
+		}
+	}
+	return importResults;
+}
 
 // this is for CLI
 if (require.main === module) {
 	isCLI = true;
 	const args = getCliParams();
 	// @ts-ignore
-	let { token, seed, format, numDays, numUsers, numEvents, region, writeToDisk, complex = false, sessionIds, anonIds } = args;
+	let { token, seed, format, numDays, numUsers, numEvents, region, writeToDisk, complex = false, hasSessionIds, hasAnonIds } = args;
 	// @ts-ignore
 	const suppliedConfig = args._[0];
 
@@ -957,8 +1060,8 @@ if (require.main === module) {
 	if (region) config.region = region;
 	if (writeToDisk) config.writeToDisk = writeToDisk;
 	if (writeToDisk === 'false') config.writeToDisk = false;
-	if (sessionIds) config.sessionIds = sessionIds;
-	if (anonIds) config.anonIds = anonIds;
+	if (hasSessionIds) config.hasSessionIds = hasSessionIds;
+	if (hasAnonIds) config.hasAnonIds = hasAnonIds;
 	config.verbose = true;
 
 	main(config)
@@ -998,7 +1101,8 @@ if (require.main === module) {
 			u.openFinder(path.resolve("./data"));
 		});
 } else {
-	main.utils = { ...u };
+	main.generators = { makeEvent, makeFunnel, makeProfile, makeSCD, makeAdSpend };
+	main.orchestrators = { userLoop, validateDungeonConfig, writeFiles, sendToMixpanel };
 	module.exports = main;
 }
 

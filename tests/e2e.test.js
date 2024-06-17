@@ -110,33 +110,33 @@ describe('cli', () => {
 
 describe('options + tweaks', () => {
 	test('creates sessionIds', async () => {
-		const results = await generate({ writeToDisk: false, numEvents: 1000, numUsers: 100, sessionIds: true });
+		const results = await generate({ writeToDisk: false, numEvents: 1000, numUsers: 100, hasSessionIds: true });
 		const { eventData } = results;
 		const sessionIds = eventData.map(a => a.session_id).filter(a => a);
 		expect(sessionIds.length).toBe(eventData.length);
 	}, timeout);
 
-	test('no sessionIds', async () => {
-		const results = await generate({ writeToDisk: false, numEvents: 1000, numUsers: 100, sessionIds: false });
+	test('no hasSessionIds', async () => {
+		const results = await generate({ writeToDisk: false, numEvents: 1000, numUsers: 100, hasSessionIds: false });
 		const { eventData } = results;
-		const sessionIds = eventData.map(a => a.session_id).filter(a => a);
-		expect(sessionIds.length).toBe(0);
+		const noSessionIds = eventData.map(a => a.session_id).filter(a => a);
+		expect(noSessionIds.length).toBe(0);
 	}, timeout);
 
 	test('creates anonymousIds', async () => {
-		const results = await generate({ writeToDisk: false, numEvents: 1000, numUsers: 100, anonIds: true });
+		const results = await generate({ writeToDisk: false, numEvents: 1000, numUsers: 100, hasAnonIds: true });
 		const { eventData } = results;
-		const anonIds = eventData.map(a => a.device_id).filter(a => a);
+		const anonymousEvents = eventData.map(a => a.device_id).filter(a => a);
 		const userIds = eventData.map(a => a.user_id).filter(a => a);
-		expect(anonIds.length).toBe(eventData.length);
-		expect(userIds.length).toBeLessThan(anonIds.length);
+		expect(anonymousEvents.length).toBe(eventData.length);
+		expect(userIds.length).toBeLessThan(anonymousEvents.length);
 	}, timeout);
 
 	test('no anonymousIds', async () => {
-		const results = await generate({ writeToDisk: false, numEvents: 1000, numUsers: 100, anonIds: false });
+		const results = await generate({ writeToDisk: false, numEvents: 1000, numUsers: 100, hasAnonIds: false });
 		const { eventData } = results;
-		const anonIds = eventData.map(a => a.device_id).filter(a => a);
-		expect(anonIds.length).toBe(0);
+		const unanonymousEvents = eventData.map(a => a.device_id).filter(a => a);
+		expect(unanonymousEvents.length).toBe(0);
 	}, timeout);
 
 	test('sends data to mixpanel', async () => {
@@ -164,16 +164,16 @@ describe('options + tweaks', () => {
 
 	test('every date is valid', async () => {
 		console.log('DATE TEST');
-		const results = await generate({ ...simple, writeToDisk: false, verbose: true });
+		const results = await generate({ ...simple, writeToDisk: false, verbose: true,  numEvents: 10000, numUsers: 500 });
 		const { eventData } = results;
-		const invalidDates = eventData.filter(e => !validateTime(e.time));
-		expect(eventData.every(e => validateTime(e.time))).toBe(true);
+		const invalidDates = eventData.filter(e => !validTime(e.time));
+		expect(eventData.every(e => validTime(e.time))).toBe(true);
 
 	}, timeout);
 
 	test('anonymous users', async () => {
 		console.log('ANON TEST');
-		const results = await generate({ ...anon, writeToDisk: false, verbose: true });
+		const results = await generate({ ...anon, writeToDisk: false, verbose: true, numEvents: 10000, numUsers: 500 });
 		const { userProfilesData } = results;
 		expect(userProfilesData.every(u => u.name === 'Anonymous User')).toBe(true);
 
@@ -216,7 +216,7 @@ function validateUser(user) {
 }
 
 
-function validateTime(str) {
+function validTime(str) {
 	if (!str) return false;
 	if (str.startsWith('-')) return false;
 	if (!str.startsWith('20')) return false;

@@ -29,8 +29,8 @@ const config = {
 	numUsers: 25000, //how many users	
 	format: 'json', //csv or json
 	region: "US",
-	anonIds: true, //if true, anonymousIds are created for each user
-	sessionIds: false, //if true, sessionIds are created for each user
+	hasAnonIds: true, //if true, anonymousIds are created for each user
+	hasSessionIds: false, //if true, hasSessionIds are created for each user
 	
 	events: [
 		{

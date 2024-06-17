@@ -40,7 +40,6 @@ function initChance(seed) {
 	if (process.env.SEED) seed = process.env.SEED;  // Override seed with environment variable if available
 	if (!chanceInitialized) {
 		globalChance = new Chance(seed);
-		if (global.MP_SIMULATION_CONFIG) global.MP_SIMULATION_CONFIG.chance = globalChance;
 		chanceInitialized = true;
 	}
 	return globalChance;
@@ -52,11 +51,11 @@ function initChance(seed) {
  */
 function getChance() {
 	if (!chanceInitialized) {
-		const seed = process.env.SEED || global.MP_SIMULATION_CONFIG?.seed;
+		const seed = process.env.SEED || "";
 		if (!seed) {
-			return new Chance();
+			return new Chance(); // this is a new RNG and therefore not deterministic
 		}
-		return initChance(seed);		
+		return initChance(seed);
 	}
 	return globalChance;
 }
@@ -674,7 +673,7 @@ function validateEventConfig(events) {
 	return cleanEventConfig;
 }
 
-function validateTime(chosenTime, earliestTime, latestTime) {
+function validTime(chosenTime, earliestTime, latestTime) {
 	if (!earliestTime) earliestTime = global.NOW - (60 * 60 * 24 * 30); // 30 days ago
 	if (!latestTime) latestTime = global.NOW;
 
@@ -689,6 +688,17 @@ function validateTime(chosenTime, earliestTime, latestTime) {
 		}
 	}
 	return false;
+}
+
+function validEvent(row) {
+	if (!row) return false;
+	if (!row.event) return false;
+	if (!row.time) return false;
+	if (!row.device_id && !row.user_id) return false;
+	if (!row.insert_id) return false;
+	if (!row.source) return false;
+	if (typeof row.time !== 'string') return false;
+	return true;
 }
 
 
@@ -770,7 +780,7 @@ function buildFileNames(config) {
 	extension = format === "csv" ? "csv" : "json";
 	// const current = dayjs.utc().format("MM-DD-HH");
 	let simName = config.simulationName;
-	let writeDir = "./";
+	let writeDir = typeof config.writeToDisk === 'string' ? config.writeToDisk : "./";
 	if (config.writeToDisk) {
 		const dataFolder = path.resolve("./data");
 		if (existsSync(dataFolder)) writeDir = dataFolder;
@@ -896,6 +906,7 @@ function generateUser(user_id, numDays, amplitude = 1, frequency = 1, skew = 1) 
 	return user;
 }
 
+let soupHits = 0;
 /**
  * build sign waves basically
  * @param  {number} [earliestTime]
@@ -921,8 +932,9 @@ function TimeSoup(earliestTime, latestTime, peaks = 5, deviation = 2, mean = 0) 
 	let isValidTime = false;
 	do {
 		iterations++;
+		soupHits++;
 		offset = chance.normal({ mean: mean, dev: chunkSize / deviation });
-		isValidTime = validateTime(chunkMid + offset, earliestTime, latestTime);
+		isValidTime = validTime(chunkMid + offset, earliestTime, latestTime);
 		if (iterations > 25000) {
 			throw `${iterations} iterations... exceeded`;
 		}
@@ -946,9 +958,11 @@ function TimeSoup(earliestTime, latestTime, peaks = 5, deviation = 2, mean = 0) 
  * @param {string} userId
  * @param  {number} bornDaysAgo=30
  * @param {boolean} isAnonymous
+ * @param {boolean} hasAnonIds
+ * @param {boolean} hasSessionIds
  * @return {Person}
  */
-function person(userId, bornDaysAgo = 30, isAnonymous = false) {
+function person(userId, bornDaysAgo = 30, isAnonymous = false, hasAnonIds = false, hasSessionIds = false) {
 	const chance = getChance();
 	//names and photos
 	const l = chance.letter.bind(chance);
@@ -986,7 +1000,7 @@ function person(userId, bornDaysAgo = 30, isAnonymous = false) {
 	}
 
 	//anon Ids
-	if (global.MP_SIMULATION_CONFIG?.anonIds) {
+	if (hasAnonIds) {
 		const clusterSize = integer(2, 10);
 		for (let i = 0; i < clusterSize; i++) {
 			const anonId = uid(42);
@@ -996,7 +1010,7 @@ function person(userId, bornDaysAgo = 30, isAnonymous = false) {
 	}
 
 	//session Ids
-	if (global.MP_SIMULATION_CONFIG?.sessionIds) {
+	if (hasSessionIds) {
 		const sessionSize = integer(5, 30);
 		for (let i = 0; i < sessionSize; i++) {
 			const sessionId = [uid(5), uid(5), uid(5), uid(5)].join("-");
@@ -1078,7 +1092,10 @@ module.exports = {
 
 	initChance,
 	getChance,
-	validateTime,
+
+	validTime,
+	validEvent,
+
 	boxMullerRandom,
 	applySkew,
 	mapToRange,
