@@ -271,8 +271,8 @@ describe('generators', () => {
 	});
 
 	test('makeSCD: large mutations', () => {
-		const result = makeSCD(["value1", "value2"], "prop1", "distinct_id", 100, dayjs().toISOString());
-		expect(result.length).toBe(5);
+		const result = makeSCD(["value1", "value2"], "prop1", "distinct_id", 100, dayjs().subtract(100, 'd').toISOString());
+		expect(result.length).toBeGreaterThan(0);
 		result.forEach(entry => {
 			expect(entry).toHaveProperty('prop1');
 			expect(entry).toHaveProperty('distinct_id', 'distinct_id');

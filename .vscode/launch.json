@@ -33,7 +33,7 @@
 			"internalConsoleOptions": "neverOpen",
 			"args": [
 				"--ignore",
-				"./data/"
+				"./data/*"
 			]
 		}
 	]

@@ -13,9 +13,10 @@ const complex = require('../schemas/complex.js');
 const anon = require('../schemas/anon.js');
 const funnels = require('../schemas/funnels.js');
 const foobar = require('../schemas/foobar.js');
+const mirror = require('../schemas/mirror.js');
 
 const timeout = 60000;
-const testToken = process.env.TEST_TOKEN;
+const testToken = process.env.TEST_TOKEN || "hello token!";
 
 describe('module', () => {
 
@@ -52,6 +53,43 @@ describe('module', () => {
 		expect(lookupTableData.length).toBe(2);
 		expect(lookupTableData[0].data.length).toBe(1000);
 		expect(scdTableData.length).toBe(5);
+		expect(userProfilesData.length).toBe(100);
+
+	}, timeout);
+
+	test('works as module (funnels)', async () => {
+		console.log('MODULE TEST: FUNNELS');
+		const results = await generate({ ...funnels, verbose: true, writeToDisk: false, numEvents: 1100, numUsers: 100, seed: "deal with it" });
+		const { eventData, groupProfilesData, lookupTableData, scdTableData, userProfilesData } = results;
+		expect(eventData.length).toBeGreaterThan(980);
+		expect(groupProfilesData.length).toBe(3);
+		expect(groupProfilesData[0]?.data?.length).toBe(5000);
+		expect(groupProfilesData[1]?.data?.length).toBe(500);
+		expect(groupProfilesData[2]?.data?.length).toBe(50);
+		expect(scdTableData.length).toBe(2);
+		expect(scdTableData[0]?.length).toBeGreaterThan(200);
+		expect(scdTableData[1]?.length).toBeGreaterThan(200);
+		expect(userProfilesData.length).toBe(100);
+
+	}, timeout);
+
+	test('works as module (mirror)', async () => {
+		console.log('MODULE TEST: MIRROR');
+		const results = await generate({ ...mirror, verbose: true, writeToDisk: false, numEvents: 1100, numUsers: 100, seed: "deal with it" });
+		const { eventData, userProfilesData, mirrorEventData } = results;
+		expect(eventData.length).toBeGreaterThan(980);
+		expect(mirrorEventData.length).toBeGreaterThan(980);
+		expect(mirrorEventData.every(e => e.newlyCreated)).toBe(true);		
+		expect(eventData.every(e => e.newlyCreated)).toBe(false);		
+		expect(userProfilesData.length).toBe(100);
+
+	}, timeout);
+	
+	test('works as module (foobar)', async () => {
+		console.log('MODULE TEST: FOOBAR');
+		const results = await generate({ ...foobar, verbose: true, writeToDisk: false, numEvents: 1100, numUsers: 100, seed: "deal with it" });
+		const { eventData, groupProfilesData, lookupTableData, scdTableData, userProfilesData } = results;
+		expect(eventData.length).toBeGreaterThan(980);		
 		expect(userProfilesData.length).toBe(100);
 
 	}, timeout);

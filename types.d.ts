@@ -105,7 +105,7 @@ declare namespace main {
    */
   export interface Storage {
     eventData?: EnrichedArray<EventSchema>;
-    mirrorEventData?: EventSchema[];
+    mirrorEventData?: EnrichedArray<EventSchema>;
     userProfilesData?: EnrichedArray<UserProfile>;
     groupProfilesData?: EnrichedArray<GroupProfileSchema>;
     lookupTableData?: EnrichedArray<LookupTableSchema>;
@@ -150,7 +150,8 @@ declare namespace main {
     /**
      * how the events in the funnel are ordered for each user
      */
-    order?: string 
+    order?:
+      | string
       | "sequential"
       | "first-fixed"
       | "last-fixed"
@@ -158,9 +159,8 @@ declare namespace main {
       | "first-and-last-fixed"
       | "middle-fixed"
       | "interrupted";
-	   
-   
-	  /**
+
+    /**
      * todo: implement this
      * if set, the funnel might be the last thing the user does
      * ^ the numerical value is the likelihood that the user will churn
@@ -198,6 +198,10 @@ declare namespace main {
      */
     strategy?: "create" | "update" | "fill" | "delete" | "";
     values?: ValueValid[];
+    /**
+     * optional: for 'fill' mode, daysUnfilled will dictate where the cutoff is in the unfilled data
+     */
+    daysUnfilled?: number;
   }
 
   /**
@@ -206,14 +210,13 @@ declare namespace main {
   export interface EventSchema {
     event: string;
     time: string;
-	source: string;
+    source: string;
     insert_id: string;
     device_id?: string;
     session_id?: string;
     user_id?: string;
     [key: string]: ValueValid;
   }
-
 
   export interface UserProfile {
     name?: string;
@@ -275,6 +278,7 @@ declare namespace main {
    */
   export type Result = {
     eventData: EventSchema[];
+    mirrorEventData: EventSchema[];
     userProfilesData: any[];
     scdTableData: any[];
     adSpendData: EventSchema[];
