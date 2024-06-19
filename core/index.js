@@ -688,6 +688,9 @@ function makeMirror(config, storage) {
 
 	for (const oldEvent of eventData) {
 		let newEvent;
+		const eventTime = dayjs(oldEvent.time);
+        const delta = now.diff(eventTime, "day");
+
 		for (const mirrorProp in mirrorProps) {
 			const prop = mirrorProps[mirrorProp];
 			const { daysUnfilled = 7, events = "*", strategy = "create", values = [] } = prop;
@@ -701,9 +704,7 @@ function makeMirror(config, storage) {
 					case "delete":
 						delete newEvent[mirrorProp];
 						break;
-					case "fill":
-						const eventTime = dayjs(oldEvent.time);
-						const delta = now.diff(eventTime, "day");
+					case "fill":						
 						if (delta >= daysUnfilled) oldEvent[mirrorProp] = u.choose(values);						
 						newEvent[mirrorProp] = u.choose(values);
 						break;

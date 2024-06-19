@@ -126,10 +126,11 @@ describe('module', () => {
 });
 
 describe('cli', () => {
+
 	test('no args', async () => {
-		console.log('COMPLEX CLI TEST');
-		const run = execSync(`node ./core/index.js --numEvents 1000 --numUsers 100`, { stdio: 'ignore' });
-		// expect(run.toString().trim().includes('have a wonderful day :)')).toBe(true);
+		console.log('BARE CLI TEST');
+		const run = execSync(`node ./core/index.js --numEvents 1000 --numUsers 100`);
+		expect(run.toString().trim().includes('enjoy your data! :)')).toBe(true);
 		const csvs = (await u.ls('./data')).filter(a => a.includes('.csv'));
 		expect(csvs.length).toBe(2);
 		clearData();
@@ -137,17 +138,16 @@ describe('cli', () => {
 
 	test('--complex', async () => {
 		console.log('COMPLEX CLI TEST');
-		const run = execSync(`node ./core/index.js --numEvents 1000 --numUsers 100 --seed "deal with it" --complex`, { stdio: 'ignore' });
-		// expect(run.toString().trim().includes('have a wonderful day :)')).toBe(true);
+		const run = execSync(`node ./core/index.js --numEvents 1000 --numUsers 100 --seed "deal with it" --complex`, {stdio: "ignore"});
 		const csvs = (await u.ls('./data')).filter(a => a.includes('.csv'));
 		expect(csvs.length).toBe(13);
 		clearData();
 	}, timeout);
 
 	test('--simple', async () => {
-		console.log('simple CLI TEST');
+		console.log('SIMPLE CLI TEST');
 		const run = execSync(`node ./core/index.js --numEvents 1000 --numUsers 100 --seed "deal with it" --simple`);
-		expect(run.toString().trim().includes('have a wonderful day :)')).toBe(true);
+		expect(run.toString().trim().includes('enjoy your data! :)')).toBe(true);
 		const csvs = (await u.ls('./data')).filter(a => a.includes('.csv'));
 		expect(csvs.length).toBe(2);
 		clearData();
