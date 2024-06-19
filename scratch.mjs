@@ -1,3 +1,16 @@
+/*
+----
+TO DOs
+----
+*/
+
+//!feature: fixedTimeFunnel? if set this funnel will occur for all users at the same time ['cards charged', 'charge complete']
+//!feature: churn ... is churnFunnel, possible to return, etc
+//!feature: send SCD data to mixpanel (blocked on dev)
+//!feature: send and map lookup tables to mixpanel (also blocked on dev)
+//!bug: using --mc flag reverts to --complex for some reason
+
+
 import main from "./core/index.js";
 
 import simple from './schemas/simple.js';

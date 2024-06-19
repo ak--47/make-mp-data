@@ -126,7 +126,7 @@ describe('module', () => {
 });
 
 describe('cli', () => {
-	test('works as CLI (no args)', async () => {
+	test('no args', async () => {
 		console.log('COMPLEX CLI TEST');
 		const run = execSync(`node ./core/index.js --numEvents 1000 --numUsers 100`, { stdio: 'ignore' });
 		// expect(run.toString().trim().includes('have a wonderful day :)')).toBe(true);
@@ -135,7 +135,7 @@ describe('cli', () => {
 		clearData();
 	}, timeout);
 
-	test('works as CLI (complex)', async () => {
+	test('--complex', async () => {
 		console.log('COMPLEX CLI TEST');
 		const run = execSync(`node ./core/index.js --numEvents 1000 --numUsers 100 --seed "deal with it" --complex`, { stdio: 'ignore' });
 		// expect(run.toString().trim().includes('have a wonderful day :)')).toBe(true);
@@ -144,7 +144,7 @@ describe('cli', () => {
 		clearData();
 	}, timeout);
 
-	test('works as CLI (simple)', async () => {
+	test('--simple', async () => {
 		console.log('simple CLI TEST');
 		const run = execSync(`node ./core/index.js --numEvents 1000 --numUsers 100 --seed "deal with it" --simple`);
 		expect(run.toString().trim().includes('have a wonderful day :)')).toBe(true);

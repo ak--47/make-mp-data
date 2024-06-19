@@ -7,15 +7,6 @@ ak@mixpanel.com
 */
 
 
-
-//!feature: fixedTimeFunnel? if set this funnel will occur for all users at the same time ['cards charged', 'charge complete']
-//!feature: churn ... is churnFunnel, possible to return, etc
-//!bug: not writing adspend CSV
-//!bug: using --mc flag reverts to --complex for some reason
-
-//todo: send SCD data to mixpanel (blocked on dev)
-//todo: send and map lookup tables to mixpanel (also blocked on dev)
-
 /** @typedef {import('../types').Config} Config */
 /** @typedef {import('../types').EventConfig} EventConfig */
 /** @typedef {import('../types').Funnel} Funnel */
@@ -1113,9 +1104,9 @@ if (require.main === module) {
 			log(`-----------------SUMMARY-----------------`);
 			const d = { success: 0, bytes: 0 };
 			const darr = [d];
-			const { events = d, groups = darr, users = d } = data.importResults;
+			const { events = d, groups = darr, users = d } = data?.importResults || {};
 			const files = data.files;
-			const folder = files?.pop();
+			const folder = files?.[0]?.split(path.basename(files?.[0]))?.shift();
 			const groupBytes = groups.reduce((acc, group) => {
 				return acc + group.bytes;
 			}, 0);
@@ -1141,7 +1132,7 @@ if (require.main === module) {
 			debugger;
 		})
 		.finally(() => {
-			log("have a wonderful day :)");
+			log("enjoy your data! :)");
 			u.openFinder(path.resolve("./data"));
 		});
 } else {
