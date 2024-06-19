@@ -686,6 +686,7 @@ function makeAdSpend(day, campaigns = CAMPAIGNS) {
 
 /**
  * takes event data and creates mirror datasets in a future state
+ * depending on the mirror strategy
  * @param {Config} config
  * @param {Storage} storage
  */
@@ -710,7 +711,6 @@ function makeMirror(config, storage) {
 						delete newEvent[mirrorProp];
 						break;
 					case "fill":
-						//todo timing?
 						const eventTime = dayjs(oldEvent.time);
 						const delta = now.diff(eventTime, "day");
 						if (delta >= daysUnfilled) oldEvent[mirrorProp] = u.choose(values);						
