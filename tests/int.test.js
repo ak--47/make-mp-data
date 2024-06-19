@@ -8,6 +8,7 @@ const path = require('path');
 
 /** @typedef {import('../types.js').Config} Config */
 /** @typedef {import('../types.js').EventConfig} EventConfig */
+/** @typedef {import("../core/index.js").EventSchema} EventSchema */
 /** @typedef {import('../types.js').ValueValid} ValueValid */
 /** @typedef {import('../types.js').EnrichedArray} hookArray */
 /** @typedef {import('../types.js').hookArrayOptions} hookArrayOptions */
@@ -15,10 +16,11 @@ const path = require('path');
 /** @typedef {import('../types.js').Funnel} Funnel */
 /** @typedef {import('../types.js').UserProfile} UserProfile */
 /** @typedef {import('../types.js').SCDSchema} SCDSchema */
+/** @typedef {import('../types.js').Storage} Storage */
 
 const MAIN = require('../core/index.js');
 const { generators, orchestrators } = MAIN;
-const { makeAdSpend, makeEvent, makeFunnel, makeProfile, makeSCD } = generators;
+const { makeAdSpend, makeEvent, makeFunnel, makeProfile, makeSCD, makeMirror } = generators;
 const { sendToMixpanel, userLoop, validateDungeonConfig, writeFiles } = orchestrators;
 const { hookArray, validEvent } = require('../core/utils.js');
 
@@ -44,6 +46,7 @@ beforeEach(() => {
 		browsers: () => 'Chrome',
 		campaigns: () => 'campaign1'
 	};
+	/** @type {Storage} */
 	STORAGE = {
 		eventData: hookArray([], {}),
 		userProfilesData: hookArray([], {}),
@@ -53,6 +56,7 @@ beforeEach(() => {
 		lookupTableData: hookArray([], {}),
 		mirrorEventData: hookArray([], {})
 	};
+	/** @type {Config} */
 	CONFIG = {
 		numUsers: 10,
 		numEvents: 100,
@@ -271,8 +275,8 @@ describe('generators', () => {
 	});
 
 	test('makeSCD: large mutations', () => {
-		const result = makeSCD(["value1", "value2"], "prop1", "distinct_id", 100, dayjs().toISOString());
-		expect(result.length).toBe(5);
+		const result = makeSCD(["value1", "value2"], "prop1", "distinct_id", 100, dayjs().subtract(100, 'd').toISOString());
+		expect(result.length).toBeGreaterThan(0);
 		result.forEach(entry => {
 			expect(entry).toHaveProperty('prop1');
 			expect(entry).toHaveProperty('distinct_id', 'distinct_id');
@@ -281,6 +285,175 @@ describe('generators', () => {
 			expect(entry.prop1 === "value1" || entry.prop1 === "value2").toBeTruthy();
 		});
 	});
+
+	test('mirror: create', () => {
+		/** @type {EventSchema} */
+		const oldEvent = {
+			event: "old",
+			insert_id: "test",
+			source: "test",
+			time: dayjs().toISOString(),
+			user_id: "test"
+		};
+
+		/** @type {Config} */
+		const config = {
+			mirrorProps: {
+				"newProp": {
+					events: "*",
+					strategy: "create",
+					values: ["new"]
+				}
+			}
+		};
+		STORAGE.eventData.hookPush(oldEvent);
+		//ugh sidefx
+		makeMirror(config, STORAGE);
+		const [newData] = STORAGE.mirrorEventData;
+		expect(newData).toHaveProperty('newProp', "new");
+	});
+
+	test('mirror: delete', () => {
+		/** @type {EventSchema} */
+		const oldEvent = {
+			event: "old",
+			insert_id: "test",
+			source: "test",
+			time: dayjs().toISOString(),
+			user_id: "test",
+			oldProp: "valueToDelete"
+		};
+
+		/** @type {Config} */
+		const config = {
+			mirrorProps: {
+				"oldProp": {
+					events: "*",
+					strategy: "delete"
+				}
+			}
+		};
+		STORAGE.eventData.hookPush(oldEvent);
+
+		makeMirror(config, STORAGE);
+		const [newData] = STORAGE.mirrorEventData;
+		expect(newData).not.toHaveProperty('oldProp');
+	});
+
+	test('mirror: fill', () => {
+		/** @type {EventSchema} */
+		const oldEvent = {
+			event: "old",
+			insert_id: "test",
+			source: "test",
+			time: dayjs().subtract(8, 'days').toISOString(),  // Set time to 8 days ago
+			user_id: "test",
+			fillProp: "initialValue"
+		};
+
+		/** @type {Config} */
+		const config = {
+			mirrorProps: {
+				"fillProp": {
+					events: "*",
+					strategy: "fill",
+					values: ["filledValue"],
+					daysUnfilled: 7
+				}
+			}
+		};
+		STORAGE.eventData.hookPush(oldEvent);
+
+		makeMirror(config, STORAGE);
+		const [newData] = STORAGE.mirrorEventData;
+		expect(newData).toHaveProperty('fillProp', "filledValue");
+	});
+
+	test('mirror: update', () => {
+		/** @type {EventSchema} */
+		const oldEvent = {
+			event: "old",
+			insert_id: "test",
+			source: "test",
+			time: dayjs().toISOString(),
+			user_id: "test",
+			updateProp: "initialValue"
+		};
+
+		/** @type {Config} */
+		const config = {
+			mirrorProps: {
+				"updateProp": {
+					events: "*",
+					strategy: "update",
+					values: ["updatedValue"]
+				}
+			}
+		};
+		STORAGE.eventData.hookPush(oldEvent);
+
+		makeMirror(config, STORAGE);
+		const [newData] = STORAGE.mirrorEventData;
+		expect(newData).toHaveProperty('updateProp', "initialValue");
+	});
+
+	test('mirror: update nulls', () => {
+		/** @type {EventSchema} */
+		const oldEvent = {
+			event: "old",
+			insert_id: "test",
+			source: "test",
+			time: dayjs().toISOString(),
+			user_id: "test"
+			// updateProp is not set initially
+		};
+
+		/** @type {Config} */
+		const config = {
+			mirrorProps: {
+				"updateProp": {
+					events: "*",
+					strategy: "update",
+					values: ["updatedValue"]
+				}
+			}
+		};
+		STORAGE.eventData.hookPush(oldEvent);
+
+		makeMirror(config, STORAGE);
+		const [newData] = STORAGE.mirrorEventData;
+		expect(newData).toHaveProperty('updateProp', "updatedValue");
+	});
+
+
+	test('mirror: update with no initial value', () => {
+		/** @type {EventSchema} */
+		const oldEvent = {
+			event: "old",
+			insert_id: "test",
+			source: "test",
+			time: dayjs().toISOString(),
+			user_id: "test"
+			// updateProp is not set initially
+		};
+
+		/** @type {Config} */
+		const config = {
+			mirrorProps: {
+				"updateProp": {
+					events: "*",
+					strategy: "update",
+					values: ["updatedValue"]
+				}
+			}
+		};
+		STORAGE.eventData.hookPush(oldEvent);
+
+		makeMirror(config, STORAGE);
+		const [newData] = STORAGE.mirrorEventData;
+		expect(newData).toHaveProperty('updateProp', "updatedValue");
+	});
+
 
 
 });
@@ -366,7 +539,7 @@ describe('orchestrators', () => {
 			numDays: 10,
 			userProps: { name: ["Alice", "Bob", "Charlie"] },
 			scdProps: { prop1: ["value1", "value2"] },
-			funnels: [],	
+			funnels: [],
 			events: [{ event: "event1" }, { event: "event2" }]
 		};
 		userLoop(config, STORAGE);

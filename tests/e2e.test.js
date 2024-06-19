@@ -13,9 +13,11 @@ const complex = require('../schemas/complex.js');
 const anon = require('../schemas/anon.js');
 const funnels = require('../schemas/funnels.js');
 const foobar = require('../schemas/foobar.js');
+const mirror = require('../schemas/mirror.js');
+const adspend = require('../schemas/adspend.js');
 
 const timeout = 60000;
-const testToken = process.env.TEST_TOKEN;
+const testToken = process.env.TEST_TOKEN || "hello token!";
 
 describe('module', () => {
 
@@ -56,6 +58,53 @@ describe('module', () => {
 
 	}, timeout);
 
+	test('works as module (funnels)', async () => {
+		console.log('MODULE TEST: FUNNELS');
+		const results = await generate({ ...funnels, verbose: true, writeToDisk: false, numEvents: 1100, numUsers: 100, seed: "deal with it" });
+		const { eventData, groupProfilesData, scdTableData, userProfilesData } = results;
+		expect(eventData.length).toBeGreaterThan(980);
+		expect(groupProfilesData.length).toBe(3);
+		expect(groupProfilesData[0]?.data?.length).toBe(5000);
+		expect(groupProfilesData[1]?.data?.length).toBe(500);
+		expect(groupProfilesData[2]?.data?.length).toBe(50);
+		expect(scdTableData.length).toBe(2);
+		expect(scdTableData[0]?.length).toBeGreaterThan(200);
+		expect(scdTableData[1]?.length).toBeGreaterThan(200);
+		expect(userProfilesData.length).toBe(100);
+
+	}, timeout);
+
+	test('works as module (mirror)', async () => {
+		console.log('MODULE TEST: MIRROR');
+		const results = await generate({ ...mirror, verbose: true, writeToDisk: false, numEvents: 1100, numUsers: 100, seed: "deal with it" });
+		const { eventData, userProfilesData, mirrorEventData } = results;
+		expect(eventData.length).toBeGreaterThan(980);
+		expect(mirrorEventData.length).toBeGreaterThan(980);
+		expect(mirrorEventData.every(e => e.newlyCreated)).toBe(true);
+		expect(eventData.every(e => e.newlyCreated)).toBe(false);
+		expect(userProfilesData.length).toBe(100);
+
+	}, timeout);
+
+	test('works as module (foobar)', async () => {
+		console.log('MODULE TEST: FOOBAR');
+		const results = await generate({ ...foobar, verbose: true, writeToDisk: false, numEvents: 1100, numUsers: 100, seed: "deal with it" });
+		const { eventData, userProfilesData } = results;
+		expect(eventData.length).toBeGreaterThan(980);
+		expect(userProfilesData.length).toBe(100);
+
+	}, timeout);
+
+	test('works as module (adspend)', async () => {
+		console.log('MODULE TEST: ADSPEND');
+		const results = await generate({ ...adspend, verbose: true, writeToDisk: false, numEvents: 1100, numUsers: 100, seed: "deal with it" });
+		const { eventData, adSpendData, userProfilesData } = results;
+		expect(eventData.length).toBeGreaterThan(980);
+		expect(userProfilesData.length).toBe(100);
+		expect(adSpendData.length).toBe(14600);
+
+	}, timeout);
+
 
 	test('fails with invalid configuration', async () => {
 		try {
@@ -77,28 +126,28 @@ describe('module', () => {
 });
 
 describe('cli', () => {
-	test('works as CLI (no args)', async () => {
-		console.log('COMPLEX CLI TEST');
-		const run = execSync(`node ./core/index.js --numEvents 1000 --numUsers 100`, { stdio: 'ignore' });
-		// expect(run.toString().trim().includes('have a wonderful day :)')).toBe(true);
+
+	test('no args', async () => {
+		console.log('BARE CLI TEST');
+		const run = execSync(`node ./core/index.js --numEvents 1000 --numUsers 100`);
+		expect(run.toString().trim().includes('enjoy your data! :)')).toBe(true);
 		const csvs = (await u.ls('./data')).filter(a => a.includes('.csv'));
 		expect(csvs.length).toBe(2);
 		clearData();
 	}, timeout);
 
-	test('works as CLI (complex)', async () => {
+	test('--complex', async () => {
 		console.log('COMPLEX CLI TEST');
-		const run = execSync(`node ./core/index.js --numEvents 1000 --numUsers 100 --seed "deal with it" --complex`, { stdio: 'ignore' });
-		// expect(run.toString().trim().includes('have a wonderful day :)')).toBe(true);
+		const run = execSync(`node ./core/index.js --numEvents 1000 --numUsers 100 --seed "deal with it" --complex`, {stdio: "ignore"});
 		const csvs = (await u.ls('./data')).filter(a => a.includes('.csv'));
 		expect(csvs.length).toBe(13);
 		clearData();
 	}, timeout);
 
-	test('works as CLI (simple)', async () => {
-		console.log('simple CLI TEST');
+	test('--simple', async () => {
+		console.log('SIMPLE CLI TEST');
 		const run = execSync(`node ./core/index.js --numEvents 1000 --numUsers 100 --seed "deal with it" --simple`);
-		expect(run.toString().trim().includes('have a wonderful day :)')).toBe(true);
+		expect(run.toString().trim().includes('enjoy your data! :)')).toBe(true);
 		const csvs = (await u.ls('./data')).filter(a => a.includes('.csv'));
 		expect(csvs.length).toBe(2);
 		clearData();
@@ -164,7 +213,7 @@ describe('options + tweaks', () => {
 
 	test('every date is valid', async () => {
 		console.log('DATE TEST');
-		const results = await generate({ ...simple, writeToDisk: false, verbose: true,  numEvents: 10000, numUsers: 500 });
+		const results = await generate({ ...simple, writeToDisk: false, verbose: true, numEvents: 10000, numUsers: 500 });
 		const { eventData } = results;
 		const invalidDates = eventData.filter(e => !validTime(e.time));
 		expect(eventData.every(e => validTime(e.time))).toBe(true);

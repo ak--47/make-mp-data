@@ -7,15 +7,6 @@ ak@mixpanel.com
 */
 
 
-//!feature: mirror strategies
-//!feature: fixedTimeFunnel? if set this funnel will occur for all users at the same time ['cards charged', 'charge complete']
-//!feature: churn ... is churnFunnel, possible to return, etc
-//!bug: not writing adspend CSV
-//!bug: using --mc flag reverts to --complex for some reason
-
-//todo: send SCD data to mixpanel (blocked on dev)
-//todo: send and map lookup tables to mixpanel (also blocked on dev)
-
 /** @typedef {import('../types').Config} Config */
 /** @typedef {import('../types').EventConfig} EventConfig */
 /** @typedef {import('../types').Funnel} Funnel */
@@ -72,7 +63,7 @@ function track(name, props, ...rest) {
  * @param  {Config} config
  */
 async function main(config) {
-	//seeding
+	//SEEDS
 	const seedWord = process.env.SEED || config.seed || "hello friend!";
 	config.seed = seedWord;
 	const chance = u.initChance(seedWord);
@@ -80,7 +71,7 @@ async function main(config) {
 	// ^ this is critical; same seed = same data; seed can be passed in as an env var or in the config
 	validateDungeonConfig(config); // ! this is going to mutate the config to make sure we have everything we need
 
-	//globals
+	//GLOBALS
 	CONFIG = config;
 	VERBOSE = config.verbose;
 	CAMPAIGNS = campaigns;
@@ -95,14 +86,14 @@ async function main(config) {
 	};
 
 
-	//tracking
+	//TRACKING
 	const runId = uid(42);
-	const { events, superProps, userProps, scdProps, groupKeys, groupProps, lookupTables, soup, hook, ...trackingParams } = config;
+	const { events, superProps, userProps, scdProps, groupKeys, groupProps, lookupTables, soup, hook, mirrorProps, ...trackingParams } = config;
 	let { funnels } = config;
 	trackingParams.runId = runId;
 	trackingParams.version = version;
 
-	//storage
+	//STORAGE
 	const eventData = u.hookArray([], { hook, type: "event", config });
 	const userProfilesData = u.hookArray([], { hook, type: "user", config });
 	const adSpendData = u.hookArray([], { hook, type: "ad-spend", config });
@@ -113,7 +104,9 @@ async function main(config) {
 	}
 	const groupProfilesData = u.hookArray([], { hook, type: "group", config });
 	const lookupTableData = u.hookArray([], { hook, type: "lookup", config });
-	STORAGE = { eventData, userProfilesData, scdTableData, groupProfilesData, lookupTableData };
+	const mirrorEventData = u.hookArray([], { hook, type: "mirror", config });
+
+	STORAGE = { eventData, userProfilesData, scdTableData, groupProfilesData, lookupTableData, mirrorEventData, adSpendData };
 
 
 	track('start simulation', trackingParams);
@@ -123,21 +116,20 @@ async function main(config) {
 	log(`and your configuration is:\n\n`, JSON.stringify(trackingParams, null, 2));
 	log(`------------------SETUP------------------`, "\n");
 
-	//setup all the data structures we will push into
 
-	// if no funnels, make some out of events...
+	// FUNNEL INFERENCE
 	if (!funnels || !funnels.length) {
 		funnels = u.inferFunnels(events);
 		config.funnels = funnels;
 		CONFIG = config;
 	}
 
-	//user loop
+	//USERS
 	log(`---------------SIMULATION----------------`, "\n\n");
 	userLoop(config, STORAGE);
 	const { hasAdSpend, epochStart, epochEnd } = config;
 
-	// ad spend loop
+	// AD SPEND
 	if (hasAdSpend) {
 		const days = u.datesBetween(epochStart, epochEnd);
 		for (const day of days) {
@@ -149,12 +141,12 @@ async function main(config) {
 
 	}
 
-	//cleanup
+	//CLEAN UP
 	scdTableData.forEach((table, index) => scdTableData[index] = table.flat());
 
 	log("\n");
 
-	//group profiles
+	//GROUP PROFILES
 	for (const groupPair of groupKeys) {
 		const groupKey = groupPair[0];
 		const groupCardinality = groupPair[1];
@@ -172,7 +164,7 @@ async function main(config) {
 	}
 	log("\n");
 
-	//lookup tables
+	//LOOKUP TABLES
 	for (const lookupTable of lookupTables) {
 		const { key, entries, attributes } = lookupTable;
 		const data = [];
@@ -205,20 +197,10 @@ async function main(config) {
 		}
 	});
 
-	// mirror props
-	const { mirrorProps } = config;
-	let mirrorEventData;
-	const mirrorPropKeys = Object.keys(mirrorProps);
-	if (mirrorPropKeys.length) {
-		mirrorEventData = clone(eventData);
-		for (const row of mirrorEventData) {
-			for (const key of mirrorPropKeys) {
-				if (mirrorProps[key]?.events?.includes(row?.event)) row[key] = hook(u.choose(mirrorProps[key]?.values), "mirror", { config, row, key });
-				if (mirrorProps[key]?.events === "*") row[key] = hook(u.choose(mirrorProps[key]?.values), "mirror", { config, row, key });
-			}
-		}
-		STORAGE.mirrorEventData = mirrorEventData;
-	}
+	// MIRROR
+	if (Object.keys(mirrorProps)) makeMirror(config, STORAGE);
+
+
 	log("\n");
 	log(`---------------SIMULATION----------------`, "\n");
 
@@ -693,6 +675,60 @@ function makeAdSpend(day, campaigns = CAMPAIGNS) {
 	return adSpendEvents;
 }
 
+/**
+ * takes event data and creates mirror datasets in a future state
+ * depending on the mirror strategy
+ * @param {Config} config
+ * @param {Storage} storage
+ */
+function makeMirror(config, storage) {
+	const { mirrorProps } = config;
+	const { eventData, mirrorEventData } = storage;
+	const now = dayjs();
+
+	for (const oldEvent of eventData) {
+		let newEvent;
+		const eventTime = dayjs(oldEvent.time);
+        const delta = now.diff(eventTime, "day");
+
+		for (const mirrorProp in mirrorProps) {
+			const prop = mirrorProps[mirrorProp];
+			const { daysUnfilled = 7, events = "*", strategy = "create", values = [] } = prop;
+			if (events === "*" || events.includes(oldEvent.event)) {
+				if (!newEvent) newEvent = clone(oldEvent);
+
+				switch (strategy) {
+					case "create":
+						newEvent[mirrorProp] = u.choose(values);
+						break;
+					case "delete":
+						delete newEvent[mirrorProp];
+						break;
+					case "fill":						
+						if (delta >= daysUnfilled) oldEvent[mirrorProp] = u.choose(values);						
+						newEvent[mirrorProp] = u.choose(values);
+						break;
+					case "update":
+						if (!oldEvent[mirrorProp]) {
+							newEvent[mirrorProp] = u.choose(values);
+						}
+						else {
+							newEvent[mirrorProp] = oldEvent[mirrorProp];
+						}
+						break;
+					default:
+						throw new Error(`strategy ${strategy} is unknown`);
+				}
+
+
+			}
+		}
+
+		const mirrorDataPoint = newEvent ? newEvent : oldEvent;
+		mirrorEventData.hookPush(mirrorDataPoint);
+
+	}
+}
 
 
 /*
@@ -766,7 +802,7 @@ function userLoop(config, storage) {
 		const firstFunnels = funnels.filter((f) => f.isFirstFunnel).reduce(u.weighFunnels, []);
 		const usageFunnels = funnels.filter((f) => !f.isFirstFunnel).reduce(u.weighFunnels, []);
 		const userIsBornInDataset = chance.bool({ likelihood: 30 });
-		
+
 		if (firstFunnels.length && userIsBornInDataset) {
 			/** @type {Funnel} */
 			const firstFunnel = chance.pickone(firstFunnels, user);
@@ -791,7 +827,7 @@ function userLoop(config, storage) {
 			if (usageFunnels.length) {
 				/** @type {Funnel} */
 				const currentFunnel = chance.pickone(usageFunnels);
-				const [data, userConverted] = makeFunnel(currentFunnel, user, userFirstEventTime, profile, userSCD,  config);
+				const [data, userConverted] = makeFunnel(currentFunnel, user, userFirstEventTime, profile, userSCD, config);
 				numEventsPreformed += data.length;
 				eventData.hookPush(data);
 			}
@@ -1069,9 +1105,9 @@ if (require.main === module) {
 			log(`-----------------SUMMARY-----------------`);
 			const d = { success: 0, bytes: 0 };
 			const darr = [d];
-			const { events = d, groups = darr, users = d } = data.importResults;
+			const { events = d, groups = darr, users = d } = data?.importResults || {};
 			const files = data.files;
-			const folder = files?.pop();
+			const folder = files?.[0]?.split(path.basename(files?.[0]))?.shift();
 			const groupBytes = groups.reduce((acc, group) => {
 				return acc + group.bytes;
 			}, 0);
@@ -1097,11 +1133,11 @@ if (require.main === module) {
 			debugger;
 		})
 		.finally(() => {
-			log("have a wonderful day :)");
+			log("enjoy your data! :)");
 			u.openFinder(path.resolve("./data"));
 		});
 } else {
-	main.generators = { makeEvent, makeFunnel, makeProfile, makeSCD, makeAdSpend };
+	main.generators = { makeEvent, makeFunnel, makeProfile, makeSCD, makeAdSpend, makeMirror };
 	main.orchestrators = { userLoop, validateDungeonConfig, writeFiles, sendToMixpanel };
 	module.exports = main;
 }
