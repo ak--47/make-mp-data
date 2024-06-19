@@ -7,7 +7,7 @@ ak@mixpanel.com
 */
 
 
-//!feature: mirror strategies
+
 //!feature: fixedTimeFunnel? if set this funnel will occur for all users at the same time ['cards charged', 'charge complete']
 //!feature: churn ... is churnFunnel, possible to return, etc
 //!bug: not writing adspend CSV
@@ -115,7 +115,7 @@ async function main(config) {
 	const lookupTableData = u.hookArray([], { hook, type: "lookup", config });
 	const mirrorEventData = u.hookArray([], { hook, type: "mirror", config });
 
-	STORAGE = { eventData, userProfilesData, scdTableData, groupProfilesData, lookupTableData, mirrorEventData };
+	STORAGE = { eventData, userProfilesData, scdTableData, groupProfilesData, lookupTableData, mirrorEventData, adSpendData };
 
 
 	track('start simulation', trackingParams);

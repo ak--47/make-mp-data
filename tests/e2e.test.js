@@ -14,6 +14,7 @@ const anon = require('../schemas/anon.js');
 const funnels = require('../schemas/funnels.js');
 const foobar = require('../schemas/foobar.js');
 const mirror = require('../schemas/mirror.js');
+const adspend = require('../schemas/adspend.js');
 
 const timeout = 60000;
 const testToken = process.env.TEST_TOKEN || "hello token!";
@@ -60,7 +61,7 @@ describe('module', () => {
 	test('works as module (funnels)', async () => {
 		console.log('MODULE TEST: FUNNELS');
 		const results = await generate({ ...funnels, verbose: true, writeToDisk: false, numEvents: 1100, numUsers: 100, seed: "deal with it" });
-		const { eventData, groupProfilesData, lookupTableData, scdTableData, userProfilesData } = results;
+		const { eventData, groupProfilesData, scdTableData, userProfilesData } = results;
 		expect(eventData.length).toBeGreaterThan(980);
 		expect(groupProfilesData.length).toBe(3);
 		expect(groupProfilesData[0]?.data?.length).toBe(5000);
@@ -79,18 +80,28 @@ describe('module', () => {
 		const { eventData, userProfilesData, mirrorEventData } = results;
 		expect(eventData.length).toBeGreaterThan(980);
 		expect(mirrorEventData.length).toBeGreaterThan(980);
-		expect(mirrorEventData.every(e => e.newlyCreated)).toBe(true);		
-		expect(eventData.every(e => e.newlyCreated)).toBe(false);		
+		expect(mirrorEventData.every(e => e.newlyCreated)).toBe(true);
+		expect(eventData.every(e => e.newlyCreated)).toBe(false);
 		expect(userProfilesData.length).toBe(100);
 
 	}, timeout);
-	
+
 	test('works as module (foobar)', async () => {
 		console.log('MODULE TEST: FOOBAR');
 		const results = await generate({ ...foobar, verbose: true, writeToDisk: false, numEvents: 1100, numUsers: 100, seed: "deal with it" });
-		const { eventData, groupProfilesData, lookupTableData, scdTableData, userProfilesData } = results;
-		expect(eventData.length).toBeGreaterThan(980);		
+		const { eventData, userProfilesData } = results;
+		expect(eventData.length).toBeGreaterThan(980);
 		expect(userProfilesData.length).toBe(100);
+
+	}, timeout);
+
+	test('works as module (adspend)', async () => {
+		console.log('MODULE TEST: ADSPEND');
+		const results = await generate({ ...adspend, verbose: true, writeToDisk: false, numEvents: 1100, numUsers: 100, seed: "deal with it" });
+		const { eventData, adSpendData, userProfilesData } = results;
+		expect(eventData.length).toBeGreaterThan(980);
+		expect(userProfilesData.length).toBe(100);
+		expect(adSpendData.length).toBe(14600);
 
 	}, timeout);
 
@@ -202,7 +213,7 @@ describe('options + tweaks', () => {
 
 	test('every date is valid', async () => {
 		console.log('DATE TEST');
-		const results = await generate({ ...simple, writeToDisk: false, verbose: true,  numEvents: 10000, numUsers: 500 });
+		const results = await generate({ ...simple, writeToDisk: false, verbose: true, numEvents: 10000, numUsers: 500 });
 		const { eventData } = results;
 		const invalidDates = eventData.filter(e => !validTime(e.time));
 		expect(eventData.every(e => validTime(e.time))).toBe(true);

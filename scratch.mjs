@@ -4,6 +4,7 @@ import simple from './schemas/simple.js';
 import funnels from './schemas/funnels.js';
 import foobar from './schemas/foobar.js';
 import complex from './schemas/complex.js';
+import adspend from './schemas/adspend.js'
 
 import anon from './schemas/anon.js';
 import execSync from 'child_process';
@@ -13,10 +14,11 @@ const numEvents = 1000;
 
 /** @type {main.Config} */
 const spec = {
-	...mirror,
-	writeToDisk: false,
+	...adspend,
+	writeToDisk: true,
 	verbose: true,
 	makeChart: false,	
+	format: "csv",
 	numEvents,
 	numUsers: numEvents / 100,
 	
@@ -24,7 +26,8 @@ const spec = {
 
 
 execSync.execSync('npm run prune');
-const { eventData,
+const { 
+	eventData,
 	groupProfilesData,
 	lookupTableData,
 	mirrorEventData,
