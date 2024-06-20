@@ -23,10 +23,14 @@ declare namespace main {
     numUsers?: number;
     format?: "csv" | "json" | string;
     region?: "US" | "EU";
+
+	// ids
     simulationName?: string;
+	name?: string;
 
     //switches
     isAnonymous?: boolean;
+	hasAvatar?: boolean;
     hasLocation?: boolean;
     hasCampaigns?: boolean;
     hasAdSpend?: boolean;

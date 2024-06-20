@@ -748,7 +748,7 @@ ORCHESTRATORS
  */
 async function userLoop(config, storage) {
 	const chance = u.getChance();
-	const { numUsers, numDays, numEvents, isAnonymous, hasAnonIds, hasSessionIds, hasLocation, funnels, userProps, scdProps } = config;
+	const { numUsers, numDays, numEvents, isAnonymous, hasAvatar, hasAnonIds, hasSessionIds, hasLocation, funnels, userProps, scdProps } = config;
 	const { eventData, userProfilesData, scdTableData } = storage;
 	const avgEvPerUser = numEvents / numUsers;
 
@@ -758,7 +758,7 @@ async function userLoop(config, storage) {
 		userPromises.push(new Promise((resolve) => {
 			u.progress([["users", i], ["events", eventData.length]]);
 			const userId = chance.guid();
-			const user = u.person(userId, numDays, isAnonymous, hasAnonIds, hasSessionIds);
+			const user = u.person(userId, numDays, isAnonymous, hasAvatar, hasAnonIds, hasSessionIds);
 			const { distinct_id, created } = user;
 			let numEventsPreformed = 0;
 
@@ -1008,21 +1008,29 @@ function validateDungeonConfig(config) {
 		hasAdSpend = false,
 		hasCampaigns = false,
 		hasLocation = false,
+		hasAvatar = false,
 		isAnonymous = false,
 		hasBrowser = false,
 		hasAndroidDevices = false,
 		hasDesktopDevices = false,
-		hasIOSDevices = false
+		hasIOSDevices = false,
+		name = "",
 	} = config;
 
+	//ensuring default for deep objects
 	if (!config.superProps) config.superProps = superProps;
 	if (!config.userProps || Object.keys(config?.userProps)) config.userProps = userProps;
 
-	config.simulationName = makeName();
+	//setting up "TIME"
 	if (epochStart && !numDays) numDays = dayjs.unix(epochEnd).diff(dayjs.unix(epochStart), "day");
 	if (!epochStart && numDays) epochStart = dayjs.unix(epochEnd).subtract(numDays, "day").unix();
 	if (epochStart && numDays) { } //noop
 	if (!epochStart && !numDays) debugger; //never happens	
+
+	config.simulationName = name || makeName();
+	config.name = config.simulationName;
+
+	
 	config.seed = seed;
 	config.numEvents = numEvents;
 	config.numUsers = numUsers;
@@ -1051,6 +1059,7 @@ function validateDungeonConfig(config) {
 	config.hasAdSpend = hasAdSpend;
 	config.hasCampaigns = hasCampaigns;
 	config.hasLocation = hasLocation;
+	config.hasAvatar = hasAvatar;
 	config.isAnonymous = isAnonymous;
 	config.hasBrowser = hasBrowser;
 	config.hasAndroidDevices = hasAndroidDevices;

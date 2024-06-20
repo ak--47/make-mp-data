@@ -851,11 +851,12 @@ function TimeSoup(earliestTime, latestTime, peaks = 5, deviation = 2, mean = 0) 
  * @param {string} userId
  * @param  {number} bornDaysAgo=30
  * @param {boolean} isAnonymous
+ * @param {boolean} hasAvatar
  * @param {boolean} hasAnonIds
  * @param {boolean} hasSessionIds
  * @return {Person}
  */
-function person(userId, bornDaysAgo = 30, isAnonymous = false, hasAnonIds = false, hasSessionIds = false) {
+function person(userId, bornDaysAgo = 30, isAnonymous = false, hasAvatar = false, hasAnonIds = false, hasSessionIds = false) {
 	const chance = getChance();
 	//names and photos
 	const l = chance.letter.bind(chance);
@@ -889,8 +890,9 @@ function person(userId, bornDaysAgo = 30, isAnonymous = false, hasAnonIds = fals
 		user.name = "Anonymous User";
 		user.email = l() + l() + `*`.repeat(integer(3, 6)) + l() + `@` + l() + `*`.repeat(integer(3, 6)) + l() + `.` + choose(domainSuffix);
 		delete user.avatar;
-
 	}
+
+	if (!hasAvatar) delete user.avatar;
 
 	//anon Ids
 	if (hasAnonIds) {

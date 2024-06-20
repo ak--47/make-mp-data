@@ -60,6 +60,7 @@ const {
 } = require('../core/utils.js');
 
 const main = require('../core/index.js');
+//todo: test for funnel inference
 const { hookArray, inferFunnels } = main.meta;
 
 

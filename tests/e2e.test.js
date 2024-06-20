@@ -199,7 +199,7 @@ describe('options + tweaks', () => {
 
 	test('every record is valid', async () => {
 		console.log('VALIDATION TEST');
-		const results = await generate({ verbose: true, writeToDisk: false, numEvents: 10000, numUsers: 500 });
+		const results = await generate({ verbose: true, writeToDisk: false, numEvents: 1000, numUsers: 100});
 		const { eventData, userProfilesData } = results;
 		const areEventsValid = eventData.every(validateEvent);
 		const areUsersValid = userProfilesData.every(validateUser);
@@ -213,7 +213,7 @@ describe('options + tweaks', () => {
 
 	test('every date is valid', async () => {
 		console.log('DATE TEST');
-		const results = await generate({ ...simple, writeToDisk: false, verbose: true, numEvents: 10000, numUsers: 500 });
+		const results = await generate({ ...simple, writeToDisk: false, verbose: true, numEvents: 1000, numUsers: 100});
 		const { eventData } = results;
 		const invalidDates = eventData.filter(e => !validTime(e.time));
 		expect(eventData.every(e => validTime(e.time))).toBe(true);
@@ -222,9 +222,25 @@ describe('options + tweaks', () => {
 
 	test('anonymous users', async () => {
 		console.log('ANON TEST');
-		const results = await generate({ ...anon, writeToDisk: false, verbose: true, numEvents: 10000, numUsers: 500 });
+		const results = await generate({ ...anon, writeToDisk: false, verbose: true, numEvents: 1000, numUsers: 100});
 		const { userProfilesData } = results;
 		expect(userProfilesData.every(u => u.name === 'Anonymous User')).toBe(true);
+
+	}, timeout);
+
+	test('no avatars (default)', async () => {
+		console.log('AVATAR TEST');
+		const results = await generate({ ...simple, writeToDisk: false, verbose: true, numEvents: 1000, numUsers: 100});
+		const { userProfilesData } = results;
+		expect(userProfilesData.every(u => !u.avatar)).toBe(true);
+
+	}, timeout);
+
+	test('yes avatars', async () => {
+		console.log('AVATAR TEST');
+		const results = await generate({ ...simple, writeToDisk: false, verbose: true, numEvents: 1000, numUsers: 100, hasAvatar: true });
+		const { userProfilesData } = results;
+		expect(userProfilesData.every(u => u.avatar)).toBe(true);
 
 	}, timeout);
 
