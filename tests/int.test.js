@@ -19,10 +19,11 @@ const path = require('path');
 /** @typedef {import('../types.js').Storage} Storage */
 
 const MAIN = require('../core/index.js');
-const { generators, orchestrators } = MAIN;
+const { generators, orchestrators, meta } = MAIN;
 const { makeAdSpend, makeEvent, makeFunnel, makeProfile, makeSCD, makeMirror } = generators;
 const { sendToMixpanel, userLoop, validateDungeonConfig, writeFiles } = orchestrators;
-const { hookArray, validEvent } = require('../core/utils.js');
+const {hookArray, inferFunnels} = meta
+const { validEvent } = require('../core/utils.js');
 
 
 // Mock the global variables

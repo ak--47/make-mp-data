@@ -311,52 +311,6 @@ function range(a, b, step = 1) {
 };
 
 
-/**
- * create funnels out of random events
- * @param {EventConfig[]} events
- */
-function inferFunnels(events) {
-	const createdFunnels = [];
-	const firstEvents = events.filter((e) => e.isFirstEvent).map((e) => e.event);
-	const usageEvents = events.filter((e) => !e.isFirstEvent).map((e) => e.event);
-	const numFunnelsToCreate = Math.ceil(usageEvents.length);
-	/** @type {Funnel} */
-	const funnelTemplate = {
-		sequence: [],
-		conversionRate: 50,
-		order: 'sequential',
-		requireRepeats: false,
-		props: {},
-		timeToConvert: 1,
-		isFirstFunnel: false,
-		weight: 1
-	};
-	if (firstEvents.length) {
-		for (const event of firstEvents) {
-			createdFunnels.push({ ...clone(funnelTemplate), sequence: [event], isFirstFunnel: true, conversionRate: 100 });
-		}
-	}
-
-	//at least one funnel with all usage events
-	createdFunnels.push({ ...clone(funnelTemplate), sequence: usageEvents });
-
-	//for the rest, make random funnels
-	followUpFunnels: for (let i = 1; i < numFunnelsToCreate; i++) {
-		/** @type {Funnel} */
-		const funnel = { ...clone(funnelTemplate) };
-		funnel.conversionRate = integer(25, 75);
-		funnel.timeToConvert = integer(1, 10);
-		funnel.weight = integer(1, 10);
-		const sequence = shuffleArray(usageEvents).slice(0, integer(2, usageEvents.length));
-		funnel.sequence = sequence;
-		funnel.order = 'random';
-		createdFunnels.push(funnel);
-	}
-
-	return createdFunnels;
-
-}
-
 
 /*
 ----
@@ -708,68 +662,7 @@ META
 ----
 */
 
-/** 
- * our meta programming function which lets you mutate items as they are pushed into an array
- * @param  {any[]} arr
- * @param  {hookArrayOptions} opts
- * @returns {hookArray}}
- */
-function hookArray(arr = [], opts = {}) {
-	const { hook = a => a, type = "", ...rest } = opts;
 
-	function transformThenPush(item) {
-		if (item === null) return false;
-		if (item === undefined) return false;
-		if (typeof item === 'object') {
-			if (Object.keys(item).length === 0) return false;
-		}
-
-		//hook is passed an array 
-		if (Array.isArray(item)) {
-			for (const i of item) {
-				try {
-					const enriched = hook(i, type, rest);
-					if (Array.isArray(enriched)) enriched.forEach(e => arr.push(e));
-					else arr.push(enriched);
-
-				}
-				catch (e) {
-					console.error(`\n\nyour hook had an error\n\n`, e);
-					arr.push(i);
-					return false;
-				}
-
-			}
-			return true;
-		}
-
-		//hook is passed a single item
-		else {
-			try {
-				const enriched = hook(item, type, rest);
-				if (Array.isArray(enriched)) enriched.forEach(e => arr.push(e));
-				else arr.push(enriched);
-				return true;
-			}
-			catch (e) {
-				console.error(`\n\nyour hook had an error\n\n`, e);
-				arr.push(item);
-				return false;
-			}
-		}
-
-	}
-
-	/** @type {hookArray} */
-	// @ts-ignore
-	const enrichedArray = arr;
-
-
-	enrichedArray.hookPush = transformThenPush;
-
-
-	return enrichedArray;
-};
 
 /**
  * @param  {Config} config
@@ -1117,12 +1010,10 @@ module.exports = {
 	shuffleOutside,
 	interruptArray,
 	generateUser,
-	hookArray,
 	optimizedBoxMuller,
 	buildFileNames,
 	streamJSON,
-	streamCSV,
-	inferFunnels,
+	streamCSV,	
 	datesBetween,
 	weighChoices
 };

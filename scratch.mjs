@@ -22,18 +22,19 @@ import adspend from './schemas/adspend.js'
 import anon from './schemas/anon.js';
 import execSync from 'child_process';
 import mirror from './schemas/mirror.js'
+import mds from './dungeons/modern-data-stack.js'
 
 const numEvents = 1000;
 
 /** @type {main.Config} */
 const spec = {
-	...adspend,
-	writeToDisk: true,
+	...mds,
+	writeToDisk: false,
 	verbose: true,
-	makeChart: false,	
-	format: "csv",
-	numEvents,
-	numUsers: numEvents / 100,
+	makeChart: false,
+	// format: "csv",
+	// numEvents,
+	// numUsers: numEvents / 100,
 	
 };
 
@@ -50,4 +51,6 @@ const {
 	files,
 	adSpendData
 } = await main(spec);
+
+
 debugger;

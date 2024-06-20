@@ -32,7 +32,7 @@ const {
 	range,
 	pickAWinner,
 	weighNumRange,
-	hookArray,
+
 	fixFirstAndLast,
 	generateUser,
 	openFinder,
@@ -54,10 +54,13 @@ const {
 	validTime,
 	interruptArray,
 	optimizedBoxMuller,
-	inferFunnels,
+
 	datesBetween,
 	weighChoices
 } = require('../core/utils.js');
+
+const main = require('../core/index.js');
+const { hookArray, inferFunnels } = main.meta;
 
 
 describe('timesoup', () => {
@@ -301,7 +304,7 @@ describe('generation', () => {
 		const user = person('uuid-123', numDays, true);
 		expect(user).toHaveProperty('distinct_id');
 		expect(user).toHaveProperty('name');
-		expect(user.name).toBe('Anonymous User')
+		expect(user.name).toBe('Anonymous User');
 		expect(user).toHaveProperty('email');
 		expect(user.email.includes('*')).toBeTruthy();
 		expect(user).not.toHaveProperty('avatar');
@@ -664,7 +667,7 @@ describe('utilities', () => {
 	});
 
 	test('range: works', () => {
-		const result = range(1,5);
+		const result = range(1, 5);
 		expect(result).toEqual([1, 2, 3, 4, 5]);
 	});
 

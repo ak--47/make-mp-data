@@ -41,7 +41,7 @@ declare namespace main {
     makeChart?: boolean | string;
 
     //models
-    events?: EventConfig[]; //can also be a array of strings
+    events?: EventConfig[] | string[]; //can also be a array of strings
     superProps?: Record<string, ValueValid>;
     funnels?: Funnel[];
     userProps?: Record<string, ValueValid>;
