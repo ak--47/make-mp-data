@@ -301,6 +301,12 @@ declare namespace main {
     lookupTableData: LookupTableData[];
     importResults?: ImportResults;
     files?: string[];
+	time?: {
+		start: number;
+		end: number;
+		delta: number;
+		human: string;
+	}
   };
 }
 

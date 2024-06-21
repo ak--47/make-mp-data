@@ -22,7 +22,7 @@ import adspend from './schemas/adspend.js'
 import anon from './schemas/anon.js';
 import execSync from 'child_process';
 import mirror from './schemas/mirror.js'
-import mds from './dungeons/modern-data-stack.js'
+// import mds from './dungeons/modern-data-stack.js'
 import big from './schemas/big.js'
 
 const numEvents = 1000;

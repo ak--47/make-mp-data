@@ -21,9 +21,9 @@ const config = {
 	token: "",
 	seed: "lets go",
 	numDays: 90, //how many days worth of data
-	numEvents: 200_000, //how many events
-	numUsers: 20_000, //how many users	
-	format: 'json', //csv or json
+	numEvents: 1_000_000, //how many events
+	numUsers: 42_000, //how many users	
+	format: 'csv', //csv or json
 	region: "US",
 	hasAnonIds: true, //if true, anonymousIds are created for each user
 	hasSessionIds: false, //if true, hasSessionIds are created for each user
@@ -96,9 +96,58 @@ const config = {
 		"pronk": ["monk", "lonk", "aonk"],
 	},
 	mirrorProps: {},
-	groupKeys: [],
-	groupProps: {},
-	lookupTables: [],
+	groupKeys: [
+		["companies", 100000],
+		["servers", 300000],
+		["crews", 1000],
+
+	],
+	groupProps: {
+		companies: {
+			name: chance.company.bind(chance),
+			industry: ["tech", "finance", "healthcare", "education", "retail", "manufacturing", "entertainment", "government", "non-profit", "other"],
+		},
+		servers: {
+			name: chance.word.bind(chance),
+			ram: weighNumRange(4, 64, .25),
+			cpu: weighNumRange(1, 16, .25),
+
+		},
+		crews: {
+			name: chance.word.bind(chance),
+			department: ["engineering", "design", "marketing", "sales", "finance", "hr", "legal", "operations", "support", "other"],
+			size: weighNumRange(5, 50, .25)
+		}
+	},
+	lookupTables: [{
+			key: "product_id",
+			entries: 500000,
+			attributes: {
+				category: [
+					"Books", "Movies", "Music", "Games", "Electronics", "Computers", "Smart Home", "Home", "Garden & Tools", "Pet Supplies", "Food & Grocery", "Beauty", "Health", "Toys", "Kids", "Baby", "Handmade", "Sports", "Outdoors", "Automotive", "Industrial", "Entertainment", "Art"
+				],
+				"demand": ["high", "medium", "medium", "low"],
+				"supply": ["high", "medium", "medium", "low"],
+				"manufacturer": chance.company.bind(chance),
+				"price": weighNumRange(5, 500, .25),
+				"rating": weighNumRange(1, 5),
+				"reviews": weighNumRange(0, 35)
+			}
+
+		},
+		{
+			key: "video_id",
+			entries: 1000000,
+			attributes: {
+				isFlagged: [true, false, false, false, false],
+				copyright: ["all rights reserved", "creative commons", "creative commons", "public domain", "fair use"],
+				uploader_id: chance.guid.bind(chance),
+				"uploader influence": ["low", "low", "low", "medium", "medium", "high"],
+				thumbs: weighNumRange(0, 35),
+				rating: ["G", "PG", "PG-13", "R", "NC-17", "PG-13", "R", "NC-17", "R", "PG", "PG"]
+			}
+
+		}],
 	hook: function (record, type, meta) {
 		return record;
 	}

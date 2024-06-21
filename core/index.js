@@ -6,8 +6,8 @@ by AK
 ak@mixpanel.com
 */
 
-//todo: event counts get messed up with batching
-//todo: SCDs are broken and not inserting multiple ones
+//todo: lookups + groups are not batching writes properly (also not counting ops correctly)
+//todo: every user has the same created date
 
 // think more about batching
 //todo: organize deps
@@ -40,7 +40,8 @@ const USER_CONN = pLimit(500); // concurrent user streams modeled
 const FILE_CONN = pLimit(1); // concurrent file writes
 const os = require("os");
 const path = require("path");
-const { comma, bytesHuman, makeName, md5, clone, tracker, uid } = require("ak-tools");
+const { comma, bytesHuman, makeName, md5, clone, tracker, uid, timer } = require("ak-tools");
+const jobTimer = timer('job');
 const { generateLineChart } = require('./chart.js');
 const { version } = require('../package.json');
 const mp = require("mixpanel-import");
@@ -56,8 +57,9 @@ const { campaigns, devices, locations } = require('./defaults.js');
 let VERBOSE = false;
 let isCLI = false;
 let isBATCH_MODE = false; // if we are running in batch mode, we MUST write to disk before we can send to mixpanel
-let BATCH_SIZE = 250_000;
+let BATCH_SIZE = 5000 || 250_000;
 let operations = 0;
+let eventCount = 0;
 let CAMPAIGNS;
 let DEFAULTS;
 /** @type {Storage} */
@@ -84,6 +86,7 @@ function track(name, props, ...rest) {
  * @param  {Config} config
  */
 async function main(config) {
+	jobTimer.start();
 	//SEEDS
 	const seedWord = process.env.SEED || config.seed || "hello friend!";
 	config.seed = seedWord;
@@ -133,7 +136,7 @@ async function main(config) {
 
 	const lookupTableKeys = Object.keys(lookupTables);
 	const lookupTableData = await Promise.all(lookupTableKeys.map(async (key, index) => {
-		const lookupKey = lookupTables[index].key
+		const lookupKey = lookupTables[index].key;
 		return await hookArray([], { hook, type: "lookup", config, format, lookupKey: lookupKey, filepath: `${simulationName}-LOOKUP-${lookupKey}` });
 	}));
 
@@ -233,8 +236,11 @@ async function main(config) {
 	}
 	const { writeToDisk, token } = config;
 	if (!writeToDisk && !token) {
+		jobTimer.stop(false);
+		const { start, end, delta, human } = jobTimer.report(false);
 		// this is awkward, but i couldn't figure out any other way to assert a type in jsdoc
 		const i =  /** @type {unknown} */ (STORAGE);
+		i.time = { start, end, delta, human };
 		const j = /** @type {Result} */ (i);
 		return j;
 
@@ -265,11 +271,14 @@ async function main(config) {
 
 	log(`\n-----------------WRITES------------------`, "\n");
 	track('end simulation', trackingParams);
+	jobTimer.stop(false);
+	const { start, end, delta, human } = jobTimer.report(false);
 
 	return {
 		...STORAGE,
 		importResults,
 		files,
+		time: { start, end, delta, human },
 	};
 }
 
@@ -296,7 +305,7 @@ GENERATORS
  */
 async function makeEvent(distinct_id, earliestTime, chosenEvent, anonymousIds, sessionIds, superProps, groupKeys, isFirstEvent) {
 	operations++;
-	//todo... this takes too many params!
+	eventCount++;
 	if (!distinct_id) throw new Error("no distinct_id");
 	if (!anonymousIds) anonymousIds = [];
 	if (!sessionIds) sessionIds = [];
@@ -824,7 +833,7 @@ async function userLoop(config, storage) {
 
 	for (let i = 1; i < numUsers + 1; i++) {
 		await USER_CONN(async () => {
-			if (verbose) u.progress([["users", i], ["events", eventData.length]]);
+			if (verbose) u.progress([["users", i], ["events", eventCount]]);
 			const userId = chance.guid();
 			const user = u.person(userId, numDays, isAnonymous, hasAvatar, hasAnonIds, hasSessionIds);
 			const { distinct_id, created } = user;
@@ -876,7 +885,7 @@ async function userLoop(config, storage) {
 				numEventsPreformed += data.length;
 				await eventData.hookPush(data);
 				if (!userConverted) {
-					if (verbose) u.progress([["users", i], ["events", eventData.length]]);
+					if (verbose) u.progress([["users", i], ["events", eventCount]]);
 					return;
 				}
 			} else {
@@ -896,7 +905,7 @@ async function userLoop(config, storage) {
 				}
 			}
 
-			if (verbose) u.progress([["users", i], ["events", eventData.length]]);
+			if (verbose) u.progress([["users", i], ["events", eventCount]]);
 		});
 	}
 
@@ -1008,7 +1017,7 @@ async function sendToMixpanel(config, storage) {
 	}
 	if (groupProfilesData) {
 		for (const groupProfiles of groupProfilesData) {
-			const groupKey = groupProfiles.key;
+			const groupKey = groupProfiles?.groupKey;
 			const data = groupProfiles.data;
 			log(`importing ${groupKey} profiles to mixpanel...\n`);
 			const imported = await mp({ token, groupKey }, clone(data), {
@@ -1137,6 +1146,7 @@ function validateDungeonConfig(config) {
 
 /** 
  * our meta programming function which lets you mutate items as they are pushed into an array
+ * it also does batching and writing to disk
  * @param  {any[]} arr
  * @param  {hookArrayOptions} opts
  * @returns {Promise<hookArray>}
@@ -1154,7 +1164,7 @@ async function hookArray(arr = [], opts = {}) {
 			return path.join(writeDir, `${filepath}-${batch.toString()}.${format}`);
 		}
 		else {
-			return path.join(writeDir, `${filepath}.${format}`);		
+			return path.join(writeDir, `${filepath}.${format}`);
 		}
 	}
 
@@ -1198,6 +1208,7 @@ async function hookArray(arr = [], opts = {}) {
 	async function writeToDisk(data, options) {
 		const { writePath } = options;
 		let writeResult;
+		if (VERBOSE) log(`\n\n\twriting ${writePath}\n\n`);
 		switch (format) {
 			case "csv":
 				writeResult = await u.streamCSV(writePath, data);
@@ -1225,6 +1236,9 @@ async function hookArray(arr = [], opts = {}) {
 
 	enrichedArray.hookPush = transformThenPush;
 	enrichedArray.flush = flush;
+	for (const key in rest) {
+		enrichedArray[key.toString()] = rest[key];
+	}
 
 	return enrichedArray;
 }
@@ -1322,6 +1336,7 @@ if (require.main === module) {
 
 	main(config)
 		.then((data) => {
+			//todo: rethink summary
 			log(`-----------------SUMMARY-----------------`);
 			const d = { success: 0, bytes: 0 };
 			const darr = [d];
