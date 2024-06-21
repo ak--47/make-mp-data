@@ -50,7 +50,7 @@ const metrics = tracker("make-mp-data", "db99eb8f67ae50949a13c27cacf57d41", os.u
 const u = require("./utils.js");
 const getCliParams = require("./cli.js");
 const { campaigns, devices, locations } = require('./defaults.js');
-const { numDays } = require('../dungeons/amir');
+
 
 
 let VERBOSE = false;
@@ -119,12 +119,24 @@ async function main(config) {
 	const eventData = await hookArray([], { hook, type: "event", config, format, filepath: `${simulationName}-EVENTS` });
 	const userProfilesData = await hookArray([], { hook, type: "user", config, format, filepath: `${simulationName}-USERS` });
 	const adSpendData = await hookArray([], { hook, type: "ad-spend", config, format, filepath: `${simulationName}-AD-SPEND` });
+
+	// SCDs, Groups, + Lookups may have multiple tables
 	const scdTableKeys = Object.keys(scdProps);
 	const scdTableData = await Promise.all(scdTableKeys.map(async (key) =>
 		await hookArray([], { hook, type: "scd", config, format, scdKey: key, filepath: `${simulationName}-SCD-${key}` })
 	));
-	const groupProfilesData = await hookArray([], { hook, type: "group", config, format, filepath: `${simulationName}-GROUPS` });
-	const lookupTableData = await hookArray([], { hook, type: "lookup", config, format, filepath: `${simulationName}-LOOKUP` });
+	const groupTableKeys = Object.keys(groupKeys);
+	const groupProfilesData = await Promise.all(groupTableKeys.map(async (key, index) => {
+		const groupKey = groupKeys[index]?.slice()?.shift();
+		return await hookArray([], { hook, type: "group", config, format, groupKey, filepath: `${simulationName}-GROUPS-${groupKey}` });
+	}));
+
+	const lookupTableKeys = Object.keys(lookupTables);
+	const lookupTableData = await Promise.all(lookupTableKeys.map(async (key, index) => {
+		const lookupKey = lookupTables[index].key
+		return await hookArray([], { hook, type: "lookup", config, format, lookupKey: lookupKey, filepath: `${simulationName}-LOOKUP-${lookupKey}` });
+	}));
+
 	const mirrorEventData = await hookArray([], { hook, type: "mirror", config, format, filepath: `${simulationName}-MIRROR` });
 
 	STORAGE = { eventData, userProfilesData, scdTableData, groupProfilesData, lookupTableData, mirrorEventData, adSpendData };
@@ -168,7 +180,7 @@ async function main(config) {
 	log("\n");
 
 	//GROUP PROFILES
-	for (const groupPair of groupKeys) {
+	for (const [index, groupPair] of groupKeys.entries()) {
 		const groupKey = groupPair[0];
 		const groupCardinality = groupPair[1];
 		const groupProfiles = [];
@@ -182,12 +194,12 @@ async function main(config) {
 			group["distinct_id"] = i.toString();
 			groupProfiles.push(group);
 		}
-		await groupProfilesData.hookPush({ key: groupKey, data: groupProfiles });
+		await groupProfilesData[index].hookPush(groupProfiles);
 	}
 	log("\n");
 
 	//LOOKUP TABLES
-	for (const lookupTable of lookupTables) {
+	for (const [index, lookupTable] of lookupTables.entries()) {
 		const { key, entries, attributes } = lookupTable;
 		const data = [];
 		for (let i = 1; i < entries + 1; i++) {
@@ -199,7 +211,7 @@ async function main(config) {
 			};
 			data.push(item);
 		}
-		await lookupTableData.hookPush({ key, data });
+		await lookupTableData[index].hookPush(data);
 	}
 	log("\n");
 
@@ -804,6 +816,7 @@ async function userLoop(config, storage) {
 		funnels,
 		userProps,
 		scdProps,
+		numDays,
 	} = config;
 	const { eventData, userProfilesData, scdTableData } = storage;
 	const avgEvPerUser = numEvents / numUsers;
@@ -1137,7 +1150,12 @@ async function hookArray(arr = [], opts = {}) {
 	else writeDir = path.resolve("./");
 
 	function getWritePath(batch) {
-		return path.join(writeDir, `${filepath}-${batch.toString()}.${format}`);
+		if (isBATCH_MODE) {
+			return path.join(writeDir, `${filepath}-${batch.toString()}.${format}`);
+		}
+		else {
+			return path.join(writeDir, `${filepath}.${format}`);		
+		}
 	}
 
 	async function transformThenPush(item) {

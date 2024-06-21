@@ -122,9 +122,9 @@ declare namespace main {
     eventData?: EnrichedArray<EventSchema>;
     mirrorEventData?: EnrichedArray<EventSchema>;
     userProfilesData?: EnrichedArray<UserProfile>;
-    groupProfilesData?: EnrichedArray<GroupProfileSchema>;
-    lookupTableData?: EnrichedArray<LookupTableSchema>;
-    adSpendData?: EnrichedArray<EventSchema>;
+	adSpendData?: EnrichedArray<EventSchema>;
+    groupProfilesData?: EnrichedArray<GroupProfileSchema>[];
+    lookupTableData?: EnrichedArray<LookupTableSchema>[];    
     scdTableData?: EnrichedArray<SCDSchema>[];
   }
 
