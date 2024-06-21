@@ -23,13 +23,14 @@ import anon from './schemas/anon.js';
 import execSync from 'child_process';
 import mirror from './schemas/mirror.js'
 import mds from './dungeons/modern-data-stack.js'
+import big from './schemas/big.js'
 
 const numEvents = 1000;
 
 /** @type {main.Config} */
 const spec = {
-	...mds,
-	writeToDisk: false,
+	...big,
+	writeToDisk: true,
 	verbose: true,
 	makeChart: false,
 	// format: "csv",
@@ -40,6 +41,7 @@ const spec = {
 
 
 execSync.execSync('npm run prune');
+const RESULT = await main(spec);
 const { 
 	eventData,
 	groupProfilesData,
@@ -50,7 +52,7 @@ const {
 	importResults,
 	files,
 	adSpendData
-} = await main(spec);
+} = RESULT;
 
 
 debugger;

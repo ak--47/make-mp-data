@@ -789,10 +789,11 @@ function generateUser(user_id, numDays, amplitude = 1, frequency = 1, skew = 1) 
 
 	// Clamp values to ensure they are within the desired range
 	daysAgoBorn = Math.min(daysAgoBorn, numDays);
+	const props = person(numDays);
 
 	const user = {
 		distinct_id: user_id,
-		...person(numDays),
+		...props,
 	};
 
 

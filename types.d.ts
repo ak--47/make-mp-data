@@ -24,13 +24,13 @@ declare namespace main {
     format?: "csv" | "json" | string;
     region?: "US" | "EU";
 
-	// ids
+    // ids
     simulationName?: string;
-	name?: string;
+    name?: string;
 
     //switches
     isAnonymous?: boolean;
-	hasAvatar?: boolean;
+    hasAvatar?: boolean;
     hasLocation?: boolean;
     hasCampaigns?: boolean;
     hasAdSpend?: boolean;
@@ -45,7 +45,7 @@ declare namespace main {
     makeChart?: boolean | string;
 
     //models
-    events?: EventConfig[] | string[]; //can also be a array of strings
+    events?: EventConfig[]; //| string[]; //can also be a array of strings
     superProps?: Record<string, ValueValid>;
     funnels?: Funnel[];
     userProps?: Record<string, ValueValid>;
@@ -94,6 +94,8 @@ declare namespace main {
   export interface hookArrayOptions<T> {
     hook?: Hook<T>;
     type?: hookTypes;
+	filename?: string;
+	format?: "csv" | "json" | string;
     [key: string]: any;
   }
 
@@ -101,8 +103,17 @@ declare namespace main {
    * an enriched array is an array that has a hookPush method that can be used to transform-then-push items into the array
    */
   export interface EnrichedArray<T> extends Array<T> {
-    hookPush: (item: T | T[]) => boolean;
+    hookPush: (item: T | T[]) => any;
+	flush: () => any;
   }
+
+  export type AllData =
+    | EnrichedArray<EventSchema>
+    | EnrichedArray<UserProfile>
+    | EnrichedArray<GroupProfileSchema>
+    | EnrichedArray<LookupTableSchema>
+    | EnrichedArray<SCDSchema>
+	| any[];
 
   /**
    * the storage object is a key-value store that holds arrays of data
@@ -127,6 +138,20 @@ declare namespace main {
     isFirstEvent?: boolean;
     isChurnEvent?: boolean;
     relativeTimeMs?: number;
+  }
+
+  /**
+   * the generated event data
+   */
+  export interface EventSchema {
+    event: string;
+    time: string;
+    source: string;
+    insert_id: string;
+    device_id?: string;
+    session_id?: string;
+    user_id?: string;
+    [key: string]: ValueValid;
   }
 
   /**
@@ -206,20 +231,6 @@ declare namespace main {
      * optional: for 'fill' mode, daysUnfilled will dictate where the cutoff is in the unfilled data
      */
     daysUnfilled?: number;
-  }
-
-  /**
-   * the generated event data
-   */
-  export interface EventSchema {
-    event: string;
-    time: string;
-    source: string;
-    insert_id: string;
-    device_id?: string;
-    session_id?: string;
-    user_id?: string;
-    [key: string]: ValueValid;
   }
 
   export interface UserProfile {

@@ -272,7 +272,7 @@ describe('generation', () => {
 		expect(user).toHaveProperty('distinct_id');
 		expect(user).toHaveProperty('name');
 		expect(user).toHaveProperty('email');
-		expect(user).toHaveProperty('avatar');
+		expect(user).not.toHaveProperty('avatar');
 		expect(user).toHaveProperty('created');
 		expect(user).toHaveProperty('anonymousIds');
 		expect(user).toHaveProperty('sessionIds');
@@ -294,7 +294,7 @@ describe('generation', () => {
 		expect(user.distinct_id).toBe('uuid-123');
 		expect(user).toHaveProperty('name');
 		expect(user).toHaveProperty('email');
-		expect(user).toHaveProperty('avatar');
+		expect(user).not.toHaveProperty('avatar');
 		expect(user).toHaveProperty('created');
 		expect(user).toHaveProperty('anonymousIds');
 		expect(user).toHaveProperty('sessionIds');
@@ -471,34 +471,34 @@ describe('validation', () => {
 
 describe('enrichment', () => {
 
-	test('hooks: noop', () => {
+	test('hooks: noop', async () => {
 		const arr = [];
-		const enrichedArray = hookArray(arr);
-		enrichedArray.hookPush(1);
-		enrichedArray.hookPush(2);
+		const enrichedArray = await hookArray(arr);
+		await enrichedArray.hookPush(1);
+		await enrichedArray.hookPush(2);
 		const match = JSON.stringify(enrichedArray) === JSON.stringify([1, 2]);
 		expect(match).toEqual(true);
 	});
 
-	test('hook: double', () => {
+	test('hook: double', async () => {
 		const arr = [];
 		const hook = (item) => item * 2;
-		const enrichedArray = hookArray(arr, { hook });
-		enrichedArray.hookPush(1);
-		enrichedArray.hookPush(2);
+		const enrichedArray = await hookArray(arr, { hook });
+		await enrichedArray.hookPush(1);
+		await enrichedArray.hookPush(2);
 		expect(enrichedArray.includes(2)).toBeTruthy();
 		expect(enrichedArray.includes(4)).toBeTruthy();
 	});
 
-	test('hooks: filter', () => {
+	test('hooks: filter', async () => {
 		const arr = [];
 		const hook = (item) => item ? item.toString() : item;
-		const enrichedArray = hookArray(arr, { hook });
-		enrichedArray.hookPush(null);
-		enrichedArray.hookPush(undefined);
-		enrichedArray.hookPush({});
-		enrichedArray.hookPush({ a: 1 });
-		enrichedArray.hookPush([1, 2]);
+		const enrichedArray = await hookArray(arr, { hook });
+		await enrichedArray.hookPush(null);
+		await enrichedArray.hookPush(undefined);
+		await enrichedArray.hookPush({});
+		await enrichedArray.hookPush({ a: 1 });
+		await enrichedArray.hookPush([1, 2]);
 		expect(enrichedArray).toHaveLength(3);
 		expect(enrichedArray.includes('null')).toBeFalsy();
 		expect(enrichedArray.includes('undefined')).toBeFalsy();

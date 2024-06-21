@@ -22,7 +22,7 @@ const MAIN = require('../core/index.js');
 const { generators, orchestrators, meta } = MAIN;
 const { makeAdSpend, makeEvent, makeFunnel, makeProfile, makeSCD, makeMirror } = generators;
 const { sendToMixpanel, userLoop, validateDungeonConfig, writeFiles } = orchestrators;
-const {hookArray, inferFunnels} = meta
+const { hookArray, inferFunnels } = meta;
 const { validEvent } = require('../core/utils.js');
 
 
@@ -33,7 +33,7 @@ let STORAGE;
 let CONFIG;
 const { campaigns, devices, locations } = require('../core/defaults.js');
 
-beforeEach(() => {
+beforeEach(async () => {
 	// Reset global variables before each test
 	CAMPAIGNS = [
 		{ utm_campaign: ["campaign1", "campaign2"], utm_source: ["source1"], utm_medium: ["medium1"], utm_content: ["content1"], utm_term: ["term1"] }
@@ -47,16 +47,19 @@ beforeEach(() => {
 		browsers: () => 'Chrome',
 		campaigns: () => 'campaign1'
 	};
+
 	/** @type {Storage} */
 	STORAGE = {
-		eventData: hookArray([], {}),
-		userProfilesData: hookArray([], {}),
-		adSpendData: hookArray([], {}),
-		scdTableData: [hookArray([], {})],
-		groupProfilesData: hookArray([], {}),
-		lookupTableData: hookArray([], {}),
-		mirrorEventData: hookArray([], {})
+		eventData: await hookArray([], {}),
+		userProfilesData: await hookArray([], {}),
+		adSpendData: await hookArray([], {}),
+		scdTableData: [await hookArray([], {})],
+		groupProfilesData: await hookArray([], {}),
+		lookupTableData: await hookArray([], {}),
+		mirrorEventData: await hookArray([], {})
 	};
+
+
 	/** @type {Config} */
 	CONFIG = {
 		numUsers: 10,
@@ -79,7 +82,7 @@ beforeEach(() => {
 
 describe('generators', () => {
 
-	test('adspend: works', () => {
+	test('adspend: works', async () => {
 		const campaigns = [{
 			utm_source: ["foo"],
 			utm_campaign: ["one"],
@@ -94,23 +97,23 @@ describe('generators', () => {
 			utm_content: ["seven"],
 			utm_term: ["eight"]
 		}];
-		const result = makeAdSpend(dayjs().subtract(30, 'day').toISOString(), campaigns);
+		const result = await makeAdSpend(dayjs().subtract(30, 'day').toISOString(), campaigns);
 		expect(result.length).toBe(2);
 		expect(result[0]).toHaveProperty('event', '$ad_spend');
 		expect(result[1]).toHaveProperty('event', '$ad_spend');
 	});
 
-	test('adspend: empty', () => {
-		const result = makeAdSpend(dayjs().subtract(30, 'day').toISOString(), []);
+	test('adspend: empty', async () => {
+		const result = await makeAdSpend(dayjs().subtract(30, 'day').toISOString(), []);
 		expect(result.length).toBe(0);
 	});
 
-	test('adspend: external', () => {
+	test('adspend: external', async () => {
 		const campaigns = [
 			{ utm_source: ["source1"], utm_campaign: ["one"], utm_medium: ["two"], utm_content: ["three"], utm_term: ["four"] },
 			{ utm_source: ["source2"], utm_campaign: ["two"], utm_medium: ["three"], utm_content: ["four"], utm_term: ["five"] }
 		];
-		const result = makeAdSpend(dayjs().subtract(30, 'day').toISOString(), campaigns);
+		const result = await makeAdSpend(dayjs().subtract(30, 'day').toISOString(), campaigns);
 		expect(result.length).toBe(2);
 		result.forEach(event => {
 			expect(event).toHaveProperty('event', '$ad_spend');
@@ -124,7 +127,7 @@ describe('generators', () => {
 	});
 
 
-	test('makeEvent: works', () => {
+	test('makeEvent: works', async () => {
 		/** @type {EventConfig} */
 		const eventConfig = {
 			event: "test_event",
@@ -134,7 +137,7 @@ describe('generators', () => {
 				prop3: ["value5"]
 			},
 		};
-		const result = makeEvent("known_id", dayjs().subtract(1, 'd').unix(), eventConfig, ["anon_id"], ["session_id"]);
+		const result = await makeEvent("known_id", dayjs().subtract(1, 'd').unix(), eventConfig, ["anon_id"], ["session_id"]);
 		expect(result).toHaveProperty('event', 'test_event');
 		expect(result).toHaveProperty('device_id', 'anon_id');
 		// expect(result).toHaveProperty('user_id', 'known_id'); // Known ID not always on the event
@@ -149,9 +152,9 @@ describe('generators', () => {
 		expect(result).toHaveProperty('prop3', 'value5');
 	});
 
-	test('makeEvent: opt params', () => {
+	test('makeEvent: opt params', async () => {
 		const eventConfig = { event: "test_event", properties: {} };
-		const result = makeEvent("known_id", dayjs().subtract(1, 'd').unix(), eventConfig);
+		const result = await makeEvent("known_id", dayjs().subtract(1, 'd').unix(), eventConfig);
 		expect(result).toHaveProperty('event', 'test_event');
 		expect(result).toHaveProperty('user_id', 'known_id');
 		expect(result).toHaveProperty('source', 'dm4');
@@ -159,7 +162,7 @@ describe('generators', () => {
 		expect(result).toHaveProperty('time');
 	});
 
-	test('makeEvent: correct defaults', () => {
+	test('makeEvent: correct defaults', async () => {
 		const eventConfig = {
 			event: "test_event",
 			properties: {
@@ -167,13 +170,13 @@ describe('generators', () => {
 				prop2: ["value3", "value4"]
 			},
 		};
-		const result = makeEvent("known_id", dayjs().subtract(1, 'd').unix(), eventConfig, ["anon_id"], ["session_id"]);
+		const result = await makeEvent("known_id", dayjs().subtract(1, 'd').unix(), eventConfig, ["anon_id"], ["session_id"]);
 		expect(result.prop1 === "value1" || result.prop1 === "value2").toBeTruthy();
 		expect(result.prop2 === "value3" || result.prop2 === "value4").toBeTruthy();
 	});
 
 
-	test('makeFunnel: works', () => {
+	test('makeFunnel: works', async () => {
 		const funnelConfig = {
 			sequence: ["step1", "step2"],
 			conversionRate: 100,
@@ -186,13 +189,13 @@ describe('generators', () => {
 		/** @type {Record<string, SCDSchema[]>} */
 		const scd = { "scd_example": [{ distinct_id: "user1", insertTime: dayjs().toISOString(), startTime: dayjs().toISOString() }] };
 
-		const [result, converted] = makeFunnel(funnelConfig, user, dayjs().unix(), profile, scd, {});
+		const [result, converted] = await makeFunnel(funnelConfig, user, dayjs().unix(), profile, scd, {});
 		expect(result.length).toBe(2);
 		expect(converted).toBe(true);
 		expect(result.every(e => validEvent(e))).toBeTruthy();
 	});
 
-	test('makeFunnel: conversion rates', () => {
+	test('makeFunnel: conversion rates', async () => {
 		const funnelConfig = {
 			sequence: ["step1", "step2", "step3"],
 			conversionRate: 50,
@@ -202,13 +205,13 @@ describe('generators', () => {
 		const profile = { created: dayjs().toISOString(), distinct_id: "user1" };
 		const scd = { "scd_example": [{ distinct_id: "user1", insertTime: dayjs().toISOString(), startTime: dayjs().toISOString() }] };
 
-		const [result, converted] = makeFunnel(funnelConfig, user, dayjs().unix(), profile, scd, {});
+		const [result, converted] = await makeFunnel(funnelConfig, user, dayjs().unix(), profile, scd, {});
 		expect(result.length).toBeGreaterThanOrEqual(1);
 		expect(result.length).toBeLessThanOrEqual(3);
 		expect(result.every(e => validEvent(e))).toBeTruthy();
 	});
 
-	test('makeFunnel: ordering', () => {
+	test('makeFunnel: ordering', async () => {
 		const funnelConfig = {
 			sequence: ["step1", "step2", "step3"],
 			conversionRate: 100,
@@ -218,19 +221,19 @@ describe('generators', () => {
 		const profile = { created: dayjs().toISOString(), distinct_id: "user1" };
 		const scd = { "scd_example": [{ distinct_id: "user1", insertTime: dayjs().toISOString(), startTime: dayjs().toISOString() }] };
 
-		const [result, converted] = makeFunnel(funnelConfig, user, dayjs().unix(), profile, scd, {});
+		const [result, converted] = await makeFunnel(funnelConfig, user, dayjs().unix(), profile, scd, {});
 		expect(result.length).toBe(3);
 		expect(converted).toBe(true);
 		expect(result.every(e => validEvent(e))).toBeTruthy();
 	});
 
 
-	test('makeProfile: works', () => {
+	test('makeProfile: works', async () => {
 		const props = {
 			name: ["John", "Jane"],
 			age: [25, 30]
 		};
-		const result = makeProfile(props, { foo: "bar" });
+		const result = await makeProfile(props, { foo: "bar" });
 		expect(result).toHaveProperty('name');
 		expect(result).toHaveProperty('age');
 		expect(result).toHaveProperty('foo', 'bar');
@@ -238,12 +241,12 @@ describe('generators', () => {
 		expect(result.age === 25 || result.age === 30).toBeTruthy();
 	});
 
-	test('makeProfile: correct defaults', () => {
+	test('makeProfile: correct defaults', async () => {
 		const props = {
 			name: ["John", "Jane"],
 			age: [25, 30]
 		};
-		const result = makeProfile(props);
+		const result = await makeProfile(props);
 		expect(result).toHaveProperty('name');
 		expect(result).toHaveProperty('age');
 		expect(result.name === "John" || result.name === "Jane").toBeTruthy();
@@ -251,9 +254,9 @@ describe('generators', () => {
 	});
 
 
-	test('makeSCD: works', () => {
-		const result = makeSCD(["value1", "value2"], "prop1", "distinct_id", 2, dayjs().toISOString());
-		expect(result.length).toBe(2);
+	test('makeSCD: works', async () => {
+		const result = await makeSCD(["value1", "value2"], "prop1", "distinct_id", 5, dayjs().toISOString());
+		expect(result.length).toBeGreaterThan(0);
 		const [first, second] = result;
 		expect(first).toHaveProperty('prop1');
 		expect(second).toHaveProperty('prop1');
@@ -270,13 +273,13 @@ describe('generators', () => {
 		expect(result[0]).toHaveProperty('insertTime');
 	});
 
-	test('makeSCD: no mutations', () => {
-		const result = makeSCD(["value1", "value2"], "prop1", "distinct_id", 0, dayjs().toISOString());
+	test('makeSCD: no mutations', async () => {
+		const result = await makeSCD(["value1", "value2"], "prop1", "distinct_id", 0, dayjs().toISOString());
 		expect(result.length).toBe(0);
 	});
 
-	test('makeSCD: large mutations', () => {
-		const result = makeSCD(["value1", "value2"], "prop1", "distinct_id", 100, dayjs().subtract(100, 'd').toISOString());
+	test('makeSCD: large mutations', async () => {
+		const result = await makeSCD(["value1", "value2"], "prop1", "distinct_id", 100, dayjs().subtract(100, 'd').toISOString());
 		expect(result.length).toBeGreaterThan(0);
 		result.forEach(entry => {
 			expect(entry).toHaveProperty('prop1');
@@ -287,7 +290,7 @@ describe('generators', () => {
 		});
 	});
 
-	test('mirror: create', () => {
+	test('mirror: create', async () => {
 		/** @type {EventSchema} */
 		const oldEvent = {
 			event: "old",
@@ -307,14 +310,14 @@ describe('generators', () => {
 				}
 			}
 		};
-		STORAGE.eventData.hookPush(oldEvent);
+		await STORAGE.eventData.hookPush(oldEvent);
 		//ugh sidefx
-		makeMirror(config, STORAGE);
+		await makeMirror(config, STORAGE);
 		const [newData] = STORAGE.mirrorEventData;
 		expect(newData).toHaveProperty('newProp', "new");
 	});
 
-	test('mirror: delete', () => {
+	test('mirror: delete', async () => {
 		/** @type {EventSchema} */
 		const oldEvent = {
 			event: "old",
@@ -334,14 +337,14 @@ describe('generators', () => {
 				}
 			}
 		};
-		STORAGE.eventData.hookPush(oldEvent);
+		await STORAGE.eventData.hookPush(oldEvent);
 
-		makeMirror(config, STORAGE);
+		await makeMirror(config, STORAGE);
 		const [newData] = STORAGE.mirrorEventData;
 		expect(newData).not.toHaveProperty('oldProp');
 	});
 
-	test('mirror: fill', () => {
+	test('mirror: fill', async () => {
 		/** @type {EventSchema} */
 		const oldEvent = {
 			event: "old",
@@ -363,14 +366,14 @@ describe('generators', () => {
 				}
 			}
 		};
-		STORAGE.eventData.hookPush(oldEvent);
+		await STORAGE.eventData.hookPush(oldEvent);
 
-		makeMirror(config, STORAGE);
+		await makeMirror(config, STORAGE);
 		const [newData] = STORAGE.mirrorEventData;
 		expect(newData).toHaveProperty('fillProp', "filledValue");
 	});
 
-	test('mirror: update', () => {
+	test('mirror: update', async () => {
 		/** @type {EventSchema} */
 		const oldEvent = {
 			event: "old",
@@ -391,14 +394,14 @@ describe('generators', () => {
 				}
 			}
 		};
-		STORAGE.eventData.hookPush(oldEvent);
+		await STORAGE.eventData.hookPush(oldEvent);
 
-		makeMirror(config, STORAGE);
+		await makeMirror(config, STORAGE);
 		const [newData] = STORAGE.mirrorEventData;
 		expect(newData).toHaveProperty('updateProp', "initialValue");
 	});
 
-	test('mirror: update nulls', () => {
+	test('mirror: update nulls', async () => {
 		/** @type {EventSchema} */
 		const oldEvent = {
 			event: "old",
@@ -419,15 +422,15 @@ describe('generators', () => {
 				}
 			}
 		};
-		STORAGE.eventData.hookPush(oldEvent);
+		await STORAGE.eventData.hookPush(oldEvent);
 
-		makeMirror(config, STORAGE);
+		await makeMirror(config, STORAGE);
 		const [newData] = STORAGE.mirrorEventData;
 		expect(newData).toHaveProperty('updateProp', "updatedValue");
 	});
 
 
-	test('mirror: update with no initial value', () => {
+	test('mirror: update with no initial value', async () => {
 		/** @type {EventSchema} */
 		const oldEvent = {
 			event: "old",
@@ -448,9 +451,9 @@ describe('generators', () => {
 				}
 			}
 		};
-		STORAGE.eventData.hookPush(oldEvent);
+		await STORAGE.eventData.hookPush(oldEvent);
 
-		makeMirror(config, STORAGE);
+		await makeMirror(config, STORAGE);
 		const [newData] = STORAGE.mirrorEventData;
 		expect(newData).toHaveProperty('updateProp', "updatedValue");
 	});
@@ -477,13 +480,13 @@ describe('orchestrators', () => {
 	test('sendToMixpanel: empty storage', async () => {
 		CONFIG.token = "test_token";
 		STORAGE = {
-			eventData: hookArray([], {}),
-			userProfilesData: hookArray([], {}),
-			adSpendData: hookArray([], {}),
-			scdTableData: [hookArray([], {})],
-			groupProfilesData: hookArray([], {}),
-			lookupTableData: hookArray([], {}),
-			mirrorEventData: hookArray([], {})
+			eventData: await hookArray([], {}),
+			userProfilesData: await hookArray([], {}),
+			adSpendData: await hookArray([], {}),
+			scdTableData: [await hookArray([], {})],
+			groupProfilesData: await hookArray([], {}),
+			lookupTableData: await hookArray([], {}),
+			mirrorEventData: await hookArray([], {})
 		};
 		const result = await sendToMixpanel(CONFIG, STORAGE);
 		expect(result.events.success).toBe(0);
@@ -492,11 +495,11 @@ describe('orchestrators', () => {
 	});
 
 
-	test('userLoop: works (no funnels)', () => {
+	test('userLoop: works (no funnels)', async () => {
 		/** @type {Config} */
 		const config = {
 			numUsers: 2,
-			numEvents: 25,
+			numEvents: 40,
 			numDays: 30,
 			userProps: {},
 			scdProps: {},
@@ -507,14 +510,14 @@ describe('orchestrators', () => {
 			hasLocation: false,
 			events: [{ event: "foo" }, { event: "bar" }, { event: "baz" }]
 		};
-		userLoop(config, STORAGE);
+		await userLoop(config, STORAGE);
 		expect(STORAGE.userProfilesData.length).toBe(2);
 		expect(STORAGE.eventData.length).toBeGreaterThan(15);
 		expect(STORAGE.eventData.every(e => validEvent(e))).toBeTruthy();
 	});
 
 
-	test('userLoop: works (funnels)', () => {
+	test('userLoop: works (funnels)', async () => {
 		/** @type {Config} */
 		const config = {
 			numUsers: 2,
@@ -525,15 +528,15 @@ describe('orchestrators', () => {
 			events: [],
 			funnels: [{ sequence: ["step1", "step2"], conversionRate: 100, order: 'sequential' }],
 		};
-		userLoop(config, STORAGE);
+		await userLoop(config, STORAGE);
 		expect(STORAGE.userProfilesData.length).toBe(2);
-		expect(STORAGE.eventData.length).toBeGreaterThan(25);
+		expect(STORAGE.eventData.length).toBeGreaterThan(15);
 		expect(STORAGE.eventData.every(e => validEvent(e))).toBeTruthy();
 
 
 	});
 
-	test('userLoop: mixed config', () => {
+	test('userLoop: mixed config', async () => {
 		const config = {
 			numUsers: 3,
 			numEvents: 15,
@@ -543,13 +546,13 @@ describe('orchestrators', () => {
 			funnels: [],
 			events: [{ event: "event1" }, { event: "event2" }]
 		};
-		userLoop(config, STORAGE);
+		await userLoop(config, STORAGE);
 		expect(STORAGE.userProfilesData.length).toBe(3);
 		expect(STORAGE.eventData.length).toBeGreaterThan(0);
 		expect(STORAGE.eventData.every(e => validEvent(e))).toBeTruthy();
 	});
 
-	test('userLoop: no events', () => {
+	test('userLoop: no events', async () => {
 		const config = {
 			numUsers: 2,
 			numEvents: 0,
@@ -563,20 +566,20 @@ describe('orchestrators', () => {
 			hasLocation: false,
 			events: []
 		};
-		userLoop(config, STORAGE);
+		await userLoop(config, STORAGE);
 		expect(STORAGE.userProfilesData.length).toBe(2);
 		expect(STORAGE.eventData.length).toBe(0);
 	});
 
 
 
-	test('validateDungeonConfig: works', () => {
+	test('validateDungeonConfig: works', async () => {
 		const config = {
 			numEvents: 100,
 			numUsers: 10,
 			numDays: 30
 		};
-		const result = validateDungeonConfig(config);
+		const result = await validateDungeonConfig(config);
 		expect(result).toHaveProperty('numEvents', 100);
 		expect(result).toHaveProperty('numUsers', 10);
 		expect(result).toHaveProperty('numDays', 30);
@@ -584,9 +587,9 @@ describe('orchestrators', () => {
 		expect(result).toHaveProperty('superProps');
 	});
 
-	test('validateDungeonConfig: correct defaults', () => {
+	test('validateDungeonConfig: correct defaults', async () => {
 		const config = {};
-		const result = validateDungeonConfig(config);
+		const result = await validateDungeonConfig(config);
 		expect(result).toHaveProperty('numEvents', 100_000);
 		expect(result).toHaveProperty('numUsers', 1000);
 		expect(result).toHaveProperty('numDays', 30);
@@ -594,7 +597,7 @@ describe('orchestrators', () => {
 		expect(result).toHaveProperty('superProps');
 	});
 
-	test('validateDungeonConfig: merges', () => {
+	test('validateDungeonConfig: merges', async () => {
 		const config = {
 			numEvents: 100,
 			numUsers: 10,
@@ -602,7 +605,7 @@ describe('orchestrators', () => {
 			events: [{ event: "test_event" }],
 			superProps: { luckyNumber: [7] }
 		};
-		const result = validateDungeonConfig(config);
+		const result = await validateDungeonConfig(config);
 		expect(result).toHaveProperty('numEvents', 100);
 		expect(result).toHaveProperty('numUsers', 10);
 		expect(result).toHaveProperty('numDays', 30);

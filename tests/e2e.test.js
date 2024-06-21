@@ -156,7 +156,6 @@ describe('cli', () => {
 
 });
 
-
 describe('options + tweaks', () => {
 	test('creates sessionIds', async () => {
 		const results = await generate({ writeToDisk: false, numEvents: 1000, numUsers: 100, hasSessionIds: true });

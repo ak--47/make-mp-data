@@ -6,8 +6,16 @@ by AK
 ak@mixpanel.com
 */
 
+//todo: event counts get messed up with batching
+//todo: SCDs are broken and not inserting multiple ones
+
+// think more about batching
+//todo: organize deps
+//todo: vanilla is slow
+
 
 /** @typedef {import('../types').Config} Config */
+/** @typedef {import('../types').AllData} AllData */
 /** @typedef {import('../types').EventConfig} EventConfig */
 /** @typedef {import('../types').Funnel} Funnel */
 /** @typedef {import('../types').Person} Person */
@@ -19,13 +27,17 @@ ak@mixpanel.com
 /** @typedef {import('../types').ValueValid} ValueValid */
 /** @typedef {import('../types').EnrichedArray} hookArray */
 /** @typedef {import('../types').hookArrayOptions} hookArrayOptions */
+/** @typedef {import('../types').GroupProfileSchema} GroupProfile */
 
 const dayjs = require("dayjs");
 const utc = require("dayjs/plugin/utc");
 dayjs.extend(utc);
 const NOW = dayjs('2024-02-02').unix(); //this is a FIXED POINT and we will shift it later
 global.NOW = NOW;
-
+const { existsSync } = require("fs");
+const pLimit = require('p-limit');
+const USER_CONN = pLimit(500); // concurrent user streams modeled
+const FILE_CONN = pLimit(1); // concurrent file writes
 const os = require("os");
 const path = require("path");
 const { comma, bytesHuman, makeName, md5, clone, tracker, uid } = require("ak-tools");
@@ -38,11 +50,13 @@ const metrics = tracker("make-mp-data", "db99eb8f67ae50949a13c27cacf57d41", os.u
 const u = require("./utils.js");
 const getCliParams = require("./cli.js");
 const { campaigns, devices, locations } = require('./defaults.js');
+const { numDays } = require('../dungeons/amir');
+
 
 let VERBOSE = false;
 let isCLI = false;
 let isBATCH_MODE = false; // if we are running in batch mode, we MUST write to disk before we can send to mixpanel
-let BATCH_SIZE = 1_000_000;
+let BATCH_SIZE = 250_000;
 let operations = 0;
 let CAMPAIGNS;
 let DEFAULTS;
@@ -52,6 +66,11 @@ let STORAGE;
 let CONFIG;
 require('dotenv').config();
 
+
+// SHIFT TIME
+const actualNow = dayjs();
+const fixedNow = dayjs.unix(global.NOW);
+const timeShift = actualNow.diff(fixedNow, "second");
 
 function track(name, props, ...rest) {
 	if (process.env.NODE_ENV === 'test') return;
@@ -96,17 +115,17 @@ async function main(config) {
 	trackingParams.version = version;
 
 	//STORAGE
-	const eventData = hookArray([], { hook, type: "event", config });
-	const userProfilesData = hookArray([], { hook, type: "user", config });
-	const adSpendData = hookArray([], { hook, type: "ad-spend", config });
+	const { simulationName, format } = config;
+	const eventData = await hookArray([], { hook, type: "event", config, format, filepath: `${simulationName}-EVENTS` });
+	const userProfilesData = await hookArray([], { hook, type: "user", config, format, filepath: `${simulationName}-USERS` });
+	const adSpendData = await hookArray([], { hook, type: "ad-spend", config, format, filepath: `${simulationName}-AD-SPEND` });
 	const scdTableKeys = Object.keys(scdProps);
-	const scdTableData = [];
-	for (const [index, key] of scdTableKeys.entries()) {
-		scdTableData[index] = hookArray([], { hook, type: "scd", config, scdKey: key });
-	}
-	const groupProfilesData = hookArray([], { hook, type: "group", config });
-	const lookupTableData = hookArray([], { hook, type: "lookup", config });
-	const mirrorEventData = hookArray([], { hook, type: "mirror", config });
+	const scdTableData = await Promise.all(scdTableKeys.map(async (key) =>
+		await hookArray([], { hook, type: "scd", config, format, scdKey: key, filepath: `${simulationName}-SCD-${key}` })
+	));
+	const groupProfilesData = await hookArray([], { hook, type: "group", config, format, filepath: `${simulationName}-GROUPS` });
+	const lookupTableData = await hookArray([], { hook, type: "lookup", config, format, filepath: `${simulationName}-LOOKUP` });
+	const mirrorEventData = await hookArray([], { hook, type: "mirror", config, format, filepath: `${simulationName}-MIRROR` });
 
 	STORAGE = { eventData, userProfilesData, scdTableData, groupProfilesData, lookupTableData, mirrorEventData, adSpendData };
 
@@ -135,16 +154,16 @@ async function main(config) {
 	if (hasAdSpend) {
 		const days = u.datesBetween(epochStart, epochEnd);
 		for (const day of days) {
-			const dailySpendData = makeAdSpend(day);
+			const dailySpendData = await makeAdSpend(day);
 			for (const spendEvent of dailySpendData) {
-				adSpendData.hookPush(spendEvent);
+				await adSpendData.hookPush(spendEvent);
 			}
 		}
 
 	}
 
 	//CLEAN UP
-	scdTableData.forEach((table, index) => scdTableData[index] = table.flat());
+	// scdTableData.forEach((table, index) => scdTableData[index] = table.flat());
 
 	log("\n");
 
@@ -154,15 +173,16 @@ async function main(config) {
 		const groupCardinality = groupPair[1];
 		const groupProfiles = [];
 		for (let i = 1; i < groupCardinality + 1; i++) {
-			u.progress([["groups", i]]);
+			if (VERBOSE) u.progress([["groups", i]]);
+			const props = await makeProfile(groupProps[groupKey]);
 			const group = {
 				[groupKey]: i,
-				...makeProfile(groupProps[groupKey])
+				...props,
 			};
-			group["distinct_id"] = i;
+			group["distinct_id"] = i.toString();
 			groupProfiles.push(group);
 		}
-		groupProfilesData.hookPush({ key: groupKey, data: groupProfiles });
+		await groupProfilesData.hookPush({ key: groupKey, data: groupProfiles });
 	}
 	log("\n");
 
@@ -171,36 +191,21 @@ async function main(config) {
 		const { key, entries, attributes } = lookupTable;
 		const data = [];
 		for (let i = 1; i < entries + 1; i++) {
-			u.progress([["lookups", i]]);
+			if (VERBOSE) u.progress([["lookups", i]]);
+			const props = await makeProfile(attributes);
 			const item = {
 				[key]: i,
-				...makeProfile(attributes),
+				...props,
 			};
 			data.push(item);
 		}
-		lookupTableData.hookPush({ key, data });
+		await lookupTableData.hookPush({ key, data });
 	}
 	log("\n");
 
-	// SHIFT TIME
-	const actualNow = dayjs();
-	const fixedNow = dayjs.unix(global.NOW);
-	const timeShift = actualNow.diff(fixedNow, "second");
-
-	eventData.forEach((event) => {
-		try {
-			const newTime = dayjs(event.time).add(timeShift, "second");
-			event.time = newTime.toISOString();
-			if (epochStart && newTime.unix() < epochStart) event = {};
-			if (epochEnd && newTime.unix() > (epochEnd - 60 * 60)) event = {};
-		}
-		catch (e) {
-			//noop
-		}
-	});
 
 	// MIRROR
-	if (Object.keys(mirrorProps)) makeMirror(config, STORAGE);
+	if (Object.keys(mirrorProps).length) await makeMirror(config, STORAGE);
 
 
 	log("\n");
@@ -209,7 +214,7 @@ async function main(config) {
 	// draw charts
 	const { makeChart } = config;
 	if (makeChart) {
-		const bornEvents = config.events?.filter((e) => e.isFirstEvent)?.map(e => e.event) || [];
+		const bornEvents = config.events?.filter((e) => e?.isFirstEvent)?.map(e => e.event) || [];
 		const bornFunnels = config.funnels?.filter((f) => f.isFirstFunnel)?.map(f => f.sequence[0]) || [];
 		const bornBehaviors = [...bornEvents, ...bornFunnels];
 		const chart = await generateLineChart(eventData, bornBehaviors, makeChart);
@@ -227,7 +232,21 @@ async function main(config) {
 
 	// write to disk and/or send to mixpanel
 	let files;
-	if (writeToDisk) files = await writeFiles(config, STORAGE);
+	// if (writeToDisk && !isBATCH_MODE) files = await writeFiles(config, STORAGE);
+	if (writeToDisk) {
+		for (const key in STORAGE) {
+			const table = STORAGE[key];
+			if (table.length && typeof table.flush === "function") {
+				await table.flush();
+			} else {
+				if (Array.isArray(table) && typeof table[0]?.flush === "function") {
+					for (const subTable of table) {
+						await subTable.flush();
+					}
+				}
+			}
+		}
+	}
 	let importResults;
 	if (token) importResults = await sendToMixpanel(config, STORAGE);
 
@@ -261,9 +280,9 @@ GENERATORS
  * @param  {Object} [superProps]
  * @param  {Object} [groupKeys]
  * @param  {Boolean} [isFirstEvent]
- * @return {EventSchema}
+ * @return {Promise<EventSchema>}
  */
-function makeEvent(distinct_id, earliestTime, chosenEvent, anonymousIds, sessionIds, superProps, groupKeys, isFirstEvent) {
+async function makeEvent(distinct_id, earliestTime, chosenEvent, anonymousIds, sessionIds, superProps, groupKeys, isFirstEvent) {
 	operations++;
 	//todo... this takes too many params!
 	if (!distinct_id) throw new Error("no distinct_id");
@@ -387,6 +406,12 @@ function makeEvent(distinct_id, earliestTime, chosenEvent, anonymousIds, session
 	//make $insert_id
 	eventTemplate.insert_id = md5(JSON.stringify(eventTemplate));
 
+	//time shift to present
+	const newTime = dayjs(eventTemplate.time).add(timeShift, "second");
+	eventTemplate.time = newTime.toISOString();
+
+
+
 	return eventTemplate;
 }
 
@@ -399,17 +424,17 @@ function makeEvent(distinct_id, earliestTime, chosenEvent, anonymousIds, session
  * @param  {UserProfile | Object} [profile]
  * @param  {Record<string, SCDTableRow[]>} [scd]
  * @param  {Config} [config]
- * @return {[EventSchema[], Boolean]}
+ * @return {Promise<[EventSchema[], Boolean]>}
  */
-function makeFunnel(funnel, user, firstEventTime, profile, scd, config) {
+async function makeFunnel(funnel, user, firstEventTime, profile, scd, config) {
 	if (!funnel) throw new Error("no funnel");
 	if (!user) throw new Error("no user");
 	if (!profile) profile = {};
 	if (!scd) scd = {};
 
 	const chance = u.getChance();
-	const { hook = (a) => a } = config;
-	hook(funnel, "funnel-pre", { user, profile, scd, funnel, config });
+	const { hook = async (a) => a } = config;
+	await hook(funnel, "funnel-pre", { user, profile, scd, funnel, config });
 	let {
 		sequence,
 		conversionRate = 50,
@@ -543,30 +568,43 @@ function makeFunnel(funnel, user, firstEventTime, profile, scd, config) {
 
 	const earliestTime = firstEventTime || dayjs(created).unix();
 	let funnelStartTime;
-	let finalEvents = funnelActualEventsWithOffset
-		.map((event, index) => {
-			const newEvent = makeEvent(distinct_id, earliestTime, event, anonymousIds, sessionIds, {}, groupKeys);
+	let finalEvents = await Promise.all(funnelActualEventsWithOffset
+		.map(async (event, index) => {
+			const newEvent = await makeEvent(distinct_id, earliestTime, event, anonymousIds, sessionIds, {}, groupKeys);
 			if (index === 0) {
 				funnelStartTime = dayjs(newEvent.time);
 				delete newEvent.relativeTimeMs;
-				return newEvent;
+				return Promise.resolve(newEvent);
 			}
 			try {
 				newEvent.time = dayjs(funnelStartTime).add(event.relativeTimeMs, "milliseconds").toISOString();
 				delete newEvent.relativeTimeMs;
-				return newEvent;
+				return Promise.resolve(newEvent);
 			}
 			catch (e) {
+				//shouldn't happen
 				debugger;
 			}
-		});
+		}));
 
 
-	hook(finalEvents, "funnel-post", { user, profile, scd, funnel, config });
+	await hook(finalEvents, "funnel-post", { user, profile, scd, funnel, config });
 	return [finalEvents, doesUserConvert];
 }
 
-function makeProfile(props, defaults) {
+/**
+ * a function that creates a profile (user or group)
+ * @overload
+ * @param  {{[key: string]: ValueValid}} props
+ * @param  {{[key: string]: ValueValid}} [defaults]
+ * @returns {Promise<UserProfile>}
+ * 
+ * @overload
+ * @param  {{[key: string]: ValueValid}} props
+ * @param  {{[key: string]: ValueValid}} [defaults]
+ * @returns {Promise<GroupProfile>}
+ */
+async function makeProfile(props, defaults) {
 	operations++;
 
 	const profile = {
@@ -594,9 +632,9 @@ function makeProfile(props, defaults) {
  * @param  {string} distinct_id
  * @param  {number} mutations
  * @param  {string} created
- * @return {SCDTableRow[]}
+ * @return {Promise<SCDTableRow[]>}
  */
-function makeSCD(prop, scdKey, distinct_id, mutations, created) {
+async function makeSCD(prop, scdKey, distinct_id, mutations, created) {
 	if (JSON.stringify(prop) === "{}") return [];
 	if (JSON.stringify(prop) === "[]") return [];
 	const scdEntries = [];
@@ -606,7 +644,7 @@ function makeSCD(prop, scdKey, distinct_id, mutations, created) {
 	for (let i = 0; i < mutations; i++) {
 		operations++;
 		if (lastInserted.isAfter(dayjs())) break;
-		const scd = makeProfile({ [scdKey]: prop }, { distinct_id });
+		const scd = await makeProfile({ [scdKey]: prop }, { distinct_id });
 		scd.startTime = lastInserted.toISOString();
 		lastInserted = lastInserted.add(u.integer(1, 1000), "seconds");
 		scd.insertTime = lastInserted.toISOString();
@@ -622,8 +660,9 @@ function makeSCD(prop, scdKey, distinct_id, mutations, created) {
 /**
  * creates ad spend events for a given day for all campaigns in default campaigns
  * @param  {string} day
+ * @return {Promise<EventSchema[]>}
  */
-function makeAdSpend(day, campaigns = CAMPAIGNS) {
+async function makeAdSpend(day, campaigns = CAMPAIGNS) {
 	operations++;
 	const chance = u.getChance();
 	const adSpendEvents = [];
@@ -650,18 +689,22 @@ function makeAdSpend(day, campaigns = CAMPAIGNS) {
 			const utm_content = u.choose(u.pickAWinner(network.utm_content)());
 			const utm_term = u.choose(u.pickAWinner(network.utm_term)());
 			//each of these is a campaign
+			const id = network.utm_source[0] + '-' + campaign;
+			const uid = md5(id);
 			const adSpendEvent = {
 				event: "$ad_spend",
 				time: day,
 				source: 'dm4',
 				utm_campaign: campaign,
-				campaign_id: md5(network.utm_source[0] + '-' + campaign),
+				campaign_id: id,
+				insert_id: uid,
 				network: network.utm_source[0].toUpperCase(),
 				distinct_id: network.utm_source[0].toUpperCase(),
 				utm_source: network.utm_source[0],
 				utm_medium,
 				utm_content,
 				utm_term,
+
 
 				clicks,
 				views,
@@ -682,8 +725,9 @@ function makeAdSpend(day, campaigns = CAMPAIGNS) {
  * depending on the mirror strategy
  * @param {Config} config
  * @param {Storage} storage
+ * @return {Promise<void>}
  */
-function makeMirror(config, storage) {
+async function makeMirror(config, storage) {
 	const { mirrorProps } = config;
 	const { eventData, mirrorEventData } = storage;
 	const now = dayjs();
@@ -727,7 +771,7 @@ function makeMirror(config, storage) {
 		}
 
 		const mirrorDataPoint = newEvent ? newEvent : oldEvent;
-		mirrorEventData.hookPush(mirrorDataPoint);
+		await mirrorEventData.hookPush(mirrorDataPoint);
 
 	}
 }
@@ -744,19 +788,30 @@ ORCHESTRATORS
  * a loop that creates users and their events; the loop is inside this function
  * @param  {Config} config
  * @param  {Storage} storage
- * @return {void}
+ * @return {Promise<void>}
  */
 async function userLoop(config, storage) {
 	const chance = u.getChance();
-	const { numUsers, numDays, numEvents, isAnonymous, hasAvatar, hasAnonIds, hasSessionIds, hasLocation, funnels, userProps, scdProps } = config;
+	const {
+		verbose,
+		numUsers,
+		numEvents,
+		isAnonymous,
+		hasAvatar,
+		hasAnonIds,
+		hasSessionIds,
+		hasLocation,
+		funnels,
+		userProps,
+		scdProps,
+	} = config;
 	const { eventData, userProfilesData, scdTableData } = storage;
 	const avgEvPerUser = numEvents / numUsers;
-
-	const userPromises = [];
+	let createdEvents = 0;
 
 	for (let i = 1; i < numUsers + 1; i++) {
-		userPromises.push(new Promise((resolve) => {
-			u.progress([["users", i], ["events", eventData.length]]);
+		await USER_CONN(async () => {
+			if (verbose) u.progress([["users", i], ["events", eventData.length]]);
 			const userId = chance.guid();
 			const user = u.person(userId, numDays, isAnonymous, hasAvatar, hasAnonIds, hasSessionIds);
 			const { distinct_id, created } = user;
@@ -769,21 +824,19 @@ async function userLoop(config, storage) {
 				}
 			}
 
-			// profile creation
-			const profile = makeProfile(userProps, user);
-			userProfilesData.hookPush(profile);
+			// Profile creation
+			const profile = await makeProfile(userProps, user);
+			await userProfilesData.hookPush(profile);
 
-			// scd creation
+			// SCD creation
 			const scdTableKeys = Object.keys(scdProps);
-
-			/** @type {Record<string, SCDTableRow[]>} */
 			const userSCD = {};
 			for (const [index, key] of scdTableKeys.entries()) {
 				const mutations = chance.integer({ min: 1, max: 10 });
-				const changes = makeSCD(scdProps[key], key, distinct_id, mutations, created);
+				const changes = await makeSCD(scdProps[key], key, distinct_id, mutations, created);
 				// @ts-ignore
 				userSCD[key] = changes;
-				scdTableData[index].hookPush(changes);
+				await scdTableData[index].hookPush(changes);
 			}
 
 			let numEventsThisUserWillPreform = Math.floor(chance.normal({
@@ -791,56 +844,51 @@ async function userLoop(config, storage) {
 				dev: avgEvPerUser / u.integer(u.integer(2, 5), u.integer(2, 7))
 			}) * 0.714159265359);
 
-			// power users do 5x more events
+			// Power users and Shitty users logic...
 			chance.bool({ likelihood: 20 }) ? numEventsThisUserWillPreform *= 5 : null;
-
-			// shitty users do 1/3 as many events
 			chance.bool({ likelihood: 15 }) ? numEventsThisUserWillPreform *= 0.333 : null;
-
 			numEventsThisUserWillPreform = Math.round(numEventsThisUserWillPreform);
 
 			let userFirstEventTime;
 
-			// first funnel
+			// First funnel logic...
 			const firstFunnels = funnels.filter((f) => f.isFirstFunnel).reduce(u.weighFunnels, []);
 			const usageFunnels = funnels.filter((f) => !f.isFirstFunnel).reduce(u.weighFunnels, []);
 			const userIsBornInDataset = chance.bool({ likelihood: 30 });
 
 			if (firstFunnels.length && userIsBornInDataset) {
-				/** @type {Funnel} */
 				const firstFunnel = chance.pickone(firstFunnels, user);
-
-				const [data, userConverted] = makeFunnel(firstFunnel, user, null, profile, userSCD, config);
+				const [data, userConverted] = await makeFunnel(firstFunnel, user, null, profile, userSCD, config);
 				userFirstEventTime = dayjs(data[0].time).unix();
 				numEventsPreformed += data.length;
-				eventData.hookPush(data);
-				if (!userConverted) return resolve();
-			} else if (firstFunnels.length && !userIsBornInDataset) {
-				userFirstEventTime = dayjs(created).unix();
+				await eventData.hookPush(data);
+				if (!userConverted) {
+					if (verbose) u.progress([["users", i], ["events", eventData.length]]);
+					return;
+				}
 			} else {
 				userFirstEventTime = dayjs(created).unix();
 			}
 
 			while (numEventsPreformed < numEventsThisUserWillPreform) {
 				if (usageFunnels.length) {
-					/** @type {Funnel} */
 					const currentFunnel = chance.pickone(usageFunnels);
-					const [data, userConverted] = makeFunnel(currentFunnel, user, userFirstEventTime, profile, userSCD, config);
+					const [data, userConverted] = await makeFunnel(currentFunnel, user, userFirstEventTime, profile, userSCD, config);
 					numEventsPreformed += data.length;
-					eventData.hookPush(data);
+					await eventData.hookPush(data);
 				} else {
-					const data = makeEvent(distinct_id, userFirstEventTime, u.choose(config.events), user.anonymousIds, user.sessionIds, {}, config.groupKeys, true);
+					const data = await makeEvent(distinct_id, userFirstEventTime, u.choose(config.events), user.anonymousIds, user.sessionIds, {}, config.groupKeys, true);
 					numEventsPreformed++;
-					eventData.hookPush(data);
+					await eventData.hookPush(data);
 				}
 			}
-			resolve();
-		}));
+
+			if (verbose) u.progress([["users", i], ["events", eventData.length]]);
+		});
 	}
 
-	// Execute all user promises concurrently
-	await Promise.all(userPromises);
 }
+
 
 
 /**
@@ -1030,7 +1078,7 @@ function validateDungeonConfig(config) {
 	config.simulationName = name || makeName();
 	config.name = config.simulationName;
 
-	
+
 	config.seed = seed;
 	config.numEvents = numEvents;
 	config.numUsers = numUsers;
@@ -1078,64 +1126,90 @@ function validateDungeonConfig(config) {
  * our meta programming function which lets you mutate items as they are pushed into an array
  * @param  {any[]} arr
  * @param  {hookArrayOptions} opts
- * @returns {hookArray}}
+ * @returns {Promise<hookArray>}
  */
-function hookArray(arr = [], opts = {}) {
-	const { hook = a => a, type = "", ...rest } = opts;
+async function hookArray(arr = [], opts = {}) {
+	const { hook = a => a, type = "", filepath = "./defaultFile", format = "csv", ...rest } = opts;
+	let batch = 0;
+	let writeDir;
+	const dataFolder = path.resolve("./data");
+	if (existsSync(dataFolder)) writeDir = dataFolder;
+	else writeDir = path.resolve("./");
 
-	function transformThenPush(item) {
-		if (item === null) return false;
-		if (item === undefined) return false;
-		if (typeof item === 'object') {
-			if (Object.keys(item).length === 0) return false;
-		}
+	function getWritePath(batch) {
+		return path.join(writeDir, `${filepath}-${batch.toString()}.${format}`);
+	}
 
-		//hook is passed an array 
+	async function transformThenPush(item) {
+		if (item === null || item === undefined) return false;
+		if (typeof item === 'object' && Object.keys(item).length === 0) return false;
+
 		if (Array.isArray(item)) {
 			for (const i of item) {
 				try {
-					const enriched = hook(i, type, rest);
+					const enriched = await hook(i, type, rest);
 					if (Array.isArray(enriched)) enriched.forEach(e => arr.push(e));
 					else arr.push(enriched);
-
-				}
-				catch (e) {
+				} catch (e) {
 					console.error(`\n\nyour hook had an error\n\n`, e);
 					arr.push(i);
-					return false;
 				}
-
 			}
-			return true;
-		}
-
-		//hook is passed a single item
-		else {
+		} else {
 			try {
-				const enriched = hook(item, type, rest);
+				const enriched = await hook(item, type, rest);
 				if (Array.isArray(enriched)) enriched.forEach(e => arr.push(e));
 				else arr.push(enriched);
-				return true;
-			}
-			catch (e) {
+			} catch (e) {
 				console.error(`\n\nyour hook had an error\n\n`, e);
 				arr.push(item);
-				return false;
 			}
 		}
 
+		if (arr.length > BATCH_SIZE) {
+			isBATCH_MODE = true;
+			batch++;
+			const writePath = getWritePath(batch);
+			const writeResult = await FILE_CONN(() => writeToDisk(arr, { writePath }));
+			return writeResult;
+		} else {
+			return Promise.resolve(false);
+		}
 	}
 
-	/** @type {hookArray} */
-	// @ts-ignore
+	async function writeToDisk(data, options) {
+		const { writePath } = options;
+		let writeResult;
+		switch (format) {
+			case "csv":
+				writeResult = await u.streamCSV(writePath, data);
+				break;
+			case "json":
+				writeResult = await u.streamJSON(writePath, data);
+				break;
+			default:
+				throw new Error(`format ${format} is not supported`);
+		}
+		data.length = 0;
+		return writeResult;
+	}
+
+	async function flush() {
+		if (arr.length > 0) {
+			batch++;
+			const writePath = getWritePath(batch);
+			await FILE_CONN(() => writeToDisk(arr, { writePath }));
+			arr.length = 0; // Clear the array after writing to disk
+		}
+	}
+
 	const enrichedArray = arr;
 
-
 	enrichedArray.hookPush = transformThenPush;
-
+	enrichedArray.flush = flush;
 
 	return enrichedArray;
-};
+}
 
 
 /**
