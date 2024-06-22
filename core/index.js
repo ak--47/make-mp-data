@@ -7,7 +7,6 @@ ak@mixpanel.com
 */
 
 //todo: lookups + groups are not batching writes properly (also not counting ops correctly)
-//todo: every user has the same created date
 
 // think more about batching
 //todo: organize deps
@@ -57,7 +56,7 @@ const { campaigns, devices, locations } = require('./defaults.js');
 let VERBOSE = false;
 let isCLI = false;
 let isBATCH_MODE = false; // if we are running in batch mode, we MUST write to disk before we can send to mixpanel
-let BATCH_SIZE = 5000 || 250_000;
+let BATCH_SIZE = 250_000;
 let operations = 0;
 let eventCount = 0;
 let CAMPAIGNS;
@@ -632,9 +631,9 @@ async function makeProfile(props, defaults) {
 		...defaults,
 	};
 
-	// anonymous and session ids
-	if (!CONFIG?.hasAnonIds) delete profile.anonymousIds;
-	if (!CONFIG?.hasSessionIds) delete profile.hasSessionIds;
+	// // anonymous and session ids
+	// if (!CONFIG?.hasAnonIds) delete profile.anonymousIds;
+	// if (!CONFIG?.hasSessionIds) delete profile.hasSessionIds;
 
 	for (const key in props) {
 		try {
@@ -835,7 +834,7 @@ async function userLoop(config, storage) {
 		await USER_CONN(async () => {
 			if (verbose) u.progress([["users", i], ["events", eventCount]]);
 			const userId = chance.guid();
-			const user = u.person(userId, numDays, isAnonymous, hasAvatar, hasAnonIds, hasSessionIds);
+			const user = u.generateUser(userId, { numDays, isAnonymous, hasAvatar, hasAnonIds, hasSessionIds });
 			const { distinct_id, created } = user;
 			let numEventsPreformed = 0;
 

@@ -776,8 +776,9 @@ CORE
 */
 
 //the function which generates $distinct_id + $anonymous_ids, $session_ids, and created, skewing towards the present
-function generateUser(user_id, numDays, amplitude = 1, frequency = 1, skew = 1) {
+function generateUser(user_id, opts, amplitude = 1, frequency = 1, skew = 1) {
 	const chance = getChance();
+	const { numDays, isAnonymous, hasAvatar, hasAnonIds, hasSessionIds } = opts;
 	// Uniformly distributed `u`, then skew applied
 	let u = Math.pow(chance.random(), skew);
 
@@ -789,7 +790,7 @@ function generateUser(user_id, numDays, amplitude = 1, frequency = 1, skew = 1) 
 
 	// Clamp values to ensure they are within the desired range
 	daysAgoBorn = Math.min(daysAgoBorn, numDays);
-	const props = person(numDays);
+	const props = person(user_id, daysAgoBorn, isAnonymous, hasAvatar, hasAnonIds, hasSessionIds);
 
 	const user = {
 		distinct_id: user_id,
@@ -902,8 +903,9 @@ function person(userId, bornDaysAgo = 30, isAnonymous = false, hasAvatar = false
 			const anonId = uid(42);
 			user.anonymousIds.push(anonId);
 		}
-
 	}
+
+	if (!hasAnonIds) delete user.anonymousIds;
 
 	//session Ids
 	if (hasSessionIds) {
@@ -913,6 +915,8 @@ function person(userId, bornDaysAgo = 30, isAnonymous = false, hasAvatar = false
 			user.sessionIds.push(sessionId);
 		}
 	}
+
+	if (!hasSessionIds) delete user.sessionIds;
 
 	return user;
 };
@@ -1016,7 +1020,7 @@ module.exports = {
 	optimizedBoxMuller,
 	buildFileNames,
 	streamJSON,
-	streamCSV,	
+	streamCSV,
 	datesBetween,
 	weighChoices
 };
