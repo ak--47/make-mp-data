@@ -15,7 +15,6 @@ by ak@mixpanel.com
 
 function cliParams() {
 	console.log(hero);
-	// @ts-ignore
 	const args = yargs(process.argv.splice(2))
 		.scriptName("make-mp-data")
 		.usage(`\nusage:\nnpx $0 [dataModel.js] [options]

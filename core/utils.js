@@ -738,7 +738,6 @@ function buildFileNames(config) {
  * @param  {[string, number][]} arrayOfArrays
  */
 function progress(arrayOfArrays) {
-	// @ts-ignore
 	readline.cursorTo(process.stdout, 0);
 	let message = "";
 	for (const status of arrayOfArrays) {
@@ -864,7 +863,6 @@ function person(userId, bornDaysAgo = 30, isAnonymous = false, hasAvatar = false
 	const l = chance.letter.bind(chance);
 	let gender = chance.pickone(['male', 'female']);
 	if (!gender) gender = "female";
-	// @ts-ignore
 	let first = chance.first({ gender });
 	let last = chance.last();
 	let name = `${first} ${last}`;

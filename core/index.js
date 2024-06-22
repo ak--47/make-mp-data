@@ -6,7 +6,6 @@ by AK
 ak@mixpanel.com
 */
 
-//todo: lookups + groups are not batching writes properly (also not counting ops correctly)
 
 // think more about batching
 //todo: organize deps
@@ -56,7 +55,7 @@ const { campaigns, devices, locations } = require('./defaults.js');
 let VERBOSE = false;
 let isCLI = false;
 let isBATCH_MODE = false; // if we are running in batch mode, we MUST write to disk before we can send to mixpanel
-let BATCH_SIZE = 250_000;
+let BATCH_SIZE = 500_000;
 let operations = 0;
 let eventCount = 0;
 let CAMPAIGNS;
@@ -185,7 +184,6 @@ async function main(config) {
 	for (const [index, groupPair] of groupKeys.entries()) {
 		const groupKey = groupPair[0];
 		const groupCardinality = groupPair[1];
-		const groupProfiles = [];
 		for (let i = 1; i < groupCardinality + 1; i++) {
 			if (VERBOSE) u.progress([["groups", i]]);
 			const props = await makeProfile(groupProps[groupKey]);
@@ -194,16 +192,14 @@ async function main(config) {
 				...props,
 			};
 			group["distinct_id"] = i.toString();
-			groupProfiles.push(group);
+			await groupProfilesData[index].hookPush(group);
 		}
-		await groupProfilesData[index].hookPush(groupProfiles);
 	}
 	log("\n");
 
 	//LOOKUP TABLES
 	for (const [index, lookupTable] of lookupTables.entries()) {
 		const { key, entries, attributes } = lookupTable;
-		const data = [];
 		for (let i = 1; i < entries + 1; i++) {
 			if (VERBOSE) u.progress([["lookups", i]]);
 			const props = await makeProfile(attributes);
@@ -211,9 +207,9 @@ async function main(config) {
 				[key]: i,
 				...props,
 			};
-			data.push(item);
+			await lookupTableData[index].hookPush(item);
 		}
-		await lookupTableData[index].hookPush(data);
+
 	}
 	log("\n");
 
@@ -654,34 +650,34 @@ async function makeProfile(props, defaults) {
  * @return {Promise<SCDSchema[]>}
  */
 async function makeSCD(prop, scdKey, distinct_id, mutations, created) {
-    if (JSON.stringify(prop) === "{}" || JSON.stringify(prop) === "[]") return [];
-    const scdEntries = [];
-    let lastInserted = dayjs(created);
-    const deltaDays = dayjs().diff(lastInserted, "day");
+	if (JSON.stringify(prop) === "{}" || JSON.stringify(prop) === "[]") return [];
+	const scdEntries = [];
+	let lastInserted = dayjs(created);
+	const deltaDays = dayjs().diff(lastInserted, "day");
 
-    for (let i = 0; i < mutations; i++) {
-        if (lastInserted.isAfter(dayjs())) break;
-        let scd = await makeProfile({ [scdKey]: prop }, { distinct_id });
+	for (let i = 0; i < mutations; i++) {
+		if (lastInserted.isAfter(dayjs())) break;
+		let scd = await makeProfile({ [scdKey]: prop }, { distinct_id });
 
-        // Explicitly constructing SCDSchema object with all required properties
-        const scdEntry = {
-            ...scd, // spread existing properties
-            distinct_id: scd.distinct_id || distinct_id, // ensure distinct_id is set
-            insertTime: lastInserted.add(u.integer(1, 1000), "seconds").toISOString(),
-            startTime: lastInserted.toISOString()
-        };
+		// Explicitly constructing SCDSchema object with all required properties
+		const scdEntry = {
+			...scd, // spread existing properties
+			distinct_id: scd.distinct_id || distinct_id, // ensure distinct_id is set
+			insertTime: lastInserted.add(u.integer(1, 1000), "seconds").toISOString(),
+			startTime: lastInserted.toISOString()
+		};
 
-        // Ensure TypeScript sees all required properties are set
-        if (scdEntry.hasOwnProperty('insertTime') && scdEntry.hasOwnProperty('startTime')) {
-            scdEntries.push(scdEntry);
-        }
+		// Ensure TypeScript sees all required properties are set
+		if (scdEntry.hasOwnProperty('insertTime') && scdEntry.hasOwnProperty('startTime')) {
+			scdEntries.push(scdEntry);
+		}
 
-        lastInserted = lastInserted
-            .add(u.integer(0, deltaDays), "day")
-            .subtract(u.integer(1, 1000), "seconds");
-    }
+		lastInserted = lastInserted
+			.add(u.integer(0, deltaDays), "day")
+			.subtract(u.integer(1, 1000), "seconds");
+	}
 
-    return scdEntries;
+	return scdEntries;
 }
 
 
@@ -861,9 +857,8 @@ async function userLoop(config, storage) {
 			const scdTableKeys = Object.keys(scdProps);
 			const userSCD = {};
 			for (const [index, key] of scdTableKeys.entries()) {
-				const mutations = chance.integer({ min: 1, max: 10 }); //todo: configurable?
+				const mutations = chance.integer({ min: 1, max: 10 }); //todo: configurable mutations?
 				const changes = await makeSCD(scdProps[key], key, distinct_id, mutations, created);
-				// @ts-ignore
 				userSCD[key] = changes;
 				await scdTableData[index].hookPush(changes);
 			}
@@ -921,6 +916,7 @@ async function userLoop(config, storage) {
 
 
 /**
+ * todo: this is no longer used
  * @param  {Config} config
  * @param  {Storage} storage
  */
@@ -972,6 +968,7 @@ async function writeFiles(config, storage) {
 
 /**
  * sends the data to mixpanel
+ * todo: this needs attention
  * @param  {Config} config
  * @param  {Storage} storage
  */
@@ -1306,10 +1303,8 @@ function inferFunnels(events) {
 // this is for CLI
 if (require.main === module) {
 	isCLI = true;
-	const args = getCliParams();
-	// @ts-ignore
+	const args = /** @type {Config} */ (getCliParams());
 	let { token, seed, format, numDays, numUsers, numEvents, region, writeToDisk, complex = false, hasSessionIds, hasAnonIds } = args;
-	// @ts-ignore
 	const suppliedConfig = args._[0];
 
 	//if the user specifies an separate config file

@@ -311,7 +311,7 @@ describe('generators', () => {
 			}
 		};
 		await STORAGE.eventData.hookPush(oldEvent);
-		//ugh sidefx
+		//ugh side fx
 		await makeMirror(config, STORAGE);
 		const [newData] = STORAGE.mirrorEventData;
 		expect(newData).toHaveProperty('newProp', "new");

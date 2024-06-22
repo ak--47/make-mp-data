@@ -24,4 +24,4 @@ async function genViz(soup) {
 execSync.execSync('npm run prune');
 // @ts-ignore
 await Promise.all(TEST_CASES.map(genViz));
-// await genViz(TEST_CASES[0]);
+console.log('done');

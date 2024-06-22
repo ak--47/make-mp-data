@@ -6,6 +6,8 @@
  */
 
 
+/* cSpell:disable */
+
 
 
 const Chance = require('chance');
@@ -21,8 +23,8 @@ const config = {
 	token: "",
 	seed: "lets go",
 	numDays: 90, //how many days worth of data
-	numEvents: 1_000_000, //how many events
-	numUsers: 42_000, //how many users	
+	numEvents: 100_000, //how many events
+	numUsers: 10_000, //how many users	
 	format: 'csv', //csv or json
 	region: "US",
 	hasAnonIds: true, //if true, anonymousIds are created for each user
@@ -97,8 +99,8 @@ const config = {
 	},
 	mirrorProps: {},
 	groupKeys: [
-		["companies", 100000],
-		["servers", 300000],
+		["companies", 100_000],
+		["servers", 3_000_000],
 		["crews", 1000],
 
 	],
@@ -121,7 +123,7 @@ const config = {
 	},
 	lookupTables: [{
 			key: "product_id",
-			entries: 500000,
+			entries: 2_000_000,
 			attributes: {
 				category: [
 					"Books", "Movies", "Music", "Games", "Electronics", "Computers", "Smart Home", "Home", "Garden & Tools", "Pet Supplies", "Food & Grocery", "Beauty", "Health", "Toys", "Kids", "Baby", "Handmade", "Sports", "Outdoors", "Automotive", "Industrial", "Entertainment", "Art"
@@ -137,7 +139,7 @@ const config = {
 		},
 		{
 			key: "video_id",
-			entries: 1000000,
+			entries: 10_000_000,
 			attributes: {
 				isFlagged: [true, false, false, false, false],
 				copyright: ["all rights reserved", "creative commons", "creative commons", "public domain", "fair use"],
