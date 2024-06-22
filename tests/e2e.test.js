@@ -50,9 +50,9 @@ describe('module', () => {
 		const results = await generate({ ...complex, verbose: true, writeToDisk: false, numEvents: 1100, numUsers: 100, seed: "deal with it" });
 		const { eventData, groupProfilesData, lookupTableData, scdTableData, userProfilesData } = results;
 		expect(eventData.length).toBeGreaterThan(980);
-		expect(groupProfilesData[0]?.data?.length).toBe(500);
+		expect(groupProfilesData[0]?.length).toBe(500);
 		expect(lookupTableData.length).toBe(2);
-		expect(lookupTableData[0].data.length).toBe(1000);
+		expect(lookupTableData[0].length).toBe(1000);
 		expect(scdTableData.length).toBe(5);
 		expect(userProfilesData.length).toBe(100);
 
@@ -64,9 +64,9 @@ describe('module', () => {
 		const { eventData, groupProfilesData, scdTableData, userProfilesData } = results;
 		expect(eventData.length).toBeGreaterThan(980);
 		expect(groupProfilesData.length).toBe(3);
-		expect(groupProfilesData[0]?.data?.length).toBe(5000);
-		expect(groupProfilesData[1]?.data?.length).toBe(500);
-		expect(groupProfilesData[2]?.data?.length).toBe(50);
+		expect(groupProfilesData[0]?.length).toBe(5000);
+		expect(groupProfilesData[1]?.length).toBe(500);
+		expect(groupProfilesData[2]?.length).toBe(50);
 		expect(scdTableData.length).toBe(2);
 		expect(scdTableData[0]?.length).toBeGreaterThan(200);
 		expect(scdTableData[1]?.length).toBeGreaterThan(200);

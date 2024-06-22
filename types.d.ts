@@ -94,8 +94,8 @@ declare namespace main {
   export interface hookArrayOptions<T> {
     hook?: Hook<T>;
     type?: hookTypes;
-	filename?: string;
-	format?: "csv" | "json" | string;
+    filename?: string;
+    format?: "csv" | "json" | string;
     [key: string]: any;
   }
 
@@ -104,7 +104,9 @@ declare namespace main {
    */
   export interface EnrichedArray<T> extends Array<T> {
     hookPush: (item: T | T[]) => any;
-	flush: () => any;
+    flush: () => void;
+    getWriteDir: () => string;
+    [key: string]: any;
   }
 
   export type AllData =
@@ -113,7 +115,7 @@ declare namespace main {
     | EnrichedArray<GroupProfileSchema>
     | EnrichedArray<LookupTableSchema>
     | EnrichedArray<SCDSchema>
-	| any[];
+    | any[];
 
   /**
    * the storage object is a key-value store that holds arrays of data
@@ -122,9 +124,9 @@ declare namespace main {
     eventData?: EnrichedArray<EventSchema>;
     mirrorEventData?: EnrichedArray<EventSchema>;
     userProfilesData?: EnrichedArray<UserProfile>;
-	adSpendData?: EnrichedArray<EventSchema>;
+    adSpendData?: EnrichedArray<EventSchema>;
     groupProfilesData?: EnrichedArray<GroupProfileSchema>[];
-    lookupTableData?: EnrichedArray<LookupTableSchema>[];    
+    lookupTableData?: EnrichedArray<LookupTableSchema>[];
     scdTableData?: EnrichedArray<SCDSchema>[];
   }
 
@@ -301,12 +303,12 @@ declare namespace main {
     lookupTableData: LookupTableData[];
     importResults?: ImportResults;
     files?: string[];
-	time?: {
-		start: number;
-		end: number;
-		delta: number;
-		human: string;
-	}
+    time?: {
+      start: number;
+      end: number;
+      delta: number;
+      human: string;
+    };
   };
 }
 

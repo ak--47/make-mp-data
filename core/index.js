@@ -18,7 +18,7 @@ ak@mixpanel.com
 /** @typedef {import('../types').EventConfig} EventConfig */
 /** @typedef {import('../types').Funnel} Funnel */
 /** @typedef {import('../types').Person} Person */
-/** @typedef {import('../types').SCDSchema} SCDTableRow */
+/** @typedef {import('../types').SCDSchema} SCDSchema */
 /** @typedef {import('../types').UserProfile} UserProfile */
 /** @typedef {import('../types').EventSchema} EventSchema */
 /** @typedef {import('../types').Storage} Storage */
@@ -238,7 +238,7 @@ async function main(config) {
 		jobTimer.stop(false);
 		const { start, end, delta, human } = jobTimer.report(false);
 		// this is awkward, but i couldn't figure out any other way to assert a type in jsdoc
-		const i =  /** @type {unknown} */ (STORAGE);
+		const i =  /** @type {any} */ (STORAGE);
 		i.time = { start, end, delta, human };
 		const j = /** @type {Result} */ (i);
 		return j;
@@ -249,7 +249,6 @@ async function main(config) {
 
 	// write to disk and/or send to mixpanel
 	let files;
-	// if (writeToDisk && !isBATCH_MODE) files = await writeFiles(config, STORAGE);
 	if (writeToDisk) {
 		for (const key in STORAGE) {
 			const table = STORAGE[key];
@@ -442,7 +441,7 @@ async function makeEvent(distinct_id, earliestTime, chosenEvent, anonymousIds, s
  * @param  {Person} user
  * @param  {number} firstEventTime
  * @param  {UserProfile | Object} [profile]
- * @param  {Record<string, SCDTableRow[]>} [scd]
+ * @param  {Record<string, SCDSchema[]> | Object} [scd]
  * @param  {Config} [config]
  * @return {Promise<[EventSchema[], Boolean]>}
  */
@@ -652,30 +651,39 @@ async function makeProfile(props, defaults) {
  * @param  {string} distinct_id
  * @param  {number} mutations
  * @param  {string} created
- * @return {Promise<SCDTableRow[]>}
+ * @return {Promise<SCDSchema[]>}
  */
 async function makeSCD(prop, scdKey, distinct_id, mutations, created) {
-	if (JSON.stringify(prop) === "{}") return [];
-	if (JSON.stringify(prop) === "[]") return [];
-	const scdEntries = [];
-	let lastInserted = dayjs(created);
-	const deltaDays = dayjs().diff(lastInserted, "day");
+    if (JSON.stringify(prop) === "{}" || JSON.stringify(prop) === "[]") return [];
+    const scdEntries = [];
+    let lastInserted = dayjs(created);
+    const deltaDays = dayjs().diff(lastInserted, "day");
 
-	for (let i = 0; i < mutations; i++) {
-		operations++;
-		if (lastInserted.isAfter(dayjs())) break;
-		const scd = await makeProfile({ [scdKey]: prop }, { distinct_id });
-		scd.startTime = lastInserted.toISOString();
-		lastInserted = lastInserted.add(u.integer(1, 1000), "seconds");
-		scd.insertTime = lastInserted.toISOString();
-		scdEntries.push({ ...scd });
-		lastInserted = lastInserted
-			.add(u.integer(0, deltaDays), "day")
-			.subtract(u.integer(1, 1000), "seconds");
-	}
+    for (let i = 0; i < mutations; i++) {
+        if (lastInserted.isAfter(dayjs())) break;
+        let scd = await makeProfile({ [scdKey]: prop }, { distinct_id });
 
-	return scdEntries;
+        // Explicitly constructing SCDSchema object with all required properties
+        const scdEntry = {
+            ...scd, // spread existing properties
+            distinct_id: scd.distinct_id || distinct_id, // ensure distinct_id is set
+            insertTime: lastInserted.add(u.integer(1, 1000), "seconds").toISOString(),
+            startTime: lastInserted.toISOString()
+        };
+
+        // Ensure TypeScript sees all required properties are set
+        if (scdEntry.hasOwnProperty('insertTime') && scdEntry.hasOwnProperty('startTime')) {
+            scdEntries.push(scdEntry);
+        }
+
+        lastInserted = lastInserted
+            .add(u.integer(0, deltaDays), "day")
+            .subtract(u.integer(1, 1000), "seconds");
+    }
+
+    return scdEntries;
 }
+
 
 /**
  * creates ad spend events for a given day for all campaigns in default campaigns
@@ -853,7 +861,7 @@ async function userLoop(config, storage) {
 			const scdTableKeys = Object.keys(scdProps);
 			const userSCD = {};
 			for (const [index, key] of scdTableKeys.entries()) {
-				const mutations = chance.integer({ min: 1, max: 10 });
+				const mutations = chance.integer({ min: 1, max: 10 }); //todo: configurable?
 				const changes = await makeSCD(scdProps[key], key, distinct_id, mutations, created);
 				// @ts-ignore
 				userSCD[key] = changes;
@@ -980,7 +988,7 @@ async function sendToMixpanel(config, storage) {
 		fixData: true,
 		verbose: false,
 		forceStream: true,
-		strict: false, //! sometimes we get events in the future... it happens
+		strict: false,
 		dryRun: false,
 		abridged: false,
 		fixJson: true,
@@ -1017,7 +1025,7 @@ async function sendToMixpanel(config, storage) {
 	if (groupProfilesData) {
 		for (const groupProfiles of groupProfilesData) {
 			const groupKey = groupProfiles?.groupKey;
-			const data = groupProfiles.data;
+			const data = groupProfiles;
 			log(`importing ${groupKey} profiles to mixpanel...\n`);
 			const imported = await mp({ token, groupKey }, clone(data), {
 				recordType: "group",
@@ -1146,7 +1154,7 @@ function validateDungeonConfig(config) {
 /** 
  * our meta programming function which lets you mutate items as they are pushed into an array
  * it also does batching and writing to disk
- * @param  {any[]} arr
+ * @param  {Object} arr
  * @param  {hookArrayOptions} opts
  * @returns {Promise<hookArray>}
  */
@@ -1165,6 +1173,10 @@ async function hookArray(arr = [], opts = {}) {
 		else {
 			return path.join(writeDir, `${filepath}.${format}`);
 		}
+	}
+
+	function getWriteDir() {
+		return path.join(writeDir, `${filepath}.${format}`);
 	}
 
 	async function transformThenPush(item) {
@@ -1235,6 +1247,8 @@ async function hookArray(arr = [], opts = {}) {
 
 	enrichedArray.hookPush = transformThenPush;
 	enrichedArray.flush = flush;
+	enrichedArray.getWriteDir = getWriteDir;
+
 	for (const key in rest) {
 		enrichedArray[key.toString()] = rest[key];
 	}

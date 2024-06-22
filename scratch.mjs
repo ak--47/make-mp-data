@@ -29,7 +29,7 @@ const numEvents = 1000;
 
 /** @type {main.Config} */
 const spec = {
-	...simple,
+	...big,
 	writeToDisk: true,
 	verbose: true,
 	makeChart: false,

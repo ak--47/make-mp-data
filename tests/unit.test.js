@@ -268,19 +268,19 @@ describe('generation', () => {
 	test('user: works', () => {
 		const uuid = { guid: jest.fn().mockReturnValue('uuid-123') };
 		const numDays = 30;
-		const user = generateUser(numDays);
+		const user = generateUser('123', { numDays });
 		expect(user).toHaveProperty('distinct_id');
 		expect(user).toHaveProperty('name');
 		expect(user).toHaveProperty('email');
 		expect(user).not.toHaveProperty('avatar');
 		expect(user).toHaveProperty('created');
-		expect(user).toHaveProperty('anonymousIds');
-		expect(user).toHaveProperty('sessionIds');
+		expect(user).not.toHaveProperty('anonymousIds');
+		expect(user).not.toHaveProperty('sessionIds');
 	});
 
 	test('user: in time range', () => {
 		const numDays = 30;
-		const user = generateUser('uuid-123', numDays);
+		const user = generateUser('uuid-123', { numDays });
 		const createdDate = dayjs(user.created, 'YYYY-MM-DD');
 		expect(createdDate.isValid()).toBeTruthy();
 		expect(createdDate.isBefore(dayjs.unix(global.NOW))).toBeTruthy();
@@ -296,8 +296,8 @@ describe('generation', () => {
 		expect(user).toHaveProperty('email');
 		expect(user).not.toHaveProperty('avatar');
 		expect(user).toHaveProperty('created');
-		expect(user).toHaveProperty('anonymousIds');
-		expect(user).toHaveProperty('sessionIds');
+		expect(user).not.toHaveProperty('anonymousIds');
+		expect(user).not.toHaveProperty('sessionIds');
 	});
 
 	test('person: anon', () => {
@@ -310,8 +310,8 @@ describe('generation', () => {
 		expect(user.email.includes('*')).toBeTruthy();
 		expect(user).not.toHaveProperty('avatar');
 		expect(user).toHaveProperty('created');
-		expect(user).toHaveProperty('anonymousIds');
-		expect(user).toHaveProperty('sessionIds');
+		expect(user).not.toHaveProperty('anonymousIds');
+		expect(user).not.toHaveProperty('sessionIds');
 	});
 
 
