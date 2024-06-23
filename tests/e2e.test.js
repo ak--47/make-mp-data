@@ -7,6 +7,7 @@ const generate = require('../core/index.js');
 require('dotenv').config();
 const { execSync } = require("child_process");
 const u = require('ak-tools');
+const Papa = require('papaparse');
 
 const simple = require('../schemas/simple.js');
 const complex = require('../schemas/complex.js');
@@ -136,13 +137,10 @@ describe('module', () => {
 		const usWriteDir = userProfilesData.getWriteDir();
 		const evWritePath = eventData.getWritePath();
 		const usWritePath = userProfilesData.getWritePath();
-		
+
 		const expectedEvWriteDir = `-EVENTS.json`;
 		const expectedUsWriteDir = `-USERS.json`;
 		const expectedWritePath = `.-part-`;
-
-
-		
 
 		expect(eventFiles.length).toBe(2);
 		expect(userFiles.length).toBe(1);
@@ -182,6 +180,36 @@ describe('module', () => {
 });
 
 describe('cli', () => {
+
+	test('sanity check', async () => {
+		console.log('SANITY TEST');
+		const run = execSync(`node ./core/index.js`)
+		const ending = `enjoy your data! :)`
+		expect(run.toString().trim().endsWith(ending)).toBe(true);
+		const files = (await u.ls('./data')).filter(a => a.includes('.csv'));
+		expect(files.length).toBe(2);
+		const users = files.filter(a => a.includes('USERS'));
+		const events = files.filter(a => a.includes('EVENTS'));
+		expect(users.length).toBe(1);
+		expect(events.length).toBe(1);
+		const eventData = await u.load(events[0]);
+		const userProfilesData = await u.load(users[0]);
+		const parsedEvents = Papa.parse(eventData, { header: true }).data;
+		const parsedUsers = Papa.parse(userProfilesData, { header: true }).data;
+		expect(parsedEvents.length).toBeGreaterThan(42000);
+		expect(parsedUsers.length).toBeGreaterThan(420);
+		expect(parsedUsers.every(u => u.distinct_id)).toBe(true);
+		expect(parsedEvents.every(e => e.event)).toBe(true);
+		expect(parsedEvents.every(e => e.time)).toBe(true);
+		expect(parsedEvents.every(e => e.insert_id)).toBe(true);
+		expect(parsedEvents.every(e => e.device_id || e.user_id)).toBe(true);
+		expect(parsedUsers.every(u => u.name)).toBe(true);
+		expect(parsedUsers.every(u => u.email)).toBe(true);
+		expect(parsedUsers.every(u => u.created)).toBe(true);
+		expect(parsedUsers.every(u => u.avatar)).toBe(false);
+
+		debugger;
+	});
 
 	test('no args', async () => {
 		console.log('BARE CLI TEST');
