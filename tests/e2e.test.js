@@ -129,11 +129,53 @@ describe('module', () => {
 	test('batch writes', async () => {
 		const results = await generate({ ...foobar, writeToDisk: true, numEvents: 500_100, numUsers: 1000, seed: "deal" });
 		const { eventData, userProfilesData } = results;
-		const files = await ls('./data');
-		const eventFiles = files.filter(a => a.toLowerCase().includes('events'));
-		const userFiles = files.filter(a => a.toLowerCase().includes('users'));
+		const files = (await u.ls('./data')).filter(a => a.endsWith('.json'));
+		const eventFiles = files.filter(a => a.includes('EVENTS'));
+		const userFiles = files.filter(a => a.includes('USERS'));
+		const evWriteDir = eventData.getWriteDir();
+		const usWriteDir = userProfilesData.getWriteDir();
+		const evWritePath = eventData.getWritePath();
+		const usWritePath = userProfilesData.getWritePath();
+		
+		const expectedEvWriteDir = `-EVENTS.json`;
+		const expectedUsWriteDir = `-USERS.json`;
+		const expectedWritePath = `.-part-`;
+
+
+		
+
 		expect(eventFiles.length).toBe(2);
 		expect(userFiles.length).toBe(1);
+
+		expect(eventFiles.filter(a => a.includes('part')).length).toBe(2);
+		expect(evWriteDir.endsWith(expectedEvWriteDir)).toBe(true);
+		expect(usWriteDir.endsWith(expectedUsWriteDir)).toBe(true);
+		expect(evWritePath.includes(expectedWritePath)).toBe(true);
+		expect(usWritePath.endsWith(expectedUsWriteDir)).toBe(true);
+	}, timeout);
+
+
+	test('dont batch', async () => {
+		const results = await generate({ ...foobar, writeToDisk: true, numEvents: 5000, numUsers: 1000, seed: "deal" });
+		const { eventData, userProfilesData } = results;
+		const files = await u.ls('./data');
+		const eventFiles = files.filter(a => a.includes('EVENTS'));
+		const userFiles = files.filter(a => a.includes('USERS'));
+		expect(eventFiles.length).toBe(1);
+		expect(userFiles.length).toBe(1);
+		expect(eventFiles.filter(a => a.includes('part')).length).toBe(0);
+		const evWriteDir = eventData.getWriteDir();
+		const usWriteDir = userProfilesData.getWriteDir();
+		const expectedEvWriteDir = `-EVENTS.json`;
+		const expectedUsWriteDir = `-USERS.json`;
+		expect(evWriteDir.endsWith(expectedEvWriteDir)).toBe(true);
+		expect(usWriteDir.endsWith(expectedUsWriteDir)).toBe(true);
+
+		const evWritePath = eventData.getWritePath();
+		const usWritePath = userProfilesData.getWritePath();
+		expect(evWritePath.endsWith(expectedEvWriteDir)).toBe(true);
+		expect(usWritePath.endsWith(expectedUsWriteDir)).toBe(true);
+
 	}, timeout);
 
 

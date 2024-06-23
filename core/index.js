@@ -1163,9 +1163,9 @@ async function hookArray(arr = [], opts = {}) {
 	if (existsSync(dataFolder)) writeDir = dataFolder;
 	else writeDir = path.resolve("./");
 
-	function getWritePath(batch) {
+	function getWritePath() {
 		if (isBATCH_MODE) {
-			return path.join(writeDir, `${filepath}-${batch.toString()}.${format}`);
+			return path.join(writeDir, `${filepath}-part-${batch.toString()}.${format}`);
 		}
 		else {
 			return path.join(writeDir, `${filepath}.${format}`);
@@ -1234,7 +1234,7 @@ async function hookArray(arr = [], opts = {}) {
 	async function flush() {
 		if (arr.length > 0) {
 			batch++;
-			const writePath = getWritePath(batch);
+			const writePath = getWritePath();
 			await FILE_CONN(() => writeToDisk(arr, { writePath }));
 			arr.length = 0; // Clear the array after writing to disk
 		}
@@ -1245,6 +1245,7 @@ async function hookArray(arr = [], opts = {}) {
 	enrichedArray.hookPush = transformThenPush;
 	enrichedArray.flush = flush;
 	enrichedArray.getWriteDir = getWriteDir;
+	enrichedArray.getWritePath = getWritePath;
 
 	for (const key in rest) {
 		enrichedArray[key.toString()] = rest[key];

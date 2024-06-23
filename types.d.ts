@@ -106,6 +106,7 @@ declare namespace main {
     hookPush: (item: T | T[]) => any;
     flush: () => void;
     getWriteDir: () => string;
+	getWritePath: () => string;
     [key: string]: any;
   }
 
