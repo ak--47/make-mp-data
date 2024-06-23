@@ -117,13 +117,23 @@ describe('module', () => {
 
 	test('works with no params', async () => {
 		const { eventData, userProfilesData, groupProfilesData, files, importResults, lookupTableData, mirrorEventData, scdTableData } = await generate({ writeToDisk: false });
-		debugger; 
+		expect(eventData.length).toBeGreaterThan(100000);
+		expect(userProfilesData.length).toBe(1000);
+		expect(groupProfilesData.length).toBe(0);
+		expect(importResults).toBe(undefined);
+		expect(scdTableData.length).toBe(0);
+		expect(lookupTableData.length).toBe(0);
+		expect(mirrorEventData.length).toBe(0);
 	}, timeout);
 
 	test('batch writes', async () => {
 		const results = await generate({ ...foobar, writeToDisk: true, numEvents: 500_100, numUsers: 1000, seed: "deal" });
 		const { eventData, userProfilesData } = results;
-		debugger;
+		const files = await ls('./data');
+		const eventFiles = files.filter(a => a.toLowerCase().includes('events'));
+		const userFiles = files.filter(a => a.toLowerCase().includes('users'));
+		expect(eventFiles.length).toBe(2);
+		expect(userFiles.length).toBe(1);
 	}, timeout);
 
 
