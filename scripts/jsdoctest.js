@@ -1,5 +1,5 @@
 /* eslint-disable no-unused-vars */
 // @ts-check
-const module = require('../core/index.js');
+const module = require('../index.js/index.js');
 
 module({})

@@ -84,6 +84,13 @@ DATA MODEL: https://github.com/ak--47/make-mp-data/blob/main/default.js
 			describe: 'either US or EU',
 			type: 'string'
 		})
+		.option('concurrency', {
+			alias: 'conn',
+			default: 500,
+			demandOption: false,
+			describe: 'concurrency level for data generation',
+			type: 'number'
+		})
 		.options("complex", {
 			demandOption: false,
 			default: false,
@@ -186,6 +193,7 @@ DATA MODEL: https://github.com/ak--47/make-mp-data/blob/main/default.js
 			type: 'boolean',
 			coerce: boolCoerce
 		})
+		
 		.help()
 		.wrap(null)
 		.argv;

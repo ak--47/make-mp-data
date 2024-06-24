@@ -8,7 +8,7 @@
 
 const Chance = require('chance');
 const chance = new Chance();
-const { weighNumRange, date, integer } = require('../core/utils.js');
+const { weighNumRange, date, integer } = require('../src/utils.js');
 const u = require('ak-tools');
 
 /** @type {import('../types.js').Config} */
@@ -31,7 +31,14 @@ const config = {
 	hasCampaigns: true,
 	isAnonymous: false,
 	hasAdSpend: true,
+	
+	hasAvatar: true,
+	makeChart: false,
 
+	batchSize: 500_000,
+	concurrency: 500,
+	
+	funnels: [],
 	events: [
 		{
 			"event": "checkout",

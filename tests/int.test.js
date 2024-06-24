@@ -8,9 +8,9 @@ const path = require('path');
 
 /** @typedef {import('../types.js').Config} Config */
 /** @typedef {import('../types.js').EventConfig} EventConfig */
-/** @typedef {import("../core/index.js").EventSchema} EventSchema */
+/** @typedef {import("../types.js").EventSchema} EventSchema */
 /** @typedef {import('../types.js').ValueValid} ValueValid */
-/** @typedef {import('../types.js').EnrichedArray} hookArray */
+/** @typedef {import('../types.js').HookedArray} hookArray */
 /** @typedef {import('../types.js').hookArrayOptions} hookArrayOptions */
 /** @typedef {import('../types.js').Person} Person */
 /** @typedef {import('../types.js').Funnel} Funnel */
@@ -18,12 +18,12 @@ const path = require('path');
 /** @typedef {import('../types.js').SCDSchema} SCDSchema */
 /** @typedef {import('../types.js').Storage} Storage */
 
-const MAIN = require('../core/index.js');
+const MAIN = require('../index.js');
 const { generators, orchestrators, meta } = MAIN;
 const { makeAdSpend, makeEvent, makeFunnel, makeProfile, makeSCD, makeMirror } = generators;
-const { sendToMixpanel, userLoop, validateDungeonConfig, writeFiles } = orchestrators;
+const { sendToMixpanel, userLoop, validateDungeonConfig } = orchestrators;
 const { hookArray, inferFunnels } = meta;
-const { validEvent } = require('../core/utils.js');
+const { validEvent } = require('../src/utils.js');
 
 
 // Mock the global variables
@@ -31,7 +31,7 @@ let CAMPAIGNS;
 let DEFAULTS;
 let STORAGE;
 let CONFIG;
-const { campaigns, devices, locations } = require('../core/defaults.js');
+const { campaigns, devices, locations } = require('../src/defaults.js');
 
 beforeEach(async () => {
 	// Reset global variables before each test
@@ -614,39 +614,5 @@ describe('orchestrators', () => {
 	});
 
 
-	test('writeFiles: works', async () => {
-		/** @type {Config} */
-		const config = {
-			format: 'json',
-			writeToDisk: './data',
-			simulationName: 'TestSimulation'
-		};
-		const result = await writeFiles(config, STORAGE);
-		const [first, second] = result;
-		expect(result).toBeInstanceOf(Array);
-		expect(path.basename(first)).toBe('TestSimulation-EVENTS.json');
-		expect(path.basename(second)).toBe('TestSimulation-USERS.json');
-		const dir = await u.ls('./data');
-		expect(dir).toContain(first);
-		expect(dir).toContain(second);
-		const removeOne = await u.rm(first);
-		const removeTwo = await u.rm(second);
-	});
-
-
-	test('writeFiles: CSVs', async () => {
-		const config = {
-			format: 'csv',
-			writeToDisk: './data',
-			simulationName: 'TestSimulation'
-		};
-		const result = await writeFiles(config, STORAGE);
-		expect(result).toBeInstanceOf(Array);
-		const dir = await u.ls('./data');
-		result.forEach(file => {
-			expect(dir).toContain(file);
-		});
-		await Promise.all(result.map(file => u.rm(file)));
-	});
 
 });

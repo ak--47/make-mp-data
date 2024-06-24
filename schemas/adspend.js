@@ -14,7 +14,7 @@ const dayjs = require("dayjs");
 const utc = require("dayjs/plugin/utc");
 dayjs.extend(utc);
 const { uid, comma } = require('ak-tools');
-const { pickAWinner, weighNumRange, date, integer } = require('../core/utils');
+const { pickAWinner, weighNumRange, date, integer } = require('../src/utils');
 
 /** @type {import('../types').Config} */
 const config = {

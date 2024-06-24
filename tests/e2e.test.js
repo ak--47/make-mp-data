@@ -3,7 +3,7 @@
 /* eslint-disable no-undef */
 /* eslint-disable no-debugger */
 /* eslint-disable no-unused-vars */
-const generate = require('../core/index.js');
+const generate = require('../index.js');
 require('dotenv').config();
 const { execSync } = require("child_process");
 const u = require('ak-tools');
@@ -127,8 +127,14 @@ describe('module', () => {
 		expect(mirrorEventData.length).toBe(0);
 	}, timeout);
 
+	
+
+
+});
+
+describe('batching', () => {
 	test('batch writes', async () => {
-		const results = await generate({ ...foobar, writeToDisk: true, numEvents: 500_100, numUsers: 1000, seed: "deal" });
+		const results = await generate({ ...foobar, batchSize: 1000, writeToDisk: true, numEvents: 10_000, numUsers: 5000, seed: "deal" });
 		const { eventData, userProfilesData } = results;
 		const files = (await u.ls('./data')).filter(a => a.endsWith('.json'));
 		const eventFiles = files.filter(a => a.includes('EVENTS'));
@@ -140,16 +146,18 @@ describe('module', () => {
 
 		const expectedEvWriteDir = `-EVENTS.json`;
 		const expectedUsWriteDir = `-USERS.json`;
-		const expectedWritePath = `.-part-`;
+		const expectedWritePath = `-part-`;
 
-		expect(eventFiles.length).toBe(2);
-		expect(userFiles.length).toBe(1);
+		expect(eventFiles.length).toBe(26);
+		expect(userFiles.length).toBe(5);
 
-		expect(eventFiles.filter(a => a.includes('part')).length).toBe(2);
+		expect(eventFiles.filter(a => a.includes('part')).length).toBe(26);
+		expect(userFiles.filter(a => a.includes('part')).length).toBe(5);
 		expect(evWriteDir.endsWith(expectedEvWriteDir)).toBe(true);
 		expect(usWriteDir.endsWith(expectedUsWriteDir)).toBe(true);
 		expect(evWritePath.includes(expectedWritePath)).toBe(true);
-		expect(usWritePath.endsWith(expectedUsWriteDir)).toBe(true);
+		expect(usWritePath.includes(expectedWritePath)).toBe(true);
+		clearData();
 	}, timeout);
 
 
@@ -173,18 +181,16 @@ describe('module', () => {
 		const usWritePath = userProfilesData.getWritePath();
 		expect(evWritePath.endsWith(expectedEvWriteDir)).toBe(true);
 		expect(usWritePath.endsWith(expectedUsWriteDir)).toBe(true);
-
+		clearData();
 	}, timeout);
-
-
-});
+})
 
 describe('cli', () => {
 
 	test('sanity check', async () => {
 		console.log('SANITY TEST');
-		const run = execSync(`node ./core/index.js`)
-		const ending = `enjoy your data! :)`
+		const run = execSync(`node ./index.js`);
+		const ending = `enjoy your data! :)`;
 		expect(run.toString().trim().endsWith(ending)).toBe(true);
 		const files = (await u.ls('./data')).filter(a => a.includes('.csv'));
 		expect(files.length).toBe(2);
@@ -207,13 +213,13 @@ describe('cli', () => {
 		expect(parsedUsers.every(u => u.email)).toBe(true);
 		expect(parsedUsers.every(u => u.created)).toBe(true);
 		expect(parsedUsers.every(u => u.avatar)).toBe(false);
-
-		debugger;
+		expect(parsedEvents.every(e => validateEvent(e))).toBe(e);
+		expect(parsedUsers.every(u => validateUser(u))).toBe(true);		
 	});
 
 	test('no args', async () => {
 		console.log('BARE CLI TEST');
-		const run = execSync(`node ./core/index.js --numEvents 1000 --numUsers 100`);
+		const run = execSync(`node ./index.js --numEvents 1000 --numUsers 100`);
 		expect(run.toString().trim().includes('enjoy your data! :)')).toBe(true);
 		const csvs = (await u.ls('./data')).filter(a => a.includes('.csv'));
 		expect(csvs.length).toBe(2);
@@ -222,7 +228,7 @@ describe('cli', () => {
 
 	test('--complex', async () => {
 		console.log('COMPLEX CLI TEST');
-		const run = execSync(`node ./core/index.js --numEvents 1000 --numUsers 100 --seed "deal with it" --complex`, { stdio: "ignore" });
+		const run = execSync(`node ./index.js --numEvents 1000 --numUsers 100 --seed "deal with it" --complex`, { stdio: "ignore" });
 		const csvs = (await u.ls('./data')).filter(a => a.includes('.csv'));
 		expect(csvs.length).toBe(13);
 		clearData();
@@ -230,7 +236,7 @@ describe('cli', () => {
 
 	test('--simple', async () => {
 		console.log('SIMPLE CLI TEST');
-		const run = execSync(`node ./core/index.js --numEvents 1000 --numUsers 100 --seed "deal with it" --simple`);
+		const run = execSync(`node ./index.js --numEvents 1000 --numUsers 100 --seed "deal with it" --simple`);
 		expect(run.toString().trim().includes('enjoy your data! :)')).toBe(true);
 		const csvs = (await u.ls('./data')).filter(a => a.includes('.csv'));
 		expect(csvs.length).toBe(2);
@@ -327,6 +333,10 @@ describe('options + tweaks', () => {
 
 	}, timeout);
 
+});
+
+beforeAll(() => {
+	clearData();
 });
 
 afterAll(() => {

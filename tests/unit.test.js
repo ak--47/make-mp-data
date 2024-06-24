@@ -1,4 +1,4 @@
-const generate = require('../core/index.js');
+const generate = require('../index.js');
 const dayjs = require("dayjs");
 const utc = require("dayjs/plugin/utc");
 const fs = require('fs');
@@ -9,7 +9,7 @@ require('dotenv').config();
 /** @typedef {import('../types').Config} Config */
 /** @typedef {import('../types').EventConfig} EventConfig */
 /** @typedef {import('../types').ValueValid} ValueValid */
-/** @typedef {import('../types').EnrichedArray} hookArray */
+/** @typedef {import('../types').HookedArray} hookArray */
 /** @typedef {import('../types').hookArrayOptions} hookArrayOptions */
 /** @typedef {import('../types').Person} Person */
 /** @typedef {import('../types').Funnel} Funnel */
@@ -57,9 +57,9 @@ const {
 
 	datesBetween,
 	weighChoices
-} = require('../core/utils.js');
+} = require('../src/utils.js');
 
-const main = require('../core/index.js');
+const main = require('../index.js');
 //todo: test for funnel inference
 const { hookArray, inferFunnels } = main.meta;
 

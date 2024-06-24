@@ -5,21 +5,22 @@
 	"main": "index.js",
 	"types": "types.d.ts",
 	"scripts": {
-		"start": "node ./core/index.js",
+		"start": "node ./index.js",
 		"dev": "nodemon scratch.mjs --ignore ./data/*",
 		"prune": "rm -f ./data/* && rm -f ./tmp/* && rm -f vscode-profile-*",
 		"post": "npm publish",
 		"test": "NODE_ENV=test jest --runInBand",
 		"coverage": "node --no-warnings --experimental-vm-modules node_modules/jest/bin/jest.js --coverage && open ./tests/coverage/lcov-report/index.html",
 		"deps": "sh ./scripts/deps.sh",
-		"new": "sh ./scripts/new.sh"
+		"new": "sh ./scripts/new.sh",
+		"benchmark": "node --no-warnings --experimental-vm-modules ./tests/benchmark/concurrency.mjs"
 	},
 	"repository": {
 		"type": "git",
 		"url": "git+https://github.com/ak--47/make-mp-data.git"
 	},
 	"bin": {
-		"make-mp-data": "./core/index.js"
+		"make-mp-data": "./index.js"
 	},
 	"keywords": [
 		"mixpanel",

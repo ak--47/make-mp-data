@@ -15,7 +15,7 @@ const { domainSuffix, domainPrefix } = require('./defaults');
 /** @typedef {import('../types').Config} Config */
 /** @typedef {import('../types').EventConfig} EventConfig */
 /** @typedef {import('../types').ValueValid} ValueValid */
-/** @typedef {import('../types').EnrichedArray} hookArray */
+/** @typedef {import('../types').HookedArray} hookArray */
 /** @typedef {import('../types').hookArrayOptions} hookArrayOptions */
 /** @typedef {import('../types').Person} Person */
 /** @typedef {import('../types').Funnel} Funnel */

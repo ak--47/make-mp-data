@@ -7,57 +7,36 @@ ak@mixpanel.com
 */
 
 
-// think more about batching
-//todo: organize deps
-//todo: vanilla is slow
+//todos: send to mixpanel
 
-
-/** @typedef {import('../types').Config} Config */
-/** @typedef {import('../types').AllData} AllData */
-/** @typedef {import('../types').EventConfig} EventConfig */
-/** @typedef {import('../types').Funnel} Funnel */
-/** @typedef {import('../types').Person} Person */
-/** @typedef {import('../types').SCDSchema} SCDSchema */
-/** @typedef {import('../types').UserProfile} UserProfile */
-/** @typedef {import('../types').EventSchema} EventSchema */
-/** @typedef {import('../types').Storage} Storage */
-/** @typedef {import('../types').Result} Result */
-/** @typedef {import('../types').ValueValid} ValueValid */
-/** @typedef {import('../types').EnrichedArray} hookArray */
-/** @typedef {import('../types').hookArrayOptions} hookArrayOptions */
-/** @typedef {import('../types').GroupProfileSchema} GroupProfile */
-
+//TIME
 const dayjs = require("dayjs");
 const utc = require("dayjs/plugin/utc");
 dayjs.extend(utc);
-const NOW = dayjs('2024-02-02').unix(); //this is a FIXED POINT and we will shift it later
+const NOW = dayjs('2024-02-02').unix(); 
 global.NOW = NOW;
+// ^ this creates a FIXED POINT in time; we will shift it later
+const actualNow = dayjs();
+const fixedNow = dayjs.unix(global.NOW);
+const timeShift = actualNow.diff(fixedNow, "second");
+
+// UTILS
 const { existsSync } = require("fs");
-const pLimit = require('p-limit');
-const USER_CONN = pLimit(500); // concurrent user streams modeled
-const FILE_CONN = pLimit(1); // concurrent file writes
+const pLimit = require('p-limit'); 
 const os = require("os");
 const path = require("path");
 const { comma, bytesHuman, makeName, md5, clone, tracker, uid, timer } = require("ak-tools");
 const jobTimer = timer('job');
-const { generateLineChart } = require('./chart.js');
-const { version } = require('../package.json');
+const { generateLineChart } = require('./src/chart.js');
+const { version } = require('./package.json');
 const mp = require("mixpanel-import");
+const u = require("./src/utils.js");
+const getCliParams = require("./src/cli.js");
 const metrics = tracker("make-mp-data", "db99eb8f67ae50949a13c27cacf57d41", os.userInfo().username);
 
-
-const u = require("./utils.js");
-const getCliParams = require("./cli.js");
-const { campaigns, devices, locations } = require('./defaults.js');
-
-
-
-let VERBOSE = false;
-let isCLI = false;
-let isBATCH_MODE = false; // if we are running in batch mode, we MUST write to disk before we can send to mixpanel
-let BATCH_SIZE = 500_000;
-let operations = 0;
-let eventCount = 0;
+// DEFAULTS
+const { campaigns, devices, locations } = require('./src/defaults.js');
+const { concurrency } = require("./dungeons/amir.js");
 let CAMPAIGNS;
 let DEFAULTS;
 /** @type {Storage} */
@@ -67,15 +46,14 @@ let CONFIG;
 require('dotenv').config();
 
 
-// SHIFT TIME
-const actualNow = dayjs();
-const fixedNow = dayjs.unix(global.NOW);
-const timeShift = actualNow.diff(fixedNow, "second");
-
-function track(name, props, ...rest) {
-	if (process.env.NODE_ENV === 'test') return;
-	metrics(name, props, ...rest);
-}
+// RUN STATE
+let VERBOSE = false;
+let isCLI = false;
+let isBATCH_MODE = false; // if we are running in batch mode, we MUST write to disk before we can send to mixpanel
+let BATCH_SIZE = 500_000;
+let operations = 0;
+let eventCount = 0;
+let userCount = 0;
 
 
 
@@ -85,13 +63,13 @@ function track(name, props, ...rest) {
  */
 async function main(config) {
 	jobTimer.start();
-	//SEEDS
 	const seedWord = process.env.SEED || config.seed || "hello friend!";
 	config.seed = seedWord;
 	const chance = u.initChance(seedWord);
 	//seed the random number generator, get it with getChance()
-	// ^ this is critical; same seed = same data; seed can be passed in as an env var or in the config
-	validateDungeonConfig(config); // ! this is going to mutate the config to make sure we have everything we need
+	// ^ this is critical; same seed = same data; 
+	// ^ seed can be passed in as an env var or in the config
+	validateDungeonConfig(config); 
 
 	//GLOBALS
 	CONFIG = config;
@@ -117,50 +95,44 @@ async function main(config) {
 
 	//STORAGE
 	const { simulationName, format } = config;
-	const eventData = await hookArray([], { hook, type: "event", config, format, filepath: `${simulationName}-EVENTS` });
-	const userProfilesData = await hookArray([], { hook, type: "user", config, format, filepath: `${simulationName}-USERS` });
-	const adSpendData = await hookArray([], { hook, type: "ad-spend", config, format, filepath: `${simulationName}-AD-SPEND` });
+	const eventData = await makeHookArray([], { hook, type: "event", config, format, filepath: `${simulationName}-EVENTS` });
+	const userProfilesData = await makeHookArray([], { hook, type: "user", config, format, filepath: `${simulationName}-USERS` });
+	const adSpendData = await makeHookArray([], { hook, type: "ad-spend", config, format, filepath: `${simulationName}-AD-SPEND` });
 
 	// SCDs, Groups, + Lookups may have multiple tables
 	const scdTableKeys = Object.keys(scdProps);
 	const scdTableData = await Promise.all(scdTableKeys.map(async (key) =>
-		await hookArray([], { hook, type: "scd", config, format, scdKey: key, filepath: `${simulationName}-SCD-${key}` })
+		await makeHookArray([], { hook, type: "scd", config, format, scdKey: key, filepath: `${simulationName}-SCD-${key}` })
 	));
 	const groupTableKeys = Object.keys(groupKeys);
 	const groupProfilesData = await Promise.all(groupTableKeys.map(async (key, index) => {
 		const groupKey = groupKeys[index]?.slice()?.shift();
-		return await hookArray([], { hook, type: "group", config, format, groupKey, filepath: `${simulationName}-GROUPS-${groupKey}` });
+		return await makeHookArray([], { hook, type: "group", config, format, groupKey, filepath: `${simulationName}-GROUPS-${groupKey}` });
 	}));
 
 	const lookupTableKeys = Object.keys(lookupTables);
 	const lookupTableData = await Promise.all(lookupTableKeys.map(async (key, index) => {
 		const lookupKey = lookupTables[index].key;
-		return await hookArray([], { hook, type: "lookup", config, format, lookupKey: lookupKey, filepath: `${simulationName}-LOOKUP-${lookupKey}` });
+		return await makeHookArray([], { hook, type: "lookup", config, format, lookupKey: lookupKey, filepath: `${simulationName}-LOOKUP-${lookupKey}` });
 	}));
 
-	const mirrorEventData = await hookArray([], { hook, type: "mirror", config, format, filepath: `${simulationName}-MIRROR` });
+	const mirrorEventData = await makeHookArray([], { hook, type: "mirror", config, format, filepath: `${simulationName}-MIRROR` });
 
 	STORAGE = { eventData, userProfilesData, scdTableData, groupProfilesData, lookupTableData, mirrorEventData, adSpendData };
 
 
 	track('start simulation', trackingParams);
-
 	log(`------------------SETUP------------------`);
 	log(`\nyour data simulation will heretofore be known as: \n\n\t${config.simulationName.toUpperCase()}...\n`);
 	log(`and your configuration is:\n\n`, JSON.stringify(trackingParams, null, 2));
 	log(`------------------SETUP------------------`, "\n");
 
 
-	// FUNNEL INFERENCE
-	if (!funnels || !funnels.length) {
-		funnels = inferFunnels(events);
-		config.funnels = funnels;
-		CONFIG = config;
-	}
 
 	//USERS
 	log(`---------------SIMULATION----------------`, "\n\n");
-	await userLoop(config, STORAGE);
+	const { concurrency = 500 } = config;
+	await userLoop(config, STORAGE, concurrency);
 	const { hasAdSpend, epochStart, epochEnd } = config;
 
 	// AD SPEND
@@ -280,13 +252,13 @@ async function main(config) {
 
 
 /*
------------
-GENERATORS
------------
+------
+MODELS
+------
 */
 
 /**
- * creates a random event
+ * creates a mixpanel event with a flat shape
  * @param  {string} distinct_id
  * @param  {number} earliestTime
  * @param  {EventConfig} chosenEvent
@@ -431,7 +403,7 @@ async function makeEvent(distinct_id, earliestTime, chosenEvent, anonymousIds, s
 }
 
 /**
- * from a funnel spec to a funnel that a user completes/doesn't complete
+ * takes a description of a funnel an generates successful and unsuccessful conversions
  * this is called MANY times per user
  * @param  {Funnel} funnel
  * @param  {Person} user
@@ -626,14 +598,11 @@ async function makeProfile(props, defaults) {
 		...defaults,
 	};
 
-	// // anonymous and session ids
-	// if (!CONFIG?.hasAnonIds) delete profile.anonymousIds;
-	// if (!CONFIG?.hasSessionIds) delete profile.hasSessionIds;
-
 	for (const key in props) {
 		try {
 			profile[key] = u.choose(props[key]);
 		} catch (e) {
+			// never gets here
 			// debugger;
 		}
 	}
@@ -812,10 +781,12 @@ ORCHESTRATORS
  * a loop that creates users and their events; the loop is inside this function
  * @param  {Config} config
  * @param  {Storage} storage
+ * @param  {number} [concurrency]
  * @return {Promise<void>}
  */
-async function userLoop(config, storage) {
+async function userLoop(config, storage, concurrency = 500) {
 	const chance = u.getChance();
+	const USER_CONN = pLimit(concurrency);
 	const {
 		verbose,
 		numUsers,
@@ -836,7 +807,8 @@ async function userLoop(config, storage) {
 
 	for (let i = 1; i < numUsers + 1; i++) {
 		await USER_CONN(async () => {
-			if (verbose) u.progress([["users", i], ["events", eventCount]]);
+			userCount++;
+			if (verbose) u.progress([["users", userCount], ["events", eventCount]]);
 			const userId = chance.guid();
 			const user = u.generateUser(userId, { numDays, isAnonymous, hasAvatar, hasAnonIds, hasSessionIds });
 			const { distinct_id, created } = user;
@@ -887,7 +859,7 @@ async function userLoop(config, storage) {
 				numEventsPreformed += data.length;
 				await eventData.hookPush(data);
 				if (!userConverted) {
-					if (verbose) u.progress([["users", i], ["events", eventCount]]);
+					if (verbose) u.progress([["users", userCount], ["events", eventCount]]);
 					return;
 				}
 			} else {
@@ -907,64 +879,12 @@ async function userLoop(config, storage) {
 				}
 			}
 
-			if (verbose) u.progress([["users", i], ["events", eventCount]]);
+			if (verbose) u.progress([["users", userCount], ["events", eventCount]]);
 		});
 	}
 
 }
 
-
-
-/**
- * todo: this is no longer used
- * @param  {Config} config
- * @param  {Storage} storage
- */
-async function writeFiles(config, storage) {
-	const { adSpendData, eventData, groupProfilesData, lookupTableData, mirrorEventData, scdTableData, userProfilesData } = storage;
-	const { eventFiles, userFiles, scdFiles, groupFiles, lookupFiles, mirrorFiles, folder, adSpendFiles } =
-		u.buildFileNames(config);
-	const { verbose, simulationName, format } = config;
-	const pairs = [
-		[eventFiles, [eventData]],
-		[userFiles, [userProfilesData]],
-		[adSpendFiles, [adSpendData]],
-		[scdFiles, scdTableData],
-		[groupFiles, groupProfilesData],
-		[lookupFiles, lookupTableData],
-		[mirrorFiles, [mirrorEventData]],
-	];
-	const writeFilePromises = [];
-
-	log(`writing files... for ${simulationName}`);
-	loopFiles: for (const ENTITY of pairs) {
-		const [paths, data] = ENTITY;
-		if (!data.length) continue loopFiles;
-		for (const [index, path] of paths.entries()) {
-			let TABLE;
-			//group + lookup tables are structured differently
-			if (data?.[index]?.["key"]) {
-				TABLE = data[index].data;
-			}
-			else {
-				TABLE = data[index];
-			}
-
-			log(`\twriting ${path}`);
-			//if it's a lookup table, it's always a CSV
-			if (format === "csv" || path.includes("-LOOKUP.csv")) {
-				writeFilePromises.push(u.streamCSV(path, TABLE));
-			}
-			else {
-				writeFilePromises.push(u.streamJSON(path, TABLE));
-			}
-
-		}
-	}
-
-	const fileWriteResults = await Promise.all(writeFilePromises);
-	return fileWriteResults;
-}
 
 /**
  * sends the data to mixpanel
@@ -1089,6 +1009,8 @@ function validateDungeonConfig(config) {
 		hasDesktopDevices = false,
 		hasIOSDevices = false,
 		name = "",
+		batchSize = 500_000,
+		concurrency = 500
 	} = config;
 
 	//ensuring default for deep objects
@@ -1104,7 +1026,19 @@ function validateDungeonConfig(config) {
 	config.simulationName = name || makeName();
 	config.name = config.simulationName;
 
+	//max batch size
+	if (batchSize > 0) BATCH_SIZE = batchSize;
 
+	// funnels
+
+	// FUNNEL INFERENCE
+	if (!funnels || !funnels.length) {
+		funnels = inferFunnels(events);		
+	}
+
+	config.concurrency = concurrency;
+	config.funnels = funnels;
+	config.batchSize = batchSize;
 	config.seed = seed;
 	config.numEvents = numEvents;
 	config.numUsers = numUsers;
@@ -1151,12 +1085,14 @@ function validateDungeonConfig(config) {
 /** 
  * our meta programming function which lets you mutate items as they are pushed into an array
  * it also does batching and writing to disk
+ * it kind of is a class - as it produces new objects - but it's not a class
  * @param  {Object} arr
  * @param  {hookArrayOptions} opts
  * @returns {Promise<hookArray>}
  */
-async function hookArray(arr = [], opts = {}) {
-	const { hook = a => a, type = "", filepath = "./defaultFile", format = "csv", ...rest } = opts;
+async function makeHookArray(arr = [], opts = {}) {
+	const { hook = a => a, type = "", filepath = "./defaultFile", format = "csv", concurrency = 1, ...rest } = opts;
+	const FILE_CONN = pLimit(concurrency); // concurrent file writes
 	let batch = 0;
 	let writeDir;
 	const dataFolder = path.resolve("./data");
@@ -1205,7 +1141,7 @@ async function hookArray(arr = [], opts = {}) {
 		if (arr.length > BATCH_SIZE) {
 			isBATCH_MODE = true;
 			batch++;
-			const writePath = getWritePath(batch);
+			const writePath = getWritePath();
 			const writeResult = await FILE_CONN(() => writeToDisk(arr, { writePath }));
 			return writeResult;
 		} else {
@@ -1382,8 +1318,8 @@ if (require.main === module) {
 		});
 } else {
 	main.generators = { makeEvent, makeFunnel, makeProfile, makeSCD, makeAdSpend, makeMirror };
-	main.orchestrators = { userLoop, validateDungeonConfig, writeFiles, sendToMixpanel };
-	main.meta = { inferFunnels, hookArray };
+	main.orchestrators = { userLoop, validateDungeonConfig, sendToMixpanel };
+	main.meta = { inferFunnels, hookArray: makeHookArray };
 	module.exports = main;
 }
 
@@ -1399,3 +1335,24 @@ function log(...args) {
 	}
 	if (VERBOSE) console.log(...args);
 }
+
+function track(name, props, ...rest) {
+	if (process.env.NODE_ENV === 'test') return;
+	metrics(name, props, ...rest);
+}
+
+
+/** @typedef {import('./types.js').Config} Config */
+/** @typedef {import('./types.js').AllData} AllData */
+/** @typedef {import('./types.js').EventConfig} EventConfig */
+/** @typedef {import('./types.js').Funnel} Funnel */
+/** @typedef {import('./types.js').Person} Person */
+/** @typedef {import('./types.js').SCDSchema} SCDSchema */
+/** @typedef {import('./types.js').UserProfile} UserProfile */
+/** @typedef {import('./types.js').EventSchema} EventSchema */
+/** @typedef {import('./types.js').Storage} Storage */
+/** @typedef {import('./types.js').Result} Result */
+/** @typedef {import('./types.js').ValueValid} ValueValid */
+/** @typedef {import('./types.js').HookedArray} hookArray */
+/** @typedef {import('./types.js').hookArrayOptions} hookArrayOptions */
+/** @typedef {import('./types.js').GroupProfileSchema} GroupProfile */

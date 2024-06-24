@@ -1,5 +1,5 @@
-import { generateLineChart } from '../core/chart.js';
-import { TimeSoup } from '../core/utils.js';
+import { generateLineChart } from '../src/chart.js';
+import { TimeSoup } from '../src/utils.js';
 import dayjs from 'dayjs';
 import { progress } from 'ak-tools';
 import TEST_CASES from './testCases.mjs';

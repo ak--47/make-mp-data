@@ -11,7 +11,7 @@ TO DOs
 //!bug: using --mc flag reverts to --complex for some reason
 
 
-import main from "./core/index.js";
+import main from "./index.js";
 
 import simple from './schemas/simple.js';
 import funnels from './schemas/funnels.js';
