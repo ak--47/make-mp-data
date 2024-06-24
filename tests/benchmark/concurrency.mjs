@@ -39,12 +39,12 @@ for (const concurrent of concurrency) {
 	console.log(`concurrency: ${concurrent}`);
 	// @ts-ignore
 	const test = await main({ ...noWrites, concurrency: concurrent });
-	results.push(test);
+	results.push({ human: test.time.human, concurrency: concurrent });
 	console.log(`\t\tdone: ${test.time.human}\n\n`);
 }
 
-const display = results.map((r, i) => {
-	return `concurrency: ${concurrency[i]} | duration: ${r.time.human}`;
+const display = results.map((r) => {
+	return `concurrency: ${r.concurrency} | duration: ${r.human}`;
 });
 
 console.log(display.join('\n\n'));

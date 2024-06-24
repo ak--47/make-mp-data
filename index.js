@@ -784,7 +784,7 @@ ORCHESTRATORS
  * @param  {number} [concurrency]
  * @return {Promise<void>}
  */
-async function userLoop(config, storage, concurrency = 500) {
+async function userLoop(config, storage, concurrency = 1) {
 	const chance = u.getChance();
 	const USER_CONN = pLimit(concurrency);
 	const {
