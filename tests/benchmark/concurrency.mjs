@@ -20,7 +20,7 @@ import simple from '../../schemas/simple.js';
 const noWrites = {
 	...simple,
 	numUsers: 10_000,
-	numEvents: 100_000,
+	numEvents: 250_000,
 	writeToDisk: false,
 };
 
@@ -32,7 +32,7 @@ const yesWrites = {
 
 console.log('concurrency benchmarking');
 
-const concurrency = [1, 10, 100, 1000, 10000];
+const concurrency = [1, 2, 3, 4, 5];
 
 const results = [];
 for (const concurrent of concurrency) {
@@ -40,15 +40,13 @@ for (const concurrent of concurrency) {
 	// @ts-ignore
 	const test = await main({ ...noWrites, concurrency: concurrent });
 	results.push(test);
-	console.log('done');
+	console.log(`\t\tdone: ${test.time.human}\n\n`);
 }
 
 const display = results.map((r, i) => {
-	return {
-		concurrency: concurrency[i],
-		duration: r.time.delta,
-		human: r.time.human
-	};
+	return `concurrency: ${concurrency[i]} | duration: ${r.time.human}`;
 });
+
+console.log(display.join('\n\n'));
 
 debugger;
