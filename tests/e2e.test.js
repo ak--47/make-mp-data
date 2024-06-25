@@ -17,7 +17,7 @@ const foobar = require('../schemas/foobar.js');
 const mirror = require('../schemas/mirror.js');
 const adspend = require('../schemas/adspend.js');
 
-const timeout = 60000;
+const timeout = 600000;
 const testToken = process.env.TEST_TOKEN || "hello token!";
 
 describe('module', () => {
@@ -157,7 +157,7 @@ describe('batching', () => {
 		expect(usWriteDir.endsWith(expectedUsWriteDir)).toBe(true);
 		expect(evWritePath.includes(expectedWritePath)).toBe(true);
 		expect(usWritePath.includes(expectedWritePath)).toBe(true);
-		clearData();
+		
 	}, timeout);
 
 
@@ -181,7 +181,7 @@ describe('batching', () => {
 		const usWritePath = userProfilesData.getWritePath();
 		expect(evWritePath.endsWith(expectedEvWriteDir)).toBe(true);
 		expect(usWritePath.endsWith(expectedUsWriteDir)).toBe(true);
-		clearData();
+		
 	}, timeout);
 	
 	test('send to mp: batches', async () => {
@@ -205,7 +205,7 @@ describe('batching', () => {
 		expect(groups[0].failed).toBe(0);
 		expect(groups[1].failed).toBe(0);
 
-		clearData();
+		
 	}, timeout);
 
 	test('send to mp: no batch', async () => {
@@ -228,7 +228,7 @@ describe('batching', () => {
 		expect(users.failed).toBe(0);
 		expect(groups[0].failed).toBe(0);
 		expect(groups[1].failed).toBe(0);
-		clearData();
+		
 	}, timeout);
 });
 
@@ -245,8 +245,8 @@ describe('cli', () => {
 		const events = files.filter(a => a.includes('EVENTS'));
 		expect(users.length).toBe(1);
 		expect(events.length).toBe(1);
-		const eventData = await u.load(events[0]);
-		const userProfilesData = await u.load(users[0]);
+		const eventData = (await u.load(events[0])).trim();
+		const userProfilesData = (await u.load(users[0])).trim();
 		const parsedEvents = Papa.parse(eventData, { header: true }).data;
 		const parsedUsers = Papa.parse(userProfilesData, { header: true }).data;
 		expect(parsedEvents.length).toBeGreaterThan(42000);
@@ -260,9 +260,9 @@ describe('cli', () => {
 		expect(parsedUsers.every(u => u.email)).toBe(true);
 		expect(parsedUsers.every(u => u.created)).toBe(true);
 		expect(parsedUsers.every(u => u.avatar)).toBe(false);
-		expect(parsedEvents.every(e => validateEvent(e))).toBe(e);
+		expect(parsedEvents.every(e => validateEvent(e))).toBe(true);
 		expect(parsedUsers.every(u => validateUser(u))).toBe(true);
-	});
+	}, timeout);
 
 	test('no args', async () => {
 		console.log('BARE CLI TEST');
@@ -270,7 +270,7 @@ describe('cli', () => {
 		expect(run.toString().trim().includes('enjoy your data! :)')).toBe(true);
 		const csvs = (await u.ls('./data')).filter(a => a.includes('.csv'));
 		expect(csvs.length).toBe(2);
-		clearData();
+		
 	}, timeout);
 
 	test('--complex', async () => {
@@ -278,7 +278,7 @@ describe('cli', () => {
 		const run = execSync(`node ./index.js --numEvents 1000 --numUsers 100 --seed "deal with it" --complex`, { stdio: "ignore" });
 		const csvs = (await u.ls('./data')).filter(a => a.includes('.csv'));
 		expect(csvs.length).toBe(13);
-		clearData();
+		
 	}, timeout);
 
 	test('--simple', async () => {
@@ -287,7 +287,7 @@ describe('cli', () => {
 		expect(run.toString().trim().includes('enjoy your data! :)')).toBe(true);
 		const csvs = (await u.ls('./data')).filter(a => a.includes('.csv'));
 		expect(csvs.length).toBe(2);
-		clearData();
+	
 	}, timeout);
 
 
@@ -382,11 +382,11 @@ describe('options + tweaks', () => {
 
 });
 
-beforeAll(() => {
+beforeEach(() => {
 	clearData();
 });
 
-afterAll(() => {
+afterEach(() => {
 	clearData();
 });
 

@@ -7,8 +7,6 @@ ak@mixpanel.com
 */
 
 
-//todos: send to mixpanel
-
 //TIME
 const dayjs = require("dayjs");
 const utc = require("dayjs/plugin/utc");
@@ -36,7 +34,6 @@ const metrics = tracker("make-mp-data", "db99eb8f67ae50949a13c27cacf57d41", os.u
 
 // DEFAULTS
 const { campaigns, devices, locations } = require('./src/defaults.js');
-const { concurrency } = require("./dungeons/amir.js");
 let CAMPAIGNS;
 let DEFAULTS;
 /** @type {Storage} */
@@ -131,7 +128,7 @@ async function main(config) {
 
 	//USERS
 	log(`---------------SIMULATION----------------`, "\n\n");
-	const { concurrency = 500 } = config;
+	const { concurrency = 1 } = config;
 	await userLoop(config, STORAGE, concurrency);
 	const { hasAdSpend, epochStart, epochEnd } = config;
 
@@ -803,9 +800,8 @@ async function userLoop(config, storage, concurrency = 1) {
 	} = config;
 	const { eventData, userProfilesData, scdTableData } = storage;
 	const avgEvPerUser = numEvents / numUsers;
-	let createdEvents = 0;
 
-	for (let i = 1; i < numUsers + 1; i++) {
+	for (let i = 1; i < numUsers; i++) {
 		await USER_CONN(async () => {
 			userCount++;
 			if (verbose) u.progress([["users", userCount], ["events", eventCount]]);
@@ -820,7 +816,7 @@ async function userLoop(config, storage, concurrency = 1) {
 					user[key] = location[key];
 				}
 			}
-
+			
 			// Profile creation
 			const profile = await makeProfile(userProps, user);
 			await userProfilesData.hookPush(profile);
@@ -1293,12 +1289,12 @@ if (require.main === module) {
 			console.log(`... using default COMPLEX configuration [everything] ...\n`);
 			console.log(`... for more simple data, don't use the --complex flag ...\n`);
 			console.log(`... or specify your own js config file (see docs or --help) ...\n`);
-			config = require(path.resolve(__dirname, "../schemas/complex.js"));
+			config = require(path.resolve(__dirname, "./schemas/complex.js"));
 		}
 		else {
 			console.log(`... using default SIMPLE configuration [events + users] ...\n`);
 			console.log(`... for more complex data, use the --complex flag ...\n`);
-			config = require(path.resolve(__dirname, "../schemas/simple.js"));
+			config = require(path.resolve(__dirname, "./schemas/simple.js"));
 		}
 	}
 
