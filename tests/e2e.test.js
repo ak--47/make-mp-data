@@ -184,11 +184,15 @@ describe('batching', () => {
 		clearData();
 	}, timeout);
 	
-	//todo: NOT WORKING
 	test('send to mp: batches', async () => {
 		const results = await generate({ ...foobar, numDays: 90, hasAdSpend: true, token: testToken, batchSize: 4500, writeToDisk: true, numEvents: 10_000, numUsers: 5000, seed: "deal" });
 		const { importResults } = results;
 		const { adSpend, events, groups, users } = importResults;
+		expect(adSpend.success).toBeGreaterThan(0);
+		expect(events.success).toBeGreaterThan(0);
+		expect(users.success).toBeGreaterThan(0);
+		expect(groups[0].success).toBeGreaterThan(0);
+		expect(groups[1].success).toBeGreaterThan(0);
 		expect(adSpend.success).toBe(adSpend.total);
 		expect(events.success).toBe(events.total);
 		expect(users.success).toBe(users.total);
@@ -204,11 +208,15 @@ describe('batching', () => {
 		clearData();
 	}, timeout);
 
-	//todo: NOT WORKING
 	test('send to mp: no batch', async () => {
 		const results = await generate({ ...foobar, numDays: 90, hasAdSpend: true, token: testToken, writeToDisk: true, numEvents: 5000, numUsers: 1000, seed: "deal" });
 		const { importResults } = results;
 		const { adSpend, events, groups, users } = importResults;
+		expect(adSpend.success).toBeGreaterThan(0);
+		expect(events.success).toBeGreaterThan(0);
+		expect(users.success).toBeGreaterThan(0);
+		expect(groups[0].success).toBeGreaterThan(0);
+		expect(groups[1].success).toBeGreaterThan(0);
 		expect(adSpend.success).toBe(adSpend.total);
 		expect(events.success).toBe(events.total);
 		expect(users.success).toBe(users.total);

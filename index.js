@@ -1201,7 +1201,7 @@ async function makeHookArray(arr = [], opts = {}) {
 			default:
 				throw new Error(`format ${format} is not supported`);
 		}
-		data.length = 0;
+		if (isBATCH_MODE) data.length = 0;
 		return writeResult;
 	}
 
@@ -1210,7 +1210,7 @@ async function makeHookArray(arr = [], opts = {}) {
 			batch++;
 			const writePath = getWritePath();
 			await FILE_CONN(() => writeToDisk(arr, { writePath }));
-			arr.length = 0; // Clear the array after writing to disk
+			if (isBATCH_MODE) arr.length = 0; // free up memory for batch mode
 		}
 	}
 

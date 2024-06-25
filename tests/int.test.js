@@ -490,7 +490,7 @@ describe('orchestrators', () => {
 		};
 		const result = await sendToMixpanel(CONFIG, STORAGE);
 		expect(result.events.success).toBe(0);
-		expect(result.users).toEqual({});
+		expect(result.users.success).toBe(0)
 		expect(result.groups).toHaveLength(0);
 	});
 
