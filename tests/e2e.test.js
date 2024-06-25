@@ -127,7 +127,7 @@ describe('module', () => {
 		expect(mirrorEventData.length).toBe(0);
 	}, timeout);
 
-	
+
 
 
 });
@@ -183,7 +183,46 @@ describe('batching', () => {
 		expect(usWritePath.endsWith(expectedUsWriteDir)).toBe(true);
 		clearData();
 	}, timeout);
-})
+	
+	//todo: NOT WORKING
+	test('send to mp: batches', async () => {
+		const results = await generate({ ...foobar, numDays: 90, hasAdSpend: true, token: testToken, batchSize: 4500, writeToDisk: true, numEvents: 10_000, numUsers: 5000, seed: "deal" });
+		const { importResults } = results;
+		const { adSpend, events, groups, users } = importResults;
+		expect(adSpend.success).toBe(adSpend.total);
+		expect(events.success).toBe(events.total);
+		expect(users.success).toBe(users.total);
+		expect(groups.length).toBe(2);
+		expect(groups[0].success).toBe(groups[0].total);
+		expect(groups[1].success).toBe(groups[1].total);
+		expect(adSpend.failed).toBe(0);
+		expect(events.failed).toBe(0);
+		expect(users.failed).toBe(0);
+		expect(groups[0].failed).toBe(0);
+		expect(groups[1].failed).toBe(0);
+
+		clearData();
+	}, timeout);
+
+	//todo: NOT WORKING
+	test('send to mp: no batch', async () => {
+		const results = await generate({ ...foobar, numDays: 90, hasAdSpend: true, token: testToken, writeToDisk: true, numEvents: 5000, numUsers: 1000, seed: "deal" });
+		const { importResults } = results;
+		const { adSpend, events, groups, users } = importResults;
+		expect(adSpend.success).toBe(adSpend.total);
+		expect(events.success).toBe(events.total);
+		expect(users.success).toBe(users.total);
+		expect(groups.length).toBe(2);
+		expect(groups[0].success).toBe(groups[0].total);
+		expect(groups[1].success).toBe(groups[1].total);
+		expect(adSpend.failed).toBe(0);
+		expect(events.failed).toBe(0);
+		expect(users.failed).toBe(0);
+		expect(groups[0].failed).toBe(0);
+		expect(groups[1].failed).toBe(0);
+		clearData();
+	}, timeout);
+});
 
 describe('cli', () => {
 
@@ -214,7 +253,7 @@ describe('cli', () => {
 		expect(parsedUsers.every(u => u.created)).toBe(true);
 		expect(parsedUsers.every(u => u.avatar)).toBe(false);
 		expect(parsedEvents.every(e => validateEvent(e))).toBe(e);
-		expect(parsedUsers.every(u => validateUser(u))).toBe(true);		
+		expect(parsedUsers.every(u => validateUser(u))).toBe(true);
 	});
 
 	test('no args', async () => {

@@ -13,7 +13,7 @@ ak@mixpanel.com
 const dayjs = require("dayjs");
 const utc = require("dayjs/plugin/utc");
 dayjs.extend(utc);
-const NOW = dayjs('2024-02-02').unix(); 
+const NOW = dayjs('2024-02-02').unix();
 global.NOW = NOW;
 // ^ this creates a FIXED POINT in time; we will shift it later
 const actualNow = dayjs();
@@ -22,10 +22,10 @@ const timeShift = actualNow.diff(fixedNow, "second");
 
 // UTILS
 const { existsSync } = require("fs");
-const pLimit = require('p-limit'); 
+const pLimit = require('p-limit');
 const os = require("os");
 const path = require("path");
-const { comma, bytesHuman, makeName, md5, clone, tracker, uid, timer } = require("ak-tools");
+const { comma, bytesHuman, makeName, md5, clone, tracker, uid, timer, ls, rm } = require("ak-tools");
 const jobTimer = timer('job');
 const { generateLineChart } = require('./src/chart.js');
 const { version } = require('./package.json');
@@ -69,7 +69,7 @@ async function main(config) {
 	//seed the random number generator, get it with getChance()
 	// ^ this is critical; same seed = same data; 
 	// ^ seed can be passed in as an env var or in the config
-	validateDungeonConfig(config); 
+	validateDungeonConfig(config);
 
 	//GLOBALS
 	CONFIG = config;
@@ -894,11 +894,13 @@ async function userLoop(config, storage, concurrency = 1) {
  */
 async function sendToMixpanel(config, storage) {
 	const { adSpendData, eventData, groupProfilesData, lookupTableData, mirrorEventData, scdTableData, userProfilesData } = storage;
-	const { token, region } = config;
+	const { token, region, writeToDisk } = config;
 	const importResults = { events: {}, users: {}, groups: [] };
 
 	/** @type {import('mixpanel-import').Creds} */
 	const creds = { token };
+	const { format } = config;
+	const mpImportFormat = format === "json" ? "jsonl" : "csv";
 	/** @type {import('mixpanel-import').Options} */
 	const commonOpts = {
 		region,
@@ -909,42 +911,68 @@ async function sendToMixpanel(config, storage) {
 		dryRun: false,
 		abridged: false,
 		fixJson: true,
-		showProgress: true
+		showProgress: true,
+		streamFormat: mpImportFormat
 	};
 
-	if (eventData) {
+
+
+	if (eventData || isBATCH_MODE) {
 		log(`importing events to mixpanel...\n`);
-		const imported = await mp(creds, clone(eventData), {
+		let eventDataToImport = clone(eventData);
+		if (isBATCH_MODE) {
+			const writeDir = eventData.getWriteDir();
+			const files = await ls(writeDir.split(path.basename(writeDir)).join(""));
+			eventDataToImport = files.filter(f => f.includes('-EVENTS-'));
+		}
+		const imported = await mp(creds, eventDataToImport, {
 			recordType: "event",
 			...commonOpts,
 		});
 		log(`\tsent ${comma(imported.success)} events\n`);
 		importResults.events = imported;
 	}
-	if (userProfilesData && userProfilesData.length) {
+	if (userProfilesData || isBATCH_MODE) {
 		log(`importing user profiles to mixpanel...\n`);
-		const imported = await mp(creds, clone(userProfilesData), {
+		let userProfilesToImport = clone(userProfilesData);
+		if (isBATCH_MODE) {
+			const writeDir = userProfilesData.getWriteDir();
+			const files = await ls(writeDir.split(path.basename(writeDir)).join(""));
+			userProfilesToImport = files.filter(f => f.includes('-USERS-'));
+		}
+		const imported = await mp(creds, userProfilesToImport, {
 			recordType: "user",
 			...commonOpts,
 		});
 		log(`\tsent ${comma(imported.success)} user profiles\n`);
 		importResults.users = imported;
 	}
-	if (adSpendData && adSpendData.length) {
+	if (adSpendData || isBATCH_MODE) {
 		log(`importing ad spend data to mixpanel...\n`);
-		const imported = await mp(creds, clone(adSpendData), {
+		let adSpendDataToImport = clone(adSpendData);
+		if (isBATCH_MODE) {
+			const writeDir = adSpendData.getWriteDir();
+			const files = await ls(writeDir.split(path.basename(writeDir)).join(""));
+			adSpendDataToImport = files.filter(f => f.includes('-AD-SPEND-'));
+		}
+		const imported = await mp(creds, adSpendDataToImport, {
 			recordType: "event",
 			...commonOpts,
 		});
 		log(`\tsent ${comma(imported.success)} ad spend events\n`);
 		importResults.adSpend = imported;
 	}
-	if (groupProfilesData) {
-		for (const groupProfiles of groupProfilesData) {
-			const groupKey = groupProfiles?.groupKey;
-			const data = groupProfiles;
+	if (groupProfilesData || isBATCH_MODE) {
+		for (const groupEntity of groupProfilesData) {
+			const groupKey = groupEntity?.groupKey;
 			log(`importing ${groupKey} profiles to mixpanel...\n`);
-			const imported = await mp({ token, groupKey }, clone(data), {
+			let groupProfilesToImport = clone(groupEntity);
+			if (isBATCH_MODE) {
+				const writeDir = groupEntity.getWriteDir();
+				const files = await ls(writeDir.split(path.basename(writeDir)).join(""));
+				groupProfilesToImport = files.filter(f => f.includes(`-GROUPS-${groupKey}`));
+			}
+			const imported = await mp({ token, groupKey }, groupProfilesToImport, {
 				recordType: "group",
 				...commonOpts,
 
@@ -952,6 +980,16 @@ async function sendToMixpanel(config, storage) {
 			log(`\tsent ${comma(imported.success)} ${groupKey} profiles\n`);
 
 			importResults.groups.push(imported);
+		}
+	}
+
+	//if we are in batch mode, we need to delete the files
+	if (!writeToDisk && isBATCH_MODE) {
+		const writeDir = eventData?.getWriteDir() || userProfilesData?.getWriteDir();
+		const listDir = await ls(writeDir.split(path.basename(writeDir)).join(""));
+		const files = listDir.filter(f => f.includes('-EVENTS-') || f.includes('-USERS-') || f.includes('-AD-SPEND-') || f.includes('-GROUPS-'));
+		for (const file of files) {
+			await rm(file);
 		}
 	}
 	return importResults;
@@ -1033,7 +1071,7 @@ function validateDungeonConfig(config) {
 
 	// FUNNEL INFERENCE
 	if (!funnels || !funnels.length) {
-		funnels = inferFunnels(events);		
+		funnels = inferFunnels(events);
 	}
 
 	config.concurrency = concurrency;

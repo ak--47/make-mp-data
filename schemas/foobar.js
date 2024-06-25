@@ -31,7 +31,7 @@ const config = {
 	region: "US",
 	hasAnonIds: true, //if true, anonymousIds are created for each user
 	hasSessionIds: false, //if true, hasSessionIds are created for each user
-	
+
 	events: [
 		{
 			event: "foo",
@@ -97,9 +97,24 @@ const config = {
 
 	scdProps: {},
 	mirrorProps: {},
-	groupKeys: [],
-	groupProps: {},
 	lookupTables: [],
+	groupKeys: [
+		["company_id", 1000],
+		["product_id", 10000]
+	],
+	groupProps: {
+		company_id: {
+			name: chance.company.bind(chance),
+			industry: chance.pickone.bind(chance, ["tech", "retail", "finance", "healthcare", "manufacturing", "media", "entertainment", "education", "government", "nonprofit", "other"])
+		},
+		product_id: {
+			name: chance.sentence.bind(chance, { words: 3 }),
+			category: chance.pickone.bind(chance, itemCategories),
+			price: chance.floating.bind(chance, { min: 0, max: 1000, fixed: 2 }),
+			quantity: integer
+		}
+	},
+
 	hook: function (record, type, meta) {
 		return record;
 	}
