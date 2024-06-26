@@ -6,6 +6,8 @@
  */
 
 
+/* cSpell:disable */
+
 
 
 const Chance = require('chance');
@@ -16,21 +18,18 @@ dayjs.extend(utc);
 const { uid, comma } = require('ak-tools');
 const { pickAWinner, weighNumRange, date, integer } = require('../src/utils');
 
-
-
 /** @type {import('../types').Config} */
 const config = {
 	token: "",
-	seed: "foo bar",
-	numDays: 365, //how many days worth of data
-	numEvents: 100000, //how many events
-	numUsers: 10000, //how many users	
-	format: 'json', //csv or json
+	seed: "lets go",
+	numDays: 90, //how many days worth of data
+	numEvents: 100_000, //how many events
+	numUsers: 10_000, //how many users	
+	format: 'csv', //csv or json
 	region: "US",
 	hasAnonIds: true, //if true, anonymousIds are created for each user
 	hasSessionIds: false, //if true, hasSessionIds are created for each user
-	isAnonymous: true,
-	hasLocation: true, 
+	hasLocation: true,
 	events: [
 		{
 			event: "foo",
@@ -83,17 +82,74 @@ const config = {
 			properties: {}
 		}
 	],
-	superProps: {},
+	superProps: {
+		color: ["red", "orange", "yellow", "green", "blue", "indigo", "violet"],
+		number: integer,
+
+	},
 	userProps: {
 		title: chance.profession.bind(chance),
 		luckyNumber: weighNumRange(42, 420),
 		spiritAnimal: ["duck", "dog", "otter", "penguin", "cat", "elephant", "lion", "cheetah", "giraffe", "zebra", "rhino", "hippo", "whale", "dolphin", "shark", "octopus", "squid", "jellyfish", "starfish", "seahorse", "crab", "lobster", "shrimp", "clam", "snail", "slug", "butterfly", "moth", "bee", "wasp", "ant", "beetle", "ladybug", "caterpillar", "centipede", "millipede", "scorpion", "spider", "tarantula", "tick", "mite", "mosquito", "fly", "dragonfly", "damselfly", "grasshopper", "cricket", "locust", "mantis", "cockroach", "termite", "praying mantis", "walking stick", "stick bug", "leaf insect", "lacewing", "aphid", "cicada", "thrips", "psyllid", "scale insect", "whitefly", "mealybug", "planthopper", "leafhopper", "treehopper", "flea", "louse", "bedbug", "flea beetle", "weevil", "longhorn beetle", "leaf beetle", "tiger beetle", "ground beetle", "lady beetle", "firefly", "click beetle", "rove beetle", "scarab beetle", "dung beetle", "stag beetle", "rhinoceros beetle", "hercules beetle", "goliath beetle", "jewel beetle", "tortoise beetle"]
 	},
-	scdProps: {},
+
+	scdProps: {
+		"donk": ["dude", "man", "brok"],
+		"pronk": ["monk", "lonk", "aonk"],
+	},
 	mirrorProps: {},
-	groupKeys: [],
-	groupProps: {},
-	lookupTables: [],
+	groupKeys: [
+		["companies", 100_000],
+		["servers", 3_000_000],
+		["crews", 1000],
+
+	],
+	groupProps: {
+		companies: {
+			name: chance.company.bind(chance),
+			industry: ["tech", "finance", "healthcare", "education", "retail", "manufacturing", "entertainment", "government", "non-profit", "other"],
+		},
+		servers: {
+			name: chance.word.bind(chance),
+			ram: weighNumRange(4, 64, .25),
+			cpu: weighNumRange(1, 16, .25),
+
+		},
+		crews: {
+			name: chance.word.bind(chance),
+			department: ["engineering", "design", "marketing", "sales", "finance", "hr", "legal", "operations", "support", "other"],
+			size: weighNumRange(5, 50, .25)
+		}
+	},
+	lookupTables: [{
+			key: "product_id",
+			entries: 2_000_000,
+			attributes: {
+				category: [
+					"Books", "Movies", "Music", "Games", "Electronics", "Computers", "Smart Home", "Home", "Garden & Tools", "Pet Supplies", "Food & Grocery", "Beauty", "Health", "Toys", "Kids", "Baby", "Handmade", "Sports", "Outdoors", "Automotive", "Industrial", "Entertainment", "Art"
+				],
+				"demand": ["high", "medium", "medium", "low"],
+				"supply": ["high", "medium", "medium", "low"],
+				"manufacturer": chance.company.bind(chance),
+				"price": weighNumRange(5, 500, .25),
+				"rating": weighNumRange(1, 5),
+				"reviews": weighNumRange(0, 35)
+			}
+
+		},
+		{
+			key: "video_id",
+			entries: 10_000_000,
+			attributes: {
+				isFlagged: [true, false, false, false, false],
+				copyright: ["all rights reserved", "creative commons", "creative commons", "public domain", "fair use"],
+				uploader_id: chance.guid.bind(chance),
+				"uploader influence": ["low", "low", "low", "medium", "medium", "high"],
+				thumbs: weighNumRange(0, 35),
+				rating: ["G", "PG", "PG-13", "R", "NC-17", "PG-13", "R", "NC-17", "R", "PG", "PG"]
+			}
+
+		}],
 	hook: function (record, type, meta) {
 		return record;
 	}

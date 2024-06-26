@@ -23,10 +23,16 @@ declare namespace main {
     numUsers?: number;
     format?: "csv" | "json" | string;
     region?: "US" | "EU";
+	concurrency?: number;
+	batchSize?: number;
+
+    // ids
     simulationName?: string;
+    name?: string;
 
     //switches
     isAnonymous?: boolean;
+    hasAvatar?: boolean;
     hasLocation?: boolean;
     hasCampaigns?: boolean;
     hasAdSpend?: boolean;
@@ -41,7 +47,7 @@ declare namespace main {
     makeChart?: boolean | string;
 
     //models
-    events?: EventConfig[]; //can also be a array of strings
+    events?: EventConfig[]; //| string[]; //can also be a array of strings
     superProps?: Record<string, ValueValid>;
     funnels?: Funnel[];
     userProps?: Record<string, ValueValid>;
@@ -90,27 +96,42 @@ declare namespace main {
   export interface hookArrayOptions<T> {
     hook?: Hook<T>;
     type?: hookTypes;
+    filename?: string;
+    format?: "csv" | "json" | string;
+	concurrency?: number;
     [key: string]: any;
   }
 
   /**
    * an enriched array is an array that has a hookPush method that can be used to transform-then-push items into the array
    */
-  export interface EnrichedArray<T> extends Array<T> {
-    hookPush: (item: T | T[]) => boolean;
+  export interface HookedArray<T> extends Array<T> {
+    hookPush: (item: T | T[]) => any;
+    flush: () => void;
+    getWriteDir: () => string;
+	getWritePath: () => string;
+    [key: string]: any;
   }
+
+  export type AllData =
+    | HookedArray<EventSchema>
+    | HookedArray<UserProfile>
+    | HookedArray<GroupProfileSchema>
+    | HookedArray<LookupTableSchema>
+    | HookedArray<SCDSchema>
+    | any[];
 
   /**
    * the storage object is a key-value store that holds arrays of data
    */
   export interface Storage {
-    eventData?: EnrichedArray<EventSchema>;
-    mirrorEventData?: EnrichedArray<EventSchema>;
-    userProfilesData?: EnrichedArray<UserProfile>;
-    groupProfilesData?: EnrichedArray<GroupProfileSchema>;
-    lookupTableData?: EnrichedArray<LookupTableSchema>;
-    adSpendData?: EnrichedArray<EventSchema>;
-    scdTableData?: EnrichedArray<SCDSchema>[];
+    eventData?: HookedArray<EventSchema>;
+    mirrorEventData?: HookedArray<EventSchema>;
+    userProfilesData?: HookedArray<UserProfile>;
+    adSpendData?: HookedArray<EventSchema>;
+    groupProfilesData?: HookedArray<GroupProfileSchema>[];
+    lookupTableData?: HookedArray<LookupTableSchema>[];
+    scdTableData?: HookedArray<SCDSchema>[];
   }
 
   /**
@@ -123,6 +144,20 @@ declare namespace main {
     isFirstEvent?: boolean;
     isChurnEvent?: boolean;
     relativeTimeMs?: number;
+  }
+
+  /**
+   * the generated event data
+   */
+  export interface EventSchema {
+    event: string;
+    time: string;
+    source: string;
+    insert_id: string;
+    device_id?: string;
+    session_id?: string;
+    user_id?: string;
+    [key: string]: ValueValid;
   }
 
   /**
@@ -204,20 +239,6 @@ declare namespace main {
     daysUnfilled?: number;
   }
 
-  /**
-   * the generated event data
-   */
-  export interface EventSchema {
-    event: string;
-    time: string;
-    source: string;
-    insert_id: string;
-    device_id?: string;
-    session_id?: string;
-    user_id?: string;
-    [key: string]: ValueValid;
-  }
-
   export interface UserProfile {
     name?: string;
     email?: string;
@@ -286,6 +307,12 @@ declare namespace main {
     lookupTableData: LookupTableData[];
     importResults?: ImportResults;
     files?: string[];
+    time?: {
+      start: number;
+      end: number;
+      delta: number;
+      human: string;
+    };
   };
 }
 

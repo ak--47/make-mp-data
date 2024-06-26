@@ -15,7 +15,6 @@ by ak@mixpanel.com
 
 function cliParams() {
 	console.log(hero);
-	// @ts-ignore
 	const args = yargs(process.argv.splice(2))
 		.scriptName("make-mp-data")
 		.usage(`\nusage:\nnpx $0 [dataModel.js] [options]
@@ -84,6 +83,13 @@ DATA MODEL: https://github.com/ak--47/make-mp-data/blob/main/default.js
 			alias: 'r',
 			describe: 'either US or EU',
 			type: 'string'
+		})
+		.option('concurrency', {
+			alias: 'conn',
+			default: 500,
+			demandOption: false,
+			describe: 'concurrency level for data generation',
+			type: 'number'
 		})
 		.options("complex", {
 			demandOption: false,
@@ -187,6 +193,7 @@ DATA MODEL: https://github.com/ak--47/make-mp-data/blob/main/default.js
 			type: 'boolean',
 			coerce: boolCoerce
 		})
+		
 		.help()
 		.wrap(null)
 		.argv;

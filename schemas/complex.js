@@ -8,7 +8,7 @@
 
 const Chance = require('chance');
 const chance = new Chance();
-const { weighNumRange, date, integer } = require('../core/utils.js');
+const { weighNumRange, date, integer } = require('../src/utils.js');
 const u = require('ak-tools');
 
 /** @type {import('../types.js').Config} */
@@ -31,7 +31,14 @@ const config = {
 	hasCampaigns: true,
 	isAnonymous: false,
 	hasAdSpend: true,
+	
+	hasAvatar: true,
+	makeChart: false,
 
+	batchSize: 500_000,
+	concurrency: 500,
+	
+	funnels: [],
 	events: [
 		{
 			"event": "checkout",
@@ -164,7 +171,7 @@ const config = {
 		profit: { events: ["checkout"], values: [4, 2, 42, 420] },
 		watchTimeSec: {
 			events: ["watch video"],
-			values: weighNumRange(50, 1200, 6)
+			values: weighNumRange(50, 1200, 2)
 		}
 	},
 
@@ -208,7 +215,7 @@ const config = {
 				"demand": ["high", "medium", "medium", "low"],
 				"supply": ["high", "medium", "medium", "low"],
 				"manufacturer": chance.company.bind(chance),
-				"price": weighNumRange(5, 500, 1000, .25),
+				"price": weighNumRange(5, 500, .25),
 				"rating": weighNumRange(1, 5),
 				"reviews": weighNumRange(0, 35)
 			}

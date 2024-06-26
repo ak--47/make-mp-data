@@ -1,4 +1,4 @@
-const generate = require('../core/index.js');
+const generate = require('../index.js');
 const dayjs = require("dayjs");
 const utc = require("dayjs/plugin/utc");
 const fs = require('fs');
@@ -9,7 +9,7 @@ require('dotenv').config();
 /** @typedef {import('../types').Config} Config */
 /** @typedef {import('../types').EventConfig} EventConfig */
 /** @typedef {import('../types').ValueValid} ValueValid */
-/** @typedef {import('../types').EnrichedArray} hookArray */
+/** @typedef {import('../types').HookedArray} hookArray */
 /** @typedef {import('../types').hookArrayOptions} hookArrayOptions */
 /** @typedef {import('../types').Person} Person */
 /** @typedef {import('../types').Funnel} Funnel */
@@ -32,7 +32,7 @@ const {
 	range,
 	pickAWinner,
 	weighNumRange,
-	hookArray,
+
 	fixFirstAndLast,
 	generateUser,
 	openFinder,
@@ -54,10 +54,14 @@ const {
 	validTime,
 	interruptArray,
 	optimizedBoxMuller,
-	inferFunnels,
+
 	datesBetween,
 	weighChoices
-} = require('../core/utils.js');
+} = require('../src/utils.js');
+
+const main = require('../index.js');
+//todo: test for funnel inference
+const { hookArray, inferFunnels } = main.meta;
 
 
 describe('timesoup', () => {
@@ -264,19 +268,19 @@ describe('generation', () => {
 	test('user: works', () => {
 		const uuid = { guid: jest.fn().mockReturnValue('uuid-123') };
 		const numDays = 30;
-		const user = generateUser(numDays);
+		const user = generateUser('123', { numDays });
 		expect(user).toHaveProperty('distinct_id');
 		expect(user).toHaveProperty('name');
 		expect(user).toHaveProperty('email');
-		expect(user).toHaveProperty('avatar');
+		expect(user).not.toHaveProperty('avatar');
 		expect(user).toHaveProperty('created');
-		expect(user).toHaveProperty('anonymousIds');
-		expect(user).toHaveProperty('sessionIds');
+		expect(user).not.toHaveProperty('anonymousIds');
+		expect(user).not.toHaveProperty('sessionIds');
 	});
 
 	test('user: in time range', () => {
 		const numDays = 30;
-		const user = generateUser('uuid-123', numDays);
+		const user = generateUser('uuid-123', { numDays });
 		const createdDate = dayjs(user.created, 'YYYY-MM-DD');
 		expect(createdDate.isValid()).toBeTruthy();
 		expect(createdDate.isBefore(dayjs.unix(global.NOW))).toBeTruthy();
@@ -290,10 +294,10 @@ describe('generation', () => {
 		expect(user.distinct_id).toBe('uuid-123');
 		expect(user).toHaveProperty('name');
 		expect(user).toHaveProperty('email');
-		expect(user).toHaveProperty('avatar');
+		expect(user).not.toHaveProperty('avatar');
 		expect(user).toHaveProperty('created');
-		expect(user).toHaveProperty('anonymousIds');
-		expect(user).toHaveProperty('sessionIds');
+		expect(user).not.toHaveProperty('anonymousIds');
+		expect(user).not.toHaveProperty('sessionIds');
 	});
 
 	test('person: anon', () => {
@@ -301,13 +305,13 @@ describe('generation', () => {
 		const user = person('uuid-123', numDays, true);
 		expect(user).toHaveProperty('distinct_id');
 		expect(user).toHaveProperty('name');
-		expect(user.name).toBe('Anonymous User')
+		expect(user.name).toBe('Anonymous User');
 		expect(user).toHaveProperty('email');
 		expect(user.email.includes('*')).toBeTruthy();
 		expect(user).not.toHaveProperty('avatar');
 		expect(user).toHaveProperty('created');
-		expect(user).toHaveProperty('anonymousIds');
-		expect(user).toHaveProperty('sessionIds');
+		expect(user).not.toHaveProperty('anonymousIds');
+		expect(user).not.toHaveProperty('sessionIds');
 	});
 
 
@@ -467,34 +471,34 @@ describe('validation', () => {
 
 describe('enrichment', () => {
 
-	test('hooks: noop', () => {
+	test('hooks: noop', async () => {
 		const arr = [];
-		const enrichedArray = hookArray(arr);
-		enrichedArray.hookPush(1);
-		enrichedArray.hookPush(2);
+		const enrichedArray = await hookArray(arr);
+		await enrichedArray.hookPush(1);
+		await enrichedArray.hookPush(2);
 		const match = JSON.stringify(enrichedArray) === JSON.stringify([1, 2]);
 		expect(match).toEqual(true);
 	});
 
-	test('hook: double', () => {
+	test('hook: double', async () => {
 		const arr = [];
 		const hook = (item) => item * 2;
-		const enrichedArray = hookArray(arr, { hook });
-		enrichedArray.hookPush(1);
-		enrichedArray.hookPush(2);
+		const enrichedArray = await hookArray(arr, { hook });
+		await enrichedArray.hookPush(1);
+		await enrichedArray.hookPush(2);
 		expect(enrichedArray.includes(2)).toBeTruthy();
 		expect(enrichedArray.includes(4)).toBeTruthy();
 	});
 
-	test('hooks: filter', () => {
+	test('hooks: filter', async () => {
 		const arr = [];
 		const hook = (item) => item ? item.toString() : item;
-		const enrichedArray = hookArray(arr, { hook });
-		enrichedArray.hookPush(null);
-		enrichedArray.hookPush(undefined);
-		enrichedArray.hookPush({});
-		enrichedArray.hookPush({ a: 1 });
-		enrichedArray.hookPush([1, 2]);
+		const enrichedArray = await hookArray(arr, { hook });
+		await enrichedArray.hookPush(null);
+		await enrichedArray.hookPush(undefined);
+		await enrichedArray.hookPush({});
+		await enrichedArray.hookPush({ a: 1 });
+		await enrichedArray.hookPush([1, 2]);
 		expect(enrichedArray).toHaveLength(3);
 		expect(enrichedArray.includes('null')).toBeFalsy();
 		expect(enrichedArray.includes('undefined')).toBeFalsy();
@@ -664,7 +668,7 @@ describe('utilities', () => {
 	});
 
 	test('range: works', () => {
-		const result = range(1,5);
+		const result = range(1, 5);
 		expect(result).toEqual([1, 2, 3, 4, 5]);
 	});
 

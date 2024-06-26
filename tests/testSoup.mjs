@@ -1,5 +1,5 @@
-import { generateLineChart } from '../core/chart.js';
-import { TimeSoup } from '../core/utils.js';
+import { generateLineChart } from '../src/chart.js';
+import { TimeSoup } from '../src/utils.js';
 import dayjs from 'dayjs';
 import { progress } from 'ak-tools';
 import TEST_CASES from './testCases.mjs';
@@ -24,4 +24,4 @@ async function genViz(soup) {
 execSync.execSync('npm run prune');
 // @ts-ignore
 await Promise.all(TEST_CASES.map(genViz));
-// await genViz(TEST_CASES[0]);
+console.log('done');

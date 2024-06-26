@@ -15,7 +15,7 @@ const { domainSuffix, domainPrefix } = require('./defaults');
 /** @typedef {import('../types').Config} Config */
 /** @typedef {import('../types').EventConfig} EventConfig */
 /** @typedef {import('../types').ValueValid} ValueValid */
-/** @typedef {import('../types').EnrichedArray} hookArray */
+/** @typedef {import('../types').HookedArray} hookArray */
 /** @typedef {import('../types').hookArrayOptions} hookArrayOptions */
 /** @typedef {import('../types').Person} Person */
 /** @typedef {import('../types').Funnel} Funnel */
@@ -310,52 +310,6 @@ function range(a, b, step = 1) {
 	return arr;
 };
 
-
-/**
- * create funnels out of random events
- * @param {EventConfig[]} events
- */
-function inferFunnels(events) {
-	const createdFunnels = [];
-	const firstEvents = events.filter((e) => e.isFirstEvent).map((e) => e.event);
-	const usageEvents = events.filter((e) => !e.isFirstEvent).map((e) => e.event);
-	const numFunnelsToCreate = Math.ceil(usageEvents.length);
-	/** @type {Funnel} */
-	const funnelTemplate = {
-		sequence: [],
-		conversionRate: 50,
-		order: 'sequential',
-		requireRepeats: false,
-		props: {},
-		timeToConvert: 1,
-		isFirstFunnel: false,
-		weight: 1
-	};
-	if (firstEvents.length) {
-		for (const event of firstEvents) {
-			createdFunnels.push({ ...clone(funnelTemplate), sequence: [event], isFirstFunnel: true, conversionRate: 100 });
-		}
-	}
-
-	//at least one funnel with all usage events
-	createdFunnels.push({ ...clone(funnelTemplate), sequence: usageEvents });
-
-	//for the rest, make random funnels
-	followUpFunnels: for (let i = 1; i < numFunnelsToCreate; i++) {
-		/** @type {Funnel} */
-		const funnel = { ...clone(funnelTemplate) };
-		funnel.conversionRate = integer(25, 75);
-		funnel.timeToConvert = integer(1, 10);
-		funnel.weight = integer(1, 10);
-		const sequence = shuffleArray(usageEvents).slice(0, integer(2, usageEvents.length));
-		funnel.sequence = sequence;
-		funnel.order = 'random';
-		createdFunnels.push(funnel);
-	}
-
-	return createdFunnels;
-
-}
 
 
 /*
@@ -708,68 +662,7 @@ META
 ----
 */
 
-/** 
- * our meta programming function which lets you mutate items as they are pushed into an array
- * @param  {any[]} arr
- * @param  {hookArrayOptions} opts
- * @returns {hookArray}}
- */
-function hookArray(arr = [], opts = {}) {
-	const { hook = a => a, type = "", ...rest } = opts;
 
-	function transformThenPush(item) {
-		if (item === null) return false;
-		if (item === undefined) return false;
-		if (typeof item === 'object') {
-			if (Object.keys(item).length === 0) return false;
-		}
-
-		//hook is passed an array 
-		if (Array.isArray(item)) {
-			for (const i of item) {
-				try {
-					const enriched = hook(i, type, rest);
-					if (Array.isArray(enriched)) enriched.forEach(e => arr.push(e));
-					else arr.push(enriched);
-
-				}
-				catch (e) {
-					console.error(`\n\nyour hook had an error\n\n`, e);
-					arr.push(i);
-					return false;
-				}
-
-			}
-			return true;
-		}
-
-		//hook is passed a single item
-		else {
-			try {
-				const enriched = hook(item, type, rest);
-				if (Array.isArray(enriched)) enriched.forEach(e => arr.push(e));
-				else arr.push(enriched);
-				return true;
-			}
-			catch (e) {
-				console.error(`\n\nyour hook had an error\n\n`, e);
-				arr.push(item);
-				return false;
-			}
-		}
-
-	}
-
-	/** @type {hookArray} */
-	// @ts-ignore
-	const enrichedArray = arr;
-
-
-	enrichedArray.hookPush = transformThenPush;
-
-
-	return enrichedArray;
-};
 
 /**
  * @param  {Config} config
@@ -845,7 +738,6 @@ function buildFileNames(config) {
  * @param  {[string, number][]} arrayOfArrays
  */
 function progress(arrayOfArrays) {
-	// @ts-ignore
 	readline.cursorTo(process.stdout, 0);
 	let message = "";
 	for (const status of arrayOfArrays) {
@@ -883,8 +775,9 @@ CORE
 */
 
 //the function which generates $distinct_id + $anonymous_ids, $session_ids, and created, skewing towards the present
-function generateUser(user_id, numDays, amplitude = 1, frequency = 1, skew = 1) {
+function generateUser(user_id, opts, amplitude = 1, frequency = 1, skew = 1) {
 	const chance = getChance();
+	const { numDays, isAnonymous, hasAvatar, hasAnonIds, hasSessionIds } = opts;
 	// Uniformly distributed `u`, then skew applied
 	let u = Math.pow(chance.random(), skew);
 
@@ -896,10 +789,11 @@ function generateUser(user_id, numDays, amplitude = 1, frequency = 1, skew = 1) 
 
 	// Clamp values to ensure they are within the desired range
 	daysAgoBorn = Math.min(daysAgoBorn, numDays);
+	const props = person(user_id, daysAgoBorn, isAnonymous, hasAvatar, hasAnonIds, hasSessionIds);
 
 	const user = {
 		distinct_id: user_id,
-		...person(numDays),
+		...props,
 	};
 
 
@@ -958,17 +852,17 @@ function TimeSoup(earliestTime, latestTime, peaks = 5, deviation = 2, mean = 0) 
  * @param {string} userId
  * @param  {number} bornDaysAgo=30
  * @param {boolean} isAnonymous
+ * @param {boolean} hasAvatar
  * @param {boolean} hasAnonIds
  * @param {boolean} hasSessionIds
  * @return {Person}
  */
-function person(userId, bornDaysAgo = 30, isAnonymous = false, hasAnonIds = false, hasSessionIds = false) {
+function person(userId, bornDaysAgo = 30, isAnonymous = false, hasAvatar = false, hasAnonIds = false, hasSessionIds = false) {
 	const chance = getChance();
 	//names and photos
 	const l = chance.letter.bind(chance);
 	let gender = chance.pickone(['male', 'female']);
 	if (!gender) gender = "female";
-	// @ts-ignore
 	let first = chance.first({ gender });
 	let last = chance.last();
 	let name = `${first} ${last}`;
@@ -996,8 +890,9 @@ function person(userId, bornDaysAgo = 30, isAnonymous = false, hasAnonIds = fals
 		user.name = "Anonymous User";
 		user.email = l() + l() + `*`.repeat(integer(3, 6)) + l() + `@` + l() + `*`.repeat(integer(3, 6)) + l() + `.` + choose(domainSuffix);
 		delete user.avatar;
-
 	}
+
+	if (!hasAvatar) delete user.avatar;
 
 	//anon Ids
 	if (hasAnonIds) {
@@ -1006,8 +901,9 @@ function person(userId, bornDaysAgo = 30, isAnonymous = false, hasAnonIds = fals
 			const anonId = uid(42);
 			user.anonymousIds.push(anonId);
 		}
-
 	}
+
+	if (!hasAnonIds) delete user.anonymousIds;
 
 	//session Ids
 	if (hasSessionIds) {
@@ -1017,6 +913,8 @@ function person(userId, bornDaysAgo = 30, isAnonymous = false, hasAnonIds = fals
 			user.sessionIds.push(sessionId);
 		}
 	}
+
+	if (!hasSessionIds) delete user.sessionIds;
 
 	return user;
 };
@@ -1117,12 +1015,10 @@ module.exports = {
 	shuffleOutside,
 	interruptArray,
 	generateUser,
-	hookArray,
 	optimizedBoxMuller,
 	buildFileNames,
 	streamJSON,
 	streamCSV,
-	inferFunnels,
 	datesBetween,
 	weighChoices
 };

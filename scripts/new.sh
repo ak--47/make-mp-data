@@ -13,23 +13,39 @@ const dayjs = require("dayjs");
 const utc = require("dayjs/plugin/utc");
 dayjs.extend(utc);
 require("dotenv").config();
-const u = require("../core/utils");
+const u = require("../src/utils");
 const v = require("ak-tools");
 const chance = u.initChance(SEED);
+const num_users = 25_000
+const days = 100
 
 /** @type {import("../types").Config} */
 const config = {
     token: "",
     seed: SEED,
-    numDays: 100, //how many days worth of data
-    numEvents: 100000, //how many events
-    numUsers: 1000, //how many users    
-    format: "csv", //csv or json
-    region: "US",
-    makeChart: false,
-    hasAnonIds: false,
-    hasSessionIds: false,
-    writeToDisk: false,
+    numDays: days, 
+    numEvents: num_users * 100, 
+    numUsers: num_users, 
+	hasAnonIds: true, 
+	hasSessionIds: true, 
+
+	hasLocation: true,
+	hasAndroidDevices: true,
+	hasIOSDevices: true,
+	hasDesktopDevices: true,
+	hasBrowser: true,
+	hasCampaigns: true,
+	isAnonymous: false,
+	hasAdSpend: true,
+	
+	hasAvatar: true,
+	makeChart: false,
+
+	batchSize: 500_000,
+	concurrency: 500,
+	writeToDisk: false,
+	
+	funnels: [],
     events: [],
     superProps: {},
     userProps: {},

@@ -11,7 +11,7 @@ TO DOs
 //!bug: using --mc flag reverts to --complex for some reason
 
 
-import main from "./core/index.js";
+import main from "./index.js";
 
 import simple from './schemas/simple.js';
 import funnels from './schemas/funnels.js';
@@ -22,23 +22,26 @@ import adspend from './schemas/adspend.js'
 import anon from './schemas/anon.js';
 import execSync from 'child_process';
 import mirror from './schemas/mirror.js'
+// import mds from './dungeons/modern-data-stack.js'
+import big from './schemas/big.js'
 
 const numEvents = 1000;
 
 /** @type {main.Config} */
 const spec = {
-	...adspend,
+	...big,
 	writeToDisk: true,
 	verbose: true,
-	makeChart: false,	
-	format: "csv",
-	numEvents,
-	numUsers: numEvents / 100,
+	makeChart: false,
+	// format: "csv",
+	// numEvents,
+	// numUsers: numEvents / 100,
 	
 };
 
 
 execSync.execSync('npm run prune');
+const RESULT = await main(spec);
 const { 
 	eventData,
 	groupProfilesData,
@@ -49,5 +52,7 @@ const {
 	importResults,
 	files,
 	adSpendData
-} = await main(spec);
+} = RESULT;
+
+
 debugger;
