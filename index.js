@@ -6,6 +6,11 @@ by AK
 ak@mixpanel.com
 */
 
+//todo: churn implementation
+//todo: regular interval events (like 'card charged')
+//todo: SCDs send to mixpanel
+//todo: decent 'new dungeon' workflow
+
 
 //TIME
 const dayjs = require("dayjs");
@@ -46,8 +51,11 @@ require('dotenv').config();
 // RUN STATE
 let VERBOSE = false;
 let isCLI = false;
-let isBATCH_MODE = false; // if we are running in batch mode, we MUST write to disk before we can send to mixpanel
+// if we are running in batch mode, we MUST write to disk before we can send to mixpanel
+let isBATCH_MODE = false; 
 let BATCH_SIZE = 500_000;
+
+//todo: these should be moved into the hookedArrays
 let operations = 0;
 let eventCount = 0;
 let userCount = 0;
@@ -144,8 +152,6 @@ async function main(config) {
 
 	}
 
-	//CLEAN UP
-	// scdTableData.forEach((table, index) => scdTableData[index] = table.flat());
 
 	log("\n");
 
@@ -1271,7 +1277,13 @@ function inferFunnels(events) {
 
 }
 
-// this is for CLI
+
+/*
+----
+CLI
+----
+*/
+
 if (require.main === module) {
 	isCLI = true;
 	const args = /** @type {Config} */ (getCliParams());
@@ -1357,6 +1369,12 @@ if (require.main === module) {
 	module.exports = main;
 }
 
+
+/*
+----
+HELPERS
+----
+*/
 
 function log(...args) {
 	const cwd = process.cwd();  // Get the current working directory
