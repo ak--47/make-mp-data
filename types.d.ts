@@ -44,6 +44,7 @@ declare namespace main {
     verbose?: boolean;
     hasAnonIds?: boolean;
     hasSessionIds?: boolean;
+	alsoInferFunnels?: boolean;
     makeChart?: boolean | string;
 
     //models

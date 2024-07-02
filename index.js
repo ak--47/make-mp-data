@@ -52,7 +52,7 @@ require('dotenv').config();
 let VERBOSE = false;
 let isCLI = false;
 // if we are running in batch mode, we MUST write to disk before we can send to mixpanel
-let isBATCH_MODE = false; 
+let isBATCH_MODE = false;
 let BATCH_SIZE = 500_000;
 
 //todo: these should be moved into the hookedArrays
@@ -97,6 +97,7 @@ async function main(config) {
 	let { funnels } = config;
 	trackingParams.runId = runId;
 	trackingParams.version = version;
+	delete trackingParams.funnels;
 
 	//STORAGE
 	const { simulationName, format } = config;
@@ -822,7 +823,7 @@ async function userLoop(config, storage, concurrency = 1) {
 					user[key] = location[key];
 				}
 			}
-			
+
 			// Profile creation
 			const profile = await makeProfile(userProps, user);
 			await userProfilesData.hookPush(profile);
@@ -1048,6 +1049,7 @@ function validateDungeonConfig(config) {
 		hasAndroidDevices = false,
 		hasDesktopDevices = false,
 		hasIOSDevices = false,
+		alsoInferFunnels = false,
 		name = "",
 		batchSize = 500_000,
 		concurrency = 500
@@ -1074,6 +1076,11 @@ function validateDungeonConfig(config) {
 	// FUNNEL INFERENCE
 	if (!funnels || !funnels.length) {
 		funnels = inferFunnels(events);
+	}
+
+	if (alsoInferFunnels) {
+		const inferredFunnels = inferFunnels(events);
+		funnels = [...funnels, ...inferredFunnels];
 	}
 
 	config.concurrency = concurrency;

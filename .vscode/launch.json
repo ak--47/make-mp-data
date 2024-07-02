@@ -23,18 +23,17 @@
 			"type": "node-terminal"
 		},
 		{
-			"type": "node",
-			"request": "launch",
-			"name": "go",
-			"runtimeExecutable": "nodemon",
-			"program": "${file}",
-			"restart": true,
-			"console": "integratedTerminal",
-			"internalConsoleOptions": "neverOpen",
-			"args": [
-				"--ignore",
-				"./data/*"
-			]
-		}
+            "type": "node",
+            "request": "launch",
+            "name": "go",
+            "runtimeExecutable": "nodemon",
+            "runtimeArgs": ["--inspect"],
+            "program": "${workspaceFolder}/index.js",
+			"args": ["--ignore", "./data/*", "${file}"],
+            "restart": true,
+            "console": "integratedTerminal",
+            "internalConsoleOptions": "neverOpen",
+            "skipFiles": ["<node_internals>/**"],
+        }
 	]
 }

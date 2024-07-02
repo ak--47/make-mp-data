@@ -26,9 +26,10 @@ const config = {
     numDays: days, 
     numEvents: num_users * 100, 
     numUsers: num_users, 
-	hasAnonIds: true, 
-	hasSessionIds: true, 
-
+	hasAnonIds: false, 
+	hasSessionIds: false, 
+	format: "json",
+	alsoInferFunnels: true,
 	hasLocation: true,
 	hasAndroidDevices: true,
 	hasIOSDevices: true,
