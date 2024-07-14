@@ -13,7 +13,7 @@ const dayjs = require("dayjs");
 const utc = require("dayjs/plugin/utc");
 dayjs.extend(utc);
 require("dotenv").config();
-const u = require("../src/utils");
+const u = require("../components/utils");
 const v = require("ak-tools");
 const chance = u.initChance(SEED);
 const num_users = 25_000

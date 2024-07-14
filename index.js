@@ -30,15 +30,15 @@ const os = require("os");
 const path = require("path");
 const { comma, bytesHuman, makeName, md5, clone, tracker, uid, timer, ls, rm } = require("ak-tools");
 const jobTimer = timer('job');
-const { generateLineChart } = require('./src/chart.js');
+const { generateLineChart } = require('./components/chart.js');
 const { version } = require('./package.json');
 const mp = require("mixpanel-import");
-const u = require("./src/utils.js");
-const getCliParams = require("./src/cli.js");
+const u = require("./components/utils.js");
+const getCliParams = require("./components/cli.js");
 const metrics = tracker("make-mp-data", "db99eb8f67ae50949a13c27cacf57d41", os.userInfo().username);
 
 // DEFAULTS
-const { campaigns, devices, locations } = require('./src/defaults.js');
+const { campaigns, devices, locations } = require('./components/defaults.js');
 let CAMPAIGNS;
 let DEFAULTS;
 /** @type {Storage} */
@@ -808,7 +808,7 @@ async function userLoop(config, storage, concurrency = 1) {
 	const { eventData, userProfilesData, scdTableData } = storage;
 	const avgEvPerUser = numEvents / numUsers;
 
-	for (let i = 1; i < numUsers; i++) {
+	for (let i = 0; i < numUsers; i++) {
 		await USER_CONN(async () => {
 			userCount++;
 			if (verbose) u.progress([["users", userCount], ["events", eventCount]]);

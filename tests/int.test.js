@@ -23,7 +23,7 @@ const { generators, orchestrators, meta } = MAIN;
 const { makeAdSpend, makeEvent, makeFunnel, makeProfile, makeSCD, makeMirror } = generators;
 const { sendToMixpanel, userLoop, validateDungeonConfig } = orchestrators;
 const { hookArray, inferFunnels } = meta;
-const { validEvent } = require('../src/utils.js');
+const { validEvent } = require('../components/utils.js');
 
 
 // Mock the global variables
@@ -31,7 +31,7 @@ let CAMPAIGNS;
 let DEFAULTS;
 let STORAGE;
 let CONFIG;
-const { campaigns, devices, locations } = require('../src/defaults.js');
+const { campaigns, devices, locations } = require('../components/defaults.js');
 
 beforeEach(async () => {
 	// Reset global variables before each test

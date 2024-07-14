@@ -57,7 +57,7 @@ const {
 
 	datesBetween,
 	weighChoices
-} = require('../src/utils.js');
+} = require('../components/utils.js');
 
 const main = require('../index.js');
 //todo: test for funnel inference

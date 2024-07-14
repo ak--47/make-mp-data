@@ -14,7 +14,7 @@ const dayjs = require("dayjs");
 const utc = require("dayjs/plugin/utc");
 dayjs.extend(utc);
 const { uid, comma } = require('ak-tools');
-const { pickAWinner, weighNumRange, date, integer } = require('../src/utils');
+const { pickAWinner, weighNumRange, date, integer } = require('../components/utils');
 
 const itemCategories = ["Books", "Movies", "Music", "Games", "Electronics", "Computers", "Smart Home", "Home", "Garden", "Pet", "Beauty", "Health", "Toys", "Kids", "Baby", "Handmade", "Sports", "Outdoors", "Automotive", "Industrial", "Entertainment", "Art", "Food", "Appliances", "Office", "Wedding", "Software"];
 
