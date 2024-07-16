@@ -11,9 +11,11 @@
 		"post": "npm publish",
 		"test": "NODE_ENV=test jest --runInBand",
 		"coverage": "node --no-warnings --experimental-vm-modules node_modules/jest/bin/jest.js --coverage && open ./tests/coverage/lcov-report/index.html",
-		"deps": "sh ./scripts/deps.sh",
-		"new": "sh ./scripts/new.sh",
-		"benchmark": "node --no-warnings --experimental-vm-modules ./tests/benchmark/concurrency.mjs"
+		"update:deps": "./scripts/update-deps.sh",
+		"new:dungeon": "./scripts/new-dungeon.sh",
+		"new:project": "node ./scripts/new-project.mjs",
+		"exp:benchmark": "node --no-warnings --experimental-vm-modules ./tests/benchmark/concurrency.mjs",
+		"exp:soup": "node ./tests/testSoup.mjs"
 	},
 	"repository": {
 		"type": "git",
@@ -41,7 +43,8 @@
 	},
 	"homepage": "https://github.com/ak--47/make-mp-data#readme",
 	"dependencies": {
-		"ak-tools": "^1.0.63",
+		"ak-fetch": "^1.0.21",
+		"ak-tools": "^1.0.64",
 		"chance": "^1.1.11",
 		"chart.js": "^3.9.1",
 		"chartjs-node-canvas": "^4.1.6",

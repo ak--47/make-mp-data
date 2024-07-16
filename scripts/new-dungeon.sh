@@ -55,9 +55,31 @@ const config = {
     groupKeys: [],
     groupProps: {},
     lookupTables: [],
-    hook: function(record, type, meta) {
-        return record;
-    }
+	hook: function (record, type, meta) {
+		const NOW = dayjs.unix(global.NOW);
+
+		if (type === "event") {
+			const EVENT_TIME = dayjs(record.time);
+		}
+
+		if (type === "user") {
+
+		}
+
+		if (type === "funnel-post") {
+			
+		}
+
+		if (type === "funnel-pre") {
+
+		}
+
+		if (type === "scd") {
+
+		}
+
+		return record;
+	}
 };
 
 module.exports = config;'

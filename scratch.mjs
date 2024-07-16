@@ -40,7 +40,7 @@ const spec = {
 };
 
 
-execSync.execSync('npm run prune');
+execSync.execSync('npm run dev:prine');
 const RESULT = await main(spec);
 const { 
 	eventData,

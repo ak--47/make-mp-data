@@ -226,4 +226,4 @@ const TEST_CASES = [
 
 ];
 
-module.exports = TEST_CASES;
+export default TEST_CASES;

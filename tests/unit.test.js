@@ -283,7 +283,7 @@ describe('generation', () => {
 		const user = generateUser('uuid-123', { numDays });
 		const createdDate = dayjs(user.created, 'YYYY-MM-DD');
 		expect(createdDate.isValid()).toBeTruthy();
-		expect(createdDate.isBefore(dayjs.unix(global.NOW))).toBeTruthy();
+		expect(createdDate.isBefore(dayjs())).toBeTruthy();
 	});
 
 
@@ -393,7 +393,8 @@ describe('generation', () => {
 describe('validation', () => {
 
 	beforeAll(() => {
-		global.NOW = 1672531200; // fixed point in time for testing
+		global.FIXED_NOW = 1672531200; // fixed point in time for testing
+		global.FIXED_BEGIN = global.FIXED_NOW - (60 * 60 * 24 * 30); // 30 days ago
 	});
 
 	test('events: non arrays', () => {
@@ -438,33 +439,33 @@ describe('validation', () => {
 	});
 
 	test('time: between', () => {
-		const chosenTime = global.NOW - (60 * 60 * 24 * 15); // 15 days ago
-		const earliestTime = global.NOW - (60 * 60 * 24 * 30); // 30 days ago
-		const latestTime = global.NOW;
+		const chosenTime = global.FIXED_NOW - (60 * 60 * 24 * 15); // 15 days ago
+		const earliestTime = global.FIXED_NOW - (60 * 60 * 24 * 30); // 30 days ago
+		const latestTime = global.FIXED_NOW;
 		expect(validTime(chosenTime, earliestTime, latestTime)).toBe(true);
 	});
 
 	test('time: outside earliest', () => {
-		const chosenTime = global.NOW - (60 * 60 * 24 * 31); // 31 days ago
-		const earliestTime = global.NOW - (60 * 60 * 24 * 30); // 30 days ago
-		const latestTime = global.NOW;
+		const chosenTime = global.FIXED_NOW - (60 * 60 * 24 * 31); // 31 days ago
+		const earliestTime = global.FIXED_NOW - (60 * 60 * 24 * 30); // 30 days ago
+		const latestTime = global.FIXED_NOW;
 		expect(validTime(chosenTime, earliestTime, latestTime)).toBe(false);
 	});
 
 	test('time: outside latest', () => {
 		const chosenTime = -1;
-		const earliestTime = global.NOW - (60 * 60 * 24 * 30); // 30 days ago
-		const latestTime = global.NOW;
+		const earliestTime = global.FIXED_NOW - (60 * 60 * 24 * 30); // 30 days ago
+		const latestTime = global.FIXED_NOW;
 		expect(validTime(chosenTime, earliestTime, latestTime)).toBe(false);
 	});
 
 	test('time: inference in', () => {
-		const chosenTime = global.NOW - (60 * 60 * 24 * 15); // 15 days ago
+		const chosenTime = global.FIXED_NOW - (60 * 60 * 24 * 15); // 15 days ago
 		expect(validTime(chosenTime)).toBe(true);
 	});
 
 	test('time: inference out', () => {
-		const chosenTime = global.NOW - (60 * 60 * 24 * 31); // 31 days ago
+		const chosenTime = global.FIXED_NOW - (60 * 60 * 24 * 31); // 31 days ago
 		expect(validTime(chosenTime)).toBe(false);
 	});
 });
@@ -547,7 +548,7 @@ describe('utilities', () => {
 	test('date: future', () => {
 		const futureDate = date(10, false, 'YYYY-MM-DD')();
 		expect(dayjs(futureDate, 'YYYY-MM-DD').isValid()).toBeTruthy();
-		expect(dayjs(futureDate).isAfter(dayjs.unix(global.NOW))).toBeTruthy();
+		expect(dayjs(futureDate).isAfter(dayjs.unix(global.FIXED_NOW))).toBeTruthy();
 	});
 
 	test('dates: pairs', () => {
