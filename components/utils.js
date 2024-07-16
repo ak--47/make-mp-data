@@ -23,6 +23,7 @@ const { domainSuffix, domainPrefix } = require('./defaults');
 let globalChance;
 let chanceInitialized = false;
 
+const ACTUAL_NOW = dayjs.utc();
 
 
 /*
@@ -96,7 +97,8 @@ function pick(items) {
  */
 function date(inTheLast = 30, isPast = true, format = 'YYYY-MM-DD') {
 	const chance = getChance();
-	const now = global.NOW ? dayjs.unix(global.NOW) : dayjs();
+	// const now = global.FIXED_NOW ? dayjs.unix(global.FIXED_NOW) : dayjs();
+	const now = ACTUAL_NOW;
 	if (Math.abs(inTheLast) > 365 * 10) inTheLast = chance.integer({ min: 1, max: 180 });
 	return function () {
 		const when = chance.integer({ min: 0, max: Math.abs(inTheLast) });
@@ -149,14 +151,17 @@ function datesBetween(start, end) {
 /**
  * returns a random date
  * @param  {any} start
- * @param  {any} end=global.NOW
+ * @param  {any} end
  */
-function day(start, end = global.NOW) {
+function day(start, end) {
+	// if (!end) end = global.FIXED_NOW ? global.FIXED_NOW : dayjs().unix();
+	if (!start) start = ACTUAL_NOW.subtract(30, 'd').toISOString();
+	if (!end) end = ACTUAL_NOW.toISOString();
 	const chance = getChance();
 	const format = 'YYYY-MM-DD';
 	return function (min, max) {
 		start = dayjs(start);
-		end = dayjs.unix(global.NOW);
+		end = dayjs(end);
 		const diff = end.diff(start, 'day');
 		const delta = chance.integer({ min: min, max: diff });
 		const day = start.add(delta, 'day');
@@ -628,8 +633,8 @@ function validateEventConfig(events) {
 }
 
 function validTime(chosenTime, earliestTime, latestTime) {
-	if (!earliestTime) earliestTime = global.NOW - (60 * 60 * 24 * 30); // 30 days ago
-	if (!latestTime) latestTime = global.NOW;
+	if (!earliestTime) earliestTime = global.FIXED_BEGIN ? global.FIXED_BEGIN : dayjs().subtract(30, 'd').unix(); // 30 days ago
+	if (!latestTime) latestTime = global.FIXED_NOW ? global.FIXED_NOW : dayjs().unix();
 
 	if (typeof chosenTime === 'number') {
 		if (chosenTime > 0) {
@@ -808,8 +813,8 @@ let soupHits = 0;
  * @param  {number} [peaks=5]
  */
 function TimeSoup(earliestTime, latestTime, peaks = 5, deviation = 2, mean = 0) {
-	if (!earliestTime) earliestTime = global.NOW - (60 * 60 * 24 * 30); // 30 days ago
-	if (!latestTime) latestTime = global.NOW;
+	if (!earliestTime) earliestTime = global.FIXED_BEGIN ? global.FIXED_BEGIN : dayjs().subtract(30, 'd').unix(); // 30 days ago
+	if (!latestTime) latestTime = global.FIXED_NOW ? global.FIXED_NOW : dayjs().unix();
 	const chance = getChance();
 	const totalRange = latestTime - earliestTime;
 	const chunkSize = totalRange / peaks;
@@ -871,7 +876,7 @@ function person(userId, bornDaysAgo = 30, isAnonymous = false, hasAvatar = false
 	let randomAvatarNumber = integer(1, 99);
 	let avPath = gender === 'male' ? `/men/${randomAvatarNumber}.jpg` : `/women/${randomAvatarNumber}.jpg`;
 	let avatar = avatarPrefix + avPath;
-	let created = dayjs.unix(global.NOW).subtract(bornDaysAgo, 'day').format('YYYY-MM-DD');
+	let created = dayjs().subtract(bornDaysAgo, 'day').format('YYYY-MM-DD');
 	// const created = date(bornDaysAgo, true)();
 
 
@@ -924,32 +929,32 @@ function person(userId, bornDaysAgo = 30, isAnonymous = false, hasAvatar = false
 
 //UNUSED
 
-function fixFunkyTime(earliestTime, latestTime) {
-	if (!earliestTime) earliestTime = global.NOW - (60 * 60 * 24 * 30); // 30 days ago
-	// if (typeof earliestTime !== "number") {
-	// 	if (parseInt(earliestTime) > 0) earliestTime = parseInt(earliestTime);
-	// 	if (dayjs(earliestTime).isValid()) earliestTime = dayjs(earliestTime).unix();
-	// }
-	if (typeof earliestTime !== "number") earliestTime = dayjs.unix(earliestTime).unix();
-	if (typeof latestTime !== "number") latestTime = global.NOW;
-	if (typeof latestTime === "number" && latestTime > global.NOW) latestTime = global.NOW;
-	if (earliestTime > latestTime) {
-		const tempEarlyTime = earliestTime;
-		const tempLateTime = latestTime;
-		earliestTime = tempLateTime;
-		latestTime = tempEarlyTime;
-	}
-	if (earliestTime === latestTime) {
-		earliestTime = dayjs.unix(earliestTime)
-			.subtract(integer(1, 14), "day")
-			.subtract(integer(1, 23), "hour")
-			.subtract(integer(1, 59), "minute")
-			.subtract(integer(1, 59), "second")
-			.unix();
-	}
-	return [earliestTime, latestTime];
+// function fixFunkyTime(earliestTime, latestTime) {
+// 	if (!earliestTime) earliestTime = global.NOW - (60 * 60 * 24 * 30); // 30 days ago
+// 	// if (typeof earliestTime !== "number") {
+// 	// 	if (parseInt(earliestTime) > 0) earliestTime = parseInt(earliestTime);
+// 	// 	if (dayjs(earliestTime).isValid()) earliestTime = dayjs(earliestTime).unix();
+// 	// }
+// 	if (typeof earliestTime !== "number") earliestTime = dayjs.unix(earliestTime).unix();
+// 	if (typeof latestTime !== "number") latestTime = global.NOW;
+// 	if (typeof latestTime === "number" && latestTime > global.NOW) latestTime = global.NOW;
+// 	if (earliestTime > latestTime) {
+// 		const tempEarlyTime = earliestTime;
+// 		const tempLateTime = latestTime;
+// 		earliestTime = tempLateTime;
+// 		latestTime = tempEarlyTime;
+// 	}
+// 	if (earliestTime === latestTime) {
+// 		earliestTime = dayjs.unix(earliestTime)
+// 			.subtract(integer(1, 14), "day")
+// 			.subtract(integer(1, 23), "hour")
+// 			.subtract(integer(1, 59), "minute")
+// 			.subtract(integer(1, 59), "second")
+// 			.unix();
+// 	}
+// 	return [earliestTime, latestTime];
 
-}
+// }
 
 
 

@@ -16,19 +16,21 @@ const channel_names = chance.n(u.makeName, 1234);
 const video_ids = [...Array(50000).keys()].map(i => i + 1).map(n => n.toString());
 const video_names = chance.n(u.makeName, 50000);
 
+const EVENTS = 50_000
+const USERS = EVENTS / 100
+
 
 /** @type {import('../types.js').Config} */
 const config = {
-	token: "5dcc5142ccd1ebf6e876f4e612d33401",
+	token: "",	
 	seed: "it's business time...",
 	numDays: 90, //how many days worth of data
-	numEvents: 1_000_000, //how many events
-	numUsers: 7777, //how many users	
+	numEvents: EVENTS, //how many events
+	numUsers: USERS, //how many users	
 	format: 'json', //csv or json
 	region: "US",
 	hasAnonIds: false, //if true, anonymousIds are created for each user
 	hasSessionIds: false, //if true, hasSessionIds are created for each user
-
 	hasLocation: true,
 	hasAndroidDevices: true,
 	hasIOSDevices: true,
@@ -39,7 +41,7 @@ const config = {
 	hasAdSpend: true,
 
 	hasAvatar: false,
-	makeChart: false,
+	makeChart: true,
 
 	batchSize: 500_000,
 	concurrency: 500,

@@ -34,6 +34,19 @@
             "console": "integratedTerminal",
             "internalConsoleOptions": "neverOpen",
             "skipFiles": ["<node_internals>/**"],
+        },
+		{
+            "type": "node",
+            "request": "launch",
+            "name": "sanity",
+            "runtimeExecutable": "nodemon",
+            "runtimeArgs": ["--inspect"],
+            "program": "${workspaceFolder}/index.js",
+			"args": ["--ignore", "./data/*", "./schemas/sanity.js"],
+            "restart": true,
+            "console": "integratedTerminal",
+            "internalConsoleOptions": "neverOpen",
+            "skipFiles": ["<node_internals>/**"],
         }
 	]
 }

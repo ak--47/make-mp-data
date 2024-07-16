@@ -16,12 +16,13 @@ ak@mixpanel.com
 const dayjs = require("dayjs");
 const utc = require("dayjs/plugin/utc");
 dayjs.extend(utc);
-const NOW = dayjs('2024-02-02').unix();
-global.NOW = NOW;
+const FIXED_NOW = dayjs('2024-02-02').unix();
+global.FIXED_NOW = FIXED_NOW;
 // ^ this creates a FIXED POINT in time; we will shift it later
+let FIXED_BEGIN = dayjs.unix(FIXED_NOW).subtract(90, 'd').unix();
 const actualNow = dayjs();
-const fixedNow = dayjs.unix(global.NOW);
-const timeShift = actualNow.diff(fixedNow, "second");
+const timeShift = actualNow.diff(dayjs.unix(FIXED_NOW), "seconds");
+const daysShift = actualNow.diff(dayjs.unix(FIXED_NOW), "days");
 
 // UTILS
 const { existsSync } = require("fs");
@@ -75,6 +76,7 @@ async function main(config) {
 	// ^ this is critical; same seed = same data; 
 	// ^ seed can be passed in as an env var or in the config
 	validateDungeonConfig(config);
+	global.FIXED_BEGIN = dayjs.unix(FIXED_NOW).subtract(config.numDays, 'd').unix();
 
 	//GLOBALS
 	CONFIG = config;
@@ -317,12 +319,12 @@ async function makeEvent(distinct_id, earliestTime, chosenEvent, anonymousIds, s
 
 
 	//event time
-	if (earliestTime > NOW) {
-		earliestTime = dayjs.unix(NOW).subtract(2, 'd').unix();
+	if (earliestTime > FIXED_NOW) {
+		earliestTime = dayjs(u.TimeSoup(global.FIXED_BEGIN)).unix() 
 	};
 
 	if (isFirstEvent) eventTemplate.time = dayjs.unix(earliestTime).toISOString();
-	if (!isFirstEvent) eventTemplate.time = u.TimeSoup(earliestTime, NOW, peaks, deviation, mean);
+	if (!isFirstEvent) eventTemplate.time = u.TimeSoup(earliestTime, FIXED_NOW, peaks, deviation, mean);
 
 	// anonymous and session ids
 	if (anonymousIds.length) eventTemplate.device_id = chance.pickone(anonymousIds);
@@ -397,10 +399,9 @@ async function makeEvent(distinct_id, earliestTime, chosenEvent, anonymousIds, s
 	//make $insert_id
 	eventTemplate.insert_id = md5(JSON.stringify(eventTemplate));
 
-	//time shift to present
-	const newTime = dayjs(eventTemplate.time).add(timeShift, "second");
-	eventTemplate.time = newTime.toISOString();
-
+	// move time forward
+	const timeShifted = dayjs(eventTemplate.time).add(timeShift, "seconds").toISOString();
+	eventTemplate.time = timeShifted;
 
 
 	return eventTemplate;

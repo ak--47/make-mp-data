@@ -72,7 +72,7 @@ beforeEach(async () => {
 	global.DEFAULTS = DEFAULTS;
 	global.STORAGE = STORAGE;
 	global.CONFIG = CONFIG;
-	global.NOW = dayjs().unix(); // Mock global NOW
+	global.FIXED_NOW = dayjs().unix(); // Mock global NOW
 
 });
 
