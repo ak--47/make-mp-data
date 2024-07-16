@@ -1,6 +1,6 @@
 require('dotenv').config();
 const akTools = require('ak-tools');
-const { rand } = akTools;
+const { rand, makeName } = akTools;
 let { OAUTH_TOKEN = "" } = process.env;
 
 /**
@@ -12,20 +12,22 @@ let { OAUTH_TOKEN = "" } = process.env;
  * @param {Array<Object>} [params.groups=[]] - List of groups to add to the project.
  * @param {string} [params.name=""] - Name of the user.
  * @param {string} [params.email=""] - Email of the user.
+ * @param {string} [params.projectName=""] - Name of the project.
  * @returns {Promise<Object>} The created project with additional group keys.
  * @throws Will throw an error if OAUTH_TOKEN is not set.
  * @throws Will throw an error if orgId is not found.
  */
 async function main(params = {}) {
-	let { oauth = "", orgId = "", groups = [], name = "", email = "" } = params;
+	let { oauth = "", orgId = "", groups = [], name = "", email = "", projectName } = params;
 	if (oauth) OAUTH_TOKEN = oauth;
 	if (!OAUTH_TOKEN) throw new Error('No OAUTH_TOKEN in .env');
 	if (!orgId) {
 		({ orgId, name, email } = await getUser());
 	}
 	if (!orgId) throw new Error('No orgId found');
+	if (!projectName) projectName = makeName();
 	const project = await makeProject(orgId);
-	project.name = name;
+	project.user = name;
 	project.email = email;
 	project.groups = groups;
 	project.orgId = orgId;
@@ -35,12 +37,12 @@ async function main(params = {}) {
 	groupKeys.push(...groups);
 	const addedGroupKeys = await addGroupKeys(groupKeys, project.id);
 	project.groupsAdded = addedGroupKeys;
-	
+
 	return project;
 }
 
 
-async function makeProject(orgId, oauthToken = OAUTH_TOKEN) {	
+async function makeProject(orgId, oauthToken = OAUTH_TOKEN) {
 	const excludedOrgs = [
 		1, // Mixpanel
 		328203, // Mixpanel Demo

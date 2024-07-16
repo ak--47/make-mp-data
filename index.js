@@ -319,12 +319,13 @@ async function makeEvent(distinct_id, earliestTime, chosenEvent, anonymousIds, s
 
 
 	//event time
-	if (earliestTime > FIXED_NOW) {
-		earliestTime = dayjs(u.TimeSoup(global.FIXED_BEGIN)).unix() 
-	};
+	// if (earliestTime > FIXED_NOW) {
+	// 	earliestTime = dayjs(u.TimeSoup(global.FIXED_BEGIN)).unix();
+	// };
 
 	if (isFirstEvent) eventTemplate.time = dayjs.unix(earliestTime).toISOString();
 	if (!isFirstEvent) eventTemplate.time = u.TimeSoup(earliestTime, FIXED_NOW, peaks, deviation, mean);
+	// eventTemplate.time = u.TimeSoup(earliestTime, FIXED_NOW, peaks, deviation, mean);
 
 	// anonymous and session ids
 	if (anonymousIds.length) eventTemplate.device_id = chance.pickone(anonymousIds);
@@ -816,7 +817,10 @@ async function userLoop(config, storage, concurrency = 1) {
 			const userId = chance.guid();
 			const user = u.generateUser(userId, { numDays, isAnonymous, hasAvatar, hasAnonIds, hasSessionIds });
 			const { distinct_id, created } = user;
+			const userIsBornInDataset = chance.bool({ likelihood: 5 });
 			let numEventsPreformed = 0;
+			if (!userIsBornInDataset) delete user.created;
+			const adjustedCreated = userIsBornInDataset ? dayjs(created).subtract(daysShift, 'd') : dayjs.unix(global.FIXED_BEGIN);
 
 			if (hasLocation) {
 				const location = u.choose(DEFAULTS.locationsUsers);
@@ -851,15 +855,18 @@ async function userLoop(config, storage, concurrency = 1) {
 
 			let userFirstEventTime;
 
-			// First funnel logic...
 			const firstFunnels = funnels.filter((f) => f.isFirstFunnel).reduce(u.weighFunnels, []);
 			const usageFunnels = funnels.filter((f) => !f.isFirstFunnel).reduce(u.weighFunnels, []);
-			const userIsBornInDataset = chance.bool({ likelihood: 30 });
+
+			const secondsInDay = 86400;
+			const noise = () => chance.integer({ min: 0, max: secondsInDay });
 
 			if (firstFunnels.length && userIsBornInDataset) {
 				const firstFunnel = chance.pickone(firstFunnels, user);
-				const [data, userConverted] = await makeFunnel(firstFunnel, user, null, profile, userSCD, config);
-				userFirstEventTime = dayjs(data[0].time).unix();
+
+				const firstTime = adjustedCreated.subtract(noise(), 'seconds').unix();
+				const [data, userConverted] = await makeFunnel(firstFunnel, user, firstTime, profile, userSCD, config);
+				userFirstEventTime = dayjs(data[0].time).subtract(timeShift, 'seconds').unix();
 				numEventsPreformed += data.length;
 				await eventData.hookPush(data);
 				if (!userConverted) {
@@ -867,7 +874,9 @@ async function userLoop(config, storage, concurrency = 1) {
 					return;
 				}
 			} else {
-				userFirstEventTime = dayjs(created).unix();
+				// userFirstEventTime = dayjs(created).unix();
+				// userFirstEventTime = global.FIXED_BEGIN;
+				userFirstEventTime = adjustedCreated.subtract(noise(), 'seconds').unix();
 			}
 
 			while (numEventsPreformed < numEventsThisUserWillPreform) {

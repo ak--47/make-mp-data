@@ -639,7 +639,7 @@ function validTime(chosenTime, earliestTime, latestTime) {
 	if (typeof chosenTime === 'number') {
 		if (chosenTime > 0) {
 			if (chosenTime > earliestTime) {
-				if (chosenTime < latestTime) {
+				if (chosenTime < (latestTime)) {
 					return true;
 				}
 
