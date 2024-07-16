@@ -72,7 +72,8 @@ beforeEach(async () => {
 	global.DEFAULTS = DEFAULTS;
 	global.STORAGE = STORAGE;
 	global.CONFIG = CONFIG;
-	global.FIXED_NOW = dayjs().unix(); // Mock global NOW
+	const FIXED_NOW = dayjs('2024-02-02').unix();
+	global.FIXED_NOW = FIXED_NOW;
 
 });
 
@@ -137,7 +138,7 @@ describe('generators', () => {
 				prop3: ["value5"]
 			},
 		};
-		const result = await makeEvent("known_id", dayjs().subtract(1, 'd').unix(), eventConfig, ["anon_id"], ["session_id"]);
+		const result = await makeEvent("known_id", dayjs.unix(global.FIXED_NOW).subtract(30, 'd').unix(), eventConfig, ["anon_id"], ["session_id"]);
 		expect(result).toHaveProperty('event', 'test_event');
 		expect(result).toHaveProperty('device_id', 'anon_id');
 		// expect(result).toHaveProperty('user_id', 'known_id'); // Known ID not always on the event
@@ -154,7 +155,7 @@ describe('generators', () => {
 
 	test('makeEvent: opt params', async () => {
 		const eventConfig = { event: "test_event", properties: {} };
-		const result = await makeEvent("known_id", dayjs().subtract(1, 'd').unix(), eventConfig);
+		const result = await makeEvent("known_id",dayjs.unix(global.FIXED_NOW).subtract(30, 'd').unix(), eventConfig);
 		expect(result).toHaveProperty('event', 'test_event');
 		expect(result).toHaveProperty('user_id', 'known_id');
 		expect(result).toHaveProperty('source', 'dm4');
@@ -170,7 +171,7 @@ describe('generators', () => {
 				prop2: ["value3", "value4"]
 			},
 		};
-		const result = await makeEvent("known_id", dayjs().subtract(1, 'd').unix(), eventConfig, ["anon_id"], ["session_id"]);
+		const result = await makeEvent("known_id",dayjs.unix(global.FIXED_NOW).subtract(30, 'd').unix(), eventConfig, ["anon_id"], ["session_id"]);
 		expect(result.prop1 === "value1" || result.prop1 === "value2").toBeTruthy();
 		expect(result.prop2 === "value3" || result.prop2 === "value4").toBeTruthy();
 	});
@@ -189,7 +190,7 @@ describe('generators', () => {
 		/** @type {Record<string, SCDSchema[]>} */
 		const scd = { "scd_example": [{ distinct_id: "user1", insertTime: dayjs().toISOString(), startTime: dayjs().toISOString() }] };
 
-		const [result, converted] = await makeFunnel(funnelConfig, user, dayjs().unix(), profile, scd, {});
+		const [result, converted] = await makeFunnel(funnelConfig, user,dayjs.unix(global.FIXED_NOW).subtract(30, 'd').unix(), profile, scd, {});
 		expect(result.length).toBe(2);
 		expect(converted).toBe(true);
 		expect(result.every(e => validEvent(e))).toBeTruthy();
@@ -205,7 +206,7 @@ describe('generators', () => {
 		const profile = { created: dayjs().toISOString(), distinct_id: "user1" };
 		const scd = { "scd_example": [{ distinct_id: "user1", insertTime: dayjs().toISOString(), startTime: dayjs().toISOString() }] };
 
-		const [result, converted] = await makeFunnel(funnelConfig, user, dayjs().unix(), profile, scd, {});
+		const [result, converted] = await makeFunnel(funnelConfig, user, dayjs.unix(global.FIXED_NOW).subtract(30, 'd').unix(), profile, scd, {});
 		expect(result.length).toBeGreaterThanOrEqual(1);
 		expect(result.length).toBeLessThanOrEqual(3);
 		expect(result.every(e => validEvent(e))).toBeTruthy();
@@ -221,7 +222,7 @@ describe('generators', () => {
 		const profile = { created: dayjs().toISOString(), distinct_id: "user1" };
 		const scd = { "scd_example": [{ distinct_id: "user1", insertTime: dayjs().toISOString(), startTime: dayjs().toISOString() }] };
 
-		const [result, converted] = await makeFunnel(funnelConfig, user, dayjs().unix(), profile, scd, {});
+		const [result, converted] = await makeFunnel(funnelConfig, user, dayjs.unix(global.FIXED_NOW).subtract(30, 'd').unix(), profile, scd, {});
 		expect(result.length).toBe(3);
 		expect(converted).toBe(true);
 		expect(result.every(e => validEvent(e))).toBeTruthy();
@@ -490,7 +491,7 @@ describe('orchestrators', () => {
 		};
 		const result = await sendToMixpanel(CONFIG, STORAGE);
 		expect(result.events.success).toBe(0);
-		expect(result.users.success).toBe(0)
+		expect(result.users.success).toBe(0);
 		expect(result.groups).toHaveLength(0);
 	});
 
