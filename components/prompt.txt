@@ -1,0 +1,98 @@
+Please generate a JSON schema for event analytics that strictly adheres to these TypeScript types:
+
+```typescript
+type Primitives = string | number | boolean | Date | Record<string, any>;
+type ValidValue = Primitives | Primitives[];
+
+/**
+ * event schema describes a single event that we might track with any number of properties
+ */
+interface EventSchema {
+	event: string;
+	weight: number;
+	properties?: Record<string, ValidValue>;
+	isFirstEvent?: boolean;
+	isChurnEvent?: boolean;
+}
+
+/**
+ * super props are shared across all events; common dimensions
+ */
+type superProps = Record<string, ValidValue>;
+
+/**
+ * user props describe a user independent of their actions; user dimensions
+ */
+type userProps = Record<string, ValidValue>;
+
+/**
+ * the schema YOU need to build
+ */
+type Schema = {
+events: EventSchema[];
+superProps: superProps;
+userProps: userProps;
+};
+```
+
+
+The schema that YOU make should include common events and properties, super properties, and user properties that describe TYPICAL user behavior for the website i mentioned above.
+
+Let me give you a few examples, so you know how to respond.
+
+**Example 1:**
+
+Input: a generic e-commerce website thats sells a variety of products and also video streaming
+
+Output:
+```json
+{"events":[{"event":"checkout","weight":2,"properties":{"amount":[5,500],"currency":["USD","CAD","EUR","BTC","ETH","JPY"],"coupon":["none","10%OFF","20%OFF"],"numItems":[1,10]}},{"event":"add to cart","weight":4,"properties":{"amount":[5,500],"rating":[1,5],"reviews":[0,35],"isFeaturedItem":[true,false,false],"itemCategory":["electronics","clothing","accessories","home goods","toys","tools","books","music","movies"]}},{"event":"page view","weight":10,"properties":{"page":["/","/","/help","/account","/watch","/listen","/product","/people","/peace"]}},{"event":"watch video","weight":8,"properties":{"videoCategory":["humor","scary","amsr","music","documentary","educational"],"isFeaturedItem":[true,false,false],"watchTimeSec":[10,600],"quality":["2160p","1440p","1080p","720p","480p","360p","240p"],"format":["mp4","avi","mov","mpg"]}},{"event":"view item","weight":8,"properties":{"isFeaturedItem":[true,false,false],"itemCategory":["office","school","art","crafts","party","wedding","baby","kids","adults","seniors"],"rating":[1,5]}},{"event":"save item","weight":5,"properties":{"isFeaturedItem":[true,false,false],"itemCategory":["electronics","games","food","beverages","health","beauty","sports","outdoors","party","wedding","baby","kids","adults","seniors"]}},{"event":"rent item","weight":2,"properties":{"isFeaturedItem":[true,false,false],"itemCategory":["electronics","clothing","games","food","beauty","sports","outdoors","automotive","wedding","baby","seniors"]}},{"event":"sign up","isFirstEvent":true,"weight":0,"properties":{"variants":["A","B","C","Control"],"flows":["new","existing","loyal","churned"],"flags":["on","off"],"experiment_ids":["1234","5678","9012","3456","7890"],"multiVariate":[true,false]}}],"superProps":{"platform":["web","mobile","kiosk","smartTV"],"currentTheme":["light","dark","custom"]},"userProps":{"loyalty_points":[1,100000],"age":[18,70],"premium":[true,false],"language":["english","spanish","french"]}}
+```
+
+**Example 2:**
+
+Input: https://www.nytimes.com
+
+Output:
+```json
+{"events":[{"event":"page view","weight":10,"properties":{"page":["/","/section/world","/section/us","/section/politics","/section/business","/section/opinion","/section/technology","/section/science","/section/health","/section/sports","/section/arts","/section/fashion","/section/food","/section/travel"]}},{"event":"article read","weight":8,"properties":{"category":["world news","politics","business","technology","science","health","sports","arts","fashion","food","travel"],"length":["short (< 3 mins)","medium (3-5 mins)","long (> 5 mins)"],"author_reputation":["emerging","established","renowned"],"comment_interaction":["low (<10 comments)","medium (10-50 comments)","high (>50 comments)"]}},{"event":"search","weight":6,"properties":{"search_term_length":["short (1-3 words)","medium (4-6 words)","long (7+ words)"],"results_returned":["none","few (1-3 results)","some (4-10 results)","many (>10 results)"],"result_clicked":["first result","within top 5","none clicked"]}},{"event":"subscribe","weight":2,"properties":{"plan":["basic","premium","all-access"],"payment_method":["credit card","paypal","apple pay"],"trial_offer_accepted":[true,false]}},{"event":"newsletter sign up","weight":3,"properties":{"newsletter_type":["daily briefing","morning briefing","opinion","cooking","arts"],"opt_in_for_promotions":[true,false]}},{"event":"comment posted","weight":4,"properties":{"comment_length":["short (< 50 words)","medium (50-150 words)","long (> 150 words)"],"article_category":["news","opinion","review"],"visibility":["public","private","friends only"]}}],"superProps":{"platform":["web","mobile","tablet"],"loggedIn":[true,false],"time_of_day":["morning","afternoon","evening","night"],"browser_type":["Chrome","Firefox","Safari","Edge"]},"userProps":{"subscriptionType":["none","basic","premium","all-access"],"age_group":["<18","18-24","25-34","35-44","45-54","55-64","65+"],"location":["USA","Europe","Asia","Other"],"interests":["politics","technology","health","sports","arts","lifestyle","science","education"]}}
+```
+
+**Example 3:**
+
+Input: the love's truck stop app (love's connect: https://www.loves.com/en/my-love-rewards/download-loves-connect)
+
+Output:
+```json
+{"events":[{"event":"home button","weight":8,"properties":{"button type":["front","side","middle"]}},{"event":"route button","weight":6,"properties":{"from screen":["home","services"]}},{"event":"services button","weight":2,"properties":{"is emergency?":[false,true]}},{"event":"stores button","weight":3,"properties":{"is from push?":[true,false]}},{"event":"email link clicked","weight":1,"properties":{"campaign_name":["Pro Email Campaign 1","Pro Email Campaign 2","Pro Email Campaign 3"]}},{"event":"pay button","weight":4,"properties":{}},{"event":"pay with location","weight":3,"properties":{}},{"event":"payment select","weight":4,"properties":{}},{"event":"select pump","weight":5,"properties":{"pump":[1,32]}},{"event":"select fuel","weight":3,"properties":{"fuel type":["diesel","reefer","def"],"fuel price":[3.99,6.79]}},{"event":"fueling","weight":4,"properties":{"fuel volume":[20,150]}}],"superProps":{"campaign_name":["Pro Email Campaign 1","Pro Email Campaign 2","Pro Email Campaign 3"],"feature flags":[["first 100k miles"],["dark mode","first 100k miles"],["dark mode","free shower"],["free shower"]]},"userProps":{"driver type":["Leased","Owner","Fleet"],"marketing":["in-app","email","sms","call"],"member status":["base","gold","platinum","diamond"],"lifetime value":[0,10000]}}
+```
+
+**Example 4:**
+
+Input: the web app for one medical, a modern healthcare provider (https://app.onemedical.com/)
+
+Output:
+```json
+{"events":[{"event":"login","weight":9,"properties":{"method":["standard email/password","google","apple"],"success":[true,false],"error_type":["none","password incorrect","user not found","account locked"]}},{"event":"appointment booking","weight":8,"properties":{"type":["physical","virtual"],"specialty":["primary care","mental health","pediatrics","nutrition","allergy","dermatology"],"duration":["15 minutes","30 minutes","1 hour"],"booking_advance_days":["same day","1-3 days","4-7 days","more than a week"]}},{"event":"profile update","weight":4,"properties":{"section_updated":["personal information","insurance details","medical history","preferences"],"fields_changed":["1-2","3-5","more than 5"]}},{"event":"message to provider","weight":6,"properties":{"message_length":["short (<50 words)","medium (50-150 words)","long (>150 words)"],"response_time":["<1 hour","1-24 hours","1-2 days","no response"],"urgency":["low","medium","high"]}},{"event":"medication refill request","weight":5,"properties":{"medication":["prescription","over-the-counter"],"quantity":["1 month","3 months","6 months"],"auto_refill_enrolled":[true,false]}},{"event":"health record access","weight":7,"properties":{"record_type":["lab results","vaccination records","prescription history","doctor notes"],"access_device":["desktop","mobile"],"time_spent":["<1 min","1-5 mins","5+ mins"]}},{"event":"feedback submission","weight":3,"properties":{"feedback_type":["service","app usability","provider"],"rating":["1","2","3","4","5"],"comment_provided":[true,false]}},{"event":"notification settings update","weight":2,"properties":{"notifications_enabled":[true,false],"types_enabled":["appointment reminders","health updates","newsletters","promotional offers"]}}],"superProps":{"platform":["web","mobile"],"loggedIn":[true,false],"user_type":["patient","provider","admin"],"subscription_level":["free","standard","premium"]},"userProps":{"membership_status":["active","lapsed","pending renewal"],"age_group":["<18","18-24","25-34","35-44","45-54","55-64","65+"],"has_chronic_conditions":[true,false],"preferred_contact_method":["email","phone","sms"]}}
+```
+
+**Example 5:**
+
+Input: the web app for coinbase, a cryptocurrency exchange (https://www.coinbase.com/)
+
+Output:
+```json
+{"events":[{"event":"login","weight":9,"properties":{"method":["standard email/password","two-factor authentication","biometric"],"success":[true,false],"error_type":["none","password incorrect","user not found","account locked","2FA failed"]}},{"event":"trade executed","weight":8,"properties":{"crypto_pair":["BTC/USD","ETH/USD","LTC/USD","XRP/USD","BCH/USD"],"trade_type":["buy","sell"],"order_type":["market","limit","stop loss","stop limit"],"quantity":["<1","1-5","5-10","10+"],"trade_successful":[true,false],"error_type":["none","insufficient funds","slippage too high","network error"]}},{"event":"account funding","weight":7,"properties":{"method":["bank transfer","credit card","crypto deposit"],"currency":["USD","EUR","GBP"],"amount":["<100","100-1000","1000-5000","5000+"],"successful":[true,false],"error_type":["none","transaction declined","limits exceeded","network error"]}},{"event":"withdrawal request","weight":6,"properties":{"method":["bank transfer","crypto withdrawal"],"currency":["USD","BTC","ETH"],"amount":["<100","100-1000","1000-5000","5000+"],"successful":[true,false],"error_type":["none","insufficient funds","limits exceeded","network error"]}},{"event":"profile update","weight":3,"properties":{"fields_updated":["email","phone","two-factor authentication settings","payment methods"],"successful":[true,false]}},{"event":"security alert","weight":4,"properties":{"alert_type":["login from new device","suspicious transaction","profile changes"],"response_action":["no action","contact support","reset password","enable 2FA"]}},{"event":"price alert set","weight":2,"properties":{"crypto":["BTC","ETH","LTC","XRP"],"threshold":["<5000","5000-10000","10000-20000","20000+"],"alert_type":["price increase","price decrease"]}},{"event":"customer support interaction","weight":5,"properties":{"issue_type":["account access","trade issue","withdrawal problem","other"],"contact_method":["email","phone","live chat"],"resolution":["resolved","unresolved","escalated"]}}],"superProps":{"platform":["web","iOS app","Android app"],"loggedIn":[true,false],"verification_level":["none","basic","verified","pro"]},"userProps":{"account_type":["basic","pro"],"trading_frequency":["daily","weekly","monthly","rarely"],"preferred_crypto":["BTC","ETH","LTC","XRP"],"region":["North America","Europe","Asia","Other"],"investment_level":["<1000","1000-5000","5000-10000","10000+"]}}
+```
+
+**ADDITIONAL GUIDELINES:**
+
+* Use specific and descriptive event names.
+* DO NOT declare property types, properties are the key names and include an array of POSSIBLE values which could be chosen for the event or user
+	* the properties within each event should adhere to the defined TypeScript types (Primitives and ValidValue)
+* For numerical ranges, you can use [min, max] in the JSON as above
+* Consider both super properties (applied to all events) and user properties; they should be different from event props
+* DO NOT include user IDs, emails, or location properties anywhere data in the schema; ONLY highlight the properties specific to the website or app 
+	* DO NOT be lazy an say ['array of payment types'] or ['array of product categories'] - be specific ... ['USD', 'CAD', 'EUR', 'BTC', 'ETH', 'JPY'] ... we want to see the actual values that would be passed live production data
+* event names should be lower case by convention; prefer spaces to underscores so "add to cart" instead of "add_to_cart"
+* you should ALWAYS output valid JSON as your output will be fed into a JSON schema validator

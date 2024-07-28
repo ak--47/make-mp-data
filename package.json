@@ -43,6 +43,7 @@
 	},
 	"homepage": "https://github.com/ak--47/make-mp-data#readme",
 	"dependencies": {
+		"@google/generative-ai": "^0.16.0",
 		"ak-fetch": "^1.0.21",
 		"ak-tools": "^1.0.64",
 		"chance": "^1.1.11",

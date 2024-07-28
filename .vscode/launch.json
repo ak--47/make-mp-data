@@ -25,7 +25,7 @@
 		{
             "type": "node",
             "request": "launch",
-            "name": "go",
+            "name": "index",
             "runtimeExecutable": "nodemon",
             "runtimeArgs": ["--inspect"],
             "program": "${workspaceFolder}/index.js",
@@ -35,6 +35,19 @@
             "internalConsoleOptions": "neverOpen",
             "skipFiles": ["<node_internals>/**"],
         },
+		{
+			"type": "node",
+			"request": "launch",
+			"name": "current",
+			"runtimeExecutable": "nodemon",
+			"program": "${file}",
+			"restart": true,
+			"console": "integratedTerminal",
+			"internalConsoleOptions": "neverOpen",
+			"env": {
+				"NODE_ENV": "dev"
+			}
+		},
 		{
             "type": "node",
             "request": "launch",
