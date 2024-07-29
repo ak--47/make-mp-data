@@ -2,7 +2,7 @@
 npm run func:build
 gcloud alpha functions deploy dm4 \
   --runtime nodejs20 \
-  --source ./cloud/ \
+  --source . \
   --gen2 \
   --trigger-http \
   --no-allow-unauthenticated \

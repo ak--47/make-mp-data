@@ -17,8 +17,7 @@
 		"exp:benchmark": "node --no-warnings --experimental-vm-modules ./tests/benchmark/concurrency.mjs",
 		"exp:soup": "node ./tests/testSoup.mjs",
 		"func:local": "functions-framework --target=entry",
-		"func:deploy": "./scripts/deploy.sh",
-		"func:build": "SKIP_META=true npx esbuild index.js --bundle --platform=node --target=node20 --outfile=cloud/function.js --resolve-extensions=.js"
+		"func:deploy": "./scripts/deploy.sh"	
 	},
 	"repository": {
 		"type": "git",

@@ -1,0 +1,9 @@
+.env
+.scratch.mjs
+tsconfig.json
+types.d.ts
+tmp
+tests
+scripts
+data
+.vscode
