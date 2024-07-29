@@ -18,14 +18,14 @@
 		},
 		{
 			"command": "npm run dev",
-			"name": "dev",
+			"name": "scratch",
 			"request": "launch",
 			"type": "node-terminal"
 		},
 		{
             "type": "node",
             "request": "launch",
-            "name": "index",
+            "name": "dungeon",
             "runtimeExecutable": "nodemon",
             "runtimeArgs": ["--inspect"],
             "program": "${workspaceFolder}/index.js",
@@ -38,12 +38,21 @@
 		{
 			"type": "node",
 			"request": "launch",
-			"name": "current",
+			"name": "go",
 			"runtimeExecutable": "nodemon",
 			"program": "${file}",
 			"restart": true,
 			"console": "integratedTerminal",
 			"internalConsoleOptions": "neverOpen",
+			"env": {
+				"NODE_ENV": "dev"
+			}
+		},
+		{
+			"command": "npm run func:local",
+			"name": "cloud",
+			"request": "launch",
+			"type": "node-terminal",
 			"env": {
 				"NODE_ENV": "dev"
 			}

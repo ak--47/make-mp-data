@@ -83,7 +83,7 @@ function validator(schema) {
 
 
 if (require.main === module) {
-	generateSchema(`mixpanel, the analytics SaaS app for companies to build reports and dashboards with... https://mixpanel.com`)
+	generateSchema(`stake 'n shake ... a fast food joint for "steakburgers" and other quick service greasy spoon food... specifically we're building a dataset for their in-store kiosks which users order with a tablet... https://www.restaurantdive.com/news/steak-n-shake-facial-recognition-self-order-kiosks/713263/`)
 		.then((result) => {
 			if (NODE_ENV === "dev") debugger;
 		})

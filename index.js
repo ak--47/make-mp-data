@@ -29,7 +29,7 @@ const { existsSync } = require("fs");
 const pLimit = require('p-limit');
 const os = require("os");
 const path = require("path");
-const { comma, bytesHuman, makeName, md5, clone, tracker, uid, timer, ls, rm } = require("ak-tools");
+const { comma, bytesHuman, makeName, md5, clone, tracker, uid, timer, ls, rm, touch, load, sLog } = require("ak-tools");
 const jobTimer = timer('job');
 const { generateLineChart } = require('./components/chart.js');
 const { version } = require('./package.json');
@@ -37,6 +37,10 @@ const mp = require("mixpanel-import");
 const u = require("./components/utils.js");
 const getCliParams = require("./components/cli.js");
 const metrics = tracker("make-mp-data", "db99eb8f67ae50949a13c27cacf57d41", os.userInfo().username);
+
+
+//CLOUD
+const functions = require('@google-cloud/functions-framework');
 
 // DEFAULTS
 const { campaigns, devices, locations } = require('./components/defaults.js');
@@ -47,6 +51,10 @@ let STORAGE;
 /** @type {Config} */
 let CONFIG;
 require('dotenv').config();
+
+const { NODE_ENV = "unknown" } = process.env;
+
+
 
 
 // RUN STATE
@@ -255,6 +263,45 @@ async function main(config) {
 }
 
 
+
+functions.http('entry', async (req, res) => {
+	let response = {};
+	let script = req.body;
+	let writePath;
+	try {
+		sLog("DM4: request");
+		const tempDir = NODE_ENV === "dev" ? path.join(__dirname, "tmp") : os.tmpdir();
+		writePath = path.join(tempDir, `${makeName()}.js`);
+		await touch(writePath, script);
+		/** @type {Config} */
+		const config = require(writePath);
+
+		const { token } = config;
+		if (!token) throw new Error("no token");
+
+		/** @type {Config} */
+		const optionsYouCantChange = {
+			verbose: false,
+			writeToDisk: false,
+
+		};
+		const result = await main({
+			...config,
+			...optionsYouCantChange,
+		});
+		response = result;
+		await rm(writePath);
+		sLog("DM4: response", response);
+	}
+	catch (e) {
+		response = { error: e.message };
+		res.status(500);
+		await rm(writePath);
+	}
+	finally {
+		res.send(response);
+	}
+});
 
 
 /*
@@ -924,7 +971,7 @@ async function sendToMixpanel(config, storage) {
 		dryRun: false,
 		abridged: false,
 		fixJson: true,
-		showProgress: true,
+		showProgress: NODE_ENV === "dev" ? true : false,
 		streamFormat: mpImportFormat
 	};
 
@@ -1156,6 +1203,8 @@ async function makeHookArray(arr = [], opts = {}) {
 	if (existsSync(dataFolder)) writeDir = dataFolder;
 	else writeDir = path.resolve("./");
 
+	if (NODE_ENV === "prod") writeDir = path.resolve(os.tmpdir());
+
 	function getWritePath() {
 		if (isBATCH_MODE) {
 			return path.join(writeDir, `${filepath}-part-${batch.toString()}.${format}`);
@@ -1301,6 +1350,7 @@ CLI
 ----
 */
 
+// YOU CAN'T DEPLOY TO CLOUD WITH THIS...
 if (require.main === module) {
 	isCLI = true;
 	const args = /** @type {Config} */ (getCliParams());
@@ -1385,6 +1435,7 @@ if (require.main === module) {
 	main.meta = { inferFunnels, hookArray: makeHookArray };
 	module.exports = main;
 }
+
 
 
 /*

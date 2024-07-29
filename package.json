@@ -15,7 +15,10 @@
 		"new:dungeon": "./scripts/new-dungeon.sh",
 		"new:project": "node ./scripts/new-project.mjs",
 		"exp:benchmark": "node --no-warnings --experimental-vm-modules ./tests/benchmark/concurrency.mjs",
-		"exp:soup": "node ./tests/testSoup.mjs"
+		"exp:soup": "node ./tests/testSoup.mjs",
+		"func:local": "functions-framework --target=entry",
+		"func:deploy": "./scripts/deploy.sh",
+		"func:build": "SKIP_META=true npx esbuild index.js --bundle --platform=node --target=node20 --outfile=cloud/function.js --resolve-extensions=.js"
 	},
 	"repository": {
 		"type": "git",
@@ -43,8 +46,9 @@
 	},
 	"homepage": "https://github.com/ak--47/make-mp-data#readme",
 	"dependencies": {
+		"@google-cloud/functions-framework": "^3.4.2",
 		"@google/generative-ai": "^0.16.0",
-		"ak-fetch": "^1.0.21",
+		"ak-fetch": "^1.0.4",
 		"ak-tools": "^1.0.64",
 		"chance": "^1.1.11",
 		"chart.js": "^3.9.1",

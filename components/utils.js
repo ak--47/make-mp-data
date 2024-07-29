@@ -179,12 +179,20 @@ function day(start, end) {
  * @param  {ValueValid} value
  */
 function choose(value) {
+	let wasFunctionCalled = false;
 	const chance = getChance();
+
 	try {
 		// Keep resolving the value if it's a function
 		while (typeof value === 'function') {
 			value = value();
+			wasFunctionCalled = true;
 		}
+
+		// allow functions which create arrays of objects to pass through
+		// if (Array.isArray(value) && wasFunctionCalled && value.length > 1 && value[0] === null) {
+		// 	return value.slice(1);
+		// }
 
 		// Now, if the resolved value is an array, use chance.pickone
 		if (Array.isArray(value)) {
@@ -204,6 +212,7 @@ function choose(value) {
 	}
 	catch (e) {
 		console.error(`\n\nerror on value: ${value};\n\n`, e, '\n\n');
+		throw e;
 		return '';
 	}
 }
