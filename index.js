@@ -268,15 +268,19 @@ functions.http('entry', async (req, res) => {
 	const reqTimer = timer('request');
 	reqTimer.start();
 	let response = {};
-	let script = req.body;
+	let script = req.body || "";
 	let writePath;
 	try {
 		sLog("DM4: start");
-		const tempDir = NODE_ENV === "dev" ? path.join(__dirname, "tmp") : os.tmpdir();
-		writePath = path.join(tempDir, `${makeName()}.js`);
-		await touch(writePath, script);
+		if (!script) throw new Error("no script");
+
+		// Replace require("../ with require("./
+		script = script.replace(/require\("\.\.\//g, 'require("./'); 
+		// ^ need to replace this because of the way the script is passed in... this is sketch
+
 		/** @type {Config} */
-		const config = require(writePath);
+		const config = eval(script);
+		sLog("DM4: eval ok");
 
 		const { token } = config;
 		if (!token) throw new Error("no token");
