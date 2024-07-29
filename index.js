@@ -265,11 +265,13 @@ async function main(config) {
 
 
 functions.http('entry', async (req, res) => {
+	const reqTimer = timer('request');
+	reqTimer.start();
 	let response = {};
 	let script = req.body;
 	let writePath;
 	try {
-		sLog("DM4: request");
+		sLog("DM4: start");
 		const tempDir = NODE_ENV === "dev" ? path.join(__dirname, "tmp") : os.tmpdir();
 		writePath = path.join(tempDir, `${makeName()}.js`);
 		await touch(writePath, script);
@@ -289,11 +291,13 @@ functions.http('entry', async (req, res) => {
 			...config,
 			...optionsYouCantChange,
 		});
-		response = result;
 		await rm(writePath);
-		sLog("DM4: response", response);
+		reqTimer.stop(false);
+		const { start, end, delta, human } = jobTimer.report(false);
+		sLog(`DM4: end (${human})`, { ms: delta });
 	}
 	catch (e) {
+		sLog("DM4: error", { error: e.message });
 		response = { error: e.message };
 		res.status(500);
 		await rm(writePath);
@@ -1350,90 +1354,91 @@ CLI
 ----
 */
 
-// YOU CAN'T DEPLOY TO CLOUD WITH THIS...
-if (require.main === module) {
-	isCLI = true;
-	const args = /** @type {Config} */ (getCliParams());
-	let { token, seed, format, numDays, numUsers, numEvents, region, writeToDisk, complex = false, hasSessionIds, hasAnonIds } = args;
-	const suppliedConfig = args._[0];
+if (NODE_ENV !== "prod") {
+	if (require.main === module) {
+		isCLI = true;
+		const args = /** @type {Config} */ (getCliParams());
+		let { token, seed, format, numDays, numUsers, numEvents, region, writeToDisk, complex = false, hasSessionIds, hasAnonIds } = args;
+		const suppliedConfig = args._[0];
 
-	//if the user specifies an separate config file
-	let config = null;
-	if (suppliedConfig) {
-		console.log(`using ${suppliedConfig} for data\n`);
-		config = require(path.resolve(suppliedConfig));
-	}
-	else {
-		if (complex) {
-			console.log(`... using default COMPLEX configuration [everything] ...\n`);
-			console.log(`... for more simple data, don't use the --complex flag ...\n`);
-			console.log(`... or specify your own js config file (see docs or --help) ...\n`);
-			config = require(path.resolve(__dirname, "./schemas/complex.js"));
+		//if the user specifies an separate config file
+		let config = null;
+		if (suppliedConfig) {
+			console.log(`using ${suppliedConfig} for data\n`);
+			config = require(path.resolve(suppliedConfig));
 		}
 		else {
-			console.log(`... using default SIMPLE configuration [events + users] ...\n`);
-			console.log(`... for more complex data, use the --complex flag ...\n`);
-			config = require(path.resolve(__dirname, "./schemas/simple.js"));
+			if (complex) {
+				console.log(`... using default COMPLEX configuration [everything] ...\n`);
+				console.log(`... for more simple data, don't use the --complex flag ...\n`);
+				console.log(`... or specify your own js config file (see docs or --help) ...\n`);
+				config = require(path.resolve(__dirname, "./schemas/complex.js"));
+			}
+			else {
+				console.log(`... using default SIMPLE configuration [events + users] ...\n`);
+				console.log(`... for more complex data, use the --complex flag ...\n`);
+				config = require(path.resolve(__dirname, "./schemas/simple.js"));
+			}
 		}
+
+		//override config with cli params
+		if (token) config.token = token;
+		if (seed) config.seed = seed;
+		if (format === "csv" && config.format === "json") format = "json";
+		if (format) config.format = format;
+		if (numDays) config.numDays = numDays;
+		if (numUsers) config.numUsers = numUsers;
+		if (numEvents) config.numEvents = numEvents;
+		if (region) config.region = region;
+		if (writeToDisk) config.writeToDisk = writeToDisk;
+		if (writeToDisk === 'false') config.writeToDisk = false;
+		if (hasSessionIds) config.hasSessionIds = hasSessionIds;
+		if (hasAnonIds) config.hasAnonIds = hasAnonIds;
+		config.verbose = true;
+
+		main(config)
+			.then((data) => {
+				//todo: rethink summary
+				log(`-----------------SUMMARY-----------------`);
+				const d = { success: 0, bytes: 0 };
+				const darr = [d];
+				const { events = d, groups = darr, users = d } = data?.importResults || {};
+				const files = data.files;
+				const folder = files?.[0]?.split(path.basename(files?.[0]))?.shift();
+				const groupBytes = groups.reduce((acc, group) => {
+					return acc + group.bytes;
+				}, 0);
+				const groupSuccess = groups.reduce((acc, group) => {
+					return acc + group.success;
+				}, 0);
+				const bytes = events.bytes + groupBytes + users.bytes;
+				const stats = {
+					events: comma(events.success || 0),
+					users: comma(users.success || 0),
+					groups: comma(groupSuccess || 0),
+					bytes: bytesHuman(bytes || 0),
+				};
+				if (bytes > 0) console.table(stats);
+				log(`\nfiles written to ${folder || "no where; we didn't write anything"} ...`);
+				log("  " + files?.flat().join("\n  "));
+				log(`\n----------------SUMMARY-----------------\n\n\n`);
+			})
+			.catch((e) => {
+				log(`------------------ERROR------------------`);
+				console.error(e);
+				log(`------------------ERROR------------------`);
+				debugger;
+			})
+			.finally(() => {
+				log("enjoy your data! :)");
+				u.openFinder(path.resolve("./data"));
+			});
+	} else {
+		main.generators = { makeEvent, makeFunnel, makeProfile, makeSCD, makeAdSpend, makeMirror };
+		main.orchestrators = { userLoop, validateDungeonConfig, sendToMixpanel };
+		main.meta = { inferFunnels, hookArray: makeHookArray };
+		module.exports = main;
 	}
-
-	//override config with cli params
-	if (token) config.token = token;
-	if (seed) config.seed = seed;
-	if (format === "csv" && config.format === "json") format = "json";
-	if (format) config.format = format;
-	if (numDays) config.numDays = numDays;
-	if (numUsers) config.numUsers = numUsers;
-	if (numEvents) config.numEvents = numEvents;
-	if (region) config.region = region;
-	if (writeToDisk) config.writeToDisk = writeToDisk;
-	if (writeToDisk === 'false') config.writeToDisk = false;
-	if (hasSessionIds) config.hasSessionIds = hasSessionIds;
-	if (hasAnonIds) config.hasAnonIds = hasAnonIds;
-	config.verbose = true;
-
-	main(config)
-		.then((data) => {
-			//todo: rethink summary
-			log(`-----------------SUMMARY-----------------`);
-			const d = { success: 0, bytes: 0 };
-			const darr = [d];
-			const { events = d, groups = darr, users = d } = data?.importResults || {};
-			const files = data.files;
-			const folder = files?.[0]?.split(path.basename(files?.[0]))?.shift();
-			const groupBytes = groups.reduce((acc, group) => {
-				return acc + group.bytes;
-			}, 0);
-			const groupSuccess = groups.reduce((acc, group) => {
-				return acc + group.success;
-			}, 0);
-			const bytes = events.bytes + groupBytes + users.bytes;
-			const stats = {
-				events: comma(events.success || 0),
-				users: comma(users.success || 0),
-				groups: comma(groupSuccess || 0),
-				bytes: bytesHuman(bytes || 0),
-			};
-			if (bytes > 0) console.table(stats);
-			log(`\nfiles written to ${folder || "no where; we didn't write anything"} ...`);
-			log("  " + files?.flat().join("\n  "));
-			log(`\n----------------SUMMARY-----------------\n\n\n`);
-		})
-		.catch((e) => {
-			log(`------------------ERROR------------------`);
-			console.error(e);
-			log(`------------------ERROR------------------`);
-			debugger;
-		})
-		.finally(() => {
-			log("enjoy your data! :)");
-			u.openFinder(path.resolve("./data"));
-		});
-} else {
-	main.generators = { makeEvent, makeFunnel, makeProfile, makeSCD, makeAdSpend, makeMirror };
-	main.orchestrators = { userLoop, validateDungeonConfig, sendToMixpanel };
-	main.meta = { inferFunnels, hookArray: makeHookArray };
-	module.exports = main;
 }
 
 

@@ -1,5 +1,4 @@
 #!/bin/bash
-npm run func:build
 gcloud alpha functions deploy dm4 \
   --runtime nodejs20 \
   --source . \
