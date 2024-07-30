@@ -103,7 +103,7 @@ async function main(config) {
 
 	//TRACKING
 	const runId = uid(42);
-	const { events, superProps, userProps, scdProps, groupKeys, groupProps, lookupTables, soup, hook, mirrorProps, ...trackingParams } = config;
+	const { events, superProps, userProps, scdProps, groupKeys, groupProps, lookupTables, soup, hook, mirrorProps, token: source_proj_token, ...trackingParams } = config;
 	let { funnels } = config;
 	trackingParams.runId = runId;
 	trackingParams.version = version;
