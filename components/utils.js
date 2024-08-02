@@ -12,7 +12,7 @@ dayjs.extend(utc);
 require('dotenv').config();
 const { domainSuffix, domainPrefix } = require('./defaults');
 
-/** @typedef {import('../types').Config} Config */
+/** @typedef {import('../types').Dungeon} Config */
 /** @typedef {import('../types').EventConfig} EventConfig */
 /** @typedef {import('../types').ValueValid} ValueValid */
 /** @typedef {import('../types').HookedArray} hookArray */
@@ -934,7 +934,35 @@ function person(userId, bornDaysAgo = 30, isAnonymous = false, hasAvatar = false
 };
 
 
-
+function wrapFunc(obj, func, recursion = 0, parentKey = null, grandParentKey = null, whitelist = [
+	"events",
+	"superProps",
+	"userProps",
+	"scdProps",
+	"mirrorProps",
+	"groupEvents",
+	"groupProps"
+  ]) {
+	if (recursion === 0) {
+	  // Only process top-level keys in the whitelist
+	  for (const key in obj) {
+		if (whitelist.includes(key)) {
+		  obj[key] = wrapFunc(obj[key], func, recursion + 1, key, null, whitelist);
+		}
+	  }
+	} else {
+	  if (Array.isArray(obj) && grandParentKey === 'properties') {
+		return func(obj);
+	  } else if (typeof obj === 'object' && obj !== null) {
+		for (const key in obj) {
+		  if (obj.hasOwnProperty(key)) {
+			obj[key] = wrapFunc(obj[key], func, recursion + 1, key, parentKey, whitelist);
+		  }
+		}
+	  }
+	}
+	return obj;
+  }
 
 //UNUSED
 
@@ -1034,5 +1062,6 @@ module.exports = {
 	streamJSON,
 	streamCSV,
 	datesBetween,
-	weighChoices
+	weighChoices,
+	wrapFunc,
 };

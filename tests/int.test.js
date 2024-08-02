@@ -6,7 +6,7 @@ dayjs.extend(utc);
 require('dotenv').config();
 const path = require('path');
 
-/** @typedef {import('../types.js').Config} Config */
+/** @typedef {import('../types.js').Dungeon} Config */
 /** @typedef {import('../types.js').EventConfig} EventConfig */
 /** @typedef {import("../types.js").EventSchema} EventSchema */
 /** @typedef {import('../types.js').ValueValid} ValueValid */

@@ -10,7 +10,7 @@ const chance = u.initChance(SEED);
 const num_users = 1000;
 const days = 90;
 
-/** @type {import("../types").Config} */
+/** @type {import("../types").Dungeon} */
 const config = {
 	token: "0135b13525b21294e9e599a483eb35b2",
 	seed: SEED,

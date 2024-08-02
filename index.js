@@ -10,6 +10,8 @@ ak@mixpanel.com
 //todo: regular interval events (like 'card charged')
 //todo: SCDs send to mixpanel
 //todo: decent 'new dungeon' workflow
+//todo: validation that funnel events exist
+//todo: ability to catch events not in funnels and make them random...
 
 
 //TIME
@@ -114,6 +116,7 @@ async function main(config) {
 	const eventData = await makeHookArray([], { hook, type: "event", config, format, filepath: `${simulationName}-EVENTS` });
 	const userProfilesData = await makeHookArray([], { hook, type: "user", config, format, filepath: `${simulationName}-USERS` });
 	const adSpendData = await makeHookArray([], { hook, type: "ad-spend", config, format, filepath: `${simulationName}-AD-SPEND` });
+	const groupEventData = await makeHookArray([], { hook, type: "group-event", config, format, filepath: `${simulationName}-GROUP-EVENTS` });
 
 	// SCDs, Groups, + Lookups may have multiple tables
 	const scdTableKeys = Object.keys(scdProps);
@@ -134,7 +137,17 @@ async function main(config) {
 
 	const mirrorEventData = await makeHookArray([], { hook, type: "mirror", config, format, filepath: `${simulationName}-MIRROR` });
 
-	STORAGE = { eventData, userProfilesData, scdTableData, groupProfilesData, lookupTableData, mirrorEventData, adSpendData };
+	STORAGE = {
+		eventData,
+		userProfilesData,
+		scdTableData,
+		groupProfilesData,
+		lookupTableData,
+		mirrorEventData,
+		adSpendData,
+		groupEventData
+
+	};
 
 
 	track('start simulation', trackingParams);
@@ -172,7 +185,8 @@ async function main(config) {
 		const groupCardinality = groupPair[1];
 		for (let i = 1; i < groupCardinality + 1; i++) {
 			if (VERBOSE) u.progress([["groups", i]]);
-			const props = await makeProfile(groupProps[groupKey]);
+
+			const props = await makeProfile(groupProps[groupKey], { created: () => { return dayjs().subtract(u.integer(0, CONFIG.numDays || 30), 'd').toISOString(); } });
 			const group = {
 				[groupKey]: i,
 				...props,
@@ -182,6 +196,33 @@ async function main(config) {
 		}
 	}
 	log("\n");
+
+	//GROUP EVENTS
+	for (const groupEvent of config.groupEvents) {
+		const { frequency, group_key, attribute_to_user, group_size, ...normalEvent } = groupEvent;
+		for (const group_num of Array.from({ length: group_size }, (_, i) => i + 1)) {
+			const groupProfile = groupProfilesData.find(groups => groups.groupKey === group_key).find(group => group[group_key] === group_num);
+			const { created, distinct_id } = groupProfile;
+			normalEvent[group_key] = distinct_id;
+			const random_user_id = chance.pick(eventData).user_id;
+			const deltaDays = actualNow.diff(dayjs(created), "day");
+			const numIntervals = Math.floor(deltaDays / frequency);
+			const eventsForThisGroup = [];
+			for (let i = 0; i < numIntervals; i++) {
+				const event = await makeEvent(random_user_id, null, normalEvent, [], [], {}, [], false, true);
+				if (!attribute_to_user) delete event.user_id;
+				event[group_key] = distinct_id;
+				event.time = dayjs(created).add(i * frequency, "day").toISOString();
+				delete event.distinct_id;
+				//always skip the first event
+				if (i !== 0) {
+					eventsForThisGroup.push(event);
+				}
+
+			}
+			await groupEventData.hookPush(eventsForThisGroup, { profile: groupProfile });
+		}
+	}
 
 	//LOOKUP TABLES
 	for (const [index, lookupTable] of lookupTables.entries()) {
@@ -275,7 +316,7 @@ functions.http('entry', async (req, res) => {
 		if (!script) throw new Error("no script");
 
 		// Replace require("../ with require("./
-		script = script.replace(/require\("\.\.\//g, 'require("./'); 
+		script = script.replace(/require\("\.\.\//g, 'require("./');
 		// ^ need to replace this because of the way the script is passed in... this is sketch
 
 		/** @type {Config} */
@@ -330,13 +371,13 @@ MODELS
  * @param  {Boolean} [isFirstEvent]
  * @return {Promise<EventSchema>}
  */
-async function makeEvent(distinct_id, earliestTime, chosenEvent, anonymousIds, sessionIds, superProps, groupKeys, isFirstEvent) {
+async function makeEvent(distinct_id, earliestTime, chosenEvent, anonymousIds, sessionIds, superProps, groupKeys, isFirstEvent, skipDefaults = false) {
 	operations++;
 	eventCount++;
 	if (!distinct_id) throw new Error("no distinct_id");
 	if (!anonymousIds) anonymousIds = [];
 	if (!sessionIds) sessionIds = [];
-	if (!earliestTime) throw new Error("no earliestTime");
+	// if (!earliestTime) throw new Error("no earliestTime");
 	if (!chosenEvent) throw new Error("no chosenEvent");
 	if (!superProps) superProps = {};
 	if (!groupKeys) groupKeys = [];
@@ -377,9 +418,10 @@ async function makeEvent(distinct_id, earliestTime, chosenEvent, anonymousIds, s
 	// if (earliestTime > FIXED_NOW) {
 	// 	earliestTime = dayjs(u.TimeSoup(global.FIXED_BEGIN)).unix();
 	// };
-
-	if (isFirstEvent) eventTemplate.time = dayjs.unix(earliestTime).toISOString();
-	if (!isFirstEvent) eventTemplate.time = u.TimeSoup(earliestTime, FIXED_NOW, peaks, deviation, mean);
+	if (earliestTime) {
+		if (isFirstEvent) eventTemplate.time = dayjs.unix(earliestTime).toISOString();
+		if (!isFirstEvent) eventTemplate.time = u.TimeSoup(earliestTime, FIXED_NOW, peaks, deviation, mean);
+	}
 	// eventTemplate.time = u.TimeSoup(earliestTime, FIXED_NOW, peaks, deviation, mean);
 
 	// anonymous and session ids
@@ -405,39 +447,41 @@ async function makeEvent(distinct_id, earliestTime, chosenEvent, anonymousIds, s
 	}
 
 	//iterate through default properties
-	for (const key in defaultProps) {
-		if (Array.isArray(defaultProps[key])) {
-			const choice = u.choose(defaultProps[key]);
-			if (typeof choice === "string") {
-				if (!eventTemplate[key]) eventTemplate[key] = choice;
-			}
-
-			else if (Array.isArray(choice)) {
-				for (const subChoice of choice) {
-					if (!eventTemplate[key]) eventTemplate[key] = subChoice;
+	if (!skipDefaults) {
+		for (const key in defaultProps) {
+			if (Array.isArray(defaultProps[key])) {
+				const choice = u.choose(defaultProps[key]);
+				if (typeof choice === "string") {
+					if (!eventTemplate[key]) eventTemplate[key] = choice;
 				}
-			}
 
-			else if (typeof choice === "object") {
-				for (const subKey in choice) {
-					if (typeof choice[subKey] === "string") {
-						if (!eventTemplate[subKey]) eventTemplate[subKey] = choice[subKey];
+				else if (Array.isArray(choice)) {
+					for (const subChoice of choice) {
+						if (!eventTemplate[key]) eventTemplate[key] = subChoice;
 					}
-					else if (Array.isArray(choice[subKey])) {
-						const subChoice = u.choose(choice[subKey]);
-						if (!eventTemplate[subKey]) eventTemplate[subKey] = subChoice;
-					}
+				}
 
-					else if (typeof choice[subKey] === "object") {
-						for (const subSubKey in choice[subKey]) {
-							if (!eventTemplate[subSubKey]) eventTemplate[subSubKey] = choice[subKey][subSubKey];
+				else if (typeof choice === "object") {
+					for (const subKey in choice) {
+						if (typeof choice[subKey] === "string") {
+							if (!eventTemplate[subKey]) eventTemplate[subKey] = choice[subKey];
 						}
+						else if (Array.isArray(choice[subKey])) {
+							const subChoice = u.choose(choice[subKey]);
+							if (!eventTemplate[subKey]) eventTemplate[subKey] = subChoice;
+						}
+
+						else if (typeof choice[subKey] === "object") {
+							for (const subSubKey in choice[subKey]) {
+								if (!eventTemplate[subSubKey]) eventTemplate[subSubKey] = choice[subKey][subSubKey];
+							}
+						}
+
 					}
-
 				}
+
+
 			}
-
-
 		}
 	}
 
@@ -456,8 +500,10 @@ async function makeEvent(distinct_id, earliestTime, chosenEvent, anonymousIds, s
 	eventTemplate.insert_id = md5(JSON.stringify(eventTemplate));
 
 	// move time forward
-	const timeShifted = dayjs(eventTemplate.time).add(timeShift, "seconds").toISOString();
-	eventTemplate.time = timeShifted;
+	if (earliestTime) {
+		const timeShifted = dayjs(eventTemplate.time).add(timeShift, "seconds").toISOString();
+		eventTemplate.time = timeShifted;
+	}
 
 
 	return eventTemplate;
@@ -659,12 +705,23 @@ async function makeProfile(props, defaults) {
 		...defaults,
 	};
 
+	for (const key in profile) {
+		try {
+			profile[key] = u.choose(profile[key]);
+		}
+		catch (e) {
+			// never gets here
+			debugger;
+		}
+	}
+
+
 	for (const key in props) {
 		try {
 			profile[key] = u.choose(props[key]);
 		} catch (e) {
 			// never gets here
-			// debugger;
+			debugger;
 		}
 	}
 
@@ -961,7 +1018,17 @@ async function userLoop(config, storage, concurrency = 1) {
  * @param  {Storage} storage
  */
 async function sendToMixpanel(config, storage) {
-	const { adSpendData, eventData, groupProfilesData, lookupTableData, mirrorEventData, scdTableData, userProfilesData } = storage;
+	const {
+		adSpendData,
+		eventData,
+		groupProfilesData,
+		lookupTableData,
+		mirrorEventData,
+		scdTableData,
+		userProfilesData,
+		groupEventData
+
+	} = storage;
 	const { token, region, writeToDisk } = config;
 	const importResults = { events: {}, users: {}, groups: [] };
 
@@ -1015,11 +1082,11 @@ async function sendToMixpanel(config, storage) {
 		log(`\tsent ${comma(imported.success)} user profiles\n`);
 		importResults.users = imported;
 	}
-	if (adSpendData || isBATCH_MODE) {
+	if (groupEventData || isBATCH_MODE) {
 		log(`importing ad spend data to mixpanel...\n`);
-		let adSpendDataToImport = clone(adSpendData);
+		let adSpendDataToImport = clone(groupEventData);
 		if (isBATCH_MODE) {
-			const writeDir = adSpendData.getWriteDir();
+			const writeDir = groupEventData.getWriteDir();
 			const files = await ls(writeDir.split(path.basename(writeDir)).join(""));
 			adSpendDataToImport = files.filter(f => f.includes('-AD-SPEND-'));
 		}
@@ -1051,11 +1118,28 @@ async function sendToMixpanel(config, storage) {
 		}
 	}
 
+	if (groupEventData || isBATCH_MODE) {
+		log(`importing group events to mixpanel...\n`);
+		let groupEventDataToImport = clone(groupEventData);
+		if (isBATCH_MODE) {
+			const writeDir = groupEventData.getWriteDir();
+			const files = await ls(writeDir.split(path.basename(writeDir)).join(""));
+			groupEventDataToImport = files.filter(f => f.includes('-GROUP-EVENTS-'));
+		}
+		const imported = await mp(creds, groupEventDataToImport, {
+			recordType: "event",
+			...commonOpts,
+			strict: false
+		});
+		log(`\tsent ${comma(imported.success)} group events\n`);
+		importResults.groupEvents = imported;
+	}
+
 	//if we are in batch mode, we need to delete the files
 	if (!writeToDisk && isBATCH_MODE) {
 		const writeDir = eventData?.getWriteDir() || userProfilesData?.getWriteDir();
 		const listDir = await ls(writeDir.split(path.basename(writeDir)).join(""));
-		const files = listDir.filter(f => f.includes('-EVENTS-') || f.includes('-USERS-') || f.includes('-AD-SPEND-') || f.includes('-GROUPS-'));
+		const files = listDir.filter(f => f.includes('-EVENTS-') || f.includes('-USERS-') || f.includes('-AD-SPEND-') || f.includes('-GROUPS-') || f.includes('-GROUP-EVENTS-'));
 		for (const file of files) {
 			await rm(file);
 		}
@@ -1226,14 +1310,14 @@ async function makeHookArray(arr = [], opts = {}) {
 		return path.join(writeDir, `${filepath}.${format}`);
 	}
 
-	async function transformThenPush(item) {
+	async function transformThenPush(item, meta) {
 		if (item === null || item === undefined) return false;
 		if (typeof item === 'object' && Object.keys(item).length === 0) return false;
-
+		const allMetaData = { ...rest, ...meta };
 		if (Array.isArray(item)) {
 			for (const i of item) {
 				try {
-					const enriched = await hook(i, type, rest);
+					const enriched = await hook(i, type, allMetaData);
 					if (Array.isArray(enriched)) enriched.forEach(e => arr.push(e));
 					else arr.push(enriched);
 				} catch (e) {
@@ -1243,7 +1327,7 @@ async function makeHookArray(arr = [], opts = {}) {
 			}
 		} else {
 			try {
-				const enriched = await hook(item, type, rest);
+				const enriched = await hook(item, type, allMetaData);
 				if (Array.isArray(enriched)) enriched.forEach(e => arr.push(e));
 				else arr.push(enriched);
 			} catch (e) {
@@ -1471,7 +1555,7 @@ function track(name, props, ...rest) {
 }
 
 
-/** @typedef {import('./types.js').Config} Config */
+/** @typedef {import('./types.js').Dungeon} Config */
 /** @typedef {import('./types.js').AllData} AllData */
 /** @typedef {import('./types.js').EventConfig} EventConfig */
 /** @typedef {import('./types.js').Funnel} Funnel */

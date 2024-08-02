@@ -20,7 +20,7 @@ const EVENTS = 50_000
 const USERS = EVENTS / 100
 
 
-/** @type {import('../types.js').Config} */
+/** @type {import('../types.js').Dungeon} */
 const config = {
 	token: "",	
 	seed: "it's business time...",

@@ -12,7 +12,7 @@ declare namespace main {
   /**
    * main config object for the entire data generation
    */
-  export interface Config {
+  export interface Dungeon {
     // constants
     token?: string;
     seed?: string;
@@ -23,8 +23,8 @@ declare namespace main {
     numUsers?: number;
     format?: "csv" | "json" | string;
     region?: "US" | "EU";
-	concurrency?: number;
-	batchSize?: number;
+    concurrency?: number;
+    batchSize?: number;
 
     // ids
     simulationName?: string;
@@ -44,7 +44,7 @@ declare namespace main {
     verbose?: boolean;
     hasAnonIds?: boolean;
     hasSessionIds?: boolean;
-	alsoInferFunnels?: boolean;
+    alsoInferFunnels?: boolean;
     makeChart?: boolean | string;
 
     //models
@@ -56,6 +56,7 @@ declare namespace main {
     mirrorProps?: Record<string, MirrorProps>;
     groupKeys?: [string, number][] | [string, number, string[]][]; // [key, numGroups, [events]]
     groupProps?: Record<string, Record<string, ValueValid>>;
+    groupEvents?: GroupEventConfig[];
     lookupTables?: LookupTableSchema[];
     soup?: soup;
     hook?: Hook<any>;
@@ -87,6 +88,7 @@ declare namespace main {
     | "funnel-post"
     | "ad-spend"
     | "churn"
+    | "group-event"
     | "";
 
   /**
@@ -99,7 +101,7 @@ declare namespace main {
     type?: hookTypes;
     filename?: string;
     format?: "csv" | "json" | string;
-	concurrency?: number;
+    concurrency?: number;
     [key: string]: any;
   }
 
@@ -107,10 +109,10 @@ declare namespace main {
    * an enriched array is an array that has a hookPush method that can be used to transform-then-push items into the array
    */
   export interface HookedArray<T> extends Array<T> {
-    hookPush: (item: T | T[]) => any;
+    hookPush: (item: T | T[], ...meta) => any;
     flush: () => void;
     getWriteDir: () => string;
-	getWritePath: () => string;
+    getWritePath: () => string;
     [key: string]: any;
   }
 
@@ -133,6 +135,7 @@ declare namespace main {
     groupProfilesData?: HookedArray<GroupProfileSchema>[];
     lookupTableData?: HookedArray<LookupTableSchema>[];
     scdTableData?: HookedArray<SCDSchema>[];
+    groupEventData?: HookedArray<EventSchema>;
   }
 
   /**
@@ -145,6 +148,13 @@ declare namespace main {
     isFirstEvent?: boolean;
     isChurnEvent?: boolean;
     relativeTimeMs?: number;
+  }
+
+  export interface GroupEventConfig extends EventConfig {
+    frequency: number; //how often the event occurs (in days)
+    group_key: string; //the key that the group is based on
+    attribute_to_user: boolean; //if true, the event also goes to a user
+    group_size: number; //the number of users in the group
   }
 
   /**
@@ -324,6 +334,6 @@ declare namespace main {
  * const gen = require('make-mp-data')
  * const dta = gen({writeToDisk: false})
  */
-declare function main(config: main.Config): Promise<main.Result>;
+declare function main(config: main.Dungeon): Promise<main.Result>;
 
 export = main;

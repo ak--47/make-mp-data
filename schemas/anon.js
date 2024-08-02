@@ -18,7 +18,7 @@ const { pickAWinner, weighNumRange, date, integer } = require('../components/uti
 
 
 
-/** @type {import('../types').Config} */
+/** @type {import('../types').Dungeon} */
 const config = {
 	token: "",
 	seed: "foo bar",

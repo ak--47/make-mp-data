@@ -20,7 +20,7 @@ const itemCategories = ["Books", "Movies", "Music", "Games", "Electronics", "Com
 
 const videoCategories = ["funny", "educational", "inspirational", "music", "news", "sports", "cooking", "DIY", "travel", "gaming"];
 
-/** @type {import('../types').Config} */
+/** @type {import('../types').Dungeon} */
 const config = {
 	token: "",
 	seed: "simple is best",

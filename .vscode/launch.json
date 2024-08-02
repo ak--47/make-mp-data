@@ -5,18 +5,6 @@
 	"version": "0.2.0",
 	"configurations": [
 		{
-			"command": "npm run simple",
-			"name": "simple",
-			"request": "launch",
-			"type": "node-terminal"
-		},
-		{
-			"command": "npm run complex",
-			"name": "complex",
-			"request": "launch",
-			"type": "node-terminal"
-		},
-		{
 			"command": "npm run dev",
 			"name": "scratch",
 			"request": "launch",
@@ -25,7 +13,7 @@
 		{
             "type": "node",
             "request": "launch",
-            "name": "dungeon",
+            "name": "run dungeon",
             "runtimeExecutable": "nodemon",
             "runtimeArgs": ["--inspect"],
             "program": "${workspaceFolder}/index.js",
@@ -38,7 +26,7 @@
 		{
 			"type": "node",
 			"request": "launch",
-			"name": "go",
+			"name": "current file",
 			"runtimeExecutable": "nodemon",
 			"program": "${file}",
 			"restart": true,
@@ -50,7 +38,7 @@
 		},
 		{
 			"command": "npm run func:local",
-			"name": "cloud",
+			"name": "cloud local",
 			"request": "launch",
 			"type": "node-terminal",
 			"env": {
@@ -69,6 +57,18 @@
             "console": "integratedTerminal",
             "internalConsoleOptions": "neverOpen",
             "skipFiles": ["<node_internals>/**"],
+        },
+		{
+            "type": "node-terminal",
+            "request": "launch",
+            "name": "simple",
+            "command": "node ${workspaceFolder}/index.js --simple"
+        },
+		{
+            "type": "node-terminal",
+            "request": "launch",
+            "name": "complex",
+            "command": "node ${workspaceFolder}/index.js --complex"
         }
 	]
 }
