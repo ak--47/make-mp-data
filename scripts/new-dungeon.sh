@@ -19,7 +19,9 @@ const chance = u.initChance(SEED);
 const num_users = 25_000
 const days = 100
 
-/** @type {import("../types").Config} */
+/** @typedef  {import("../types.d.ts").Config} Config */
+
+/** @type {Config} */
 const config = {
     token: "",
     seed: SEED,

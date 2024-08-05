@@ -14,7 +14,7 @@ TO DOs
 import main from "../../index.js";
 import simple from '../../schemas/simple.js';
 
-/** @typedef {import('../../types').Config} Config */
+/** @typedef {import('../../types').Dungeon} Config */
 
 /** @type {Config} */
 const noWrites = {

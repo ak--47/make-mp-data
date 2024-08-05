@@ -16,7 +16,7 @@ dayjs.extend(utc);
 const { weighNumRange, integer } = require('../components/utils');
 
 
-/** @type {import('../types').Config} */
+/** @type {import('../types').Dungeon} */
 const config = {
 	token: "",
 	seed: "foo bar",

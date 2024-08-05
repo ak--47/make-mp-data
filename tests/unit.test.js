@@ -6,7 +6,7 @@ const u = require('ak-tools');
 dayjs.extend(utc);
 require('dotenv').config();
 
-/** @typedef {import('../types').Config} Config */
+/** @typedef {import('../types').Dungeon} Config */
 /** @typedef {import('../types').EventConfig} EventConfig */
 /** @typedef {import('../types').ValueValid} ValueValid */
 /** @typedef {import('../types').HookedArray} hookArray */

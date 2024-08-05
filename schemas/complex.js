@@ -11,7 +11,7 @@ const chance = new Chance();
 const { weighNumRange, date, integer } = require('../components/utils.js');
 const u = require('ak-tools');
 
-/** @type {import('../types.js').Config} */
+/** @type {import('../types.js').Dungeon} */
 const config = {
 	token: "",
 	seed: "quite complex",

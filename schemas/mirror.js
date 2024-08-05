@@ -17,7 +17,7 @@ const { uid, comma } = require('ak-tools');
 const { pickAWinner, weighNumRange, date, integer } = require('../components/utils');
 
 
-/** @type {import('../types').Config} */
+/** @type {import('../types').Dungeon} */
 const config = {
 	token: "",
 	seed: "mirror me",

@@ -12,7 +12,7 @@ dayjs.extend(utc);
 require('dotenv').config();
 const { domainSuffix, domainPrefix } = require('./defaults');
 
-/** @typedef {import('../types').Config} Config */
+/** @typedef {import('../types').Dungeon} Config */
 /** @typedef {import('../types').EventConfig} EventConfig */
 /** @typedef {import('../types').ValueValid} ValueValid */
 /** @typedef {import('../types').HookedArray} hookArray */
@@ -179,12 +179,20 @@ function day(start, end) {
  * @param  {ValueValid} value
  */
 function choose(value) {
+	let wasFunctionCalled = false;
 	const chance = getChance();
+
 	try {
 		// Keep resolving the value if it's a function
 		while (typeof value === 'function') {
 			value = value();
+			wasFunctionCalled = true;
 		}
+
+		// allow functions which create arrays of objects to pass through
+		// if (Array.isArray(value) && wasFunctionCalled && value.length > 1 && value[0] === null) {
+		// 	return value.slice(1);
+		// }
 
 		// Now, if the resolved value is an array, use chance.pickone
 		if (Array.isArray(value)) {
@@ -204,6 +212,7 @@ function choose(value) {
 	}
 	catch (e) {
 		console.error(`\n\nerror on value: ${value};\n\n`, e, '\n\n');
+		throw e;
 		return '';
 	}
 }
@@ -925,7 +934,35 @@ function person(userId, bornDaysAgo = 30, isAnonymous = false, hasAvatar = false
 };
 
 
-
+function wrapFunc(obj, func, recursion = 0, parentKey = null, grandParentKey = null, whitelist = [
+	"events",
+	"superProps",
+	"userProps",
+	"scdProps",
+	"mirrorProps",
+	"groupEvents",
+	"groupProps"
+  ]) {
+	if (recursion === 0) {
+	  // Only process top-level keys in the whitelist
+	  for (const key in obj) {
+		if (whitelist.includes(key)) {
+		  obj[key] = wrapFunc(obj[key], func, recursion + 1, key, null, whitelist);
+		}
+	  }
+	} else {
+	  if (Array.isArray(obj) && grandParentKey === 'properties') {
+		return func(obj);
+	  } else if (typeof obj === 'object' && obj !== null) {
+		for (const key in obj) {
+		  if (obj.hasOwnProperty(key)) {
+			obj[key] = wrapFunc(obj[key], func, recursion + 1, key, parentKey, whitelist);
+		  }
+		}
+	  }
+	}
+	return obj;
+  }
 
 //UNUSED
 
@@ -1025,5 +1062,6 @@ module.exports = {
 	streamJSON,
 	streamCSV,
 	datesBetween,
-	weighChoices
+	weighChoices,
+	wrapFunc,
 };

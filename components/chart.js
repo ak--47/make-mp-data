@@ -5,6 +5,8 @@ const dayjs = require('dayjs');
 const { openFinder } = require('./utils');
 const { existsSync } = fs;
 const path = require('path');
+require('dotenv').config();
+const { NODE_ENV = "unknown" } = process.env;
 
 
 let tempDir;
@@ -185,3 +187,15 @@ async function generateLineChart(rawData, signupEvents = ["sign up"], fileName) 
 }
 
 module.exports = { generateLineChart };
+
+
+
+if (require.main === module) {
+	generateLineChart()
+	.then((result)=>{
+		if (NODE_ENV === "dev") debugger;
+	})
+	.catch((error)=>{
+		if (NODE_ENV === "dev") debugger;
+	})
+}

@@ -2,6 +2,7 @@ require('dotenv').config();
 const akTools = require('ak-tools');
 const { rand, makeName } = akTools;
 let { OAUTH_TOKEN = "" } = process.env;
+const { NODE_ENV = "unknown" } = process.env;
 
 /**
  * Main function to create a project and add group keys to it.
@@ -151,5 +152,15 @@ async function addGroupKeys(groupKeyDfns = [], projectId, oauthToken = OAUTH_TOK
 	return results;
 }
 
+
+if (require.main === module) {
+	main()
+	.then((result)=>{
+		if (NODE_ENV === "dev") debugger;
+	})
+	.catch((error)=>{
+		if (NODE_ENV === "dev") debugger;
+	})
+}
 
 module.exports = main;

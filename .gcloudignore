@@ -1,0 +1,17 @@
+.env
+scratch.mjs
+tsconfig.json
+types.d.ts
+tmp
+tests
+scripts
+data
+.vscode
+.git
+node_modules
+env.yml
+.prettierrc
+.gitattributes
+README.md
+dungeons
+schemas

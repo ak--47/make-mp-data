@@ -10,6 +10,8 @@ ak@mixpanel.com
 //todo: regular interval events (like 'card charged')
 //todo: SCDs send to mixpanel
 //todo: decent 'new dungeon' workflow
+//todo: validation that funnel events exist
+//todo: ability to catch events not in funnels and make them random...
 
 
 //TIME
@@ -20,6 +22,7 @@ const FIXED_NOW = dayjs('2024-02-02').unix();
 global.FIXED_NOW = FIXED_NOW;
 // ^ this creates a FIXED POINT in time; we will shift it later
 let FIXED_BEGIN = dayjs.unix(FIXED_NOW).subtract(90, 'd').unix();
+global.FIXED_BEGIN = FIXED_BEGIN;
 const actualNow = dayjs();
 const timeShift = actualNow.diff(dayjs.unix(FIXED_NOW), "seconds");
 const daysShift = actualNow.diff(dayjs.unix(FIXED_NOW), "days");
@@ -29,7 +32,7 @@ const { existsSync } = require("fs");
 const pLimit = require('p-limit');
 const os = require("os");
 const path = require("path");
-const { comma, bytesHuman, makeName, md5, clone, tracker, uid, timer, ls, rm } = require("ak-tools");
+const { comma, bytesHuman, makeName, md5, clone, tracker, uid, timer, ls, rm, touch, load, sLog } = require("ak-tools");
 const jobTimer = timer('job');
 const { generateLineChart } = require('./components/chart.js');
 const { version } = require('./package.json');
@@ -37,6 +40,10 @@ const mp = require("mixpanel-import");
 const u = require("./components/utils.js");
 const getCliParams = require("./components/cli.js");
 const metrics = tracker("make-mp-data", "db99eb8f67ae50949a13c27cacf57d41", os.userInfo().username);
+
+
+//CLOUD
+const functions = require('@google-cloud/functions-framework');
 
 // DEFAULTS
 const { campaigns, devices, locations } = require('./components/defaults.js');
@@ -47,6 +54,10 @@ let STORAGE;
 /** @type {Config} */
 let CONFIG;
 require('dotenv').config();
+
+const { NODE_ENV = "unknown" } = process.env;
+
+
 
 
 // RUN STATE
@@ -95,7 +106,7 @@ async function main(config) {
 
 	//TRACKING
 	const runId = uid(42);
-	const { events, superProps, userProps, scdProps, groupKeys, groupProps, lookupTables, soup, hook, mirrorProps, ...trackingParams } = config;
+	const { events, superProps, userProps, scdProps, groupKeys, groupProps, lookupTables, soup, hook, mirrorProps, token: source_proj_token, ...trackingParams } = config;
 	let { funnels } = config;
 	trackingParams.runId = runId;
 	trackingParams.version = version;
@@ -106,6 +117,7 @@ async function main(config) {
 	const eventData = await makeHookArray([], { hook, type: "event", config, format, filepath: `${simulationName}-EVENTS` });
 	const userProfilesData = await makeHookArray([], { hook, type: "user", config, format, filepath: `${simulationName}-USERS` });
 	const adSpendData = await makeHookArray([], { hook, type: "ad-spend", config, format, filepath: `${simulationName}-AD-SPEND` });
+	const groupEventData = await makeHookArray([], { hook, type: "group-event", config, format, filepath: `${simulationName}-GROUP-EVENTS` });
 
 	// SCDs, Groups, + Lookups may have multiple tables
 	const scdTableKeys = Object.keys(scdProps);
@@ -126,7 +138,17 @@ async function main(config) {
 
 	const mirrorEventData = await makeHookArray([], { hook, type: "mirror", config, format, filepath: `${simulationName}-MIRROR` });
 
-	STORAGE = { eventData, userProfilesData, scdTableData, groupProfilesData, lookupTableData, mirrorEventData, adSpendData };
+	STORAGE = {
+		eventData,
+		userProfilesData,
+		scdTableData,
+		groupProfilesData,
+		lookupTableData,
+		mirrorEventData,
+		adSpendData,
+		groupEventData
+
+	};
 
 
 	track('start simulation', trackingParams);
@@ -164,7 +186,8 @@ async function main(config) {
 		const groupCardinality = groupPair[1];
 		for (let i = 1; i < groupCardinality + 1; i++) {
 			if (VERBOSE) u.progress([["groups", i]]);
-			const props = await makeProfile(groupProps[groupKey]);
+
+			const props = await makeProfile(groupProps[groupKey], { created: () => { return dayjs().subtract(u.integer(0, CONFIG.numDays || 30), 'd').toISOString(); } });
 			const group = {
 				[groupKey]: i,
 				...props,
@@ -174,6 +197,34 @@ async function main(config) {
 		}
 	}
 	log("\n");
+
+	//GROUP EVENTS
+	for (const groupEvent of config.groupEvents) {
+		const { frequency, group_key, attribute_to_user, group_size, ...normalEvent } = groupEvent;
+		for (const group_num of Array.from({ length: group_size }, (_, i) => i + 1)) {
+			const groupProfile = groupProfilesData.find(groups => groups.groupKey === group_key).find(group => group[group_key] === group_num);
+			const { created, distinct_id } = groupProfile;
+			normalEvent[group_key] = distinct_id;
+			const random_user_id = chance.pick(eventData.filter(a => a.user_id)).user_id;
+			if (!random_user_id) debugger;
+			const deltaDays = actualNow.diff(dayjs(created), "day");
+			const numIntervals = Math.floor(deltaDays / frequency);
+			const eventsForThisGroup = [];
+			for (let i = 0; i < numIntervals; i++) {
+				const event = await makeEvent(random_user_id, null, normalEvent, [], [], {}, [], false, true);
+				if (!attribute_to_user) delete event.user_id;
+				event[group_key] = distinct_id;
+				event.time = dayjs(created).add(i * frequency, "day").toISOString();
+				delete event.distinct_id;
+				//always skip the first event
+				if (i !== 0) {
+					eventsForThisGroup.push(event);
+				}
+
+			}
+			await groupEventData.hookPush(eventsForThisGroup, { profile: groupProfile });
+		}
+	}
 
 	//LOOKUP TABLES
 	for (const [index, lookupTable] of lookupTables.entries()) {
@@ -256,6 +307,53 @@ async function main(config) {
 
 
 
+functions.http('entry', async (req, res) => {
+	const reqTimer = timer('request');
+	reqTimer.start();
+	let response = {};
+	let script = req.body || "";
+	let writePath;
+	try {
+		sLog("DM4: start");
+		if (!script) throw new Error("no script");
+
+		// Replace require("../ with require("./
+		script = script.replace(/require\("\.\.\//g, 'require("./');
+		// ^ need to replace this because of the way the script is passed in... this is sketch
+
+		/** @type {Config} */
+		const config = eval(script);
+		sLog("DM4: eval ok");
+
+		const { token } = config;
+		if (!token) throw new Error("no token");
+
+		/** @type {Config} */
+		const optionsYouCantChange = {
+			verbose: false,
+			writeToDisk: false,
+
+		};
+		const result = await main({
+			...config,
+			...optionsYouCantChange,
+		});
+		await rm(writePath);
+		reqTimer.stop(false);
+		const { start, end, delta, human } = jobTimer.report(false);
+		sLog(`DM4: end (${human})`, { ms: delta });
+	}
+	catch (e) {
+		sLog("DM4: error", { error: e.message });
+		response = { error: e.message };
+		res.status(500);
+		await rm(writePath);
+	}
+	finally {
+		res.send(response);
+	}
+});
+
 
 /*
 ------
@@ -275,13 +373,13 @@ MODELS
  * @param  {Boolean} [isFirstEvent]
  * @return {Promise<EventSchema>}
  */
-async function makeEvent(distinct_id, earliestTime, chosenEvent, anonymousIds, sessionIds, superProps, groupKeys, isFirstEvent) {
+async function makeEvent(distinct_id, earliestTime, chosenEvent, anonymousIds, sessionIds, superProps, groupKeys, isFirstEvent, skipDefaults = false) {
 	operations++;
 	eventCount++;
 	if (!distinct_id) throw new Error("no distinct_id");
 	if (!anonymousIds) anonymousIds = [];
 	if (!sessionIds) sessionIds = [];
-	if (!earliestTime) throw new Error("no earliestTime");
+	// if (!earliestTime) throw new Error("no earliestTime");
 	if (!chosenEvent) throw new Error("no chosenEvent");
 	if (!superProps) superProps = {};
 	if (!groupKeys) groupKeys = [];
@@ -322,9 +420,10 @@ async function makeEvent(distinct_id, earliestTime, chosenEvent, anonymousIds, s
 	// if (earliestTime > FIXED_NOW) {
 	// 	earliestTime = dayjs(u.TimeSoup(global.FIXED_BEGIN)).unix();
 	// };
-
-	if (isFirstEvent) eventTemplate.time = dayjs.unix(earliestTime).toISOString();
-	if (!isFirstEvent) eventTemplate.time = u.TimeSoup(earliestTime, FIXED_NOW, peaks, deviation, mean);
+	if (earliestTime) {
+		if (isFirstEvent) eventTemplate.time = dayjs.unix(earliestTime).toISOString();
+		if (!isFirstEvent) eventTemplate.time = u.TimeSoup(earliestTime, FIXED_NOW, peaks, deviation, mean);
+	}
 	// eventTemplate.time = u.TimeSoup(earliestTime, FIXED_NOW, peaks, deviation, mean);
 
 	// anonymous and session ids
@@ -350,39 +449,41 @@ async function makeEvent(distinct_id, earliestTime, chosenEvent, anonymousIds, s
 	}
 
 	//iterate through default properties
-	for (const key in defaultProps) {
-		if (Array.isArray(defaultProps[key])) {
-			const choice = u.choose(defaultProps[key]);
-			if (typeof choice === "string") {
-				if (!eventTemplate[key]) eventTemplate[key] = choice;
-			}
-
-			else if (Array.isArray(choice)) {
-				for (const subChoice of choice) {
-					if (!eventTemplate[key]) eventTemplate[key] = subChoice;
+	if (!skipDefaults) {
+		for (const key in defaultProps) {
+			if (Array.isArray(defaultProps[key])) {
+				const choice = u.choose(defaultProps[key]);
+				if (typeof choice === "string") {
+					if (!eventTemplate[key]) eventTemplate[key] = choice;
 				}
-			}
 
-			else if (typeof choice === "object") {
-				for (const subKey in choice) {
-					if (typeof choice[subKey] === "string") {
-						if (!eventTemplate[subKey]) eventTemplate[subKey] = choice[subKey];
+				else if (Array.isArray(choice)) {
+					for (const subChoice of choice) {
+						if (!eventTemplate[key]) eventTemplate[key] = subChoice;
 					}
-					else if (Array.isArray(choice[subKey])) {
-						const subChoice = u.choose(choice[subKey]);
-						if (!eventTemplate[subKey]) eventTemplate[subKey] = subChoice;
-					}
+				}
 
-					else if (typeof choice[subKey] === "object") {
-						for (const subSubKey in choice[subKey]) {
-							if (!eventTemplate[subSubKey]) eventTemplate[subSubKey] = choice[subKey][subSubKey];
+				else if (typeof choice === "object") {
+					for (const subKey in choice) {
+						if (typeof choice[subKey] === "string") {
+							if (!eventTemplate[subKey]) eventTemplate[subKey] = choice[subKey];
 						}
+						else if (Array.isArray(choice[subKey])) {
+							const subChoice = u.choose(choice[subKey]);
+							if (!eventTemplate[subKey]) eventTemplate[subKey] = subChoice;
+						}
+
+						else if (typeof choice[subKey] === "object") {
+							for (const subSubKey in choice[subKey]) {
+								if (!eventTemplate[subSubKey]) eventTemplate[subSubKey] = choice[subKey][subSubKey];
+							}
+						}
+
 					}
-
 				}
+
+
 			}
-
-
 		}
 	}
 
@@ -401,8 +502,10 @@ async function makeEvent(distinct_id, earliestTime, chosenEvent, anonymousIds, s
 	eventTemplate.insert_id = md5(JSON.stringify(eventTemplate));
 
 	// move time forward
-	const timeShifted = dayjs(eventTemplate.time).add(timeShift, "seconds").toISOString();
-	eventTemplate.time = timeShifted;
+	if (earliestTime) {
+		const timeShifted = dayjs(eventTemplate.time).add(timeShift, "seconds").toISOString();
+		eventTemplate.time = timeShifted;
+	}
 
 
 	return eventTemplate;
@@ -604,12 +707,23 @@ async function makeProfile(props, defaults) {
 		...defaults,
 	};
 
+	for (const key in profile) {
+		try {
+			profile[key] = u.choose(profile[key]);
+		}
+		catch (e) {
+			// never gets here
+			debugger;
+		}
+	}
+
+
 	for (const key in props) {
 		try {
 			profile[key] = u.choose(props[key]);
 		} catch (e) {
 			// never gets here
-			// debugger;
+			debugger;
 		}
 	}
 
@@ -868,7 +982,7 @@ async function userLoop(config, storage, concurrency = 1) {
 				const [data, userConverted] = await makeFunnel(firstFunnel, user, firstTime, profile, userSCD, config);
 				userFirstEventTime = dayjs(data[0].time).subtract(timeShift, 'seconds').unix();
 				numEventsPreformed += data.length;
-				await eventData.hookPush(data);
+				await eventData.hookPush(data, { profile });
 				if (!userConverted) {
 					if (verbose) u.progress([["users", userCount], ["events", eventCount]]);
 					return;
@@ -884,7 +998,7 @@ async function userLoop(config, storage, concurrency = 1) {
 					const currentFunnel = chance.pickone(usageFunnels);
 					const [data, userConverted] = await makeFunnel(currentFunnel, user, userFirstEventTime, profile, userSCD, config);
 					numEventsPreformed += data.length;
-					await eventData.hookPush(data);
+					await eventData.hookPush(data, { profile });
 				} else {
 					const data = await makeEvent(distinct_id, userFirstEventTime, u.choose(config.events), user.anonymousIds, user.sessionIds, {}, config.groupKeys, true);
 					numEventsPreformed++;
@@ -906,7 +1020,17 @@ async function userLoop(config, storage, concurrency = 1) {
  * @param  {Storage} storage
  */
 async function sendToMixpanel(config, storage) {
-	const { adSpendData, eventData, groupProfilesData, lookupTableData, mirrorEventData, scdTableData, userProfilesData } = storage;
+	const {
+		adSpendData,
+		eventData,
+		groupProfilesData,
+		lookupTableData,
+		mirrorEventData,
+		scdTableData,
+		userProfilesData,
+		groupEventData
+
+	} = storage;
 	const { token, region, writeToDisk } = config;
 	const importResults = { events: {}, users: {}, groups: [] };
 
@@ -924,7 +1048,7 @@ async function sendToMixpanel(config, storage) {
 		dryRun: false,
 		abridged: false,
 		fixJson: true,
-		showProgress: true,
+		showProgress: NODE_ENV === "dev" ? true : false,
 		streamFormat: mpImportFormat
 	};
 
@@ -960,11 +1084,11 @@ async function sendToMixpanel(config, storage) {
 		log(`\tsent ${comma(imported.success)} user profiles\n`);
 		importResults.users = imported;
 	}
-	if (adSpendData || isBATCH_MODE) {
+	if (groupEventData || isBATCH_MODE) {
 		log(`importing ad spend data to mixpanel...\n`);
-		let adSpendDataToImport = clone(adSpendData);
+		let adSpendDataToImport = clone(groupEventData);
 		if (isBATCH_MODE) {
-			const writeDir = adSpendData.getWriteDir();
+			const writeDir = groupEventData.getWriteDir();
 			const files = await ls(writeDir.split(path.basename(writeDir)).join(""));
 			adSpendDataToImport = files.filter(f => f.includes('-AD-SPEND-'));
 		}
@@ -996,11 +1120,28 @@ async function sendToMixpanel(config, storage) {
 		}
 	}
 
+	if (groupEventData || isBATCH_MODE) {
+		log(`importing group events to mixpanel...\n`);
+		let groupEventDataToImport = clone(groupEventData);
+		if (isBATCH_MODE) {
+			const writeDir = groupEventData.getWriteDir();
+			const files = await ls(writeDir.split(path.basename(writeDir)).join(""));
+			groupEventDataToImport = files.filter(f => f.includes('-GROUP-EVENTS-'));
+		}
+		const imported = await mp(creds, groupEventDataToImport, {
+			recordType: "event",
+			...commonOpts,
+			strict: false
+		});
+		log(`\tsent ${comma(imported.success)} group events\n`);
+		importResults.groupEvents = imported;
+	}
+
 	//if we are in batch mode, we need to delete the files
 	if (!writeToDisk && isBATCH_MODE) {
 		const writeDir = eventData?.getWriteDir() || userProfilesData?.getWriteDir();
 		const listDir = await ls(writeDir.split(path.basename(writeDir)).join(""));
-		const files = listDir.filter(f => f.includes('-EVENTS-') || f.includes('-USERS-') || f.includes('-AD-SPEND-') || f.includes('-GROUPS-'));
+		const files = listDir.filter(f => f.includes('-EVENTS-') || f.includes('-USERS-') || f.includes('-AD-SPEND-') || f.includes('-GROUPS-') || f.includes('-GROUP-EVENTS-'));
 		for (const file of files) {
 			await rm(file);
 		}
@@ -1156,6 +1297,8 @@ async function makeHookArray(arr = [], opts = {}) {
 	if (existsSync(dataFolder)) writeDir = dataFolder;
 	else writeDir = path.resolve("./");
 
+	if (NODE_ENV === "prod") writeDir = path.resolve(os.tmpdir());
+
 	function getWritePath() {
 		if (isBATCH_MODE) {
 			return path.join(writeDir, `${filepath}-part-${batch.toString()}.${format}`);
@@ -1169,14 +1312,14 @@ async function makeHookArray(arr = [], opts = {}) {
 		return path.join(writeDir, `${filepath}.${format}`);
 	}
 
-	async function transformThenPush(item) {
+	async function transformThenPush(item, meta) {
 		if (item === null || item === undefined) return false;
 		if (typeof item === 'object' && Object.keys(item).length === 0) return false;
-
+		const allMetaData = { ...rest, ...meta };
 		if (Array.isArray(item)) {
 			for (const i of item) {
 				try {
-					const enriched = await hook(i, type, rest);
+					const enriched = await hook(i, type, allMetaData);
 					if (Array.isArray(enriched)) enriched.forEach(e => arr.push(e));
 					else arr.push(enriched);
 				} catch (e) {
@@ -1186,7 +1329,7 @@ async function makeHookArray(arr = [], opts = {}) {
 			}
 		} else {
 			try {
-				const enriched = await hook(item, type, rest);
+				const enriched = await hook(item, type, allMetaData);
 				if (Array.isArray(enriched)) enriched.forEach(e => arr.push(e));
 				else arr.push(enriched);
 			} catch (e) {
@@ -1301,90 +1444,93 @@ CLI
 ----
 */
 
-if (require.main === module) {
-	isCLI = true;
-	const args = /** @type {Config} */ (getCliParams());
-	let { token, seed, format, numDays, numUsers, numEvents, region, writeToDisk, complex = false, hasSessionIds, hasAnonIds } = args;
-	const suppliedConfig = args._[0];
+if (NODE_ENV !== "prod") {
+	if (require.main === module) {
+		isCLI = true;
+		const args = /** @type {Config} */ (getCliParams());
+		let { token, seed, format, numDays, numUsers, numEvents, region, writeToDisk, complex = false, hasSessionIds, hasAnonIds } = args;
+		const suppliedConfig = args._[0];
 
-	//if the user specifies an separate config file
-	let config = null;
-	if (suppliedConfig) {
-		console.log(`using ${suppliedConfig} for data\n`);
-		config = require(path.resolve(suppliedConfig));
-	}
-	else {
-		if (complex) {
-			console.log(`... using default COMPLEX configuration [everything] ...\n`);
-			console.log(`... for more simple data, don't use the --complex flag ...\n`);
-			console.log(`... or specify your own js config file (see docs or --help) ...\n`);
-			config = require(path.resolve(__dirname, "./schemas/complex.js"));
+		//if the user specifies an separate config file
+		let config = null;
+		if (suppliedConfig) {
+			console.log(`using ${suppliedConfig} for data\n`);
+			config = require(path.resolve(suppliedConfig));
 		}
 		else {
-			console.log(`... using default SIMPLE configuration [events + users] ...\n`);
-			console.log(`... for more complex data, use the --complex flag ...\n`);
-			config = require(path.resolve(__dirname, "./schemas/simple.js"));
+			if (complex) {
+				console.log(`... using default COMPLEX configuration [everything] ...\n`);
+				console.log(`... for more simple data, don't use the --complex flag ...\n`);
+				console.log(`... or specify your own js config file (see docs or --help) ...\n`);
+				config = require(path.resolve(__dirname, "./schemas/complex.js"));
+			}
+			else {
+				console.log(`... using default SIMPLE configuration [events + users] ...\n`);
+				console.log(`... for more complex data, use the --complex flag ...\n`);
+				config = require(path.resolve(__dirname, "./schemas/simple.js"));
+			}
 		}
+
+		//override config with cli params
+		if (token) config.token = token;
+		if (seed) config.seed = seed;
+		if (format === "csv" && config.format === "json") format = "json";
+		if (format) config.format = format;
+		if (numDays) config.numDays = numDays;
+		if (numUsers) config.numUsers = numUsers;
+		if (numEvents) config.numEvents = numEvents;
+		if (region) config.region = region;
+		if (writeToDisk) config.writeToDisk = writeToDisk;
+		if (writeToDisk === 'false') config.writeToDisk = false;
+		if (hasSessionIds) config.hasSessionIds = hasSessionIds;
+		if (hasAnonIds) config.hasAnonIds = hasAnonIds;
+		config.verbose = true;
+
+		main(config)
+			.then((data) => {
+				//todo: rethink summary
+				log(`-----------------SUMMARY-----------------`);
+				const d = { success: 0, bytes: 0 };
+				const darr = [d];
+				const { events = d, groups = darr, users = d } = data?.importResults || {};
+				const files = data.files;
+				const folder = files?.[0]?.split(path.basename(files?.[0]))?.shift();
+				const groupBytes = groups.reduce((acc, group) => {
+					return acc + group.bytes;
+				}, 0);
+				const groupSuccess = groups.reduce((acc, group) => {
+					return acc + group.success;
+				}, 0);
+				const bytes = events.bytes + groupBytes + users.bytes;
+				const stats = {
+					events: comma(events.success || 0),
+					users: comma(users.success || 0),
+					groups: comma(groupSuccess || 0),
+					bytes: bytesHuman(bytes || 0),
+				};
+				if (bytes > 0) console.table(stats);
+				log(`\nfiles written to ${folder || "no where; we didn't write anything"} ...`);
+				log("  " + files?.flat().join("\n  "));
+				log(`\n----------------SUMMARY-----------------\n\n\n`);
+			})
+			.catch((e) => {
+				log(`------------------ERROR------------------`);
+				console.error(e);
+				log(`------------------ERROR------------------`);
+				debugger;
+			})
+			.finally(() => {
+				log("enjoy your data! :)");
+				u.openFinder(path.resolve("./data"));
+			});
+	} else {
+		main.generators = { makeEvent, makeFunnel, makeProfile, makeSCD, makeAdSpend, makeMirror };
+		main.orchestrators = { userLoop, validateDungeonConfig, sendToMixpanel };
+		main.meta = { inferFunnels, hookArray: makeHookArray };
+		module.exports = main;
 	}
-
-	//override config with cli params
-	if (token) config.token = token;
-	if (seed) config.seed = seed;
-	if (format === "csv" && config.format === "json") format = "json";
-	if (format) config.format = format;
-	if (numDays) config.numDays = numDays;
-	if (numUsers) config.numUsers = numUsers;
-	if (numEvents) config.numEvents = numEvents;
-	if (region) config.region = region;
-	if (writeToDisk) config.writeToDisk = writeToDisk;
-	if (writeToDisk === 'false') config.writeToDisk = false;
-	if (hasSessionIds) config.hasSessionIds = hasSessionIds;
-	if (hasAnonIds) config.hasAnonIds = hasAnonIds;
-	config.verbose = true;
-
-	main(config)
-		.then((data) => {
-			//todo: rethink summary
-			log(`-----------------SUMMARY-----------------`);
-			const d = { success: 0, bytes: 0 };
-			const darr = [d];
-			const { events = d, groups = darr, users = d } = data?.importResults || {};
-			const files = data.files;
-			const folder = files?.[0]?.split(path.basename(files?.[0]))?.shift();
-			const groupBytes = groups.reduce((acc, group) => {
-				return acc + group.bytes;
-			}, 0);
-			const groupSuccess = groups.reduce((acc, group) => {
-				return acc + group.success;
-			}, 0);
-			const bytes = events.bytes + groupBytes + users.bytes;
-			const stats = {
-				events: comma(events.success || 0),
-				users: comma(users.success || 0),
-				groups: comma(groupSuccess || 0),
-				bytes: bytesHuman(bytes || 0),
-			};
-			if (bytes > 0) console.table(stats);
-			log(`\nfiles written to ${folder || "no where; we didn't write anything"} ...`);
-			log("  " + files?.flat().join("\n  "));
-			log(`\n----------------SUMMARY-----------------\n\n\n`);
-		})
-		.catch((e) => {
-			log(`------------------ERROR------------------`);
-			console.error(e);
-			log(`------------------ERROR------------------`);
-			debugger;
-		})
-		.finally(() => {
-			log("enjoy your data! :)");
-			u.openFinder(path.resolve("./data"));
-		});
-} else {
-	main.generators = { makeEvent, makeFunnel, makeProfile, makeSCD, makeAdSpend, makeMirror };
-	main.orchestrators = { userLoop, validateDungeonConfig, sendToMixpanel };
-	main.meta = { inferFunnels, hookArray: makeHookArray };
-	module.exports = main;
 }
+
 
 
 /*
@@ -1411,7 +1557,7 @@ function track(name, props, ...rest) {
 }
 
 
-/** @typedef {import('./types.js').Config} Config */
+/** @typedef {import('./types.js').Dungeon} Config */
 /** @typedef {import('./types.js').AllData} AllData */
 /** @typedef {import('./types.js').EventConfig} EventConfig */
 /** @typedef {import('./types.js').Funnel} Funnel */

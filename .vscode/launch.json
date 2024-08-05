@@ -5,27 +5,15 @@
 	"version": "0.2.0",
 	"configurations": [
 		{
-			"command": "npm run simple",
-			"name": "simple",
-			"request": "launch",
-			"type": "node-terminal"
-		},
-		{
-			"command": "npm run complex",
-			"name": "complex",
-			"request": "launch",
-			"type": "node-terminal"
-		},
-		{
 			"command": "npm run dev",
-			"name": "dev",
+			"name": "scratch",
 			"request": "launch",
 			"type": "node-terminal"
 		},
 		{
             "type": "node",
             "request": "launch",
-            "name": "go",
+            "name": "run dungeon",
             "runtimeExecutable": "nodemon",
             "runtimeArgs": ["--inspect"],
             "program": "${workspaceFolder}/index.js",
@@ -35,6 +23,28 @@
             "internalConsoleOptions": "neverOpen",
             "skipFiles": ["<node_internals>/**"],
         },
+		{
+			"type": "node",
+			"request": "launch",
+			"name": "current file",
+			"runtimeExecutable": "nodemon",
+			"program": "${file}",
+			"restart": true,
+			"console": "integratedTerminal",
+			"internalConsoleOptions": "neverOpen",
+			"env": {
+				"NODE_ENV": "dev"
+			}
+		},
+		{
+			"command": "npm run func:local",
+			"name": "cloud local",
+			"request": "launch",
+			"type": "node-terminal",
+			"env": {
+				"NODE_ENV": "dev"
+			}
+		},
 		{
             "type": "node",
             "request": "launch",
@@ -47,6 +57,18 @@
             "console": "integratedTerminal",
             "internalConsoleOptions": "neverOpen",
             "skipFiles": ["<node_internals>/**"],
+        },
+		{
+            "type": "node-terminal",
+            "request": "launch",
+            "name": "simple",
+            "command": "node ${workspaceFolder}/index.js --simple"
+        },
+		{
+            "type": "node-terminal",
+            "request": "launch",
+            "name": "complex",
+            "command": "node ${workspaceFolder}/index.js --complex"
         }
 	]
 }
