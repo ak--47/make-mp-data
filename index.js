@@ -22,6 +22,7 @@ const FIXED_NOW = dayjs('2024-02-02').unix();
 global.FIXED_NOW = FIXED_NOW;
 // ^ this creates a FIXED POINT in time; we will shift it later
 let FIXED_BEGIN = dayjs.unix(FIXED_NOW).subtract(90, 'd').unix();
+global.FIXED_BEGIN = FIXED_BEGIN;
 const actualNow = dayjs();
 const timeShift = actualNow.diff(dayjs.unix(FIXED_NOW), "seconds");
 const daysShift = actualNow.diff(dayjs.unix(FIXED_NOW), "days");
@@ -204,7 +205,8 @@ async function main(config) {
 			const groupProfile = groupProfilesData.find(groups => groups.groupKey === group_key).find(group => group[group_key] === group_num);
 			const { created, distinct_id } = groupProfile;
 			normalEvent[group_key] = distinct_id;
-			const random_user_id = chance.pick(eventData).user_id;
+			const random_user_id = chance.pick(eventData.filter(a => a.user_id)).user_id;
+			if (!random_user_id) debugger;
 			const deltaDays = actualNow.diff(dayjs(created), "day");
 			const numIntervals = Math.floor(deltaDays / frequency);
 			const eventsForThisGroup = [];
@@ -980,7 +982,7 @@ async function userLoop(config, storage, concurrency = 1) {
 				const [data, userConverted] = await makeFunnel(firstFunnel, user, firstTime, profile, userSCD, config);
 				userFirstEventTime = dayjs(data[0].time).subtract(timeShift, 'seconds').unix();
 				numEventsPreformed += data.length;
-				await eventData.hookPush(data);
+				await eventData.hookPush(data, { profile });
 				if (!userConverted) {
 					if (verbose) u.progress([["users", userCount], ["events", eventCount]]);
 					return;
@@ -996,7 +998,7 @@ async function userLoop(config, storage, concurrency = 1) {
 					const currentFunnel = chance.pickone(usageFunnels);
 					const [data, userConverted] = await makeFunnel(currentFunnel, user, userFirstEventTime, profile, userSCD, config);
 					numEventsPreformed += data.length;
-					await eventData.hookPush(data);
+					await eventData.hookPush(data, { profile });
 				} else {
 					const data = await makeEvent(distinct_id, userFirstEventTime, u.choose(config.events), user.anonymousIds, user.sessionIds, {}, config.groupKeys, true);
 					numEventsPreformed++;

@@ -496,7 +496,7 @@ describe('orchestrators', () => {
 	});
 
 
-	test('userLoop: works (no funnels)', async () => {
+	test('userLoop: works (no funnels; no inference)', async () => {
 		/** @type {Config} */
 		const config = {
 			numUsers: 2,
@@ -509,6 +509,7 @@ describe('orchestrators', () => {
 			hasAnonIds: false,
 			hasSessionIds: false,
 			hasLocation: false,
+			alsoInferFunnels: false,
 			events: [{ event: "foo" }, { event: "bar" }, { event: "baz" }]
 		};
 		await userLoop(config, STORAGE);
