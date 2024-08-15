@@ -52,7 +52,7 @@ declare namespace main {
     superProps?: Record<string, ValueValid>;
     funnels?: Funnel[];
     userProps?: Record<string, ValueValid>;
-    scdProps?: Record<string, ValueValid>;
+    scdProps?: Record<string, SCDProp>;
     mirrorProps?: Record<string, MirrorProps>;
     groupKeys?: [string, number][] | [string, number, string[]][]; // [key, numGroups, [events]]
     groupProps?: Record<string, Record<string, ValueValid>>;
@@ -64,6 +64,14 @@ declare namespace main {
     //allow anything to be on the config
     [key: string]: any;
   }
+
+  export type SCDProp = {
+    type: string;
+    frequency: "day" | "week" | "month" | "year";
+    values: ValueValid;
+    timing: "fixed" | "fuzzy";
+    max?: number;
+  };
 
   /**
    * the soup is a set of parameters that determine the distribution of events over time
@@ -83,6 +91,7 @@ declare namespace main {
     | "group"
     | "lookup"
     | "scd"
+	| "scd-pre"
     | "mirror"
     | "funnel-pre"
     | "funnel-post"

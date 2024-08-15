@@ -40,6 +40,7 @@ const mp = require("mixpanel-import");
 const u = require("./components/utils.js");
 const getCliParams = require("./components/cli.js");
 const metrics = tracker("make-mp-data", "db99eb8f67ae50949a13c27cacf57d41", os.userInfo().username);
+const t = require('ak-tools');
 
 
 //CLOUD
@@ -122,7 +123,7 @@ async function main(config) {
 	// SCDs, Groups, + Lookups may have multiple tables
 	const scdTableKeys = Object.keys(scdProps);
 	const scdTableData = await Promise.all(scdTableKeys.map(async (key) =>
-		await makeHookArray([], { hook, type: "scd", config, format, scdKey: key, filepath: `${simulationName}-SCD-${key}` })
+		await makeHookArray([], { hook, type: "scd", config, format, scdKey: key, filepath: `${simulationName}-${scdProps[key]?.type || "user"}-SCD-${key}` })
 	));
 	const groupTableKeys = Object.keys(groupKeys);
 	const groupProfilesData = await Promise.all(groupTableKeys.map(async (key, index) => {
@@ -181,6 +182,7 @@ async function main(config) {
 	log("\n");
 
 	//GROUP PROFILES
+	const groupSCDs = t.objFilter(scdProps, (scd) => scd.type !== 'user');
 	for (const [index, groupPair] of groupKeys.entries()) {
 		const groupKey = groupPair[0];
 		const groupCardinality = groupPair[1];
@@ -194,37 +196,56 @@ async function main(config) {
 			};
 			group["distinct_id"] = i.toString();
 			await groupProfilesData[index].hookPush(group);
+
+			//SCDs
+			const thisGroupSCD = t.objFilter(groupSCDs, (scd) => scd.type === groupKey);
+			const groupSCDKeys = Object.keys(thisGroupSCD);
+			const groupSCD = {};
+			for (const [index, key] of groupSCDKeys.entries()) {
+				const { max = 100 } = groupSCDs[key];
+				const mutations = chance.integer({ min: 1, max });
+				const changes = await makeSCD(scdProps[key], key, i.toString(), mutations, group.created);
+				groupSCD[key] = changes;
+				const scdTable = scdTableData
+					.filter(hookArr => hookArr.scdKey === key);
+				await config.hook(changes, 'scd-pre', { profile: group, type: key });
+				await scdTable[0].hookPush(changes, { profile: group, type: groupKey });
+			}
+
+
 		}
 	}
 	log("\n");
 
 	//GROUP EVENTS
-	for (const groupEvent of config.groupEvents) {
-		const { frequency, group_key, attribute_to_user, group_size, ...normalEvent } = groupEvent;
-		for (const group_num of Array.from({ length: group_size }, (_, i) => i + 1)) {
-			const groupProfile = groupProfilesData.find(groups => groups.groupKey === group_key).find(group => group[group_key] === group_num);
-			const { created, distinct_id } = groupProfile;
-			normalEvent[group_key] = distinct_id;
-			const random_user_id = chance.pick(eventData.filter(a => a.user_id)).user_id;
-			if (!random_user_id) debugger;
-			const deltaDays = actualNow.diff(dayjs(created), "day");
-			const numIntervals = Math.floor(deltaDays / frequency);
-			const eventsForThisGroup = [];
-			for (let i = 0; i < numIntervals; i++) {
-				const event = await makeEvent(random_user_id, null, normalEvent, [], [], {}, [], false, true);
-				if (!attribute_to_user) delete event.user_id;
-				event[group_key] = distinct_id;
-				event.time = dayjs(created).add(i * frequency, "day").toISOString();
-				delete event.distinct_id;
-				//always skip the first event
-				if (i !== 0) {
-					eventsForThisGroup.push(event);
+	if (config.groupEvents) {
+		for (const groupEvent of config.groupEvents) {
+			const { frequency, group_key, attribute_to_user, group_size, ...normalEvent } = groupEvent;
+			for (const group_num of Array.from({ length: group_size }, (_, i) => i + 1)) {
+				const groupProfile = groupProfilesData.find(groups => groups.groupKey === group_key).find(group => group[group_key] === group_num);
+				const { created, distinct_id } = groupProfile;
+				normalEvent[group_key] = distinct_id;
+				const random_user_id = chance.pick(eventData.filter(a => a.user_id)).user_id;
+				if (!random_user_id) debugger;
+				const deltaDays = actualNow.diff(dayjs(created), "day");
+				const numIntervals = Math.floor(deltaDays / frequency);
+				const eventsForThisGroup = [];
+				for (let i = 0; i < numIntervals; i++) {
+					const event = await makeEvent(random_user_id, null, normalEvent, [], [], {}, [], false, true);
+					if (!attribute_to_user) delete event.user_id;
+					event[group_key] = distinct_id;
+					event.time = dayjs(created).add(i * frequency, "day").toISOString();
+					delete event.distinct_id;
+					//always skip the first event
+					if (i !== 0) {
+						eventsForThisGroup.push(event);
+					}
 				}
-
+				await groupEventData.hookPush(eventsForThisGroup, { profile: groupProfile });
 			}
-			await groupEventData.hookPush(eventsForThisGroup, { profile: groupProfile });
 		}
 	}
+
 
 	//LOOKUP TABLES
 	for (const [index, lookupTable] of lookupTables.entries()) {
@@ -731,39 +752,57 @@ async function makeProfile(props, defaults) {
 }
 
 /**
- * @param  {ValueValid} prop
+ * @param  {SCDProp} scdProp
  * @param  {string} scdKey
  * @param  {string} distinct_id
  * @param  {number} mutations
  * @param  {string} created
  * @return {Promise<SCDSchema[]>}
  */
-async function makeSCD(prop, scdKey, distinct_id, mutations, created) {
-	if (JSON.stringify(prop) === "{}" || JSON.stringify(prop) === "[]") return [];
+async function makeSCD(scdProp, scdKey, distinct_id, mutations, created) {
+	const { frequency, max, timing, values, type } = scdProp;
+	if (JSON.stringify(values) === "{}" || JSON.stringify(values) === "[]") return [];
 	const scdEntries = [];
 	let lastInserted = dayjs(created);
 	const deltaDays = dayjs().diff(lastInserted, "day");
+	const uuidKeyName = type === 'user' ? 'distinct_id' : type;
 
 	for (let i = 0; i < mutations; i++) {
 		if (lastInserted.isAfter(dayjs())) break;
-		let scd = await makeProfile({ [scdKey]: prop }, { distinct_id });
+		let scd = await makeProfile({ [scdKey]: values }, { [uuidKeyName]: distinct_id });
 
 		// Explicitly constructing SCDSchema object with all required properties
 		const scdEntry = {
 			...scd, // spread existing properties
-			distinct_id: scd.distinct_id || distinct_id, // ensure distinct_id is set
-			insertTime: lastInserted.add(u.integer(1, 1000), "seconds").toISOString(),
-			startTime: lastInserted.toISOString()
+			[uuidKeyName]: scd.distinct_id || distinct_id, // ensure distinct_id is set			
+			startTime: null,
+			insertTime: null
 		};
+
+		if (timing === 'fixed') {
+			if (frequency === "day") scdEntry.startTime = lastInserted.add(1, "day").startOf('day').toISOString();
+			if (frequency === "week") scdEntry.startTime = lastInserted.add(1, "week").startOf('week').toISOString();
+			if (frequency === "month") scdEntry.startTime = lastInserted.add(1, "month").startOf('month').toISOString();
+		}
+
+		if (timing === 'fuzzy') {
+			scdEntry.startTime = lastInserted.toISOString();
+		}
+
+		const insertTime = lastInserted.add(u.integer(1, 9000), "seconds");
+		scdEntry.insertTime = insertTime.toISOString();
+
+
 
 		// Ensure TypeScript sees all required properties are set
 		if (scdEntry.hasOwnProperty('insertTime') && scdEntry.hasOwnProperty('startTime')) {
 			scdEntries.push(scdEntry);
 		}
 
+		//advance time for next entry
 		lastInserted = lastInserted
 			.add(u.integer(0, deltaDays), "day")
-			.subtract(u.integer(1, 1000), "seconds");
+			.subtract(u.integer(1, 9000), "seconds");
 	}
 
 	return scdEntries;
@@ -948,13 +987,18 @@ async function userLoop(config, storage, concurrency = 1) {
 			await userProfilesData.hookPush(profile);
 
 			// SCD creation
-			const scdTableKeys = Object.keys(scdProps);
+			const scdUserTables = t.objFilter(scdProps, (scd) => scd.type === 'user');
+			const scdTableKeys = Object.keys(scdUserTables);
+
+
 			const userSCD = {};
 			for (const [index, key] of scdTableKeys.entries()) {
-				const mutations = chance.integer({ min: 1, max: 10 }); //todo: configurable mutations?
+				const { max = 100 } = scdProps[key];
+				const mutations = chance.integer({ min: 1, max });
 				const changes = await makeSCD(scdProps[key], key, distinct_id, mutations, created);
 				userSCD[key] = changes;
-				await scdTableData[index].hookPush(changes);
+				await config.hook(changes, "scd-pre", { profile, type: 'user', scd: userSCD, config });
+				await scdTableData[index].hookPush(changes, { profile, type: 'user' });
 			}
 
 			let numEventsThisUserWillPreform = Math.floor(chance.normal({
@@ -1571,3 +1615,4 @@ function track(name, props, ...rest) {
 /** @typedef {import('./types.js').HookedArray} hookArray */
 /** @typedef {import('./types.js').hookArrayOptions} hookArrayOptions */
 /** @typedef {import('./types.js').GroupProfileSchema} GroupProfile */
+/** @typedef {import('./types.js').SCDProp} SCDProp */

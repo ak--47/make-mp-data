@@ -10,18 +10,14 @@
 		"prune": "rm -f ./data/* && rm -f ./tmp/* && rm -f vscode-profile-*",
 		"post": "npm publish",
 		"deps": "./scripts/update-deps.sh",
-
-
 		"test": "NODE_ENV=test jest --runInBand",
 		"coverage": "node --no-warnings --experimental-vm-modules node_modules/jest/bin/jest.js --coverage && open ./tests/coverage/lcov-report/index.html",
-		
 		"new:dungeon": "./scripts/new-dungeon.sh",
 		"new:project": "node ./scripts/new-project.mjs",
 		"exp:benchmark": "node --no-warnings --experimental-vm-modules ./tests/benchmark/concurrency.mjs",
 		"exp:soup": "node ./tests/testSoup.mjs",
-		
 		"func:local": "functions-framework --target=entry",
-		"func:deploy": "./scripts/deploy.sh"	
+		"func:deploy": "./scripts/deploy.sh"
 	},
 	"repository": {
 		"type": "git",
