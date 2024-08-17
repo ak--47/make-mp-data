@@ -203,12 +203,13 @@ async function main(config) {
 			const groupSCD = {};
 			for (const [index, key] of groupSCDKeys.entries()) {
 				const { max = 100 } = groupSCDs[key];
-				const mutations = chance.integer({ min: 1, max });
+				const mutations = chance.integer({ min: 2, max });
 				const changes = await makeSCD(scdProps[key], key, i.toString(), mutations, group.created);
 				groupSCD[key] = changes;
 				const scdTable = scdTableData
 					.filter(hookArr => hookArr.scdKey === key);
-				await config.hook(changes, 'scd-pre', { profile: group, type: key });
+				
+				await config.hook(changes, 'scd-pre', { profile: group, type: groupKey, scd: {[key]: groupSCDs[key]}, config, allSCDs: groupSCD });
 				await scdTable[0].hookPush(changes, { profile: group, type: groupKey });
 			}
 
@@ -805,7 +806,13 @@ async function makeSCD(scdProp, scdKey, distinct_id, mutations, created) {
 			.subtract(u.integer(1, 9000), "seconds");
 	}
 
-	return scdEntries;
+	//de-dupe on startTime
+	const deduped = scdEntries.filter((entry, index, self) =>
+		index === self.findIndex((t) => (
+			t.startTime === entry.startTime
+		))
+	);
+	return deduped;
 }
 
 
@@ -997,7 +1004,7 @@ async function userLoop(config, storage, concurrency = 1) {
 				const mutations = chance.integer({ min: 1, max });
 				const changes = await makeSCD(scdProps[key], key, distinct_id, mutations, created);
 				userSCD[key] = changes;
-				await config.hook(changes, "scd-pre", { profile, type: 'user', scd: userSCD, config });
+				await config.hook(changes, "scd-pre", { profile, type: 'user', scd: {[key]: scdProps[key]}, config, allSCDs: userSCD });
 				await scdTableData[index].hookPush(changes, { profile, type: 'user' });
 			}
 
