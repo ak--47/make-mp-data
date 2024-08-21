@@ -319,6 +319,7 @@ async function main(config) {
 	jobTimer.stop(false);
 	const { start, end, delta, human } = jobTimer.report(false);
 
+	if (process.env.NODE_ENV === 'dev') debugger;
 	return {
 		...STORAGE,
 		importResults,
