@@ -123,6 +123,7 @@ async function main(config) {
 	// SCDs, Groups, + Lookups may have multiple tables
 	const scdTableKeys = Object.keys(scdProps);
 	const scdTableData = await Promise.all(scdTableKeys.map(async (key) =>
+		// @ts-ignore
 		await makeHookArray([], { hook, type: "scd", config, format, scdKey: key, filepath: `${simulationName}-${scdProps[key]?.type || "user"}-SCD-${key}` })
 	));
 	const groupTableKeys = Object.keys(groupKeys);
@@ -208,8 +209,8 @@ async function main(config) {
 				groupSCD[key] = changes;
 				const scdTable = scdTableData
 					.filter(hookArr => hookArr.scdKey === key);
-				
-				await config.hook(changes, 'scd-pre', { profile: group, type: groupKey, scd: {[key]: groupSCDs[key]}, config, allSCDs: groupSCD });
+
+				await config.hook(changes, 'scd-pre', { profile: group, type: groupKey, scd: { [key]: groupSCDs[key] }, config, allSCDs: groupSCD });
 				await scdTable[0].hookPush(changes, { profile: group, type: groupKey });
 			}
 
@@ -402,7 +403,7 @@ async function makeEvent(distinct_id, earliestTime, chosenEvent, anonymousIds, s
 	if (!distinct_id) throw new Error("no distinct_id");
 	if (!anonymousIds) anonymousIds = [];
 	if (!sessionIds) sessionIds = [];
-	// if (!earliestTime) throw new Error("no earliestTime");
+	if (!earliestTime) throw new Error("no earliestTime");
 	if (!chosenEvent) throw new Error("no chosenEvent");
 	if (!superProps) superProps = {};
 	if (!groupKeys) groupKeys = [];
@@ -428,11 +429,13 @@ async function makeEvent(distinct_id, earliestTime, chosenEvent, anonymousIds, s
 
 	let defaultProps = {};
 	let devicePool = [];
+
 	if (hasLocation) defaultProps.location = DEFAULTS.locationsEvents();
 	if (hasBrowser) defaultProps.browser = DEFAULTS.browsers();
 	if (hasAndroidDevices) devicePool.push(DEFAULTS.androidDevices());
 	if (hasIOSDevices) devicePool.push(DEFAULTS.iOSDevices());
 	if (hasDesktopDevices) devicePool.push(DEFAULTS.desktopDevices());
+
 	// we don't always have campaigns, because of attribution
 	if (hasCampaigns && chance.bool({ likelihood: 25 })) defaultProps.campaigns = DEFAULTS.campaigns();
 	const devices = devicePool.flat();
@@ -440,14 +443,10 @@ async function makeEvent(distinct_id, earliestTime, chosenEvent, anonymousIds, s
 
 
 	//event time
-	// if (earliestTime > FIXED_NOW) {
-	// 	earliestTime = dayjs(u.TimeSoup(global.FIXED_BEGIN)).unix();
-	// };
 	if (earliestTime) {
 		if (isFirstEvent) eventTemplate.time = dayjs.unix(earliestTime).toISOString();
 		if (!isFirstEvent) eventTemplate.time = u.TimeSoup(earliestTime, FIXED_NOW, peaks, deviation, mean);
 	}
-	// eventTemplate.time = u.TimeSoup(earliestTime, FIXED_NOW, peaks, deviation, mean);
 
 	// anonymous and session ids
 	if (anonymousIds.length) eventTemplate.device_id = chance.pickone(anonymousIds);
@@ -504,8 +503,6 @@ async function makeEvent(distinct_id, earliestTime, chosenEvent, anonymousIds, s
 
 					}
 				}
-
-
 			}
 		}
 	}
@@ -618,6 +615,8 @@ async function makeFunnel(funnel, user, firstEventTime, profile, scd, config) {
 			return acc;
 		}, []);
 
+	if (conversionRate > 100) conversionRate = 100;
+	if (conversionRate < 0) conversionRate = 0;
 	let doesUserConvert = chance.bool({ likelihood: conversionRate });
 	let numStepsUserWillTake = sequence.length;
 	if (!doesUserConvert) numStepsUserWillTake = u.integer(1, sequence.length - 1);
@@ -762,6 +761,7 @@ async function makeProfile(props, defaults) {
  * @return {Promise<SCDSchema[]>}
  */
 async function makeSCD(scdProp, scdKey, distinct_id, mutations, created) {
+	if (Array.isArray(scdProp)) scdProp = { values: scdProp, frequency: 'week', max: 10, timing: 'fuzzy', type: 'user' };
 	const { frequency, max, timing, values, type } = scdProp;
 	if (JSON.stringify(values) === "{}" || JSON.stringify(values) === "[]") return [];
 	const scdEntries = [];
@@ -967,18 +967,21 @@ async function userLoop(config, storage, concurrency = 1) {
 		userProps,
 		scdProps,
 		numDays,
+		percentUsersBornInDataset = 5,
 	} = config;
 	const { eventData, userProfilesData, scdTableData } = storage;
 	const avgEvPerUser = numEvents / numUsers;
+	const startTime = Date.now();
 
 	for (let i = 0; i < numUsers; i++) {
 		await USER_CONN(async () => {
 			userCount++;
-			if (verbose) u.progress([["users", userCount], ["events", eventCount]]);
+			const eps = Math.floor(eventCount / ((Date.now() - startTime) / 1000));
+			if (verbose) u.progress([["users", userCount], ["events", eventCount], ["eps", eps]]);
 			const userId = chance.guid();
 			const user = u.generateUser(userId, { numDays, isAnonymous, hasAvatar, hasAnonIds, hasSessionIds });
 			const { distinct_id, created } = user;
-			const userIsBornInDataset = chance.bool({ likelihood: 5 });
+			const userIsBornInDataset = chance.bool({ likelihood: percentUsersBornInDataset });
 			let numEventsPreformed = 0;
 			if (!userIsBornInDataset) delete user.created;
 			const adjustedCreated = userIsBornInDataset ? dayjs(created).subtract(daysShift, 'd') : dayjs.unix(global.FIXED_BEGIN);
@@ -992,7 +995,7 @@ async function userLoop(config, storage, concurrency = 1) {
 
 			// Profile creation
 			const profile = await makeProfile(userProps, user);
-			await userProfilesData.hookPush(profile);
+
 
 			// SCD creation
 			const scdUserTables = t.objFilter(scdProps, (scd) => scd.type === 'user');
@@ -1001,12 +1004,12 @@ async function userLoop(config, storage, concurrency = 1) {
 
 			const userSCD = {};
 			for (const [index, key] of scdTableKeys.entries()) {
+				// @ts-ignore
 				const { max = 100 } = scdProps[key];
 				const mutations = chance.integer({ min: 1, max });
 				const changes = await makeSCD(scdProps[key], key, distinct_id, mutations, created);
 				userSCD[key] = changes;
-				await config.hook(changes, "scd-pre", { profile, type: 'user', scd: {[key]: scdProps[key]}, config, allSCDs: userSCD });
-				await scdTableData[index].hookPush(changes, { profile, type: 'user' });
+				await config.hook(changes, "scd-pre", { profile, type: 'user', scd: { [key]: scdProps[key] }, config, allSCDs: userSCD });
 			}
 
 			let numEventsThisUserWillPreform = Math.floor(chance.normal({
@@ -1026,6 +1029,7 @@ async function userLoop(config, storage, concurrency = 1) {
 
 			const secondsInDay = 86400;
 			const noise = () => chance.integer({ min: 0, max: secondsInDay });
+			let usersEvents = [];
 
 			if (firstFunnels.length && userIsBornInDataset) {
 				const firstFunnel = chance.pickone(firstFunnels, user);
@@ -1034,7 +1038,8 @@ async function userLoop(config, storage, concurrency = 1) {
 				const [data, userConverted] = await makeFunnel(firstFunnel, user, firstTime, profile, userSCD, config);
 				userFirstEventTime = dayjs(data[0].time).subtract(timeShift, 'seconds').unix();
 				numEventsPreformed += data.length;
-				await eventData.hookPush(data, { profile });
+				// await eventData.hookPush(data, { profile });
+				usersEvents.push(...data);
 				if (!userConverted) {
 					if (verbose) u.progress([["users", userCount], ["events", eventCount]]);
 					return;
@@ -1050,13 +1055,34 @@ async function userLoop(config, storage, concurrency = 1) {
 					const currentFunnel = chance.pickone(usageFunnels);
 					const [data, userConverted] = await makeFunnel(currentFunnel, user, userFirstEventTime, profile, userSCD, config);
 					numEventsPreformed += data.length;
-					await eventData.hookPush(data, { profile });
+					usersEvents.push(...data);
+					// await eventData.hookPush(data, { profile });
 				} else {
 					const data = await makeEvent(distinct_id, userFirstEventTime, u.choose(config.events), user.anonymousIds, user.sessionIds, {}, config.groupKeys, true);
 					numEventsPreformed++;
-					await eventData.hookPush(data);
+					usersEvents.push(data);
+					// await eventData.hookPush(data);
 				}
 			}
+
+			// NOW ADD ALL OUR DATA FOR THIS USER
+			if (config.hook) {
+				const newEvents = await config.hook(usersEvents, "everything", { profile, scd: userSCD, config, userIsBornInDataset });
+				if (Array.isArray(newEvents)) usersEvents = newEvents;
+			}
+
+			await userProfilesData.hookPush(profile);
+
+			if (Object.keys(userSCD).length) {
+				for (const [key, changesArray] of Object.entries(userSCD)) {
+					for (const changes of changesArray) {
+						const target = scdTableData.filter(arr => arr.scdKey === key).pop();
+						await target.hookPush(changes, { profile, type: 'user' });
+					}
+				}
+			}
+			await eventData.hookPush(usersEvents, { profile });
+
 
 			if (verbose) u.progress([["users", userCount], ["events", eventCount]]);
 		});
@@ -1138,9 +1164,9 @@ async function sendToMixpanel(config, storage) {
 	}
 	if (groupEventData || isBATCH_MODE) {
 		log(`importing ad spend data to mixpanel...\n`);
-		let adSpendDataToImport = clone(groupEventData);
+		let adSpendDataToImport = clone(adSpendData);
 		if (isBATCH_MODE) {
-			const writeDir = groupEventData.getWriteDir();
+			const writeDir = adSpendData.getWriteDir();
 			const files = await ls(writeDir.split(path.basename(writeDir)).join(""));
 			adSpendDataToImport = files.filter(f => f.includes('-AD-SPEND-'));
 		}
@@ -1284,6 +1310,43 @@ function validateDungeonConfig(config) {
 	if (alsoInferFunnels) {
 		const inferredFunnels = inferFunnels(events);
 		funnels = [...funnels, ...inferredFunnels];
+	}
+
+
+	const eventContainedInFunnels = Array.from(funnels.reduce((acc, f) => {
+		const events = f.sequence;
+		events.forEach(event => acc.add(event));
+		return acc;
+	}, new Set()));
+
+	const eventsNotInFunnels = events
+		.filter(e => !e.isFirstEvent)
+		.filter(e => !eventContainedInFunnels.includes(e.event)).map(e => e.event);
+	if (eventsNotInFunnels.length) {
+		// const biggestWeight = funnels.reduce((acc, f) => {
+		// 	if (f.weight > acc) return f.weight;
+		// 	return acc;
+		// }, 0);
+		// const smallestWeight = funnels.reduce((acc, f) => {
+		// 	if (f.weight < acc) return f.weight;
+		// 	return acc;
+		// }, 0);
+		// const weight = u.integer(smallestWeight, biggestWeight) * 2;
+
+		const sequence = u.shuffleArray(eventsNotInFunnels.flatMap(event => {
+			const evWeight = config.events.find(e => e.event === event)?.weight || 1;
+			return Array(evWeight).fill(event);
+		}));
+
+
+
+		funnels.push({
+			sequence,
+			conversionRate: 50,
+			order: 'random',
+			timeToConvert: 24 * 14,
+			requireRepeats: false,
+		});
 	}
 
 	config.concurrency = concurrency;
@@ -1540,13 +1603,12 @@ if (NODE_ENV !== "prod") {
 
 		main(config)
 			.then((data) => {
-				//todo: rethink summary
 				log(`-----------------SUMMARY-----------------`);
 				const d = { success: 0, bytes: 0 };
 				const darr = [d];
 				const { events = d, groups = darr, users = d } = data?.importResults || {};
 				const files = data.files;
-				const folder = files?.[0]?.split(path.basename(files?.[0]))?.shift();
+				const folder = files?.[0]?.split(path.basename(files?.[0]))?.shift() || "./data";
 				const groupBytes = groups.reduce((acc, group) => {
 					return acc + group.bytes;
 				}, 0);
@@ -1572,8 +1634,7 @@ if (NODE_ENV !== "prod") {
 				debugger;
 			})
 			.finally(() => {
-				log("enjoy your data! :)");
-				u.openFinder(path.resolve("./data"));
+				log("enjoy your data! :)");				
 			});
 	} else {
 		main.generators = { makeEvent, makeFunnel, makeProfile, makeSCD, makeAdSpend, makeMirror };

@@ -83,7 +83,7 @@ function validator(schema) {
 
 
 if (require.main === module) {
-	generateSchema(`google docs is a word processor that is free to use and is available on the web. It is a great tool for writing and editing documents, and it has many features that make it easy to use. Google Docs is a popular choice for students, teachers, and professionals who need to create and share documents. It is also a great tool for collaborating with others, as multiple people can work on the same document at the same time. Google Docs is a versatile tool that can be used for a wide variety of purposes, from writing essays and reports to creating presentations and spreadsheets. It is a powerful and easy-to-use tool that is perfect for anyone who needs to create and share documents.`)
+	generateSchema(`a dungeons and dragons inspired game where players can create characters, join parties, and go on quests and fight bosses!`)
 		.then((result) => {
 			if (NODE_ENV === "dev") debugger;
 		})

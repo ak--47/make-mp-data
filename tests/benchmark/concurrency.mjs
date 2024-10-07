@@ -12,7 +12,7 @@ TO DOs
 
 
 import main from "../../index.js";
-import simple from '../../schemas/simple.js';
+import simple from '../../dungeons/simple.js';
 
 /** @typedef {import('../../types').Dungeon} Config */
 

@@ -195,8 +195,12 @@ function choose(value) {
 		// }
 
 		// Now, if the resolved value is an array, use chance.pickone
-		if (Array.isArray(value)) {
+		if (Array.isArray(value) && !wasFunctionCalled) {
 			return chance.pickone(value);
+		}
+
+		if (Array.isArray(value) && wasFunctionCalled) {
+			return value;
 		}
 
 		if (typeof value === 'string') {
@@ -938,6 +942,8 @@ function person(userId, bornDaysAgo = 30, isAnonymous = false, hasAvatar = false
 	let avPath = gender === 'male' ? `/men/${randomAvatarNumber}.jpg` : `/women/${randomAvatarNumber}.jpg`;
 	let avatar = avatarPrefix + avPath;
 	let created = dayjs().subtract(bornDaysAgo, 'day').format('YYYY-MM-DD');
+
+
 	// const created = date(bornDaysAgo, true)();
 
 

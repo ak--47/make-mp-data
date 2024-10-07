@@ -9,13 +9,13 @@ const { execSync } = require("child_process");
 const u = require('ak-tools');
 const Papa = require('papaparse');
 
-const simple = require('../schemas/simple.js');
-const complex = require('../schemas/complex.js');
-const anon = require('../schemas/anon.js');
-const funnels = require('../schemas/funnels.js');
-const foobar = require('../schemas/foobar.js');
-const mirror = require('../schemas/mirror.js');
-const adspend = require('../schemas/adspend.js');
+const simple = require('../dungeons/simple.js');
+const complex = require('../dungeons/complex.js');
+const anon = require('../dungeons/anon.js');
+const funnels = require('../dungeons/funnels.js');
+const foobar = require('../dungeons/foobar.js');
+const mirror = require('../dungeons/mirror.js');
+const adspend = require('../dungeons/adspend.js');
 
 const timeout = 600000;
 const testToken = process.env.TEST_TOKEN || "hello token!";

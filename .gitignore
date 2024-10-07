@@ -8,8 +8,8 @@ data/*
 customers
 tmp/*
 !tmp/.gitkeep
-dungeons/*
-!dungeons/.gitkeep
+dungeons/customers/*
+!dungeons/customers/.gitkeep
 tests/coverage/*
 !tests/coverage/.gitkeep
 cloud/*

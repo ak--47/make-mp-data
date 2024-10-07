@@ -63,15 +63,22 @@ declare namespace main {
 
     //allow anything to be on the config
     [key: string]: any;
+
+	//probabilities
+	percentUsersBornInDataset?: number;
   }
 
-  export type SCDProp = {
+  export type complexSCDProp = {
     type: string;
     frequency: "day" | "week" | "month" | "year";
     values: ValueValid;
     timing: "fixed" | "fuzzy";
     max?: number;
   };
+
+  export type SimpleSCDProp = string[];
+
+  export type SCDProp = complexSCDProp | SimpleSCDProp;
 
   /**
    * the soup is a set of parameters that determine the distribution of events over time
@@ -91,13 +98,14 @@ declare namespace main {
     | "group"
     | "lookup"
     | "scd"
-	| "scd-pre"
+    | "scd-pre"
     | "mirror"
     | "funnel-pre"
     | "funnel-post"
     | "ad-spend"
     | "churn"
     | "group-event"
+    | "everything"
     | "";
 
   /**

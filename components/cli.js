@@ -34,6 +34,12 @@ DATA MODEL: https://github.com/ak--47/make-mp-data/blob/main/default.js
 			describe: 'project token; if supplied data will be sent to mixpanel',
 			type: 'string'
 		})
+		.option("batchSize", {
+			demandOption: false,
+			alias: 'b',
+			describe: 'batch size for chunking data',
+			type: 'number'
+		})
 		.option("seed", {
 			demandOption: false,
 			alias: 's',
@@ -81,7 +87,7 @@ DATA MODEL: https://github.com/ak--47/make-mp-data/blob/main/default.js
 			demandOption: false,
 			default: 'US',
 			alias: 'r',
-			describe: 'either US or EU',
+			describe: 'either US or EU or IN',
 			type: 'string'
 		})
 		.option('concurrency', {

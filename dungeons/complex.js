@@ -13,12 +13,12 @@ const u = require('ak-tools');
 
 /** @type {import('../types.js').Dungeon} */
 const config = {
-	token: "",
-	seed: "quite complex",
+	token: "4a68e9ff118e595172b6478dfa88da7c",
+	seed: "quite complexus",
 	numDays: 30, //how many days worth of data
-	numEvents: 100000, //how many events
+	numEvents: 100_000, //how many events
 	numUsers: 1000, //how many users	
-	format: 'csv', //csv or json
+	format: 'json', //csv or json
 	region: "US",
 	hasAnonIds: true, //if true, anonymousIds are created for each user
 	hasSessionIds: true, //if true, hasSessionIds are created for each user
@@ -31,13 +31,13 @@ const config = {
 	hasCampaigns: true,
 	isAnonymous: false,
 	hasAdSpend: true,
-	
+
 	hasAvatar: true,
 	makeChart: false,
 
 	batchSize: 500_000,
 	concurrency: 500,
-	
+
 	funnels: [],
 	events: [
 		{
@@ -289,7 +289,7 @@ function makeProducts(maxItems = 10) {
 			data.push(item);
 		}
 
-		return [data];
+		return () => [data];
 	};
 };
 
@@ -339,7 +339,7 @@ function deviceAttributes(isMobile = false) {
 			language
 		};
 
-		return [chosen];
+		return chosen;
 
 	};
 }
