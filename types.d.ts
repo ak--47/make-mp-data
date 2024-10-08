@@ -26,6 +26,10 @@ declare namespace main {
     concurrency?: number;
     batchSize?: number;
 
+	serviceAccount?: string;
+	serviceSecret?: string;
+	projectId?: string;
+	
     // ids
     simulationName?: string;
     name?: string;
@@ -52,7 +56,7 @@ declare namespace main {
     superProps?: Record<string, ValueValid>;
     funnels?: Funnel[];
     userProps?: Record<string, ValueValid>;
-    scdProps?: Record<string, ValueValid>;
+    scdProps?: Record<string, SCDProp>;
     mirrorProps?: Record<string, MirrorProps>;
     groupKeys?: [string, number][] | [string, number, string[]][]; // [key, numGroups, [events]]
     groupProps?: Record<string, Record<string, ValueValid>>;
@@ -63,7 +67,22 @@ declare namespace main {
 
     //allow anything to be on the config
     [key: string]: any;
+
+	//probabilities
+	percentUsersBornInDataset?: number;
   }
+
+  export type complexSCDProp = {
+    type: string;
+    frequency: "day" | "week" | "month" | "year";
+    values: ValueValid;
+    timing: "fixed" | "fuzzy";
+    max?: number;
+  };
+
+  export type SimpleSCDProp = string[];
+
+  export type SCDProp = complexSCDProp | SimpleSCDProp;
 
   /**
    * the soup is a set of parameters that determine the distribution of events over time
@@ -83,12 +102,14 @@ declare namespace main {
     | "group"
     | "lookup"
     | "scd"
+    | "scd-pre"
     | "mirror"
     | "funnel-pre"
     | "funnel-post"
     | "ad-spend"
     | "churn"
     | "group-event"
+    | "everything"
     | "";
 
   /**

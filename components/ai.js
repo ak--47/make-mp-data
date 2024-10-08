@@ -83,7 +83,7 @@ function validator(schema) {
 
 
 if (require.main === module) {
-	generateSchema(`digital ocean...a cloud computing company with many different digital products ... droplets... kubernets... app platform: https://www.digitalocean.com/products`)
+	generateSchema(`a dungeons and dragons inspired game where players can create characters, join parties, and go on quests and fight bosses!`)
 		.then((result) => {
 			if (NODE_ENV === "dev") debugger;
 		})

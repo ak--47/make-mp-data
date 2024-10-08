@@ -187,8 +187,7 @@ const config = {
 	},
 
 	scdProps: {
-		nps: [1, 1, 1, 4, 4, 4, 5, 5, 6, 7, 8, 9],
-		mrr: () => { weighNumRange(10, 1000, .25); },
+		
 	},
 	mirrorProps: {
 		isBot: { events: "*", values: [false, false, false, false, true] },

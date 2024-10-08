@@ -195,8 +195,12 @@ function choose(value) {
 		// }
 
 		// Now, if the resolved value is an array, use chance.pickone
-		if (Array.isArray(value)) {
+		if (Array.isArray(value) && !wasFunctionCalled) {
 			return chance.pickone(value);
+		}
+
+		if (Array.isArray(value) && wasFunctionCalled) {
+			return value;
 		}
 
 		if (typeof value === 'string') {
@@ -324,6 +328,58 @@ function range(a, b, step = 1) {
 	return arr;
 };
 
+
+function companyName(words = 2, separator = " ") {
+	const industryAdjectives = ["advanced", "premier", "integrated", "optimized", "comprehensive", "expert",
+		"visionary", "progressive", "transformative", "pioneering", "streamlined",
+		"cutting-edge", "impactful", "purpose-driven", "value-oriented", "future-ready",
+		"scalable", "responsive", "data-driven", "cloud-based", "user-friendly",
+		"high-performance", "secure", "compliant", "ethical", "inclusive",
+		"transparent", "community-focused", "environmentally-conscious", "socially-responsible", "innovative", "dynamic", "global", "leading", "reliable", "trusted",
+		"strategic", "efficient", "sustainable", "creative", "agile", "resilient",
+		"collaborative", "customer-centric", "forward-thinking", "results-driven", "gizmo", "contraption", "doodle", "whimsy", "quirk", "spark", "zing",
+		"zap", "pop", "fizz", "whirl", "twirl", "swirl", "jumble", "tumble",
+		"hodgepodge", "mishmash", "kaleidoscope", "labyrinth", "maze", "puzzle",
+		"enigma", "conundrum", "paradox", "oxymoron", "chimera", "centaur",
+		"griffin", "phoenix", "unicorn", "dragon", "mermaid", "yeti", "bigfoot",
+		"loch ness monster", "chupacabra", "kraken", "leviathan", "behemoth",
+		"juggernaut", "goliath", "david", "odyssey", "pilgrimage", "crusade",
+		"quest", "adventure", "escapade", "frolic", "romp", "lark", "spree",
+		"binge", "jag", "bender", "tear", "rampage", "riot", "ruckus", "rumpus",
+		"hullabaloo", "brouhaha", "kerfuffle", "shindig", "hootenanny", "jamboree",
+		"fiesta", "carnival", "gala", "soiree", "bash", "fete", "jubilee"
+
+	];
+
+	const companyNouns = [
+		"solutions", "group", "partners", "ventures", "holdings", "enterprises",
+		"systems", "technologies", "innovations", "associates", "corporation", "inc.",
+		"ltd.", "plc.", "gmbh", "s.a.", "llc.", "network", "alliance", "consortium", "collective", "foundation", "institute",
+		"laboratory", "agency", "bureau", "department", "division", "branch",
+		"office", "center", "hub", "platform", "ecosystem", "marketplace",
+		"exchange", "clearinghouse", "repository", "archive", "registry",
+		"database", "framework", "infrastructure", "architecture", "protocol",
+		"standard", "specification", "guideline", "blueprint", "roadmap",
+		"strategy", "plan", "initiative", "program", "project", "campaign",
+		"operation", "mission", "task", "force", "team", "crew", "squad",
+		"unit", "cell", "pod", "cohort", "community", "network", "circle",
+		"forum", "council", "board", "committee", "panel", "jury", "tribunal"
+	];
+
+	let name = "";
+	const cycle = [industryAdjectives, companyNouns];
+	for (let i = 0; i < words; i++) {
+		const index = i % cycle.length;
+		const word = cycle[index][Math.floor(Math.random() * cycle[index].length)];
+		if (name === "") {
+			name = word;
+		} else {
+			name += separator + word;
+		}
+	}
+
+	return name;
+}
 
 
 /*
@@ -886,6 +942,8 @@ function person(userId, bornDaysAgo = 30, isAnonymous = false, hasAvatar = false
 	let avPath = gender === 'male' ? `/men/${randomAvatarNumber}.jpg` : `/women/${randomAvatarNumber}.jpg`;
 	let avatar = avatarPrefix + avPath;
 	let created = dayjs().subtract(bornDaysAgo, 'day').format('YYYY-MM-DD');
+
+
 	// const created = date(bornDaysAgo, true)();
 
 
@@ -942,27 +1000,27 @@ function wrapFunc(obj, func, recursion = 0, parentKey = null, grandParentKey = n
 	"mirrorProps",
 	"groupEvents",
 	"groupProps"
-  ]) {
+]) {
 	if (recursion === 0) {
-	  // Only process top-level keys in the whitelist
-	  for (const key in obj) {
-		if (whitelist.includes(key)) {
-		  obj[key] = wrapFunc(obj[key], func, recursion + 1, key, null, whitelist);
-		}
-	  }
-	} else {
-	  if (Array.isArray(obj) && grandParentKey === 'properties') {
-		return func(obj);
-	  } else if (typeof obj === 'object' && obj !== null) {
+		// Only process top-level keys in the whitelist
 		for (const key in obj) {
-		  if (obj.hasOwnProperty(key)) {
-			obj[key] = wrapFunc(obj[key], func, recursion + 1, key, parentKey, whitelist);
-		  }
+			if (whitelist.includes(key)) {
+				obj[key] = wrapFunc(obj[key], func, recursion + 1, key, null, whitelist);
+			}
 		}
-	  }
+	} else {
+		if (Array.isArray(obj) && grandParentKey === 'properties') {
+			return func(obj);
+		} else if (typeof obj === 'object' && obj !== null) {
+			for (const key in obj) {
+				if (obj.hasOwnProperty(key)) {
+					obj[key] = wrapFunc(obj[key], func, recursion + 1, key, parentKey, whitelist);
+				}
+			}
+		}
 	}
 	return obj;
-  }
+}
 
 //UNUSED
 
@@ -1026,7 +1084,7 @@ module.exports = {
 	exhaust,
 	integer,
 	TimeSoup,
-
+	companyName,
 	generateEmoji,
 
 

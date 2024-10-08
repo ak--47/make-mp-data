@@ -19,7 +19,7 @@ const chance = u.initChance(SEED);
 const num_users = 25_000
 const days = 100
 
-/** @typedef  {import("../types.d.ts").Config} Config */
+/** @typedef  {import("../types.d.ts").Dungeon} Config */
 
 /** @type {Config} */
 const config = {
@@ -44,8 +44,8 @@ const config = {
 	hasAvatar: true,
 	makeChart: false,
 
-	batchSize: 500_000,
-	concurrency: 500,
+	batchSize: 1_500_000,
+	concurrency: 1,
 	writeToDisk: false,
 	
 	funnels: [],
@@ -58,7 +58,7 @@ const config = {
     groupProps: {},
     lookupTables: [],
 	hook: function (record, type, meta) {
-		const NOW = dayjs.unix(global.NOW);
+		const NOW = dayjs();
 
 		if (type === "event") {
 			const EVENT_TIME = dayjs(record.time);
@@ -78,6 +78,10 @@ const config = {
 
 		if (type === "scd") {
 
+		}
+
+		if (type === "everything") {
+		
 		}
 
 		return record;
