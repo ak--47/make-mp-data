@@ -159,11 +159,41 @@ const config = {
 
 	/** each generates it's own table */
 	scdProps: {
-		plan: ["free", "free", "free", "free", "basic", "basic", "basic", "premium", "premium", "enterprise"],
-		MRR: weighNumRange(0, 10000, .15),
-		NPS: weighNumRange(0, 10, 2, 150),
-		subscribed: [true, true, true, true, true, true, false, false, false, false, "it's complicated"],
-		renewalDate: date(100, false),
+		role: {
+			type: "user",
+			frequency: "week",
+			values: ["admin", "collaborator", "user", "view only", "no access"],
+			timing: 'fuzzy',
+			max: 10
+		},
+		NPS: {
+			type: "user",
+			frequency: "day",
+			values: u.weighNumRange(1, 10, 2, 150),
+			timing: 'fuzzy',
+			max: 10
+		},
+		MRR: {
+			type: "company_id",
+			frequency: "month",
+			values: u.weighNumRange(0, 10000, .15),
+			timing: 'fixed',
+			max: 10
+		},
+		AccountHealthScore: {
+			type: "company_id",
+			frequency: "week",
+			values: u.weighNumRange(1, 10, .15),
+			timing: 'fixed',
+			max: 40
+		},
+		plan: {
+			type: "company_id",
+			frequency: "month",
+			values: ["free", "basic", "premium", "enterprise"],
+			timing: 'fixed',
+			max: 10
+		}
 	},
 
 	mirrorProps: {

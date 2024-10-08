@@ -1646,7 +1646,7 @@ if (NODE_ENV !== "prod") {
 				const darr = [d];
 				const { events = d, groups = darr, users = d } = data?.importResults || {};
 				const files = data.files;
-				const folder = files?.[0]?.split(path.basename(files?.[0]))?.shift() || "./data";
+				const folder = files?.[0]?.split(path.basename(files?.[0]))?.shift() || "./";
 				const groupBytes = groups.reduce((acc, group) => {
 					return acc + group.bytes;
 				}, 0);
@@ -1662,7 +1662,7 @@ if (NODE_ENV !== "prod") {
 				};
 				if (bytes > 0) console.table(stats);
 				log(`\nlog written to ${folder} ...`);
-				writeFileSync(path.join(folder, "log.txt"), JSON.stringify(data?.importResults, null, 2));
+				writeFileSync(path.resolve(folder, "log.json"), JSON.stringify(data?.importResults, null, 2));
 				// log("  " + files?.flat().join("\n  "));
 				log(`\n----------------SUMMARY-----------------\n\n\n`);
 			})
