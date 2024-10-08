@@ -1,6 +1,6 @@
 {
 	"name": "make-mp-data",
-	"version": "1.5.04",
+	"version": "1.5.05",
 	"description": "builds all mixpanel primitives for a given project",
 	"main": "index.js",
 	"types": "types.d.ts",

@@ -1131,6 +1131,8 @@ async function sendToMixpanel(config, storage) {
 		streamFormat: mpImportFormat
 	};
 
+	if (isCLI) commonOpts.showProgress = true;
+
 
 
 	if (eventData || isBATCH_MODE) {
@@ -1661,7 +1663,7 @@ if (NODE_ENV !== "prod") {
 					bytes: bytesHuman(bytes || 0),
 				};
 				if (bytes > 0) console.table(stats);
-				log(`\nlog written to ${folder} ...`);
+				log(`\nlog written to log.json\n`);
 				writeFileSync(path.resolve(folder, "log.json"), JSON.stringify(data?.importResults, null, 2));
 				// log("  " + files?.flat().join("\n  "));
 				log(`\n----------------SUMMARY-----------------\n\n\n`);
