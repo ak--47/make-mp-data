@@ -26,6 +26,10 @@ declare namespace main {
     concurrency?: number;
     batchSize?: number;
 
+	serviceAccount?: string;
+	serviceSecret?: string;
+	projectId?: string;
+	
     // ids
     simulationName?: string;
     name?: string;

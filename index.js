@@ -66,7 +66,7 @@ let VERBOSE = false;
 let isCLI = false;
 // if we are running in batch mode, we MUST write to disk before we can send to mixpanel
 let isBATCH_MODE = false;
-let BATCH_SIZE = 500_000;
+let BATCH_SIZE = 1_000_000;
 
 //todo: these should be moved into the hookedArrays
 let operations = 0;
@@ -123,8 +123,9 @@ async function main(config) {
 	// SCDs, Groups, + Lookups may have multiple tables
 	const scdTableKeys = Object.keys(scdProps);
 	const scdTableData = await Promise.all(scdTableKeys.map(async (key) =>
+		//todo don't assume everything is a string... lol
 		// @ts-ignore
-		await makeHookArray([], { hook, type: "scd", config, format, scdKey: key, filepath: `${simulationName}-${scdProps[key]?.type || "user"}-SCD-${key}` })
+		await makeHookArray([], { hook, type: "scd", config, format, scdKey: key, entityType: config.scdProps[key].type, dataType: "string", filepath: `${simulationName}-${scdProps[key]?.type || "user"}-SCD-${key}` })
 	));
 	const groupTableKeys = Object.keys(groupKeys);
 	const groupProfilesData = await Promise.all(groupTableKeys.map(async (key, index) => {
@@ -281,7 +282,7 @@ async function main(config) {
 		const bornBehaviors = [...bornEvents, ...bornFunnels];
 		const chart = await generateLineChart(eventData, bornBehaviors, makeChart);
 	}
-	const { writeToDisk, token } = config;
+	const { writeToDisk = true, token } = config;
 	if (!writeToDisk && !token) {
 		jobTimer.stop(false);
 		const { start, end, delta, human } = jobTimer.report(false);
@@ -1109,7 +1110,7 @@ async function sendToMixpanel(config, storage) {
 		groupEventData
 
 	} = storage;
-	const { token, region, writeToDisk } = config;
+	const { token, region, writeToDisk = true } = config;
 	const importResults = { events: {}, users: {}, groups: [] };
 
 	/** @type {import('mixpanel-import').Creds} */
@@ -1213,6 +1214,43 @@ async function sendToMixpanel(config, storage) {
 		});
 		log(`\tsent ${comma(imported.success)} group events\n`);
 		importResults.groupEvents = imported;
+	}
+	const { serviceAccount, projectId, serviceSecret } = config;
+	if (serviceAccount && projectId && serviceSecret) {
+		if (scdTableData || isBATCH_MODE) {
+			log(`importing SCD data to mixpanel...\n`);
+			for (const scdEntity of scdTableData) {
+				const scdKey = scdEntity?.scdKey;
+				log(`importing ${scdKey} SCD data to mixpanel...\n`);
+				let scdDataToImport = clone(scdEntity);
+				if (isBATCH_MODE) {
+					const writeDir = scdEntity.getWriteDir();
+					const files = await ls(writeDir.split(path.basename(writeDir)).join(""));
+					scdDataToImport = files.filter(f => f.includes(`-SCD-${scdKey}`));
+				}
+
+				const options = {
+					recordType: "scd",
+					scdKey,
+					scdType: scdEntity.dataType,
+					scdLabel: `${scdKey}-scd`,
+					...commonOpts,
+				};
+				if (scdEntity.entityType !== "user") options.groupKey = scdEntity.entityType
+				const imported = await mp(
+					{
+						token,
+						acct: serviceAccount,
+						pass: serviceSecret,
+						project: projectId
+					},
+					scdDataToImport,
+					// @ts-ignore
+					options);
+				log(`\tsent ${comma(imported.success)} ${scdKey} SCD data\n`);
+				importResults[`${scdKey}_scd`] = imported;
+			}
+		}
 	}
 
 	//if we are in batch mode, we need to delete the files
@@ -1577,12 +1615,12 @@ if (NODE_ENV !== "prod") {
 				console.log(`... using default COMPLEX configuration [everything] ...\n`);
 				console.log(`... for more simple data, don't use the --complex flag ...\n`);
 				console.log(`... or specify your own js config file (see docs or --help) ...\n`);
-				config = require(path.resolve(__dirname, "./schemas/complex.js"));
+				config = require(path.resolve(__dirname, "./dungeons/complex.js"));
 			}
 			else {
 				console.log(`... using default SIMPLE configuration [events + users] ...\n`);
 				console.log(`... for more complex data, use the --complex flag ...\n`);
-				config = require(path.resolve(__dirname, "./schemas/simple.js"));
+				config = require(path.resolve(__dirname, "./dungeons/simple.js"));
 			}
 		}
 
@@ -1634,7 +1672,7 @@ if (NODE_ENV !== "prod") {
 				debugger;
 			})
 			.finally(() => {
-				log("enjoy your data! :)");				
+				log("enjoy your data! :)");
 			});
 	} else {
 		main.generators = { makeEvent, makeFunnel, makeProfile, makeSCD, makeAdSpend, makeMirror };

@@ -8,12 +8,20 @@ const jestConfig = {
 	watch: false,	
 	projects: [
 		{
+			"displayName": "cli",
+			"testMatch": [
+				"<rootDir>/tests/cli.test.js"
+			],
+			maxWorkers: 1
+		},
+		{
 			"displayName": "e2e",
 			"testMatch": [
 				"<rootDir>/tests/e2e.test.js"
 			],		
 			// @ts-ignore
 			maxWorkers: 1
+
 			
 		},
 		{
