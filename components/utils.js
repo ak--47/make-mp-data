@@ -179,24 +179,33 @@ function day(start, end) {
  * @param  {ValueValid} value
  */
 function choose(value) {
-	// let wasFunctionCalled = false;
 	const chance = getChance();
 
 	try {
 		// Keep resolving the value if it's a function
 		while (typeof value === 'function') {
-			value = value();
-			// wasFunctionCalled = true;
+			value = value();		
 		}
 
-		// allow functions which create arrays of objects to pass through
-		// if (Array.isArray(value) && wasFunctionCalled && value.length > 1 && value[0] === null) {
-		// 	return value.slice(1);
-		// }
+		
+		// [[],[],[]] should pick one
+		if (Array.isArray(value) && Array.isArray(value[0])) {
+			return chance.pickone(value);
+		}
 
-		// Now, if the resolved value is an array, use chance.pickone
-		if (Array.isArray(value) && hasSameKeys(value)) {
+		// [[{}],[{}],[{}]] should return all		
+		if (Array.isArray(value) && typeof value[0] === "object" && hasSameKeys(value)) {
 			return value;
+		}
+
+		// ["","",""] should pick-a-winner
+		if (Array.isArray(value) && typeof value[0] === "string") {
+			value = pickAWinner(value)();
+		}
+
+		// [0,1,2] should pick one
+		if (Array.isArray(value) && typeof value[0] === "number") {
+			return chance.pickone(value);
 		}
 
 		if (Array.isArray(value)) {
@@ -216,8 +225,9 @@ function choose(value) {
 	}
 	catch (e) {
 		console.error(`\n\nerror on value: ${value};\n\n`, e, '\n\n');
+		if (process.env?.NODE_ENV === 'dev') debugger;
 		throw e;
-		return '';
+
 	}
 }
 

@@ -13,7 +13,7 @@ const u = require('ak-tools');
 
 /** @type {import('../types.js').Dungeon} */
 const config = {
-	token: "4a68e9ff118e595172b6478dfa88da7c",
+	token: "",
 	seed: "quite complexus",
 	numDays: 30, //how many days worth of data
 	numEvents: 100_000, //how many events
@@ -169,21 +169,21 @@ const config = {
 		NPS: {
 			type: "user",
 			frequency: "day",
-			values: u.weighNumRange(1, 10, 2, 150),
+			values: weighNumRange(1, 10, 2, 150),
 			timing: 'fuzzy',
 			max: 10
 		},
 		MRR: {
 			type: "company_id",
 			frequency: "month",
-			values: u.weighNumRange(0, 10000, .15),
+			values: weighNumRange(0, 10000, .15),
 			timing: 'fixed',
 			max: 10
 		},
 		AccountHealthScore: {
 			type: "company_id",
 			frequency: "week",
-			values: u.weighNumRange(1, 10, .15),
+			values: weighNumRange(1, 10, .15),
 			timing: 'fixed',
 			max: 40
 		},
@@ -233,6 +233,20 @@ const config = {
 			"isVerified": [true, true, false, false, false],
 		}
 	},
+	groupEvents: [{
+		attribute_to_user: false,
+		event: "card charged",
+		weight: 1,
+		frequency: 30,
+		group_key: "company_id",
+		group_size: 500,
+		properties: {
+			amount: weighNumRange(5, 500, .25),
+			currency: ["USD", "USD", "USD", "CAD", "EUR", "EUR", "BTC", "BTC", "ETH", "JPY"],
+			plan: ["basic", "premium", "enterprise"],
+			"payment method": []
+		}
+	}],
 
 	lookupTables: [
 		{
