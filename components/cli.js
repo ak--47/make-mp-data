@@ -48,7 +48,7 @@ DATA MODEL: https://github.com/ak--47/make-mp-data/blob/main/default.js
 		})
 		.option("format", {
 			demandOption: false,
-			default: 'csv',
+			default: 'json',
 			alias: 'f',
 			describe: 'csv or json',
 			type: 'string'

@@ -28,7 +28,7 @@ const timeShift = actualNow.diff(dayjs.unix(FIXED_NOW), "seconds");
 const daysShift = actualNow.diff(dayjs.unix(FIXED_NOW), "days");
 
 // UTILS
-const { existsSync } = require("fs");
+const { existsSync, writeFileSync } = require("fs");
 const pLimit = require('p-limit');
 const os = require("os");
 const path = require("path");
@@ -275,7 +275,7 @@ async function main(config) {
 	log(`---------------SIMULATION----------------`, "\n");
 
 	// draw charts
-	const { makeChart } = config;
+	const { makeChart = false } = config;
 	if (makeChart) {
 		const bornEvents = config.events?.filter((e) => e?.isFirstEvent)?.map(e => e.event) || [];
 		const bornFunnels = config.funnels?.filter((f) => f.isFirstFunnel)?.map(f => f.sequence[0]) || [];
@@ -988,7 +988,7 @@ async function userLoop(config, storage, concurrency = 1) {
 			const adjustedCreated = userIsBornInDataset ? dayjs(created).subtract(daysShift, 'd') : dayjs.unix(global.FIXED_BEGIN);
 
 			if (hasLocation) {
-				const location = u.choose(DEFAULTS.locationsUsers);
+				const location = u.shuffleArray(u.choose(DEFAULTS.locationsUsers)).pop();
 				for (const key in location) {
 					user[key] = location[key];
 				}
@@ -1236,7 +1236,7 @@ async function sendToMixpanel(config, storage) {
 					scdLabel: `${scdKey}-scd`,
 					...commonOpts,
 				};
-				if (scdEntity.entityType !== "user") options.groupKey = scdEntity.entityType
+				if (scdEntity.entityType !== "user") options.groupKey = scdEntity.entityType;
 				const imported = await mp(
 					{
 						token,
@@ -1661,8 +1661,9 @@ if (NODE_ENV !== "prod") {
 					bytes: bytesHuman(bytes || 0),
 				};
 				if (bytes > 0) console.table(stats);
-				log(`\nfiles written to ${folder || "no where; we didn't write anything"} ...`);
-				log("  " + files?.flat().join("\n  "));
+				log(`\nlog written to ${folder} ...`);
+				writeFileSync(path.join(folder, "log.txt"), JSON.stringify(data?.importResults, null, 2));
+				// log("  " + files?.flat().join("\n  "));
 				log(`\n----------------SUMMARY-----------------\n\n\n`);
 			})
 			.catch((e) => {

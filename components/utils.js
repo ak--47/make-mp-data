@@ -179,14 +179,14 @@ function day(start, end) {
  * @param  {ValueValid} value
  */
 function choose(value) {
-	let wasFunctionCalled = false;
+	// let wasFunctionCalled = false;
 	const chance = getChance();
 
 	try {
 		// Keep resolving the value if it's a function
 		while (typeof value === 'function') {
 			value = value();
-			wasFunctionCalled = true;
+			// wasFunctionCalled = true;
 		}
 
 		// allow functions which create arrays of objects to pass through
@@ -195,12 +195,12 @@ function choose(value) {
 		// }
 
 		// Now, if the resolved value is an array, use chance.pickone
-		if (Array.isArray(value) && !wasFunctionCalled) {
-			return chance.pickone(value);
+		if (Array.isArray(value) && hasSameKeys(value)) {
+			return value;
 		}
 
-		if (Array.isArray(value) && wasFunctionCalled) {
-			return value;
+		if (Array.isArray(value)) {
+			return chance.pickone(value);
 		}
 
 		if (typeof value === 'string') {
@@ -220,6 +220,31 @@ function choose(value) {
 		return '';
 	}
 }
+
+
+function hasSameKeys(arr) {
+	if (arr.length <= 1) {
+	  return true; // An empty array or an array with one object always has the same keys
+	}
+  
+	const firstKeys = Object.keys(arr[0]);
+  
+	for (let i = 1; i < arr.length; i++) {
+	  const currentKeys = Object.keys(arr[i]);
+  
+	  if (currentKeys.length !== firstKeys.length) {
+		return false; // Different number of keys
+	  }
+  
+	  for (const key of firstKeys) {
+		if (!currentKeys.includes(key)) {
+		  return false; // Key missing in current object
+		}
+	  }
+	}
+  
+	return true; // All objects have the same keys
+  }
 
 /**
  * keeps picking from an array until the array is exhausted
@@ -1086,7 +1111,7 @@ module.exports = {
 	TimeSoup,
 	companyName,
 	generateEmoji,
-
+	haveSameKeys: hasSameKeys,
 
 	initChance,
 	getChance,
