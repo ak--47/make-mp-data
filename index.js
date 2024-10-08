@@ -1664,7 +1664,7 @@ if (NODE_ENV !== "prod") {
 					bytes: bytesHuman(bytes || 0),
 				};
 				if (bytes > 0) console.table(stats);
-				if (Object.keys(data?.importResults).length) {
+				if (Object.keys(data?.importResults || {}).length) {
 					log(`\nlog written to log.json\n`);
 					writeFileSync(path.resolve(folder, "log.json"), JSON.stringify(data?.importResults, null, 2));
 				}
