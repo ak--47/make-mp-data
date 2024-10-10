@@ -1090,7 +1090,7 @@ async function userLoop(config, storage, concurrency = 1) {
 					usersEvents.push(...data);
 					// await eventData.hookPush(data, { profile });
 				} else {
-					const data = await makeEvent(distinct_id, userFirstEventTime, u.choose(config.events), user.anonymousIds, user.sessionIds, {}, config.groupKeys, true);
+					const data = await makeEvent(distinct_id, userFirstEventTime, u.pick(config.events), user.anonymousIds, user.sessionIds, {}, config.groupKeys, true);
 					numEventsPreformed++;
 					usersEvents.push(data);
 					// await eventData.hookPush(data);
@@ -1262,6 +1262,7 @@ async function sendToMixpanel(config, storage) {
 					scdDataToImport = files.filter(f => f.includes(`-SCD-${scdKey}`));
 				}
 
+				/** @type {import('mixpanel-import').Options} */
 				const options = {
 					recordType: "scd",
 					scdKey,
@@ -1699,8 +1700,10 @@ if (NODE_ENV !== "prod") {
 					bytes: bytesHuman(bytes || 0),
 				};
 				if (bytes > 0) console.table(stats);
-				log(`\nlog written to log.json\n`);
-				writeFileSync(path.resolve(folder, "log.json"), JSON.stringify(data?.importResults, null, 2));
+				if (Object.keys(data?.importResults || {}).length) {
+					log(`\nlog written to log.json\n`);
+					writeFileSync(path.resolve(folder, "log.json"), JSON.stringify(data?.importResults, null, 2));
+				}
 				// log("  " + files?.flat().join("\n  "));
 				log(`\n----------------SUMMARY-----------------\n\n\n`);
 			})
