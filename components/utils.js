@@ -195,8 +195,19 @@ function choose(value) {
 		// }
 
 		// Now, if the resolved value is an array, use chance.pickone
-		if (Array.isArray(value) && hasSameKeys(value)) {
-			return value;
+		if (Array.isArray(value) && value.every(item => typeof item === 'string')) {
+			return chance.pickone(value);
+		}
+
+		if (Array.isArray(value) && value.every(item => typeof item === 'number')) {
+			return chance.pickone(value);
+		}
+
+		if (Array.isArray(value) && value.every(item => typeof item === 'object')) {
+			if (hasSameKeys(value)) return value;
+			else {
+				if (process.env.NODE_ENV === "dev") debugger;
+			}
 		}
 
 		if (Array.isArray(value)) {
@@ -224,27 +235,27 @@ function choose(value) {
 
 function hasSameKeys(arr) {
 	if (arr.length <= 1) {
-	  return true; // An empty array or an array with one object always has the same keys
+		return true; // An empty array or an array with one object always has the same keys
 	}
-  
+
 	const firstKeys = Object.keys(arr[0]);
-  
+
 	for (let i = 1; i < arr.length; i++) {
-	  const currentKeys = Object.keys(arr[i]);
-  
-	  if (currentKeys.length !== firstKeys.length) {
-		return false; // Different number of keys
-	  }
-  
-	  for (const key of firstKeys) {
-		if (!currentKeys.includes(key)) {
-		  return false; // Key missing in current object
+		const currentKeys = Object.keys(arr[i]);
+
+		if (currentKeys.length !== firstKeys.length) {
+			return false; // Different number of keys
 		}
-	  }
+
+		for (const key of firstKeys) {
+			if (!currentKeys.includes(key)) {
+				return false; // Key missing in current object
+			}
+		}
 	}
-  
+
 	return true; // All objects have the same keys
-  }
+}
 
 /**
  * keeps picking from an array until the array is exhausted

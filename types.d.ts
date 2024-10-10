@@ -73,7 +73,7 @@ declare namespace main {
   }
 
   export type complexSCDProp = {
-    type: string;
+    type?: string | "user_id" | "company_id";
     frequency: "day" | "week" | "month" | "year";
     values: ValueValid;
     timing: "fixed" | "fuzzy";

@@ -124,8 +124,8 @@ async function main(config) {
 	const scdTableKeys = Object.keys(scdProps);
 	const scdTableData = await Promise.all(scdTableKeys.map(async (key) =>
 		//todo don't assume everything is a string... lol
-		// @ts-ignore
-		await makeHookArray([], { hook, type: "scd", config, format, scdKey: key, entityType: config.scdProps[key].type, dataType: "string", filepath: `${simulationName}-${scdProps[key]?.type || "user"}-SCD-${key}` })
+		// @ts-ignore		
+		await makeHookArray([], { hook, type: "scd", config, format, scdKey: key, entityType: config.scdProps[key]?.type || "user", dataType: "string", filepath: `${simulationName}-${scdProps[key]?.type || "user"}-SCD-${key}` })
 	));
 	const groupTableKeys = Object.keys(groupKeys);
 	const groupProfilesData = await Promise.all(groupTableKeys.map(async (key, index) => {
@@ -431,16 +431,20 @@ async function makeEvent(distinct_id, earliestTime, chosenEvent, anonymousIds, s
 	let defaultProps = {};
 	let devicePool = [];
 
-	if (hasLocation) defaultProps.location = DEFAULTS.locationsEvents();
-	if (hasBrowser) defaultProps.browser = DEFAULTS.browsers();
+	if (hasLocation) defaultProps.location = u.shuffleArray(DEFAULTS.locationsEvents()).pop();
+	if (hasBrowser) defaultProps.browser = u.choose(DEFAULTS.browsers());
 	if (hasAndroidDevices) devicePool.push(DEFAULTS.androidDevices());
 	if (hasIOSDevices) devicePool.push(DEFAULTS.iOSDevices());
 	if (hasDesktopDevices) devicePool.push(DEFAULTS.desktopDevices());
 
 	// we don't always have campaigns, because of attribution
-	if (hasCampaigns && chance.bool({ likelihood: 25 })) defaultProps.campaigns = DEFAULTS.campaigns();
+	if (hasCampaigns && chance.bool({ likelihood: 25 })) defaultProps.campaigns = u.shuffleArray(DEFAULTS.campaigns()).pop();
 	const devices = devicePool.flat();
-	if (devices.length) defaultProps.device = devices;
+	if (devices.length) defaultProps.device = u.shuffleArray(devices).pop();
+
+
+
+
 
 
 	//event time
@@ -504,6 +508,33 @@ async function makeEvent(distinct_id, earliestTime, chosenEvent, anonymousIds, s
 
 					}
 				}
+			}
+			else if (typeof (defaultProps[key]) === "object") {
+				const obj = defaultProps[key];
+				for (const subKey in obj) {
+					if (Array.isArray(obj[subKey])) { 
+						const subChoice = u.choose(obj[subKey]);
+						if (Array.isArray(subChoice)) {
+							for (const subSubChoice of subChoice) {
+								if (!eventTemplate[subKey]) eventTemplate[subKey] = subSubChoice;
+							}
+						}
+						else if (typeof subChoice === "object") {
+							for (const subSubKey in subChoice) {
+								if (!eventTemplate[subSubKey]) eventTemplate[subSubKey] = subChoice[subSubKey];
+							}
+						}
+						else {
+						if (!eventTemplate[subKey]) eventTemplate[subKey] = subChoice;
+						}
+					}
+					else {
+						if (!eventTemplate[subKey]) eventTemplate[subKey] = obj[subKey];
+					}
+				}
+			}
+			else {
+				if (!eventTemplate[key]) eventTemplate[key] = defaultProps[key];
 			}
 		}
 	}
@@ -763,7 +794,7 @@ async function makeProfile(props, defaults) {
  */
 async function makeSCD(scdProp, scdKey, distinct_id, mutations, created) {
 	if (Array.isArray(scdProp)) scdProp = { values: scdProp, frequency: 'week', max: 10, timing: 'fuzzy', type: 'user' };
-	const { frequency, max, timing, values, type } = scdProp;
+	const { frequency, max, timing, values, type = "user" } = scdProp;
 	if (JSON.stringify(values) === "{}" || JSON.stringify(values) === "[]") return [];
 	const scdEntries = [];
 	let lastInserted = dayjs(created);
@@ -999,7 +1030,7 @@ async function userLoop(config, storage, concurrency = 1) {
 
 
 			// SCD creation
-			const scdUserTables = t.objFilter(scdProps, (scd) => scd.type === 'user');
+			const scdUserTables = t.objFilter(scdProps, (scd) => scd.type === 'user' || !scd.type);
 			const scdTableKeys = Object.keys(scdUserTables);
 
 
@@ -1336,6 +1367,11 @@ function validateDungeonConfig(config) {
 
 	config.simulationName = name || makeName();
 	config.name = config.simulationName;
+
+	//events
+	if (!events || !events.length) events = [{ event: "foo" }, { event: "bar" }, { event: "baz" }];
+	// @ts-ignore
+	if (typeof events[0] === "string") events = events.map(e => ({ event: e }));
 
 	//max batch size
 	if (batchSize > 0) BATCH_SIZE = batchSize;
