@@ -756,12 +756,14 @@ async function makeFunnel(funnel, user, firstEventTime, profile, scd, config) {
  */
 async function makeProfile(props, defaults) {
 	operations++;
+	const keysToNotChoose = ["anonymousIds", "sessionIds"];
 
 	const profile = {
 		...defaults,
 	};
 
 	for (const key in profile) {
+		if (keysToNotChoose.includes(key)) continue;
 		try {
 			profile[key] = u.choose(profile[key]);
 		}
@@ -1701,8 +1703,8 @@ if (NODE_ENV !== "prod") {
 				};
 				if (bytes > 0) console.table(stats);
 				if (Object.keys(data?.importResults || {}).length) {
-					log(`\nlog written to log.json\n`);
-					writeFileSync(path.resolve(folder, "log.json"), JSON.stringify(data?.importResults, null, 2));
+				log(`\nlog written to log.json\n`);
+				writeFileSync(path.resolve(folder, "log.json"), JSON.stringify(data?.importResults, null, 2));
 				}
 				// log("  " + files?.flat().join("\n  "));
 				log(`\n----------------SUMMARY-----------------\n\n\n`);
