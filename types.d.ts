@@ -50,6 +50,7 @@ declare namespace main {
     hasSessionIds?: boolean;
     alsoInferFunnels?: boolean;
     makeChart?: boolean | string;
+	singleCountry?: string;
 
     //models
     events?: EventConfig[]; //| string[]; //can also be a array of strings

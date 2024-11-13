@@ -23,7 +23,7 @@ global.FIXED_NOW = FIXED_NOW;
 // ^ this creates a FIXED POINT in time; we will shift it later
 let FIXED_BEGIN = dayjs.unix(FIXED_NOW).subtract(90, 'd').unix();
 global.FIXED_BEGIN = FIXED_BEGIN;
-const actualNow = dayjs();
+const actualNow = dayjs().add(2, "day");
 const timeShift = actualNow.diff(dayjs.unix(FIXED_NOW), "seconds");
 const daysShift = actualNow.diff(dayjs.unix(FIXED_NOW), "days");
 
@@ -103,6 +103,16 @@ async function main(config) {
 		browsers: u.pickAWinner(devices.browsers, 0),
 		campaigns: u.pickAWinner(campaigns, 0),
 	};
+
+	if (config.singleCountry) {
+		DEFAULTS.locationsEvents = u.pickAWinner(clone(locations)
+			.filter(l => l.country === config.singleCountry)
+			.map(l => { delete l.country; return l; }), 0);
+
+		DEFAULTS.locationsUsers = u.pickAWinner(clone(locations)
+			.filter(l => l.country === config.singleCountry)
+			.map(l => { delete l.country_code; return l; }), 0);
+	}
 
 
 	//TRACKING
@@ -512,7 +522,7 @@ async function makeEvent(distinct_id, earliestTime, chosenEvent, anonymousIds, s
 			else if (typeof (defaultProps[key]) === "object") {
 				const obj = defaultProps[key];
 				for (const subKey in obj) {
-					if (Array.isArray(obj[subKey])) { 
+					if (Array.isArray(obj[subKey])) {
 						const subChoice = u.choose(obj[subKey]);
 						if (Array.isArray(subChoice)) {
 							for (const subSubChoice of subChoice) {
@@ -525,7 +535,7 @@ async function makeEvent(distinct_id, earliestTime, chosenEvent, anonymousIds, s
 							}
 						}
 						else {
-						if (!eventTemplate[subKey]) eventTemplate[subKey] = subChoice;
+							if (!eventTemplate[subKey]) eventTemplate[subKey] = subChoice;
 						}
 					}
 					else {
@@ -1156,7 +1166,8 @@ async function sendToMixpanel(config, storage) {
 		fixData: true,
 		verbose: false,
 		forceStream: true,
-		strict: false,
+		strict: true, //false,
+		epochEnd: dayjs().unix(), //is this chill?
 		dryRun: false,
 		abridged: false,
 		fixJson: true,
@@ -1703,8 +1714,8 @@ if (NODE_ENV !== "prod") {
 				};
 				if (bytes > 0) console.table(stats);
 				if (Object.keys(data?.importResults || {}).length) {
-				log(`\nlog written to log.json\n`);
-				writeFileSync(path.resolve(folder, "log.json"), JSON.stringify(data?.importResults, null, 2));
+					log(`\nlog written to log.json\n`);
+					writeFileSync(path.resolve(folder, "log.json"), JSON.stringify(data?.importResults, null, 2));
 				}
 				// log("  " + files?.flat().join("\n  "));
 				log(`\n----------------SUMMARY-----------------\n\n\n`);

@@ -70,7 +70,7 @@ function validator(schema) {
 	if (!schema) valid = false;
 
 	//must have 3 or more events
-	if (schema.events.length < 3) valid = false;
+	if (schema?.events?.length < 3) valid = false;
 
 	//must have 2 or more superProps
 	if (Object.keys(schema.superProps).length < 2) valid = false;
@@ -83,7 +83,21 @@ function validator(schema) {
 
 
 if (require.main === module) {
-	generateSchema(`a dungeons and dragons inspired game where players can create characters, join parties, and go on quests and fight bosses!`)
+	generateSchema(` a payments platform called popPay PopPay platform, enables facial recognition-based transactions for contact-free payments, entry, and verification. Users sign up with a selfie, and their image becomes a secure digital key stored in PopID’s cloud, allowing for streamlined interactions at participating businesses. This system aims to replace IDs, passwords, and loyalty cards, focusing on security and user control.
+		
+		Customers choose
+to be recognized
+Guests opt-in by standing directly in front of camera or notifying cashier. PopID never identifies guests without their permission.
+
+Personalized ordering experience
+Personalized
+ordering experience
+Guests can be automatically signed in to loyalty programs, shown past orders, and offered customized recommendations.
+
+Contact-free payment
+Contact-free
+payment
+PopPay’s eWallet links to guest’s payment card or checking account and offers lower processing fees than credit and debit cards.`)
 		.then((result) => {
 			if (NODE_ENV === "dev") debugger;
 		})

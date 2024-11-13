@@ -15,146 +15,218 @@ const chance = new Chance();
 const dayjs = require("dayjs");
 const utc = require("dayjs/plugin/utc");
 dayjs.extend(utc);
-const { uid, comma } = require('ak-tools');
-const { pickAWinner, weighNumRange, date, integer } = require('../components/utils');
+const { uid, comma, makeName } = require('ak-tools');
+const { pickAWinner, weighNumRange, integer, date, choose } = require('../components/utils');
+
+const eventsPerQuarter = 5_000_000_000 // ~5 billion
+const numQuarters = 8;
+const totalEvents = eventsPerQuarter * numQuarters;
+const eventPerUser = 500;
+const totalUsers = totalEvents / eventPerUser;
+const totalDays = (numQuarters * 90) + 10;
 
 /** @type {import('../types').Dungeon} */
 const config = {
 	token: "",
-	seed: "lets go",
-	numDays: 90, //how many days worth of data
-	numEvents: 100_000, //how many events
-	numUsers: 10_000, //how many users	
-	format: 'csv', //csv or json
+	seed: "lets go big",
+	numDays: totalDays,
+	numEvents: totalEvents,
+	numUsers: totalUsers,
+	format: 'json', //csv or json
 	region: "US",
-	hasAnonIds: true, //if true, anonymousIds are created for each user
+	hasAnonIds: false, //if true, anonymousIds are created for each user
 	hasSessionIds: false, //if true, hasSessionIds are created for each user
 	hasLocation: true,
-	events: [
+	hasAndroidDevices: false,
+	alsoInferFunnels: false,
+	batchSize: 5_000_000,
+	hasAvatar: true,
+	hasAdSpend: false,
+	hasBrowser: false,
+	hasCampaigns: false,
+	hasDesktopDevices: false,
+	hasIOSDevices: false,
+	funnels: [
 		{
-			event: "foo",
-			weight: 10,
-			properties: {}
-		},
-		{
-			event: "bar",
-			weight: 9,
-			properties: {}
-		},
-		{
-			event: "baz",
-			weight: 8,
-			properties: {}
-		},
-		{
-			event: "qux",
-			weight: 7,
-			properties: {}
-		},
-		{
-			event: "garply",
-			weight: 6,
-			properties: {}
-		},
-		{
-			event: "durtle",
-			weight: 5,
-			properties: {}
-		},
-		{
-			event: "linny",
-			weight: 4,
-			properties: {}
-		},
-		{
-			event: "fonk",
-			weight: 3,
-			properties: {}
-		},
-		{
-			event: "crumn",
-			weight: 2,
-			properties: {}
-		},
-		{
-			event: "yak",
+			"sequence": ["foo", "bar", "baz", "qux", "garply", "durtle", "linny", "fonk", "crumn", "yak"],
 			weight: 1,
-			properties: {}
+			order: "sequential"
+		},
+		{
+			"sequence": ["foo", "bar"],
+			weight: 25,
+			order: "sequential"
+		},
+		{
+			"sequence": ["foo", "bar", "baz"],
+			weight: 20,
+			order: "sequential"
+		},
+		{
+			"sequence": ["foo", "bar", "baz", "qux"],
+			weight: 15,
+			order: "sequential"
+		},
+		{
+			"sequence": ["foo", "bar", "baz", "qux", "garply"],
+			weight: 10,
+			order: "sequential"
+		},
+		{
+			"sequence": ["foo", "bar", "baz", "qux", "garply", "durtle"],
+			weight: 8,
+			order: "sequential"
+		},
+		{
+			"sequence": ["foo", "bar", "baz", "qux", "garply", "durtle", "linny"],
+			weight: 6,
+			order: "sequential"
+		},
+		{
+			"sequence": ["foo", "bar", "baz", "qux", "garply", "durtle", "linny", "fonk"],
+			weight: 4,
+			order: "sequential"
+		},
+		{
+			"sequence": ["foo", "bar", "baz", "qux", "garply", "durtle", "linny", "fonk", "crumn"],
+			weight: 2,
+			order: "sequential"
+		},
+		{
+			"sequence": ["foo", "bar", "baz", "qux", "garply", "durtle", "linny", "fonk", "crumn", "yak"],
+			weight: 1,
+			order: "sequential"
 		}
-	],
-	superProps: {
-		color: ["red", "orange", "yellow", "green", "blue", "indigo", "violet"],
-		number: integer,
 
+	],
+	events: [
+		{ event: "foo" },
+		{ event: "bar" },
+		{ event: "baz" },
+		{ event: "qux" },
+		{ event: "garply" },
+		{ event: "durtle" },
+		{ event: "linny" },
+		{ event: "fonk" },
+		{ event: "crumn" },
+		{ event: "yak" }
+	],
+	//? https://docs.mixpanel.com/docs/data-structure/property-reference/data-type
+	superProps: {		
+		"string": pickAWinner(["red", "orange", "yellow", "green", "blue", "indigo", "violet"]),
+		"number": integer,
+		"boolean": [true, true, false],
+		"date": () => date(90),
+		"string []": buildStringArray,
+		"number []": buildNumberArray,
+		"object {}": buildObjectProp,
+		"object [{}]": buildObjArrayProp
 	},
 	userProps: {
 		title: chance.profession.bind(chance),
 		luckyNumber: weighNumRange(42, 420),
-		spiritAnimal: ["duck", "dog", "otter", "penguin", "cat", "elephant", "lion", "cheetah", "giraffe", "zebra", "rhino", "hippo", "whale", "dolphin", "shark", "octopus", "squid", "jellyfish", "starfish", "seahorse", "crab", "lobster", "shrimp", "clam", "snail", "slug", "butterfly", "moth", "bee", "wasp", "ant", "beetle", "ladybug", "caterpillar", "centipede", "millipede", "scorpion", "spider", "tarantula", "tick", "mite", "mosquito", "fly", "dragonfly", "damselfly", "grasshopper", "cricket", "locust", "mantis", "cockroach", "termite", "praying mantis", "walking stick", "stick bug", "leaf insect", "lacewing", "aphid", "cicada", "thrips", "psyllid", "scale insect", "whitefly", "mealybug", "planthopper", "leafhopper", "treehopper", "flea", "louse", "bedbug", "flea beetle", "weevil", "longhorn beetle", "leaf beetle", "tiger beetle", "ground beetle", "lady beetle", "firefly", "click beetle", "rove beetle", "scarab beetle", "dung beetle", "stag beetle", "rhinoceros beetle", "hercules beetle", "goliath beetle", "jewel beetle", "tortoise beetle"]
+		spiritAnimal: pickAWinner(["duck", "dog", "otter", "penguin", "cat", "elephant", "lion", "cheetah", "giraffe", "zebra", "rhino", "hippo", "whale", "dolphin", "shark", "octopus", "squid", "jellyfish", "starfish", "seahorse", "crab", "lobster", "shrimp", "clam", "snail", "slug", "butterfly", "moth", "bee", "wasp", "ant", "beetle", "ladybug", "caterpillar", "centipede", "millipede", "scorpion", "spider", "tarantula", "tick", "mite", "mosquito", "fly", "dragonfly", "damselfly", "grasshopper", "cricket", "locust", "mantis", "cockroach", "termite", "praying mantis", "walking stick", "stick bug", "leaf insect", "lacewing", "aphid", "cicada", "thrips", "psyllid", "scale insect", "whitefly", "mealybug", "planthopper", "leafhopper", "treehopper", "flea", "louse", "bedbug", "flea beetle", "weevil", "longhorn beetle", "leaf beetle", "tiger beetle", "ground beetle", "lady beetle", "firefly", "click beetle", "rove beetle", "scarab beetle", "dung beetle", "stag beetle", "rhinoceros beetle", "hercules beetle", "goliath beetle", "jewel beetle", "tortoise beetle"]),
+		isHappyCustomer: pickAWinner([true, true, false]),
 	},
-
-	scdProps: {
-		"donk": ["dude", "man", "brok"],
-		"pronk": ["monk", "lonk", "aonk"],
-	},
-	mirrorProps: {},
-	groupKeys: [
-		["companies", 100_000],
-		["servers", 3_000_000],
-		["crews", 1000],
-
-	],
-	groupProps: {
-		companies: {
-			name: chance.company.bind(chance),
-			industry: ["tech", "finance", "healthcare", "education", "retail", "manufacturing", "entertainment", "government", "non-profit", "other"],
-		},
-		servers: {
-			name: chance.word.bind(chance),
-			ram: weighNumRange(4, 64, .25),
-			cpu: weighNumRange(1, 16, .25),
-
-		},
-		crews: {
-			name: chance.word.bind(chance),
-			department: ["engineering", "design", "marketing", "sales", "finance", "hr", "legal", "operations", "support", "other"],
-			size: weighNumRange(5, 50, .25)
-		}
-	},
-	lookupTables: [{
-			key: "product_id",
-			entries: 2_000_000,
-			attributes: {
-				category: [
-					"Books", "Movies", "Music", "Games", "Electronics", "Computers", "Smart Home", "Home", "Garden & Tools", "Pet Supplies", "Food & Grocery", "Beauty", "Health", "Toys", "Kids", "Baby", "Handmade", "Sports", "Outdoors", "Automotive", "Industrial", "Entertainment", "Art"
-				],
-				"demand": ["high", "medium", "medium", "low"],
-				"supply": ["high", "medium", "medium", "low"],
-				"manufacturer": chance.company.bind(chance),
-				"price": weighNumRange(5, 500, .25),
-				"rating": weighNumRange(1, 5),
-				"reviews": weighNumRange(0, 35)
-			}
-
-		},
-		{
-			key: "video_id",
-			entries: 10_000_000,
-			attributes: {
-				isFlagged: [true, false, false, false, false],
-				copyright: ["all rights reserved", "creative commons", "creative commons", "public domain", "fair use"],
-				uploader_id: chance.guid.bind(chance),
-				"uploader influence": ["low", "low", "low", "medium", "medium", "high"],
-				thumbs: weighNumRange(0, 35),
-				rating: ["G", "PG", "PG-13", "R", "NC-17", "PG-13", "R", "NC-17", "R", "PG", "PG"]
-			}
-
-		}],
 	hook: function (record, type, meta) {
+
+
+		// if (type === "event") {
+		// 	debugger;
+		// }
+
+		// if (type === "user") {
+
+		// }
+
+		// if (type === "funnel-post") {
+
+		// }
+
+		// if (type === "funnel-pre") {
+
+		// }
+
+		// if (type === "scd") {
+
+		// }
+
+		// if (type === "everything") {
+		// 	debugger;
+		// }
+
 		return record;
 	}
 };
 
+
+function buildObjectProp() {
+	return function () {
+		return {
+			"foo key": choose(pickAWinner(["red", "orange", "yellow", "green", "blue", "indigo", "violet"])()),
+			"bar key": integer(1, 100),
+			"baz key": choose(pickAWinner([true, true, false])()),
+		};
+	};
+}
+
+
+function buildNumberArray() {
+	return function () {
+		const arr = [];
+		const times = integer(1, 10);
+		for (let i = 0; i < times; i++) {
+			arr.push(integer(1, 100));
+		}
+		return [arr];
+	};
+}
+
+function buildStringArray() {
+	return function () {
+		const arr = [];
+		const times = integer(1, 10);
+		for (let i = 0; i < times; i++) {
+			arr.push(makeName(integer(1, 3), " "));
+		}
+		return [arr];
+	};
+}
+
+
+function buildObjArrayProp(maxItems = 5) {
+
+	return function () {
+		const categories = ["Device Accessories", "eBooks", "Automotive", "Baby Products", "Beauty", "Books", "Camera & Photo", "Cell Phones & Accessories", "Collectible Coins", "Consumer Electronics", "Entertainment Collectibles", "Fine Art", "Grocery & Gourmet Food", "Health & Personal Care", "Home & Garden", "Independent Design", "Industrial & Scientific", "Accessories", "Major Appliances", "Music", "Musical Instruments", "Office Products", "Outdoors", "Personal Computers", "Pet Supplies", "Software", "Sports", "Sports Collectibles", "Tools & Home Improvement", "Toys & Games", "Video, DVD & Blu-ray", "Video Games", "Watches"];
+		const slugs = ['/sale/', '/featured/', '/home/', '/search/', '/wishlist/', '/'];
+		const assetExtension = ['.png', '.jpg', '.jpeg', '.heic', '.mp4', '.mov', '.avi'];
+		const data = [];
+		const numOfItems = integer(1, maxItems);
+
+		for (var i = 0; i < numOfItems; i++) {
+			const category = chance.pickone(categories);
+			const slug = chance.pickone(slugs);
+			const asset = chance.pickone(assetExtension);
+			const price = integer(1, 300);
+			const quantity = integer(1, 5);
+
+			const item = {
+				sku: integer(11111, 99999),
+				amount: price,
+				quantity: quantity,
+				total: price * quantity,
+				featured: chance.pickone([true, false]),
+				category: category,
+				urlSlug: slug + category,
+				asset: `${category}-${integer(1, 20)}${asset}`
+			};
+
+			data.push(item);
+		}
+
+		return () => [data];
+	};
+};
 
 
 module.exports = config;

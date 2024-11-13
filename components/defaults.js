@@ -605,6 +605,306 @@ const locations = [
 		"city": "Oklahoma City"
 	},
 	{
+		"country": "United States",
+		"country_code": "US",
+		"region": "Alabama",
+		"city": "Birmingham"
+	},
+	{
+		"country": "United States",
+		"country_code": "US",
+		"region": "Alaska",
+		"city": "Anchorage"
+	},
+	{
+		"country": "United States",
+		"country_code": "US",
+		"region": "Arizona",
+		"city": "Tucson"
+	},
+	{
+		"country": "United States",
+		"country_code": "US",
+		"region": "Arkansas",
+		"city": "Little Rock"
+	},
+	{
+		"country": "United States",
+		"country_code": "US",
+		"region": "California",
+		"city": "Long Beach"
+	},
+	{
+		"country": "United States",
+		"country_code": "US",
+		"region": "Colorado",
+		"city": "Colorado Springs"
+	},
+	{
+		"country": "United States",
+		"country_code": "US",
+		"region": "Connecticut",
+		"city": "Hartford"
+	},
+	{
+		"country": "United States",
+		"country_code": "US",
+		"region": "Delaware",
+		"city": "Wilmington"
+	},
+	{
+		"country": "United States",
+		"country_code": "US",
+		"region": "Florida",
+		"city": "Miami"
+	},
+	{
+		"country": "United States",
+		"country_code": "US",
+		"region": "Georgia",
+		"city": "Atlanta"
+	},
+	{
+		"country": "United States",
+		"country_code": "US",
+		"region": "Hawaii",
+		"city": "Honolulu"
+	},
+	{
+		"country": "United States",
+		"country_code": "US",
+		"region": "Idaho",
+		"city": "Boise"
+	},
+	{
+		"country": "United States",
+		"country_code": "US",
+		"region": "Illinois",
+		"city": "Naperville"
+	},
+	{
+		"country": "United States",
+		"country_code": "US",
+		"region": "Indiana",
+		"city": "Fort Wayne"
+	},
+	{
+		"country": "United States",
+		"country_code": "US",
+		"region": "Iowa",
+		"city": "Des Moines"
+	},
+	{
+		"country": "United States",
+		"country_code": "US",
+		"region": "Kansas",
+		"city": "Wichita"
+	},
+	{
+		"country": "United States",
+		"country_code": "US",
+		"region": "Kentucky",
+		"city": "Louisville"
+	},
+	{
+		"country": "United States",
+		"country_code": "US",
+		"region": "Louisiana",
+		"city": "New Orleans"
+	},
+	{
+		"country": "United States",
+		"country_code": "US",
+		"region": "Maine",
+		"city": "Portland"
+	},
+	{
+		"country": "United States",
+		"country_code": "US",
+		"region": "Maryland",
+		"city": "Baltimore"
+	},
+	{
+		"country": "United States",
+		"country_code": "US",
+		"region": "Massachusetts",
+		"city": "Boston"
+	},
+	{
+		"country": "United States",
+		"country_code": "US",
+		"region": "Michigan",
+		"city": "Detroit"
+	},
+	{
+		"country": "United States",
+		"country_code": "US",
+		"region": "Minnesota",
+		"city": "Minneapolis"
+	},
+	{
+		"country": "United States",
+		"country_code": "US",
+		"region": "Mississippi",
+		"city": "Jackson"
+	},
+	{
+		"country": "United States",
+		"country_code": "US",
+		"region": "Missouri",
+		"city": "Kansas City"
+	},
+	{
+		"country": "United States",
+		"country_code": "US",
+		"region": "Montana",
+		"city": "Billings"
+	},
+	{
+		"country": "United States",
+		"country_code": "US",
+		"region": "Nebraska",
+		"city": "Omaha"
+	},
+	{
+		"country": "United States",
+		"country_code": "US",
+		"region": "Nevada",
+		"city": "Reno"
+	},
+	{
+		"country": "United States",
+		"country_code": "US",
+		"region": "New Hampshire",
+		"city": "Manchester"
+	},
+	{
+		"country": "United States",
+		"country_code": "US",
+		"region": "New Jersey",
+		"city": "Newark"
+	},
+	{
+		"country": "United States",
+		"country_code": "US",
+		"region": "New Mexico",
+		"city": "Albuquerque"
+	},
+	{
+		"country": "United States",
+		"country_code": "US",
+		"region": "New York",
+		"city": "Buffalo"
+	},
+	{
+		"country": "United States",
+		"country_code": "US",
+		"region": "North Carolina",
+		"city": "Charlotte"
+	},
+	{
+		"country": "United States",
+		"country_code": "US",
+		"region": "North Dakota",
+		"city": "Fargo"
+	},
+	{
+		"country": "United States",
+		"country_code": "US",
+		"region": "Ohio",
+		"city": "Cleveland"
+	},
+	{
+		"country": "United States",
+		"country_code": "US",
+		"region": "Oklahoma",
+		"city": "Tulsa"
+	},
+	{
+		"country": "United States",
+		"country_code": "US",
+		"region": "Oregon",
+		"city": "Salem"
+	},
+	{
+		"country": "United States",
+		"country_code": "US",
+		"region": "Pennsylvania",
+		"city": "Pittsburgh"
+	},
+	{
+		"country": "United States",
+		"country_code": "US",
+		"region": "Rhode Island",
+		"city": "Providence"
+	},
+	{
+		"country": "United States",
+		"country_code": "US",
+		"region": "South Carolina",
+		"city": "Columbia"
+	},
+	{
+		"country": "United States",
+		"country_code": "US",
+		"region": "South Dakota",
+		"city": "Sioux Falls"
+	},
+	{
+		"country": "United States",
+		"country_code": "US",
+		"region": "Tennessee",
+		"city": "Knoxville"
+	},
+	{
+		"country": "United States",
+		"country_code": "US",
+		"region": "Texas",
+		"city": "El Paso"
+	},
+	{
+		"country": "United States",
+		"country_code": "US",
+		"region": "Utah",
+		"city": "Salt Lake City"
+	},
+	{
+		"country": "United States",
+		"country_code": "US",
+		"region": "Vermont",
+		"city": "Burlington"
+	},
+	{
+		"country": "United States",
+		"country_code": "US",
+		"region": "Virginia",
+		"city": "Virginia Beach"
+	},
+	{
+		"country": "United States",
+		"country_code": "US",
+		"region": "Washington",
+		"city": "Tacoma"
+	},
+	{
+		"country": "United States",
+		"country_code": "US",
+		"region": "West Virginia",
+		"city": "Charleston"
+	},
+	{
+		"country": "United States",
+		"country_code": "US",
+		"region": "Wisconsin",
+		"city": "Milwaukee"
+	},
+	{
+		"country": "United States",
+		"country_code": "US",
+		"region": "Wyoming",
+		"city": "Cheyenne"
+	},
+	{
 		"country": "China",
 		"country_code": "CN",
 		"region": "Beijing",
