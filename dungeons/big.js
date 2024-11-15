@@ -1,14 +1,3 @@
-/**
- * This is the default configuration file for the data generator in SIMPLE mode
- * notice how the config object is structured, and see it's type definition in ./types.d.ts
- * feel free to modify this file to customize the data you generate
- * see helper functions in utils.js for more ways to generate data
- */
-
-
-/* cSpell:disable */
-
-
 const seed = "lets go big ONE";
 const Chance = require('chance');
 const chance = new Chance();

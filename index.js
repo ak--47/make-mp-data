@@ -45,6 +45,20 @@ const t = require('ak-tools');
 
 //CLOUD
 const functions = require('@google-cloud/functions-framework');
+const { GoogleAuth } = require('google-auth-library');
+const CONCURRENCY = 1_000;
+let RUNTIME_URL = "https://dm4-lmozz6xkha-uc.a.run.app"; // IMPORTANT: this is what allows the service to call itself
+// const functionName = process.env.FUNCTION_NAME || process.env.K_SERVICE;
+
+// const region = process.env.REGION; // Optionally, you can get the region too
+// const GCP_PROJECT = process.env.GCLOUD_PROJECT; // Project ID is also available as an environment variable
+// const isCloudFunction = !!process.env.FUNCTION_NAME || !!process.env.FUNCTION_TARGET;
+// if (isCloudFunction) {
+// 	RUNTIME_URL = `https://${region}-${GCP_PROJECT}.cloudfunctions.net/${functionName}`;
+// }
+// else {
+// 	RUNTIME_URL = `http://localhost:8080`;
+// }
 
 
 
@@ -74,7 +88,6 @@ let BATCH_SIZE = 1_000_000;
 let operations = 0;
 let eventCount = 0;
 let userCount = 0;
-
 
 
 /**
@@ -338,11 +351,12 @@ async function main(config) {
 		...STORAGE,
 		importResults,
 		files,
+		operations,
+		eventCount,
+		userCount,
 		time: { start, end, delta, human },
 	};
 }
-
-
 
 functions.http('entry', async (req, res) => {
 	const reqTimer = timer('request');
@@ -350,12 +364,14 @@ functions.http('entry', async (req, res) => {
 	let response = {};
 	let script = req.body || "";
 	let writePath;
+	const params = { replicate: 1, ...req.query };
+	const replicate = Number(params.replicate);
 	try {
 		sLog("DM4: start");
 		if (!script) throw new Error("no script");
 
 		// Replace require("../ with require("./
-		script = script.replace(/require\("\.\.\//g, 'require("./');
+		// script = script.replace(/require\("\.\.\//g, 'require("./');
 		// ^ need to replace this because of the way the script is passed in... this is sketch
 
 		/** @type {Config} */
@@ -363,33 +379,136 @@ functions.http('entry', async (req, res) => {
 		sLog("DM4: eval ok");
 
 		const { token } = config;
-		if (!token) throw new Error("no token");
+		// if (!token) throw new Error("no token");
 
 		/** @type {Config} */
 		const optionsYouCantChange = {
 			verbose: false,
-			writeToDisk: false,
 
 		};
-		const result = await main({
-			...config,
-			...optionsYouCantChange,
-		});
-		await rm(writePath);
-		reqTimer.stop(false);
-		const { start, end, delta, human } = jobTimer.report(false);
-		sLog(`DM4: end (${human})`, { ms: delta });
+		if (replicate <= 1) {
+			sLog("DM4: start single sim");
+			// @ts-ignore
+			const { files = [], operations = 0, eventCount = 0, userCount = 0 } = await main({
+				...config,
+				...optionsYouCantChange,
+			});
+			reqTimer.stop(false);
+			response = { files, operations, eventCount, userCount };
+		}
+		else {
+			sLog(`DM4: start batch sim (${replicate} jobs)`);
+			const results = await spawn_file_workers(replicate, script);
+			response = results;
+		}
 	}
 	catch (e) {
 		sLog("DM4: error", { error: e.message });
 		response = { error: e.message };
 		res.status(500);
-		await rm(writePath);
+		// await rm(writePath);
 	}
 	finally {
+		reqTimer.stop(false);
+		const { start, end, delta, human } = reqTimer.report(false);
+		sLog(`DM4: end (${human})`, { ms: delta });
+		response = { ...response, start, end, delta, human };
 		res.send(response);
 	}
 });
+
+
+/**
+ * @typedef {import('mixpanel-import').ImportResults} ImportResults
+ */
+async function spawn_file_workers(numberWorkers, payload) {
+	const auth = new GoogleAuth();
+	const originalSeed = eval(payload).seed || "deal with it...";
+	let client;
+	if (RUNTIME_URL.includes('localhost')) {
+		client = await auth.getClient();
+	}
+	else {
+		client = await auth.getIdTokenClient(RUNTIME_URL);
+	}
+	const limit = pLimit(CONCURRENCY);
+	const requestPromises = Array.from({ length: numberWorkers }, (_, index) => {
+		return limit(() => build_request(client, payload, index, originalSeed));
+	});
+	const complete = await Promise.allSettled(requestPromises);
+	const results = {
+		files_success: complete.filter((p) => p.status === "fulfilled").length,
+		files_failed: complete.filter((p) => p.status === "rejected").length,
+		files_total: complete.length,
+	};
+
+	return results;
+}
+
+
+async function build_request(client, payload, index, originalSeed) {
+	let retryAttempt = 0;
+	const newSeed = `${originalSeed}_${index}`;
+
+	// Replace the seed in the script string using regex
+	// This assumes the seed is defined in the format: seed: "something"
+	const scriptWithNewSeed = payload.replace(/seed\s*:\s*"[^"]*"/, `seed: "${newSeed}"`);
+	try {
+		const req = await client.request({
+			url: RUNTIME_URL + "?replicate=1",
+			method: "POST",
+			data: scriptWithNewSeed,
+			headers: {
+				"Content-Type": "text/plain",
+			},
+			retryConfig: {
+				retry: 5,
+				statusCodesToRetry: [
+					[100, 199],
+					[400, 499],
+					[500, 599],
+				],
+				onRetryAttempt: (error) => {
+					const statusCode = error?.response?.status?.toString() || "";
+					retryAttempt++;
+					sLog(`DM4: retry #${retryAttempt}`, { statusCode, message: error.message, stack: error.stack }, "DEBUG");
+				},
+				retryDelay: 500,
+				shouldRetry: function (err) {
+					// Retry on network errors (no response received)
+					if (!err.response) {
+						return true;
+					}
+
+					if (retryAttempt > 5) {
+						return false;
+					}
+
+					// Retry on server errors (5xx status codes)
+					const statusCode = err?.response?.status?.toString();
+					if (statusCode.startsWith("5")) {
+						return true;
+					}
+
+					// Retry on auth errors (4xx status codes)
+					if (statusCode.startsWith("4")) {
+						return true;
+					}
+
+					// Do not retry for other types of errors
+					return false;
+				}
+
+			},
+		});
+		const { data } = req;
+		return data;
+	} catch (error) {
+		sLog(`DM4: WORKER REQUEST FAILED`, { message: error.message, stack: error.stack, code: error.code, RETRIES: retryAttempt }, "ERROR");
+		return {};
+	}
+}
+
 
 
 /*
