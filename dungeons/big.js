@@ -9,7 +9,7 @@
 /* cSpell:disable */
 
 
-
+const seed = "lets go big ONE";
 const Chance = require('chance');
 const chance = new Chance();
 const dayjs = require("dayjs");
@@ -18,17 +18,19 @@ dayjs.extend(utc);
 const { uid, comma, makeName } = require('ak-tools');
 const { pickAWinner, weighNumRange, integer, date, choose } = require('../components/utils');
 
+
 const eventsPerQuarter = 5_000_000_000 // ~5 billion
-const numQuarters = 8;
-const totalEvents = eventsPerQuarter * numQuarters;
+const numQuarters = 8; // 24 months
+const parallelism = 5000; 
+const totalEvents = Math.floor((eventsPerQuarter * numQuarters) / parallelism);
 const eventPerUser = 500;
-const totalUsers = totalEvents / eventPerUser;
+const totalUsers = Math.floor(totalEvents / eventPerUser);
 const totalDays = (numQuarters * 90) + 10;
 
 /** @type {import('../types').Dungeon} */
 const config = {
 	token: "",
-	seed: "lets go big",
+	seed: seed,
 	numDays: totalDays,
 	numEvents: totalEvents,
 	numUsers: totalUsers,
@@ -39,13 +41,14 @@ const config = {
 	hasLocation: true,
 	hasAndroidDevices: false,
 	alsoInferFunnels: false,
-	batchSize: 5_000_000,
+	batchSize: 2_000_000,
 	hasAvatar: true,
 	hasAdSpend: false,
 	hasBrowser: false,
 	hasCampaigns: false,
 	hasDesktopDevices: false,
 	hasIOSDevices: false,
+	writeToDisk: false,
 	funnels: [
 		{
 			"sequence": ["foo", "bar", "baz", "qux", "garply", "durtle", "linny", "fonk", "crumn", "yak"],

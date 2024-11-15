@@ -29,8 +29,10 @@ const numEvents = 1000;
 
 /** @type {main.Config} */
 const spec = {
-	...big,
-	writeToDisk: true,
+	...simple,
+	numEvents: 10_000,
+	batchSize: 1_000,	
+	writeToDisk: "gs://dungeon_master_4/scratch",
 	verbose: true,
 	makeChart: false,
 	hasAnonIds: true,

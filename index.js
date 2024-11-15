@@ -46,6 +46,8 @@ const t = require('ak-tools');
 //CLOUD
 const functions = require('@google-cloud/functions-framework');
 
+
+
 // DEFAULTS
 const { campaigns, devices, locations } = require('./components/defaults.js');
 let CAMPAIGNS;
@@ -1502,13 +1504,21 @@ async function makeHookArray(arr = [], opts = {}) {
 	if (existsSync(dataFolder)) writeDir = dataFolder;
 	else writeDir = path.resolve("./");
 
-	if (NODE_ENV === "prod") writeDir = path.resolve(os.tmpdir());
+	// ! decide where to write the files in prod
+	if (NODE_ENV === "prod") {
+		writeDir = path.resolve(os.tmpdir());
+	}
+	if (rest?.config?.writeToDisk?.startsWith('gs://')) {
+		writeDir = rest.config.writeToDisk;
+	}
 
 	function getWritePath() {
 		if (isBATCH_MODE) {
+			if (writeDir?.startsWith('gs://')) return `${writeDir}/${filepath}-part-${batch.toString()}.${format}`;
 			return path.join(writeDir, `${filepath}-part-${batch.toString()}.${format}`);
 		}
 		else {
+			if (writeDir?.startsWith('gs://')) return `${writeDir}/${filepath}.${format}`;
 			return path.join(writeDir, `${filepath}.${format}`);
 		}
 	}
@@ -1570,6 +1580,7 @@ async function makeHookArray(arr = [], opts = {}) {
 		}
 		if (isBATCH_MODE) data.length = 0;
 		return writeResult;
+
 	}
 
 	async function flush() {

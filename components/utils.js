@@ -6,7 +6,7 @@ const { spawn } = require('child_process');
 const dayjs = require('dayjs');
 const utc = require('dayjs/plugin/utc');
 const path = require('path');
-const { mkdir } = require('ak-tools');
+const { mkdir, parseGCSUri } = require('ak-tools');
 const { existsSync } = require('fs');
 dayjs.extend(utc);
 require('dotenv').config();
@@ -24,6 +24,11 @@ let globalChance;
 let chanceInitialized = false;
 
 const ACTUAL_NOW = dayjs.utc();
+
+
+const { Storage: cloudStorage } = require('@google-cloud/storage');
+const projectId = 'YOUR_PROJECT_ID';
+const storage = new cloudStorage({ projectId });
 
 
 /*
@@ -184,10 +189,10 @@ function choose(value) {
 	try {
 		// Keep resolving the value if it's a function
 		while (typeof value === 'function') {
-			value = value();		
+			value = value();
 		}
 
-		
+
 		// [[],[],[]] should pick one
 		if (Array.isArray(value) && Array.isArray(value[0])) {
 			return chance.pickone(value);
@@ -434,23 +439,38 @@ STREAMERS
 ----
 */
 
-function streamJSON(path, data) {
+function streamJSON(filePath, data) {
 	return new Promise((resolve, reject) => {
-		const writeStream = fs.createWriteStream(path, { encoding: 'utf8' });
+		let writeStream;
+		if (filePath?.startsWith('gs://')) {
+			const { uri, bucket, file } = parseGCSUri(filePath);
+			writeStream = storage.bucket(bucket).file(file).createWriteStream({ gzip: true });
+		}
+		else {
+			writeStream = fs.createWriteStream(filePath, { encoding: 'utf8' });
+		}
 		data.forEach(item => {
 			writeStream.write(JSON.stringify(item) + '\n');
 		});
 		writeStream.end();
 		writeStream.on('finish', () => {
-			resolve(path);
+			resolve(filePath);
 		});
 		writeStream.on('error', reject);
 	});
 }
 
-function streamCSV(path, data) {
+function streamCSV(filePath, data) {
 	return new Promise((resolve, reject) => {
-		const writeStream = fs.createWriteStream(path, { encoding: 'utf8' });
+		let writeStream;
+		if (filePath?.startsWith('gs://')) {
+			const { uri, bucket, file } = parseGCSUri(filePath);
+			writeStream = storage.bucket(bucket).file(file).createWriteStream({ gzip: true });
+		}
+		else {
+			writeStream = fs.createWriteStream(filePath, { encoding: 'utf8' });
+		}
+
 		// Extract all unique keys from the data array
 		const columns = getUniqueKeys(data);  // Assuming getUniqueKeys properly retrieves all keys
 
@@ -469,7 +489,7 @@ function streamCSV(path, data) {
 
 		writeStream.end();
 		writeStream.on('finish', () => {
-			resolve(path);
+			resolve(filePath);
 		});
 		writeStream.on('error', reject);
 	});
