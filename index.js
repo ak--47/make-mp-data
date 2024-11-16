@@ -364,10 +364,16 @@ functions.http('entry', async (req, res) => {
 	let response = {};
 	let script = req.body || "";
 	let writePath;
-	const params = { replicate: 1, ...req.query };
+	const params = { replicate: 1, is_replica: "false", runId: "", seed: "", ...req.query };
 	const replicate = Number(params.replicate);
+	// @ts-ignore
+	if (params?.is_replica === "true") params.is_replica = true;
+	// @ts-ignore
+	else params.is_replica = false;
+	const isReplica = params.is_replica;
+	isBATCH_MODE = true;
+	if (!params.runId) params.runId = uid(42);
 	try {
-		sLog("DM4: start");
 		if (!script) throw new Error("no script");
 
 		// Replace require("../ with require("./
@@ -376,9 +382,10 @@ functions.http('entry', async (req, res) => {
 
 		/** @type {Config} */
 		const config = eval(script);
-		sLog("DM4: eval ok");
+		if (!isReplica) sLog("DM4: eval ok", params);
 
-		const { token } = config;
+		const { seed } = config;
+		params.seed = seed;
 		// if (!token) throw new Error("no token");
 
 		/** @type {Config} */
@@ -386,8 +393,10 @@ functions.http('entry', async (req, res) => {
 			verbose: false,
 
 		};
+		if (!isReplica) sLog("DM4: job start", params);
+		if (isReplica) sLog("DM4: worker start", params);
 		if (replicate <= 1) {
-			sLog("DM4: start single sim");
+			if (!isReplica) sLog("DM4: job start", { ...params });
 			// @ts-ignore
 			const { files = [], operations = 0, eventCount = 0, userCount = 0 } = await main({
 				...config,
@@ -397,8 +406,8 @@ functions.http('entry', async (req, res) => {
 			response = { files, operations, eventCount, userCount };
 		}
 		else {
-			sLog(`DM4: start batch sim (${replicate} jobs)`);
-			const results = await spawn_file_workers(replicate, script);
+			sLog(`DM4: job start (${replicate} workers)`, params);
+			const results = await spawn_file_workers(replicate, script, params);
 			response = results;
 		}
 	}
@@ -406,13 +415,18 @@ functions.http('entry', async (req, res) => {
 		sLog("DM4: error", { error: e.message });
 		response = { error: e.message };
 		res.status(500);
-		// await rm(writePath);
 	}
 	finally {
 		reqTimer.stop(false);
 		const { start, end, delta, human } = reqTimer.report(false);
-		sLog(`DM4: end (${human})`, { ms: delta });
-		response = { ...response, start, end, delta, human };
+		if (!isReplica) {
+			sLog(`DM4: job end (${human})`, { human, delta, ...params, ...response });
+		}
+		if (isReplica) {
+			const eps = Math.floor(((response?.eventCount || 0) / delta) * 1000);
+			sLog(`DM4: worker end (${human})`, { human, delta, eps, ...params, ...response });
+		}
+		response = { ...response, start, end, delta, human, ...params };
 		res.send(response);
 	}
 });
@@ -421,9 +435,8 @@ functions.http('entry', async (req, res) => {
 /**
  * @typedef {import('mixpanel-import').ImportResults} ImportResults
  */
-async function spawn_file_workers(numberWorkers, payload) {
+async function spawn_file_workers(numberWorkers, payload, params) {
 	const auth = new GoogleAuth();
-	const originalSeed = eval(payload).seed || "deal with it...";
 	let client;
 	if (RUNTIME_URL.includes('localhost')) {
 		client = await auth.getClient();
@@ -432,79 +445,60 @@ async function spawn_file_workers(numberWorkers, payload) {
 		client = await auth.getIdTokenClient(RUNTIME_URL);
 	}
 	const limit = pLimit(CONCURRENCY);
-	const requestPromises = Array.from({ length: numberWorkers }, (_, index) => {
-		return limit(() => build_request(client, payload, index, originalSeed));
+	const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+
+	const requestPromises = Array.from({ length: numberWorkers }, async (_, index) => {
+		index = index + 1;
+		await delay(index * 108);
+		sLog(`DM4: summoning worker #${index} of ${numberWorkers}`, params);
+		return limit(() => build_request(client, payload, index, params));
 	});
 	const complete = await Promise.allSettled(requestPromises);
 	const results = {
-		files_success: complete.filter((p) => p.status === "fulfilled").length,
-		files_failed: complete.filter((p) => p.status === "rejected").length,
-		files_total: complete.length,
+		jobs_success: complete.filter((p) => p.status === "fulfilled").length,
+		jobs_fail: complete.filter((p) => p.status === "rejected").length
 	};
 
 	return results;
 }
 
 
-async function build_request(client, payload, index, originalSeed) {
+async function build_request(client, payload, index, params) {
 	let retryAttempt = 0;
-	const newSeed = `${originalSeed}_${index}`;
+	const newSeed = `${(Math.random() * Math.random() * Math.random()).toString()}`;
 
 	// Replace the seed in the script string using regex
 	// This assumes the seed is defined in the format: seed: "something"
 	const scriptWithNewSeed = payload.replace(/seed\s*:\s*"[^"]*"/, `seed: "${newSeed}"`);
 	try {
 		const req = await client.request({
-			url: RUNTIME_URL + "?replicate=1",
+			url: RUNTIME_URL + `?replicate=1&is_replica=true&runId=${params.runId || "no run id"}`,
 			method: "POST",
 			data: scriptWithNewSeed,
 			headers: {
 				"Content-Type": "text/plain",
 			},
+			timeout: 3600 * 1000,
 			retryConfig: {
-				retry: 5,
-				statusCodesToRetry: [
-					[100, 199],
-					[400, 499],
-					[500, 599],
-				],
+				retry: 3,
 				onRetryAttempt: (error) => {
 					const statusCode = error?.response?.status?.toString() || "";
 					retryAttempt++;
-					sLog(`DM4: retry #${retryAttempt}`, { statusCode, message: error.message, stack: error.stack }, "DEBUG");
+					sLog(`DM4: summon worker ${index} retry #${retryAttempt}`, { statusCode, message: error.message, stack: error.stack, ...params }, "DEBUG");
 				},
-				retryDelay: 500,
-				shouldRetry: function (err) {
-					// Retry on network errors (no response received)
-					if (!err.response) {
-						return true;
-					}
-
-					if (retryAttempt > 5) {
-						return false;
-					}
-
-					// Retry on server errors (5xx status codes)
-					const statusCode = err?.response?.status?.toString();
-					if (statusCode.startsWith("5")) {
-						return true;
-					}
-
-					// Retry on auth errors (4xx status codes)
-					if (statusCode.startsWith("4")) {
-						return true;
-					}
-
-					// Do not retry for other types of errors
-					return false;
+				retryDelay: 1000,
+				shouldRetry: (error) => {
+					const statusCode = error?.response?.status;
+					const shouldRetry = statusCode >= 500 || error.code === 'ECONNRESET';
+					return shouldRetry;
 				}
-
 			},
 		});
+		sLog(`DM4: summon worker #${index} success`, { ...params, seed: newSeed });
 		const { data } = req;
 		return data;
 	} catch (error) {
-		sLog(`DM4: WORKER REQUEST FAILED`, { message: error.message, stack: error.stack, code: error.code, RETRIES: retryAttempt }, "ERROR");
+		sLog(`DM4: summon worker #${index} failed`, { message: error.message, stack: error.stack, code: error.code, RETRIES: retryAttempt, ...params }, "ERROR");
 		return {};
 	}
 }

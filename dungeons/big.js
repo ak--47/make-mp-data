@@ -1,4 +1,4 @@
-const seed = "lets go big ONE";
+const seed = "lets go big";
 const Chance = require('chance');
 const chance = new Chance();
 const dayjs = require("dayjs");
@@ -31,13 +31,13 @@ const config = {
 	hasAndroidDevices: false,
 	alsoInferFunnels: false,
 	batchSize: 2_000_000,
-	hasAvatar: true,
+	hasAvatar: false,
 	hasAdSpend: false,
 	hasBrowser: false,
 	hasCampaigns: false,
 	hasDesktopDevices: false,
 	hasIOSDevices: false,
-	writeToDisk: false,
+	writeToDisk: "gs://dungeon_master_4/big_data",
 	funnels: [
 		{
 			"sequence": ["foo", "bar", "baz", "qux", "garply", "durtle", "linny", "fonk", "crumn", "yak"],
