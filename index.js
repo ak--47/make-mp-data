@@ -450,8 +450,7 @@ async function spawn_file_workers(numberWorkers, payload, params) {
 	const requestPromises = Array.from({ length: numberWorkers }, async (_, index) => {
 		index = index + 1;
 		await delay(index * 108);
-		sLog(`DM4: summoning worker #${index} of ${numberWorkers}`, params);
-		return limit(() => build_request(client, payload, index, params));
+		return limit(() => build_request(client, payload, index, params, numberWorkers));
 	});
 	const complete = await Promise.allSettled(requestPromises);
 	const results = {
@@ -463,13 +462,15 @@ async function spawn_file_workers(numberWorkers, payload, params) {
 }
 
 
-async function build_request(client, payload, index, params) {
+async function build_request(client, payload, index, params, total) {
 	let retryAttempt = 0;
 	const newSeed = `${(Math.random() * Math.random() * Math.random()).toString()}`;
+	params.seed = newSeed;
 
 	// Replace the seed in the script string using regex
-	// This assumes the seed is defined in the format: seed: "something"
+	// This assumes the seed is defined in the format: seed: "something"	
 	const scriptWithNewSeed = payload.replace(/seed\s*:\s*"[^"]*"/, `seed: "${newSeed}"`);
+	sLog(`DM4: summoning worker #${index} of ${total}`, params);
 	try {
 		const req = await client.request({
 			url: RUNTIME_URL + `?replicate=1&is_replica=true&runId=${params.runId || "no run id"}`,
@@ -494,7 +495,7 @@ async function build_request(client, payload, index, params) {
 				}
 			},
 		});
-		sLog(`DM4: summon worker #${index} success`, { ...params, seed: newSeed });
+		sLog(`DM4: summon worker #${index} success`, params);
 		const { data } = req;
 		return data;
 	} catch (error) {
