@@ -363,7 +363,6 @@ functions.http('entry', async (req, res) => {
 	reqTimer.start();
 	let response = {};
 	let script = req.body || "";
-	let writePath;
 	const params = { replicate: 1, is_replica: "false", runId: "", seed: "", ...req.query };
 	const replicate = Number(params.replicate);
 	// @ts-ignore
@@ -382,21 +381,19 @@ functions.http('entry', async (req, res) => {
 
 		/** @type {Config} */
 		const config = eval(script);
-		if (!isReplica) sLog("DM4: eval ok", params);
-
-		const { seed } = config;
-		params.seed = seed;
-		// if (!token) throw new Error("no token");
+		if (isReplica) {
+			const newSeed = (Math.random() / Math.random() / Math.random() / Math.random() / Math.random() / Math.random()).toString();
+			config.seed = newSeed;
+			params.seed = newSeed;
+		}
 
 		/** @type {Config} */
 		const optionsYouCantChange = {
-			verbose: false,
-
+			verbose: false
 		};
-		if (!isReplica) sLog("DM4: job start", params);
-		if (isReplica) sLog("DM4: worker start", params);
-		if (replicate <= 1) {
-			if (!isReplica) sLog("DM4: job start", { ...params });
+
+		if (replicate <= 1 || isReplica) {
+			if (isReplica) sLog("DM4: worker start", params);
 			// @ts-ignore
 			const { files = [], operations = 0, eventCount = 0, userCount = 0 } = await main({
 				...config,
@@ -405,6 +402,7 @@ functions.http('entry', async (req, res) => {
 			reqTimer.stop(false);
 			response = { files, operations, eventCount, userCount };
 		}
+
 		else {
 			sLog(`DM4: job start (${replicate} workers)`, params);
 			const results = await spawn_file_workers(replicate, script, params);
@@ -412,10 +410,11 @@ functions.http('entry', async (req, res) => {
 		}
 	}
 	catch (e) {
-		sLog("DM4: error", { error: e.message });
+		sLog("DM4: error", { error: e.message, stack: e.stack }, "ERROR");
 		response = { error: e.message };
 		res.status(500);
 	}
+
 	finally {
 		reqTimer.stop(false);
 		const { start, end, delta, human } = reqTimer.report(false);
@@ -428,6 +427,7 @@ functions.http('entry', async (req, res) => {
 		}
 		response = { ...response, start, end, delta, human, ...params };
 		res.send(response);
+		return;
 	}
 });
 
@@ -464,22 +464,16 @@ async function spawn_file_workers(numberWorkers, payload, params) {
 
 async function build_request(client, payload, index, params, total) {
 	let retryAttempt = 0;
-	const newSeed = `${(Math.random() * Math.random() * Math.random()).toString()}`;
-	params.seed = newSeed;
-
-	// Replace the seed in the script string using regex
-	// This assumes the seed is defined in the format: seed: "something"	
-	const scriptWithNewSeed = payload.replace(/seed\s*:\s*"[^"]*"/, `seed: "${newSeed}"`);
 	sLog(`DM4: summoning worker #${index} of ${total}`, params);
 	try {
 		const req = await client.request({
 			url: RUNTIME_URL + `?replicate=1&is_replica=true&runId=${params.runId || "no run id"}`,
 			method: "POST",
-			data: scriptWithNewSeed,
+			data: payload,
 			headers: {
 				"Content-Type": "text/plain",
 			},
-			timeout: 3600 * 1000,
+			timeout: 3600 * 1000 * 10,
 			retryConfig: {
 				retry: 3,
 				onRetryAttempt: (error) => {
@@ -489,17 +483,18 @@ async function build_request(client, payload, index, params, total) {
 				},
 				retryDelay: 1000,
 				shouldRetry: (error) => {
+					if (error.code === 'ECONNRESET') return true;
 					const statusCode = error?.response?.status;
-					const shouldRetry = statusCode >= 500 || error.code === 'ECONNRESET';
-					return shouldRetry;
+					if (statusCode >= 500) return true;
+					if (statusCode === 429) return true;
 				}
 			},
 		});
-		sLog(`DM4: summon worker #${index} success`, params);
+		sLog(`DM4: worker #${index} responded`, params);
 		const { data } = req;
 		return data;
 	} catch (error) {
-		sLog(`DM4: summon worker #${index} failed`, { message: error.message, stack: error.stack, code: error.code, RETRIES: retryAttempt, ...params }, "ERROR");
+		sLog(`DM4: worker #${index} failed to respond`, { message: error.message, stack: error.stack, code: error.code, retries: retryAttempt, ...params }, "ERROR");
 		return {};
 	}
 }
