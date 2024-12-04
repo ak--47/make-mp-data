@@ -1509,9 +1509,9 @@ function validateDungeonConfig(config) {
 	// funnels
 
 	// FUNNEL INFERENCE
-	if (!funnels || !funnels.length) {
-		funnels = inferFunnels(events);
-	}
+	// if (!funnels || !funnels.length) {
+	// 	funnels = inferFunnels(events);
+	// }
 
 	if (alsoInferFunnels) {
 		const inferredFunnels = inferFunnels(events);
@@ -1622,7 +1622,7 @@ async function makeHookArray(arr = [], opts = {}) {
 	if (NODE_ENV === "prod") {
 		writeDir = path.resolve(os.tmpdir());
 	}
-	if (rest?.config?.writeToDisk?.startsWith('gs://')) {
+	if (typeof rest?.config?.writeToDisk === "string" && rest?.config?.writeToDisk?.startsWith('gs://')) {
 		writeDir = rest.config.writeToDisk;
 	}
 

@@ -1,6 +1,6 @@
 {
 	"name": "make-mp-data",
-	"version": "1.5.054",
+	"version": "1.5.055",
 	"description": "builds all mixpanel primitives for a given project",
 	"main": "index.js",
 	"types": "types.d.ts",
@@ -48,7 +48,7 @@
 		"@google-cloud/functions-framework": "^3.4.2",
 		"@google-cloud/storage": "^7.14.0",
 		"@google/generative-ai": "^0.16.0",
-		"ak-fetch": "^1.0.4",
+		"ak-fetch": "^1.0.89",
 		"ak-tools": "^1.0.68",
 		"chance": "^1.1.11",
 		"chart.js": "^3.9.1",
@@ -56,7 +56,7 @@
 		"dayjs": "^1.11.11",
 		"dotenv": "^16.4.5",
 		"google-auth-library": "^9.15.0",
-		"mixpanel-import": "^2.6.4",
+		"mixpanel-import": "^2.7.47",
 		"p-limit": "^3.1.0",
 		"yargs": "^17.7.2"
 	},

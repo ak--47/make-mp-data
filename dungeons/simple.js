@@ -118,8 +118,7 @@ const config = {
 			}
 		}
 	],
-	superProps: {
-		platform: ["web", "mobile", "web", "mobile", "web", "web", "kiosk", "smartTV"],
+	superProps: {		
 		currentTheme: weighChoices(["light", "dark", "custom", "light", "dark"]),
 	},
 	/*

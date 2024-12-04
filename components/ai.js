@@ -83,21 +83,35 @@ function validator(schema) {
 
 
 if (require.main === module) {
-	generateSchema(` a payments platform called popPay PopPay platform, enables facial recognition-based transactions for contact-free payments, entry, and verification. Users sign up with a selfie, and their image becomes a secure digital key stored in PopID’s cloud, allowing for streamlined interactions at participating businesses. This system aims to replace IDs, passwords, and loyalty cards, focusing on security and user control.
+	generateSchema(`https://apps.apple.com/us/app/call-guardian-for-us-cellular/id1228680023  call guardian is an app for blocking spam calls made by TNS 
 		
-		Customers choose
-to be recognized
-Guests opt-in by standing directly in front of camera or notifying cashier. PopID never identifies guests without their permission.
+this is the list of events we want: 
 
-Personalized ordering experience
-Personalized
-ordering experience
-Guests can be automatically signed in to loyalty programs, shown past orders, and offered customized recommendations.
-
-Contact-free payment
-Contact-free
-payment
-PopPay’s eWallet links to guest’s payment card or checking account and offers lower processing fees than credit and debit cards.`)
+Onboarding Started
+Onboarding Completed (Basic)
+Onboarding Completed (Premium)
+Page Views (all "screens" within the app")
+Enable/Disable High Risk Blocking
+Enable/Disable Medium Risk Blocking
+Enable/Disable Neighborhood Spoof Blocking
+Call Blocked (Spam)
+Call Blocked (Custom List)
+Branded Call w/o Logo Received
+Branded Call w/ Logo Received
+Branded Call Answered
+Branded Call Blocked
+Enable/Disable Text Spam
+Reverse Number Lookup
+Report as Spam
+Report as Not Spam
+Custom Block List Number Add
+Custom Block List Number Remove
+Call Arrives Before Push
+Error Scenarios
+User Can't Authenticate
+Xfinity Services Can't Connect
+Verizon Services Can't Connect
+Deep Links into app`)
 		.then((result) => {
 			if (NODE_ENV === "dev") debugger;
 		})

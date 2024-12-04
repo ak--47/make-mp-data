@@ -15,7 +15,7 @@
             "request": "launch",
             "name": "run dungeon",
             "runtimeExecutable": "nodemon",
-            "runtimeArgs": ["--inspect"],
+            "runtimeArgs": ["--inspect", "--ignore", "./data"],
             "program": "${workspaceFolder}/index.js",
 			"args": ["--ignore", "./data/*", "${file}"],
             "restart": true,
@@ -23,6 +23,7 @@
             "internalConsoleOptions": "neverOpen",
             "skipFiles": ["<node_internals>/**"],
 			"preLaunchTask": "npm: prune",
+			
         },
 		{
 			"type": "node",
@@ -35,7 +36,8 @@
 			"internalConsoleOptions": "neverOpen",
 			"env": {
 				"NODE_ENV": "dev"
-			}
+			},
+			"runtimeArgs": ["--ignore", "./data"],
 		},
 		{
 			"command": "npm run func:local",
