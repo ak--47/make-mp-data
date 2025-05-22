@@ -1,49 +1,49 @@
 {
   "events": {
     "recordType": "event",
-    "total": 341760,
-    "success": 333511,
+    "total": 586606,
+    "success": 574113,
     "failed": 0,
-    "empty": 8249,
-    "outOfBounds": 8249,
+    "empty": 12493,
+    "outOfBounds": 12493,
     "duplicates": 0,
     "whiteListSkipped": 0,
     "blackListSkipped": 0,
     "unparsable": 0,
-    "startTime": "2024-11-26T17:46:56.661Z",
-    "endTime": "2024-11-26T17:47:43.653Z",
-    "duration": 46990,
-    "durationHuman": "46.99 seconds",
-    "bytes": 180797797,
-    "bytesHuman": "180.80 MB",
-    "requests": 167,
-    "batches": 167,
+    "startTime": "2025-05-22T02:41:21.648Z",
+    "endTime": "2025-05-22T02:42:49.384Z",
+    "duration": 87734,
+    "durationHuman": "1 minute 27.73 seconds",
+    "bytes": 387616012,
+    "bytesHuman": "387.62 MB",
+    "requests": 288,
+    "batches": 288,
     "retries": 0,
     "rateLimit": 0,
     "serverErrors": 0,
     "clientErrors": 0,
-    "version": "2.6.04",
+    "version": "2.7.047",
     "workers": 10,
     "memory": {
-      "rss": 1553483161.6,
-      "heapTotal": 1225904332.8,
-      "heapUsed": 1119313175.6,
-      "external": 47032703.8,
-      "arrayBuffers": 44597518.8
+      "rss": 2860704312.888889,
+      "heapTotal": 2424649728,
+      "heapUsed": 2290505348,
+      "external": 56685170.333333336,
+      "arrayBuffers": 54022035.44444445
     },
     "memoryHuman": {
-      "rss": "1.55 GB",
-      "heapTotal": "1.23 GB",
-      "heapUsed": "1.12 GB",
-      "external": "47.03 MB",
-      "arrayBuffers": "44.60 MB"
+      "rss": "2.86 GB",
+      "heapTotal": "2.42 GB",
+      "heapUsed": "2.29 GB",
+      "external": "56.69 MB",
+      "arrayBuffers": "54.02 MB"
     },
     "wasStream": true,
-    "avgBatchLength": 1997.0718562874251,
-    "eps": 7273,
-    "rps": 3.554,
-    "mbps": 3.848,
-    "percentQuota": 24.243000000000002,
+    "avgBatchLength": 1993.4479166666667,
+    "eps": 6686,
+    "rps": 3.283,
+    "mbps": 4.418,
+    "percentQuota": 22.287000000000003,
     "errors": [],
     "responses": [
       {
@@ -848,7 +848,612 @@
       },
       {
         "code": 200,
-        "num_records_imported": 1511,
+        "num_records_imported": 2000,
+        "status": "OK"
+      },
+      {
+        "code": 200,
+        "num_records_imported": 2000,
+        "status": "OK"
+      },
+      {
+        "code": 200,
+        "num_records_imported": 2000,
+        "status": "OK"
+      },
+      {
+        "code": 200,
+        "num_records_imported": 2000,
+        "status": "OK"
+      },
+      {
+        "code": 200,
+        "num_records_imported": 2000,
+        "status": "OK"
+      },
+      {
+        "code": 200,
+        "num_records_imported": 2000,
+        "status": "OK"
+      },
+      {
+        "code": 200,
+        "num_records_imported": 2000,
+        "status": "OK"
+      },
+      {
+        "code": 200,
+        "num_records_imported": 2000,
+        "status": "OK"
+      },
+      {
+        "code": 200,
+        "num_records_imported": 2000,
+        "status": "OK"
+      },
+      {
+        "code": 200,
+        "num_records_imported": 2000,
+        "status": "OK"
+      },
+      {
+        "code": 200,
+        "num_records_imported": 2000,
+        "status": "OK"
+      },
+      {
+        "code": 200,
+        "num_records_imported": 2000,
+        "status": "OK"
+      },
+      {
+        "code": 200,
+        "num_records_imported": 2000,
+        "status": "OK"
+      },
+      {
+        "code": 200,
+        "num_records_imported": 2000,
+        "status": "OK"
+      },
+      {
+        "code": 200,
+        "num_records_imported": 2000,
+        "status": "OK"
+      },
+      {
+        "code": 200,
+        "num_records_imported": 2000,
+        "status": "OK"
+      },
+      {
+        "code": 200,
+        "num_records_imported": 2000,
+        "status": "OK"
+      },
+      {
+        "code": 200,
+        "num_records_imported": 2000,
+        "status": "OK"
+      },
+      {
+        "code": 200,
+        "num_records_imported": 2000,
+        "status": "OK"
+      },
+      {
+        "code": 200,
+        "num_records_imported": 2000,
+        "status": "OK"
+      },
+      {
+        "code": 200,
+        "num_records_imported": 2000,
+        "status": "OK"
+      },
+      {
+        "code": 200,
+        "num_records_imported": 2000,
+        "status": "OK"
+      },
+      {
+        "code": 200,
+        "num_records_imported": 2000,
+        "status": "OK"
+      },
+      {
+        "code": 200,
+        "num_records_imported": 2000,
+        "status": "OK"
+      },
+      {
+        "code": 200,
+        "num_records_imported": 2000,
+        "status": "OK"
+      },
+      {
+        "code": 200,
+        "num_records_imported": 2000,
+        "status": "OK"
+      },
+      {
+        "code": 200,
+        "num_records_imported": 2000,
+        "status": "OK"
+      },
+      {
+        "code": 200,
+        "num_records_imported": 2000,
+        "status": "OK"
+      },
+      {
+        "code": 200,
+        "num_records_imported": 2000,
+        "status": "OK"
+      },
+      {
+        "code": 200,
+        "num_records_imported": 2000,
+        "status": "OK"
+      },
+      {
+        "code": 200,
+        "num_records_imported": 2000,
+        "status": "OK"
+      },
+      {
+        "code": 200,
+        "num_records_imported": 2000,
+        "status": "OK"
+      },
+      {
+        "code": 200,
+        "num_records_imported": 2000,
+        "status": "OK"
+      },
+      {
+        "code": 200,
+        "num_records_imported": 2000,
+        "status": "OK"
+      },
+      {
+        "code": 200,
+        "num_records_imported": 2000,
+        "status": "OK"
+      },
+      {
+        "code": 200,
+        "num_records_imported": 2000,
+        "status": "OK"
+      },
+      {
+        "code": 200,
+        "num_records_imported": 2000,
+        "status": "OK"
+      },
+      {
+        "code": 200,
+        "num_records_imported": 2000,
+        "status": "OK"
+      },
+      {
+        "code": 200,
+        "num_records_imported": 2000,
+        "status": "OK"
+      },
+      {
+        "code": 200,
+        "num_records_imported": 2000,
+        "status": "OK"
+      },
+      {
+        "code": 200,
+        "num_records_imported": 2000,
+        "status": "OK"
+      },
+      {
+        "code": 200,
+        "num_records_imported": 2000,
+        "status": "OK"
+      },
+      {
+        "code": 200,
+        "num_records_imported": 2000,
+        "status": "OK"
+      },
+      {
+        "code": 200,
+        "num_records_imported": 2000,
+        "status": "OK"
+      },
+      {
+        "code": 200,
+        "num_records_imported": 2000,
+        "status": "OK"
+      },
+      {
+        "code": 200,
+        "num_records_imported": 2000,
+        "status": "OK"
+      },
+      {
+        "code": 200,
+        "num_records_imported": 2000,
+        "status": "OK"
+      },
+      {
+        "code": 200,
+        "num_records_imported": 2000,
+        "status": "OK"
+      },
+      {
+        "code": 200,
+        "num_records_imported": 2000,
+        "status": "OK"
+      },
+      {
+        "code": 200,
+        "num_records_imported": 2000,
+        "status": "OK"
+      },
+      {
+        "code": 200,
+        "num_records_imported": 2000,
+        "status": "OK"
+      },
+      {
+        "code": 200,
+        "num_records_imported": 2000,
+        "status": "OK"
+      },
+      {
+        "code": 200,
+        "num_records_imported": 2000,
+        "status": "OK"
+      },
+      {
+        "code": 200,
+        "num_records_imported": 2000,
+        "status": "OK"
+      },
+      {
+        "code": 200,
+        "num_records_imported": 2000,
+        "status": "OK"
+      },
+      {
+        "code": 200,
+        "num_records_imported": 2000,
+        "status": "OK"
+      },
+      {
+        "code": 200,
+        "num_records_imported": 2000,
+        "status": "OK"
+      },
+      {
+        "code": 200,
+        "num_records_imported": 2000,
+        "status": "OK"
+      },
+      {
+        "code": 200,
+        "num_records_imported": 2000,
+        "status": "OK"
+      },
+      {
+        "code": 200,
+        "num_records_imported": 2000,
+        "status": "OK"
+      },
+      {
+        "code": 200,
+        "num_records_imported": 2000,
+        "status": "OK"
+      },
+      {
+        "code": 200,
+        "num_records_imported": 2000,
+        "status": "OK"
+      },
+      {
+        "code": 200,
+        "num_records_imported": 2000,
+        "status": "OK"
+      },
+      {
+        "code": 200,
+        "num_records_imported": 2000,
+        "status": "OK"
+      },
+      {
+        "code": 200,
+        "num_records_imported": 2000,
+        "status": "OK"
+      },
+      {
+        "code": 200,
+        "num_records_imported": 2000,
+        "status": "OK"
+      },
+      {
+        "code": 200,
+        "num_records_imported": 2000,
+        "status": "OK"
+      },
+      {
+        "code": 200,
+        "num_records_imported": 2000,
+        "status": "OK"
+      },
+      {
+        "code": 200,
+        "num_records_imported": 2000,
+        "status": "OK"
+      },
+      {
+        "code": 200,
+        "num_records_imported": 2000,
+        "status": "OK"
+      },
+      {
+        "code": 200,
+        "num_records_imported": 2000,
+        "status": "OK"
+      },
+      {
+        "code": 200,
+        "num_records_imported": 2000,
+        "status": "OK"
+      },
+      {
+        "code": 200,
+        "num_records_imported": 2000,
+        "status": "OK"
+      },
+      {
+        "code": 200,
+        "num_records_imported": 2000,
+        "status": "OK"
+      },
+      {
+        "code": 200,
+        "num_records_imported": 2000,
+        "status": "OK"
+      },
+      {
+        "code": 200,
+        "num_records_imported": 2000,
+        "status": "OK"
+      },
+      {
+        "code": 200,
+        "num_records_imported": 2000,
+        "status": "OK"
+      },
+      {
+        "code": 200,
+        "num_records_imported": 2000,
+        "status": "OK"
+      },
+      {
+        "code": 200,
+        "num_records_imported": 2000,
+        "status": "OK"
+      },
+      {
+        "code": 200,
+        "num_records_imported": 2000,
+        "status": "OK"
+      },
+      {
+        "code": 200,
+        "num_records_imported": 2000,
+        "status": "OK"
+      },
+      {
+        "code": 200,
+        "num_records_imported": 2000,
+        "status": "OK"
+      },
+      {
+        "code": 200,
+        "num_records_imported": 2000,
+        "status": "OK"
+      },
+      {
+        "code": 200,
+        "num_records_imported": 2000,
+        "status": "OK"
+      },
+      {
+        "code": 200,
+        "num_records_imported": 2000,
+        "status": "OK"
+      },
+      {
+        "code": 200,
+        "num_records_imported": 2000,
+        "status": "OK"
+      },
+      {
+        "code": 200,
+        "num_records_imported": 2000,
+        "status": "OK"
+      },
+      {
+        "code": 200,
+        "num_records_imported": 2000,
+        "status": "OK"
+      },
+      {
+        "code": 200,
+        "num_records_imported": 2000,
+        "status": "OK"
+      },
+      {
+        "code": 200,
+        "num_records_imported": 2000,
+        "status": "OK"
+      },
+      {
+        "code": 200,
+        "num_records_imported": 2000,
+        "status": "OK"
+      },
+      {
+        "code": 200,
+        "num_records_imported": 2000,
+        "status": "OK"
+      },
+      {
+        "code": 200,
+        "num_records_imported": 2000,
+        "status": "OK"
+      },
+      {
+        "code": 200,
+        "num_records_imported": 2000,
+        "status": "OK"
+      },
+      {
+        "code": 200,
+        "num_records_imported": 2000,
+        "status": "OK"
+      },
+      {
+        "code": 200,
+        "num_records_imported": 2000,
+        "status": "OK"
+      },
+      {
+        "code": 200,
+        "num_records_imported": 2000,
+        "status": "OK"
+      },
+      {
+        "code": 200,
+        "num_records_imported": 2000,
+        "status": "OK"
+      },
+      {
+        "code": 200,
+        "num_records_imported": 2000,
+        "status": "OK"
+      },
+      {
+        "code": 200,
+        "num_records_imported": 2000,
+        "status": "OK"
+      },
+      {
+        "code": 200,
+        "num_records_imported": 2000,
+        "status": "OK"
+      },
+      {
+        "code": 200,
+        "num_records_imported": 2000,
+        "status": "OK"
+      },
+      {
+        "code": 200,
+        "num_records_imported": 2000,
+        "status": "OK"
+      },
+      {
+        "code": 200,
+        "num_records_imported": 2000,
+        "status": "OK"
+      },
+      {
+        "code": 200,
+        "num_records_imported": 2000,
+        "status": "OK"
+      },
+      {
+        "code": 200,
+        "num_records_imported": 2000,
+        "status": "OK"
+      },
+      {
+        "code": 200,
+        "num_records_imported": 2000,
+        "status": "OK"
+      },
+      {
+        "code": 200,
+        "num_records_imported": 2000,
+        "status": "OK"
+      },
+      {
+        "code": 200,
+        "num_records_imported": 2000,
+        "status": "OK"
+      },
+      {
+        "code": 200,
+        "num_records_imported": 2000,
+        "status": "OK"
+      },
+      {
+        "code": 200,
+        "num_records_imported": 2000,
+        "status": "OK"
+      },
+      {
+        "code": 200,
+        "num_records_imported": 2000,
+        "status": "OK"
+      },
+      {
+        "code": 200,
+        "num_records_imported": 2000,
+        "status": "OK"
+      },
+      {
+        "code": 200,
+        "num_records_imported": 2000,
+        "status": "OK"
+      },
+      {
+        "code": 200,
+        "num_records_imported": 2000,
+        "status": "OK"
+      },
+      {
+        "code": 200,
+        "num_records_imported": 2000,
+        "status": "OK"
+      },
+      {
+        "code": 200,
+        "num_records_imported": 2000,
+        "status": "OK"
+      },
+      {
+        "code": 200,
+        "num_records_imported": 2000,
+        "status": "OK"
+      },
+      {
+        "code": 200,
+        "num_records_imported": 2000,
+        "status": "OK"
+      },
+      {
+        "code": 200,
+        "num_records_imported": 2000,
+        "status": "OK"
+      },
+      {
+        "code": 200,
+        "num_records_imported": 113,
+        "status": "OK"
+      },
+      {
+        "code": 200,
+        "num_records_imported": 2000,
         "status": "OK"
       },
       {
@@ -888,8 +1493,8 @@
   },
   "users": {
     "recordType": "user",
-    "total": 3000,
-    "success": 3000,
+    "total": 5000,
+    "success": 5000,
     "failed": 0,
     "empty": 0,
     "outOfBounds": 0,
@@ -897,46 +1502,52 @@
     "whiteListSkipped": 0,
     "blackListSkipped": 0,
     "unparsable": 0,
-    "startTime": "2024-11-26T17:47:43.676Z",
-    "endTime": "2024-11-26T17:47:44.106Z",
-    "duration": 430,
-    "durationHuman": "0.43 seconds",
-    "bytes": 1018372,
-    "bytesHuman": "1.02 MB",
-    "requests": 2,
-    "batches": 2,
+    "startTime": "2025-05-22T02:42:49.410Z",
+    "endTime": "2025-05-22T02:42:50.000Z",
+    "duration": 589,
+    "durationHuman": "0.59 seconds",
+    "bytes": 2376914,
+    "bytesHuman": "2.38 MB",
+    "requests": 3,
+    "batches": 3,
     "retries": 0,
     "rateLimit": 0,
     "serverErrors": 0,
     "clientErrors": 0,
-    "version": "2.6.04",
+    "version": "2.7.047",
     "workers": 10,
     "memory": {
-      "rss": 1803763712,
-      "heapTotal": 1460609024,
-      "heapUsed": 1374074416,
-      "external": 49999296,
-      "arrayBuffers": 47564111
+      "rss": 3100237824,
+      "heapTotal": 2679951360,
+      "heapUsed": 2562733360,
+      "external": 33068139,
+      "arrayBuffers": 30405003
     },
     "memoryHuman": {
-      "rss": "1.80 GB",
-      "heapTotal": "1.46 GB",
-      "heapUsed": "1.37 GB",
-      "external": "50.00 MB",
-      "arrayBuffers": "47.56 MB"
+      "rss": "3.10 GB",
+      "heapTotal": "2.68 GB",
+      "heapUsed": "2.56 GB",
+      "external": "33.07 MB",
+      "arrayBuffers": "30.41 MB"
     },
     "wasStream": true,
-    "avgBatchLength": 1500,
-    "eps": 6976,
-    "rps": 4.651,
-    "mbps": 2.368,
-    "percentQuota": 23.256,
+    "avgBatchLength": 1666.6666666666667,
+    "eps": 8488,
+    "rps": 5.093,
+    "mbps": 4.036,
+    "percentQuota": 28.297,
     "errors": [],
     "responses": [
       {
         "error": null,
         "errors": {},
         "num_good_events": 1000,
+        "status": 1
+      },
+      {
+        "error": null,
+        "errors": {},
+        "num_good_events": 2000,
         "status": 1
       },
       {
@@ -953,8 +1564,8 @@
   "groups": [],
   "adSpend": {
     "recordType": "event",
-    "total": 3600,
-    "success": 3600,
+    "total": 3960,
+    "success": 3960,
     "failed": 0,
     "empty": 0,
     "outOfBounds": 0,
@@ -962,50 +1573,50 @@
     "whiteListSkipped": 0,
     "blackListSkipped": 0,
     "unparsable": 0,
-    "startTime": "2024-11-26T17:47:44.126Z",
-    "endTime": "2024-11-26T17:47:44.682Z",
-    "duration": 555,
-    "durationHuman": "0.56 seconds",
-    "bytes": 1512704,
-    "bytesHuman": "1.51 MB",
+    "startTime": "2025-05-22T02:42:50.021Z",
+    "endTime": "2025-05-22T02:42:50.598Z",
+    "duration": 577,
+    "durationHuman": "0.58 seconds",
+    "bytes": 1663533,
+    "bytesHuman": "1.66 MB",
     "requests": 2,
     "batches": 2,
     "retries": 0,
     "rateLimit": 0,
     "serverErrors": 0,
     "clientErrors": 0,
-    "version": "2.6.04",
+    "version": "2.7.047",
     "workers": 10,
     "memory": {
-      "rss": 1813831680,
-      "heapTotal": 1470001152,
-      "heapUsed": 1381851088,
-      "external": 51734705,
-      "arrayBuffers": 49299520
+      "rss": 3110514688,
+      "heapTotal": 2690019328,
+      "heapUsed": 2564137664,
+      "external": 34980660,
+      "arrayBuffers": 32317524
     },
     "memoryHuman": {
-      "rss": "1.81 GB",
-      "heapTotal": "1.47 GB",
-      "heapUsed": "1.38 GB",
-      "external": "51.73 MB",
-      "arrayBuffers": "49.30 MB"
+      "rss": "3.11 GB",
+      "heapTotal": "2.69 GB",
+      "heapUsed": "2.56 GB",
+      "external": "34.98 MB",
+      "arrayBuffers": "32.32 MB"
     },
     "wasStream": true,
-    "avgBatchLength": 1800,
-    "eps": 6486,
-    "rps": 3.604,
-    "mbps": 2.726,
-    "percentQuota": 21.622,
+    "avgBatchLength": 1980,
+    "eps": 6863,
+    "rps": 3.466,
+    "mbps": 2.883,
+    "percentQuota": 22.877,
     "errors": [],
     "responses": [
       {
         "code": 200,
-        "num_records_imported": 1600,
+        "num_records_imported": 2000,
         "status": "OK"
       },
       {
         "code": 200,
-        "num_records_imported": 2000,
+        "num_records_imported": 1960,
         "status": "OK"
       }
     ],
@@ -1024,8 +1635,8 @@
     "whiteListSkipped": 0,
     "blackListSkipped": 0,
     "unparsable": 0,
-    "startTime": "2024-11-26T17:47:44.682Z",
-    "endTime": "2024-11-26T17:47:44.684Z",
+    "startTime": "2025-05-22T02:42:50.599Z",
+    "endTime": "2025-05-22T02:42:50.600Z",
     "duration": 1,
     "durationHuman": "",
     "bytes": 0,
@@ -1036,21 +1647,21 @@
     "rateLimit": 0,
     "serverErrors": 0,
     "clientErrors": 0,
-    "version": "2.6.04",
+    "version": "2.7.047",
     "workers": 10,
     "memory": {
-      "rss": 1813839872,
-      "heapTotal": 1470001152,
-      "heapUsed": 1381968240,
-      "external": 51734705,
-      "arrayBuffers": 49299520
+      "rss": 3110526976,
+      "heapTotal": 2690019328,
+      "heapUsed": 2564257432,
+      "external": 34980660,
+      "arrayBuffers": 32317524
     },
     "memoryHuman": {
-      "rss": "1.81 GB",
-      "heapTotal": "1.47 GB",
-      "heapUsed": "1.38 GB",
-      "external": "51.73 MB",
-      "arrayBuffers": "49.30 MB"
+      "rss": "3.11 GB",
+      "heapTotal": "2.69 GB",
+      "heapUsed": "2.56 GB",
+      "external": "34.98 MB",
+      "arrayBuffers": "32.32 MB"
     },
     "wasStream": true,
     "avgBatchLength": null,

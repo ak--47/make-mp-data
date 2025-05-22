@@ -26,10 +26,10 @@ declare namespace main {
     concurrency?: number;
     batchSize?: number;
 
-	serviceAccount?: string;
-	serviceSecret?: string;
-	projectId?: string;
-	
+    serviceAccount?: string;
+    serviceSecret?: string;
+    projectId?: string;
+
     // ids
     simulationName?: string;
     name?: string;
@@ -50,7 +50,7 @@ declare namespace main {
     hasSessionIds?: boolean;
     alsoInferFunnels?: boolean;
     makeChart?: boolean | string;
-	singleCountry?: string;
+    singleCountry?: string;
 
     //models
     events?: EventConfig[]; //| string[]; //can also be a array of strings
@@ -69,8 +69,8 @@ declare namespace main {
     //allow anything to be on the config
     [key: string]: any;
 
-	//probabilities
-	percentUsersBornInDataset?: number;
+    //probabilities
+    percentUsersBornInDataset?: number;
   }
 
   export type complexSCDProp = {
@@ -169,6 +169,7 @@ declare namespace main {
     properties?: Record<string, ValueValid>;
     isFirstEvent?: boolean;
     isChurnEvent?: boolean;
+    isSessionStartEvent?: boolean;
     relativeTimeMs?: number;
   }
 

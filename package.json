@@ -67,5 +67,12 @@
 	},
 	"jest": {
 		"preset": "./tests/jest.config.js"
+	},
+	"nodemonConfig": {
+		"ignore": [
+			"data/",
+			"tmp/"
+			
+		]
 	}
 }

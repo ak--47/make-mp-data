@@ -346,7 +346,7 @@ async function main(config) {
 	jobTimer.stop(false);
 	const { start, end, delta, human } = jobTimer.report(false);
 
-	if (process.env.NODE_ENV === 'dev') debugger;
+	// if (process.env.NODE_ENV === 'dev')debugger;
 	return {
 		...STORAGE,
 		importResults,
@@ -700,6 +700,8 @@ async function makeFunnel(funnel, user, firstEventTime, profile, scd, config) {
 	if (!user) throw new Error("no user");
 	if (!profile) profile = {};
 	if (!scd) scd = {};
+	const sessionStartEvents = config?.events?.filter(a => a.isSessionStartEvent) || [];
+
 
 	const chance = u.getChance();
 	const { hook = async (a) => a } = config;
@@ -839,6 +841,15 @@ async function makeFunnel(funnel, user, firstEventTime, profile, scd, config) {
 
 	const earliestTime = firstEventTime || dayjs(created).unix();
 	let funnelStartTime;
+
+
+	if (sessionStartEvents.length) {
+		const sessionStartEvent = chance.pickone(sessionStartEvents);
+		sessionStartEvent.relativeTimeMs = -15000;
+		funnelActualEventsWithOffset.push(sessionStartEvent);
+	}
+
+
 	let finalEvents = await Promise.all(funnelActualEventsWithOffset
 		.map(async (event, index) => {
 			const newEvent = await makeEvent(distinct_id, earliestTime, event, anonymousIds, sessionIds, {}, groupKeys);
@@ -857,7 +868,6 @@ async function makeFunnel(funnel, user, firstEventTime, profile, scd, config) {
 				debugger;
 			}
 		}));
-
 
 	await hook(finalEvents, "funnel-post", { user, profile, scd, funnel, config });
 	return [finalEvents, doesUserConvert];
