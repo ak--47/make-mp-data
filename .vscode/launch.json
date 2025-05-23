@@ -13,9 +13,8 @@
 		{
             "type": "node",
             "request": "launch",
-            "name": "run dungeon (debug)",
-            "runtimeExecutable": "nodemon",
-            "runtimeArgs": ["--inspect", "--ignore", "./data"],
+            "name": "run dungeon",
+            "runtimeExecutable": "nodemon",            
             "program": "${workspaceFolder}/index.js",
 			"args": ["${file}"],
             "restart": true,
@@ -23,20 +22,10 @@
             "internalConsoleOptions": "neverOpen",
             "skipFiles": ["<node_internals>/**"],
 			"preLaunchTask": "npm: prune",
-			
-        },
-		{
-            "type": "node",
-            "request": "launch",
-            "name": "run dungeon (one shot)",
-            "runtimeExecutable": "node",            
-            "program": "${workspaceFolder}/index.js",
-			"args": ["${file}"],
-            "restart": true,
-            "console": "integratedTerminal",
-            "internalConsoleOptions": "neverOpen",
-            "skipFiles": ["<node_internals>/**"],
-			"preLaunchTask": "npm: prune",
+			"runtimeArgs": [
+				"--ignore",
+				"./data"
+			]
 			
         },
 		{

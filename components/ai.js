@@ -10,7 +10,7 @@ if (!API_KEY) throw new Error("Please provide a Gemini API key");
 
 async function generateSchema(userInput) {
 	const gemini = new GoogleGenerativeAI(API_KEY);
-	const model = gemini.getGenerativeModel({ model: "gemini-1.5-flash" });
+	const model = gemini.getGenerativeModel({ model: "gemini-2.0-flash" });
 	const PROOMPTY = await u.load("./components/prompt.txt");
 	const prompt = `
 Given the following information about a website or app:
@@ -83,35 +83,7 @@ function validator(schema) {
 
 
 if (require.main === module) {
-	generateSchema(`https://apps.apple.com/us/app/call-guardian-for-us-cellular/id1228680023  call guardian is an app for blocking spam calls made by TNS 
-		
-this is the list of events we want: 
-
-Onboarding Started
-Onboarding Completed (Basic)
-Onboarding Completed (Premium)
-Page Views (all "screens" within the app")
-Enable/Disable High Risk Blocking
-Enable/Disable Medium Risk Blocking
-Enable/Disable Neighborhood Spoof Blocking
-Call Blocked (Spam)
-Call Blocked (Custom List)
-Branded Call w/o Logo Received
-Branded Call w/ Logo Received
-Branded Call Answered
-Branded Call Blocked
-Enable/Disable Text Spam
-Reverse Number Lookup
-Report as Spam
-Report as Not Spam
-Custom Block List Number Add
-Custom Block List Number Remove
-Call Arrives Before Push
-Error Scenarios
-User Can't Authenticate
-Xfinity Services Can't Connect
-Verizon Services Can't Connect
-Deep Links into app`)
+	generateSchema(`metube, a video streaming company like youutube, where users watch videos, search, like, comment, subscribe, share, create playlists, etc...`)
 		.then((result) => {
 			if (NODE_ENV === "dev") debugger;
 		})

@@ -17,4 +17,5 @@ cloud/*
 !cloud/package.json
 env.yml
 dungeons/*.js
+!dungeons/media.js
 

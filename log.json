@@ -1,23 +1,23 @@
 {
   "events": {
     "recordType": "event",
-    "total": 586606,
-    "success": 574113,
+    "total": 561660,
+    "success": 469001,
     "failed": 0,
-    "empty": 12493,
-    "outOfBounds": 12493,
+    "empty": 92659,
+    "outOfBounds": 36279,
     "duplicates": 0,
     "whiteListSkipped": 0,
     "blackListSkipped": 0,
     "unparsable": 0,
-    "startTime": "2025-05-22T02:41:21.648Z",
-    "endTime": "2025-05-22T02:42:49.384Z",
-    "duration": 87734,
-    "durationHuman": "1 minute 27.73 seconds",
-    "bytes": 387616012,
-    "bytesHuman": "387.62 MB",
-    "requests": 288,
-    "batches": 288,
+    "startTime": "2025-05-23T04:07:59.688Z",
+    "endTime": "2025-05-23T04:09:03.304Z",
+    "duration": 63616,
+    "durationHuman": "1 minute 3.62 seconds",
+    "bytes": 217740627,
+    "bytesHuman": "217.74 MB",
+    "requests": 235,
+    "batches": 235,
     "retries": 0,
     "rateLimit": 0,
     "serverErrors": 0,
@@ -25,25 +25,25 @@
     "version": "2.7.047",
     "workers": 10,
     "memory": {
-      "rss": 2860704312.888889,
-      "heapTotal": 2424649728,
-      "heapUsed": 2290505348,
-      "external": 56685170.333333336,
-      "arrayBuffers": 54022035.44444445
+      "rss": 1792466100.7058823,
+      "heapTotal": 1409362763.2941177,
+      "heapUsed": 1272990617.6470587,
+      "external": 73928690.5,
+      "arrayBuffers": 71244434.6764706
     },
     "memoryHuman": {
-      "rss": "2.86 GB",
-      "heapTotal": "2.42 GB",
-      "heapUsed": "2.29 GB",
-      "external": "56.69 MB",
-      "arrayBuffers": "54.02 MB"
+      "rss": "1.79 GB",
+      "heapTotal": "1.41 GB",
+      "heapUsed": "1.27 GB",
+      "external": "73.93 MB",
+      "arrayBuffers": "71.24 MB"
     },
     "wasStream": true,
-    "avgBatchLength": 1993.4479166666667,
-    "eps": 6686,
-    "rps": 3.283,
-    "mbps": 4.418,
-    "percentQuota": 22.287000000000003,
+    "avgBatchLength": 1995.7489361702128,
+    "eps": 8828,
+    "rps": 3.694,
+    "mbps": 3.423,
+    "percentQuota": 29.43,
     "errors": [],
     "responses": [
       {
@@ -1203,272 +1203,7 @@
       },
       {
         "code": 200,
-        "num_records_imported": 2000,
-        "status": "OK"
-      },
-      {
-        "code": 200,
-        "num_records_imported": 2000,
-        "status": "OK"
-      },
-      {
-        "code": 200,
-        "num_records_imported": 2000,
-        "status": "OK"
-      },
-      {
-        "code": 200,
-        "num_records_imported": 2000,
-        "status": "OK"
-      },
-      {
-        "code": 200,
-        "num_records_imported": 2000,
-        "status": "OK"
-      },
-      {
-        "code": 200,
-        "num_records_imported": 2000,
-        "status": "OK"
-      },
-      {
-        "code": 200,
-        "num_records_imported": 2000,
-        "status": "OK"
-      },
-      {
-        "code": 200,
-        "num_records_imported": 2000,
-        "status": "OK"
-      },
-      {
-        "code": 200,
-        "num_records_imported": 2000,
-        "status": "OK"
-      },
-      {
-        "code": 200,
-        "num_records_imported": 2000,
-        "status": "OK"
-      },
-      {
-        "code": 200,
-        "num_records_imported": 2000,
-        "status": "OK"
-      },
-      {
-        "code": 200,
-        "num_records_imported": 2000,
-        "status": "OK"
-      },
-      {
-        "code": 200,
-        "num_records_imported": 2000,
-        "status": "OK"
-      },
-      {
-        "code": 200,
-        "num_records_imported": 2000,
-        "status": "OK"
-      },
-      {
-        "code": 200,
-        "num_records_imported": 2000,
-        "status": "OK"
-      },
-      {
-        "code": 200,
-        "num_records_imported": 2000,
-        "status": "OK"
-      },
-      {
-        "code": 200,
-        "num_records_imported": 2000,
-        "status": "OK"
-      },
-      {
-        "code": 200,
-        "num_records_imported": 2000,
-        "status": "OK"
-      },
-      {
-        "code": 200,
-        "num_records_imported": 2000,
-        "status": "OK"
-      },
-      {
-        "code": 200,
-        "num_records_imported": 2000,
-        "status": "OK"
-      },
-      {
-        "code": 200,
-        "num_records_imported": 2000,
-        "status": "OK"
-      },
-      {
-        "code": 200,
-        "num_records_imported": 2000,
-        "status": "OK"
-      },
-      {
-        "code": 200,
-        "num_records_imported": 2000,
-        "status": "OK"
-      },
-      {
-        "code": 200,
-        "num_records_imported": 2000,
-        "status": "OK"
-      },
-      {
-        "code": 200,
-        "num_records_imported": 2000,
-        "status": "OK"
-      },
-      {
-        "code": 200,
-        "num_records_imported": 2000,
-        "status": "OK"
-      },
-      {
-        "code": 200,
-        "num_records_imported": 2000,
-        "status": "OK"
-      },
-      {
-        "code": 200,
-        "num_records_imported": 2000,
-        "status": "OK"
-      },
-      {
-        "code": 200,
-        "num_records_imported": 2000,
-        "status": "OK"
-      },
-      {
-        "code": 200,
-        "num_records_imported": 2000,
-        "status": "OK"
-      },
-      {
-        "code": 200,
-        "num_records_imported": 2000,
-        "status": "OK"
-      },
-      {
-        "code": 200,
-        "num_records_imported": 2000,
-        "status": "OK"
-      },
-      {
-        "code": 200,
-        "num_records_imported": 2000,
-        "status": "OK"
-      },
-      {
-        "code": 200,
-        "num_records_imported": 2000,
-        "status": "OK"
-      },
-      {
-        "code": 200,
-        "num_records_imported": 2000,
-        "status": "OK"
-      },
-      {
-        "code": 200,
-        "num_records_imported": 2000,
-        "status": "OK"
-      },
-      {
-        "code": 200,
-        "num_records_imported": 2000,
-        "status": "OK"
-      },
-      {
-        "code": 200,
-        "num_records_imported": 2000,
-        "status": "OK"
-      },
-      {
-        "code": 200,
-        "num_records_imported": 2000,
-        "status": "OK"
-      },
-      {
-        "code": 200,
-        "num_records_imported": 2000,
-        "status": "OK"
-      },
-      {
-        "code": 200,
-        "num_records_imported": 2000,
-        "status": "OK"
-      },
-      {
-        "code": 200,
-        "num_records_imported": 2000,
-        "status": "OK"
-      },
-      {
-        "code": 200,
-        "num_records_imported": 2000,
-        "status": "OK"
-      },
-      {
-        "code": 200,
-        "num_records_imported": 2000,
-        "status": "OK"
-      },
-      {
-        "code": 200,
-        "num_records_imported": 2000,
-        "status": "OK"
-      },
-      {
-        "code": 200,
-        "num_records_imported": 2000,
-        "status": "OK"
-      },
-      {
-        "code": 200,
-        "num_records_imported": 2000,
-        "status": "OK"
-      },
-      {
-        "code": 200,
-        "num_records_imported": 2000,
-        "status": "OK"
-      },
-      {
-        "code": 200,
-        "num_records_imported": 2000,
-        "status": "OK"
-      },
-      {
-        "code": 200,
-        "num_records_imported": 113,
-        "status": "OK"
-      },
-      {
-        "code": 200,
-        "num_records_imported": 2000,
-        "status": "OK"
-      },
-      {
-        "code": 200,
-        "num_records_imported": 2000,
-        "status": "OK"
-      },
-      {
-        "code": 200,
-        "num_records_imported": 2000,
-        "status": "OK"
-      },
-      {
-        "code": 200,
-        "num_records_imported": 2000,
+        "num_records_imported": 1001,
         "status": "OK"
       },
       {
@@ -1502,12 +1237,12 @@
     "whiteListSkipped": 0,
     "blackListSkipped": 0,
     "unparsable": 0,
-    "startTime": "2025-05-22T02:42:49.410Z",
-    "endTime": "2025-05-22T02:42:50.000Z",
-    "duration": 589,
-    "durationHuman": "0.59 seconds",
-    "bytes": 2376914,
-    "bytesHuman": "2.38 MB",
+    "startTime": "2025-05-23T04:09:03.324Z",
+    "endTime": "2025-05-23T04:09:03.850Z",
+    "duration": 526,
+    "durationHuman": "0.53 seconds",
+    "bytes": 1529469,
+    "bytesHuman": "1.53 MB",
     "requests": 3,
     "batches": 3,
     "retries": 0,
@@ -1517,25 +1252,25 @@
     "version": "2.7.047",
     "workers": 10,
     "memory": {
-      "rss": 3100237824,
-      "heapTotal": 2679951360,
-      "heapUsed": 2562733360,
-      "external": 33068139,
-      "arrayBuffers": 30405003
+      "rss": 2129084416,
+      "heapTotal": 1731129344,
+      "heapUsed": 1589583512,
+      "external": 60487740,
+      "arrayBuffers": 57803483
     },
     "memoryHuman": {
-      "rss": "3.10 GB",
-      "heapTotal": "2.68 GB",
-      "heapUsed": "2.56 GB",
-      "external": "33.07 MB",
-      "arrayBuffers": "30.41 MB"
+      "rss": "2.13 GB",
+      "heapTotal": "1.73 GB",
+      "heapUsed": "1.59 GB",
+      "external": "60.49 MB",
+      "arrayBuffers": "57.80 MB"
     },
     "wasStream": true,
     "avgBatchLength": 1666.6666666666667,
-    "eps": 8488,
-    "rps": 5.093,
-    "mbps": 4.036,
-    "percentQuota": 28.297,
+    "eps": 9505,
+    "rps": 5.703,
+    "mbps": 2.908,
+    "percentQuota": 31.685999999999996,
     "errors": [],
     "responses": [
       {
@@ -1564,8 +1299,8 @@
   "groups": [],
   "adSpend": {
     "recordType": "event",
-    "total": 3960,
-    "success": 3960,
+    "total": 0,
+    "success": 0,
     "failed": 0,
     "empty": 0,
     "outOfBounds": 0,
@@ -1573,14 +1308,14 @@
     "whiteListSkipped": 0,
     "blackListSkipped": 0,
     "unparsable": 0,
-    "startTime": "2025-05-22T02:42:50.021Z",
-    "endTime": "2025-05-22T02:42:50.598Z",
-    "duration": 577,
-    "durationHuman": "0.58 seconds",
-    "bytes": 1663533,
-    "bytesHuman": "1.66 MB",
-    "requests": 2,
-    "batches": 2,
+    "startTime": "2025-05-23T04:09:03.851Z",
+    "endTime": "2025-05-23T04:09:03.853Z",
+    "duration": 1,
+    "durationHuman": "",
+    "bytes": 0,
+    "bytesHuman": "0 B",
+    "requests": 0,
+    "batches": 0,
     "retries": 0,
     "rateLimit": 0,
     "serverErrors": 0,
@@ -1588,38 +1323,27 @@
     "version": "2.7.047",
     "workers": 10,
     "memory": {
-      "rss": 3110514688,
-      "heapTotal": 2690019328,
-      "heapUsed": 2564137664,
-      "external": 34980660,
-      "arrayBuffers": 32317524
+      "rss": 2129092608,
+      "heapTotal": 1731129344,
+      "heapUsed": 1589698584,
+      "external": 60487740,
+      "arrayBuffers": 57803483
     },
     "memoryHuman": {
-      "rss": "3.11 GB",
-      "heapTotal": "2.69 GB",
-      "heapUsed": "2.56 GB",
-      "external": "34.98 MB",
-      "arrayBuffers": "32.32 MB"
+      "rss": "2.13 GB",
+      "heapTotal": "1.73 GB",
+      "heapUsed": "1.59 GB",
+      "external": "60.49 MB",
+      "arrayBuffers": "57.80 MB"
     },
     "wasStream": true,
-    "avgBatchLength": 1980,
-    "eps": 6863,
-    "rps": 3.466,
-    "mbps": 2.883,
-    "percentQuota": 22.877,
+    "avgBatchLength": null,
+    "eps": 0,
+    "rps": 0,
+    "mbps": 0,
+    "percentQuota": 0,
     "errors": [],
-    "responses": [
-      {
-        "code": 200,
-        "num_records_imported": 2000,
-        "status": "OK"
-      },
-      {
-        "code": 200,
-        "num_records_imported": 1960,
-        "status": "OK"
-      }
-    ],
+    "responses": [],
     "dryRun": [],
     "vendor": "",
     "vendorOpts": {}
@@ -1635,8 +1359,8 @@
     "whiteListSkipped": 0,
     "blackListSkipped": 0,
     "unparsable": 0,
-    "startTime": "2025-05-22T02:42:50.599Z",
-    "endTime": "2025-05-22T02:42:50.600Z",
+    "startTime": "2025-05-23T04:09:03.853Z",
+    "endTime": "2025-05-23T04:09:03.854Z",
     "duration": 1,
     "durationHuman": "",
     "bytes": 0,
@@ -1650,18 +1374,18 @@
     "version": "2.7.047",
     "workers": 10,
     "memory": {
-      "rss": 3110526976,
-      "heapTotal": 2690019328,
-      "heapUsed": 2564257432,
-      "external": 34980660,
-      "arrayBuffers": 32317524
+      "rss": 2129104896,
+      "heapTotal": 1731129344,
+      "heapUsed": 1589814552,
+      "external": 60487740,
+      "arrayBuffers": 57803483
     },
     "memoryHuman": {
-      "rss": "3.11 GB",
-      "heapTotal": "2.69 GB",
-      "heapUsed": "2.56 GB",
-      "external": "34.98 MB",
-      "arrayBuffers": "32.32 MB"
+      "rss": "2.13 GB",
+      "heapTotal": "1.73 GB",
+      "heapUsed": "1.59 GB",
+      "external": "60.49 MB",
+      "arrayBuffers": "57.80 MB"
     },
     "wasStream": true,
     "avgBatchLength": null,
