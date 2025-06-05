@@ -259,7 +259,7 @@ async function main(config) {
 				const numIntervals = Math.floor(deltaDays / frequency);
 				const eventsForThisGroup = [];
 				for (let i = 0; i < numIntervals; i++) {
-					const event = await makeEvent(random_user_id, null, normalEvent, [], [], {}, [], false, true);
+					const event = await makeEvent(random_user_id, dayjs().unix(), normalEvent, [], [], {}, [], false, true);
 					if (!attribute_to_user) delete event.user_id;
 					event[group_key] = distinct_id;
 					event.time = dayjs(created).add(i * frequency, "day").toISOString();
@@ -525,7 +525,9 @@ async function makeEvent(distinct_id, earliestTime, chosenEvent, anonymousIds, s
 	if (!distinct_id) throw new Error("no distinct_id");
 	if (!anonymousIds) anonymousIds = [];
 	if (!sessionIds) sessionIds = [];
-	if (!earliestTime) throw new Error("no earliestTime");
+	if (!earliestTime) {
+		throw new Error("no earliestTime");
+	} 
 	if (!chosenEvent) throw new Error("no chosenEvent");
 	if (!superProps) superProps = {};
 	if (!groupKeys) groupKeys = [];

@@ -192,6 +192,9 @@ function choose(value) {
 			value = value();
 		}
 
+		if (Array.isArray(value) && value.length === 0) {
+			return ""; // Return empty string if the array is empty
+		}
 
 		// [[],[],[]] should pick one
 		if (Array.isArray(value) && Array.isArray(value[0])) {
@@ -947,7 +950,15 @@ function TimeSoup(earliestTime, latestTime, peaks = 5, deviation = 2, mean = 0) 
 	if (!earliestTime) earliestTime = global.FIXED_BEGIN ? global.FIXED_BEGIN : dayjs().subtract(30, 'd').unix(); // 30 days ago
 	if (!latestTime) latestTime = global.FIXED_NOW ? global.FIXED_NOW : dayjs().unix();
 	const chance = getChance();
-	const totalRange = latestTime - earliestTime;
+	let totalRange = latestTime - earliestTime;
+	if (totalRange <= 0 || earliestTime > latestTime) {
+		//just flip earliest and latest
+		let tempEarly = latestTime
+		let tempLate = earliestTime;
+		earliestTime = tempEarly;
+		latestTime = tempLate;
+		totalRange = latestTime - earliestTime;
+	}
 	const chunkSize = totalRange / peaks;
 
 	// Select a random chunk based on the number of peaks
@@ -966,6 +977,7 @@ function TimeSoup(earliestTime, latestTime, peaks = 5, deviation = 2, mean = 0) 
 		offset = chance.normal({ mean: mean, dev: chunkSize / deviation });
 		isValidTime = validTime(chunkMid + offset, earliestTime, latestTime);
 		if (iterations > 25000) {
+			if (process.env?.NODE_ENV === 'dev') debugger;
 			throw `${iterations} iterations... exceeded`;
 		}
 	} while (chunkMid + offset < chunkStart || chunkMid + offset > chunkEnd);

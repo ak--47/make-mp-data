@@ -7,8 +7,8 @@ require("dotenv").config();
 const u = require("../components/utils");
 const v = require("ak-tools");
 const chance = u.initChance(SEED);
-const num_users = 5000;
-const days = 120;
+const num_users = 10_000;
+const days = 125;
 
 /** @typedef  {import("../types").Dungeon} Config */
 
@@ -25,8 +25,8 @@ const channelIds = genIds(100);
 
 /** @type {Config} */
 const config = {
-	token: "",
-	seed: `LFG! ${Math.random().toString()}`, //,
+	token: "32fd7149e2ac0cc030bda4c4b839b813",
+	seed: `LFG!`, //,
 	numDays: days,
 	numEvents: num_users * 69,
 	numUsers: num_users,
