@@ -1246,15 +1246,16 @@ const locations = [
 
 
 
-module.exports = {
+export {
 	campaigns,
-	devices: {
-		browsers,
-		androidDevices,
-		iosDevices,
-		desktopDevices
-	},
 	locations,
 	domainSuffix,
 	domainPrefix
+};
+
+export const devices = {
+	browsers,
+	androidDevices,
+	iosDevices,
+	desktopDevices
 };

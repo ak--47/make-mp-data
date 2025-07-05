@@ -354,8 +354,8 @@ declare namespace main {
  * Mixpanel Data Generator
  * model events, users, groups, and lookup tables (and SCD props!)
  * @example
- * const gen = require('make-mp-data')
- * const dta = gen({writeToDisk: false})
+ * import datagenerator from 'make-mp-data';
+ * const data = await datagenerator({...opts});
  */
 declare function main(config: main.Dungeon): Promise<main.Result>;
 

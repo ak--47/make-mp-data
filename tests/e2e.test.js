@@ -3,20 +3,20 @@
 /* eslint-disable no-undef */
 /* eslint-disable no-debugger */
 /* eslint-disable no-unused-vars */
-const generate = require('../index.js');
-require('dotenv').config();
-const { execSync } = require("child_process");
-const u = require('ak-tools');
-const Papa = require('papaparse');
+import generate from '../index.js';
+import 'dotenv/config';
+import { execSync } from "child_process";
+import * as u from 'ak-tools';
+import Papa from 'papaparse';
 
-const simple = require('../dungeons/simple.js');
-const complex = require('../dungeons/complex.js');
-const anon = require('../dungeons/anon.js');
-const funnels = require('../dungeons/funnels.js');
-const foobar = require('../dungeons/foobar.js');
-const mirror = require('../dungeons/mirror.js');
-const adspend = require('../dungeons/adspend.js');
-const scd = require('../dungeons/scd.js');
+import simple from '../dungeons/simple.js';
+import complex from '../dungeons/complex.js';
+import anon from '../dungeons/anon.js';
+import funnels from '../dungeons/funnels.js';
+import foobar from '../dungeons/foobar.js';
+import mirror from '../dungeons/mirror.js';
+import adspend from '../dungeons/adspend.js';
+import scd from '../dungeons/scd.js';
 
 const timeout = 600000;
 const testToken = process.env.TEST_TOKEN || "hello token!";

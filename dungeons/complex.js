@@ -6,10 +6,10 @@
  */
 
 
-const Chance = require('chance');
+import Chance from 'chance';
 const chance = new Chance();
-const { weighNumRange, date, integer } = require('../components/utils.js');
-const u = require('ak-tools');
+import { weighNumRange, date, integer } from '../components/utils.js';
+import * as u from 'ak-tools';
 
 /** @type {import('../types.js').Dungeon} */
 const config = {
@@ -393,4 +393,4 @@ function deviceAttributes(isMobile = false) {
 
 
 
-module.exports = config;
+export default config;

@@ -1,5 +1,6 @@
-const yargs = require('yargs');
-const { version } = require('../package.json');
+import yargs from 'yargs';
+import fs from 'fs';
+const { version } = JSON.parse(fs.readFileSync('../package.json', 'utf8'));
 
 const hero = String.raw`
                         
@@ -218,4 +219,4 @@ function boolCoerce(value, foo) {
 }
 
 
-module.exports = cliParams;
+export default cliParams;

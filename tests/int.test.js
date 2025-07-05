@@ -1,10 +1,10 @@
-const dayjs = require("dayjs");
-const utc = require("dayjs/plugin/utc");
-const fs = require('fs');
-const u = require('ak-tools');
+import dayjs from "dayjs";
+import utc from "dayjs/plugin/utc.js";
+import fs from 'fs';
+import * as u from 'ak-tools';
 dayjs.extend(utc);
-require('dotenv').config();
-const path = require('path');
+import 'dotenv/config';
+import path from 'path';
 
 /** @typedef {import('../types.js').Dungeon} Config */
 /** @typedef {import('../types.js').EventConfig} EventConfig */
@@ -18,12 +18,12 @@ const path = require('path');
 /** @typedef {import('../types.js').SCDSchema} SCDSchema */
 /** @typedef {import('../types.js').Storage} Storage */
 
-const MAIN = require('../index.js');
+import MAIN from '../index.js';
 const { generators, orchestrators, meta } = MAIN;
 const { makeAdSpend, makeEvent, makeFunnel, makeProfile, makeSCD, makeMirror } = generators;
 const { sendToMixpanel, userLoop, validateDungeonConfig } = orchestrators;
 const { hookArray, inferFunnels } = meta;
-const { validEvent } = require('../components/utils.js');
+import { validEvent } from '../components/utils.js';
 
 
 // Mock the global variables
@@ -31,7 +31,7 @@ let CAMPAIGNS;
 let DEFAULTS;
 let STORAGE;
 let CONFIG;
-const { campaigns, devices, locations } = require('../components/defaults.js');
+import { campaigns, devices, locations } from '../components/defaults.js';
 
 beforeEach(async () => {
 	// Reset global variables before each test
@@ -155,7 +155,7 @@ describe('generators', () => {
 
 	test('makeEvent: opt params', async () => {
 		const eventConfig = { event: "test_event", properties: {} };
-		const result = await makeEvent("known_id",dayjs.unix(global.FIXED_NOW).subtract(30, 'd').unix(), eventConfig);
+		const result = await makeEvent("known_id", dayjs.unix(global.FIXED_NOW).subtract(30, 'd').unix(), eventConfig);
 		expect(result).toHaveProperty('event', 'test_event');
 		expect(result).toHaveProperty('user_id', 'known_id');
 		expect(result).toHaveProperty('source', 'dm4');
@@ -171,7 +171,7 @@ describe('generators', () => {
 				prop2: ["value3", "value4"]
 			},
 		};
-		const result = await makeEvent("known_id",dayjs.unix(global.FIXED_NOW).subtract(30, 'd').unix(), eventConfig, ["anon_id"], ["session_id"]);
+		const result = await makeEvent("known_id", dayjs.unix(global.FIXED_NOW).subtract(30, 'd').unix(), eventConfig, ["anon_id"], ["session_id"]);
 		expect(result.prop1 === "value1" || result.prop1 === "value2").toBeTruthy();
 		expect(result.prop2 === "value3" || result.prop2 === "value4").toBeTruthy();
 	});
@@ -190,7 +190,7 @@ describe('generators', () => {
 		/** @type {Record<string, SCDSchema[]>} */
 		const scd = { "scd_example": [{ distinct_id: "user1", insertTime: dayjs().toISOString(), startTime: dayjs().toISOString() }] };
 
-		const [result, converted] = await makeFunnel(funnelConfig, user,dayjs.unix(global.FIXED_NOW).subtract(30, 'd').unix(), profile, scd, {});
+		const [result, converted] = await makeFunnel(funnelConfig, user, dayjs.unix(global.FIXED_NOW).subtract(30, 'd').unix(), profile, scd, {});
 		expect(result.length).toBe(2);
 		expect(converted).toBe(true);
 		expect(result.every(e => validEvent(e))).toBeTruthy();
@@ -547,10 +547,13 @@ describe('orchestrators', () => {
 			scdProps: { prop1: ["value1", "value2"] },
 			funnels: [],
 			events: [{ event: "event1" }, { event: "event2" }]
+			
 		};
-		await userLoop(config, STORAGE);
+		const validatedConfig = validateDungeonConfig(config);
+		await userLoop(validatedConfig, STORAGE);
 		expect(STORAGE.userProfilesData.length).toBe(3);
-		expect(STORAGE.eventData.length).toBeGreaterThan(0);
+		expect(STORAGE.eventData.length).toBeGreaterThan(5);
+		expect(STORAGE.scdTableData[0].length).toBeGreaterThan(5);
 		expect(STORAGE.eventData.every(e => validEvent(e))).toBeTruthy();
 	});
 

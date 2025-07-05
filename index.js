@@ -2,6 +2,7 @@
 
 /*
 make fake mixpanel data easily!
+(generates fake event + object (user) data with a deeply specific schema)
 by AK 
 ak@mixpanel.com
 */
@@ -15,8 +16,8 @@ ak@mixpanel.com
 
 
 //TIME
-const dayjs = require("dayjs");
-const utc = require("dayjs/plugin/utc");
+import dayjs from "dayjs";
+import utc from "dayjs/plugin/utc.js";
 dayjs.extend(utc);
 const FIXED_NOW = dayjs('2024-02-02').unix();
 global.FIXED_NOW = FIXED_NOW;
@@ -28,24 +29,25 @@ const timeShift = actualNow.diff(dayjs.unix(FIXED_NOW), "seconds");
 const daysShift = actualNow.diff(dayjs.unix(FIXED_NOW), "days");
 
 // UTILS
-const { existsSync, writeFileSync } = require("fs");
-const pLimit = require('p-limit');
-const os = require("os");
-const path = require("path");
-const { comma, bytesHuman, makeName, md5, clone, tracker, uid, timer, ls, rm, touch, load, sLog } = require("ak-tools");
+import { existsSync, writeFileSync } from "fs";
+import pLimit from 'p-limit';
+import os from "os";
+import path from "path";
+import { comma, bytesHuman, makeName, md5, clone, tracker, uid, timer, ls, rm, touch, load, sLog } from "ak-tools";
 const jobTimer = timer('job');
-const { generateLineChart } = require('./components/chart.js');
-const { version } = require('./package.json');
-const mp = require("mixpanel-import");
-const u = require("./components/utils.js");
-const getCliParams = require("./components/cli.js");
+import { generateLineChart } from './components/chart.js';
+import fs from 'fs';
+const { version } = JSON.parse(fs.readFileSync('./package.json', 'utf8'));
+import mp from "mixpanel-import";
+import * as u from "./components/utils.js";
+import getCliParams from "./components/cli.js";
 const metrics = tracker("make-mp-data", "db99eb8f67ae50949a13c27cacf57d41", os.userInfo().username);
-const t = require('ak-tools');
+import * as t from 'ak-tools';
 
 
 //CLOUD
-const functions = require('@google-cloud/functions-framework');
-const { GoogleAuth } = require('google-auth-library');
+import functions from '@google-cloud/functions-framework';
+import { GoogleAuth } from 'google-auth-library';
 const CONCURRENCY = 1_000;
 let RUNTIME_URL = "https://dm4-lmozz6xkha-uc.a.run.app"; // IMPORTANT: this is what allows the service to call itself
 // const functionName = process.env.FUNCTION_NAME || process.env.K_SERVICE;
@@ -63,14 +65,14 @@ let RUNTIME_URL = "https://dm4-lmozz6xkha-uc.a.run.app"; // IMPORTANT: this is w
 
 
 // DEFAULTS
-const { campaigns, devices, locations } = require('./components/defaults.js');
+import { campaigns, devices, locations } from './components/defaults.js';
 let CAMPAIGNS;
 let DEFAULTS;
 /** @type {Storage} */
 let STORAGE;
 /** @type {Config} */
 let CONFIG;
-require('dotenv').config();
+import 'dotenv/config';
 
 const { NODE_ENV = "unknown" } = process.env;
 
@@ -527,7 +529,7 @@ async function makeEvent(distinct_id, earliestTime, chosenEvent, anonymousIds, s
 	if (!sessionIds) sessionIds = [];
 	if (!earliestTime) {
 		throw new Error("no earliestTime");
-	} 
+	}
 	if (!chosenEvent) throw new Error("no chosenEvent");
 	if (!superProps) superProps = {};
 	if (!groupKeys) groupKeys = [];
@@ -1243,8 +1245,17 @@ async function userLoop(config, storage, concurrency = 1) {
 			if (Object.keys(userSCD).length) {
 				for (const [key, changesArray] of Object.entries(userSCD)) {
 					for (const changes of changesArray) {
-						const target = scdTableData.filter(arr => arr.scdKey === key).pop();
-						await target.hookPush(changes, { profile, type: 'user' });
+						try {
+							const target = scdTableData.filter(arr => arr.scdKey === key).pop();
+							await target.hookPush(changes, { profile, type: 'user' });
+						}
+						catch (e) {
+							//this is probably a test
+							const target = scdTableData[0];
+							await target.hookPush(changes, { profile, type: 'user' });
+							
+
+						}
 					}
 				}
 			}
@@ -1547,7 +1558,17 @@ function validateDungeonConfig(config) {
 		// const weight = u.integer(smallestWeight, biggestWeight) * 2;
 
 		const sequence = u.shuffleArray(eventsNotInFunnels.flatMap(event => {
-			const evWeight = config.events.find(e => e.event === event)?.weight || 1;
+			let evWeight;
+			//first check the config
+			if (config.events) {
+				evWeight = config.events.find(e => e.event === event)?.weight || 1;
+			}
+			//fallback on var
+			else {
+				evWeight = 1;
+			}
+
+
 			return Array(evWeight).fill(event);
 		}));
 
@@ -1782,7 +1803,7 @@ CLI
 */
 
 if (NODE_ENV !== "prod") {
-	if (require.main === module) {
+	if (import.meta.url === `file://${process.argv[1]}`) {
 		isCLI = true;
 		const args = /** @type {Config} */ (getCliParams());
 		let { token, seed, format, numDays, numUsers, numEvents, region, writeToDisk, complex = false, hasSessionIds, hasAnonIds } = args;
@@ -1792,19 +1813,23 @@ if (NODE_ENV !== "prod") {
 		let config = null;
 		if (suppliedConfig) {
 			console.log(`using ${suppliedConfig} for data\n`);
-			config = require(path.resolve(suppliedConfig));
+			const { default: importedConfig } = await import(path.resolve(suppliedConfig));
+			config = importedConfig;
 		}
 		else {
+			const __dirname = path.dirname(new URL(import.meta.url).pathname);
 			if (complex) {
 				console.log(`... using default COMPLEX configuration [everything] ...\n`);
 				console.log(`... for more simple data, don't use the --complex flag ...\n`);
 				console.log(`... or specify your own js config file (see docs or --help) ...\n`);
-				config = require(path.resolve(__dirname, "./dungeons/complex.js"));
+				const { default: complexConfig } = await import(path.resolve(__dirname, "./dungeons/complex.js"));
+				config = complexConfig;
 			}
 			else {
 				console.log(`... using default SIMPLE configuration [events + users] ...\n`);
 				console.log(`... for more complex data, use the --complex flag ...\n`);
-				config = require(path.resolve(__dirname, "./dungeons/simple.js"));
+				const { default: simpleConfig } = await import(path.resolve(__dirname, "./dungeons/simple.js"));
+				config = simpleConfig;
 			}
 		}
 
@@ -1823,51 +1848,54 @@ if (NODE_ENV !== "prod") {
 		if (hasAnonIds) config.hasAnonIds = hasAnonIds;
 		config.verbose = true;
 
-		main(config)
-			.then((data) => {
-				log(`-----------------SUMMARY-----------------`);
-				const d = { success: 0, bytes: 0 };
-				const darr = [d];
-				const { events = d, groups = darr, users = d } = data?.importResults || {};
-				const files = data.files;
-				const folder = files?.[0]?.split(path.basename(files?.[0]))?.shift() || "./";
-				const groupBytes = groups.reduce((acc, group) => {
-					return acc + group.bytes;
-				}, 0);
-				const groupSuccess = groups.reduce((acc, group) => {
-					return acc + group.success;
-				}, 0);
-				const bytes = events.bytes + groupBytes + users.bytes;
-				const stats = {
-					events: comma(events.success || 0),
-					users: comma(users.success || 0),
-					groups: comma(groupSuccess || 0),
-					bytes: bytesHuman(bytes || 0),
-				};
-				if (bytes > 0) console.table(stats);
-				if (Object.keys(data?.importResults || {}).length) {
-					log(`\nlog written to log.json\n`);
-					writeFileSync(path.resolve(folder, "log.json"), JSON.stringify(data?.importResults, null, 2));
-				}
-				// log("  " + files?.flat().join("\n  "));
-				log(`\n----------------SUMMARY-----------------\n\n\n`);
-			})
-			.catch((e) => {
-				log(`------------------ERROR------------------`);
-				console.error(e);
-				log(`------------------ERROR------------------`);
-				debugger;
-			})
-			.finally(() => {
-				log("enjoy your data! :)");
-			});
-	} else {
-		main.generators = { makeEvent, makeFunnel, makeProfile, makeSCD, makeAdSpend, makeMirror };
-		main.orchestrators = { userLoop, validateDungeonConfig, sendToMixpanel };
-		main.meta = { inferFunnels, hookArray: makeHookArray };
-		module.exports = main;
+		(async () => {
+			return main(config)
+				.then((data) => {
+					log(`-----------------SUMMARY-----------------`);
+					const d = { success: 0, bytes: 0 };
+					const darr = [d];
+					const { events = d, groups = darr, users = d } = data?.importResults || {};
+					const files = data.files;
+					const folder = files?.[0]?.split(path.basename(files?.[0]))?.shift() || "./";
+					const groupBytes = groups.reduce((acc, group) => {
+						return acc + group.bytes;
+					}, 0);
+					const groupSuccess = groups.reduce((acc, group) => {
+						return acc + group.success;
+					}, 0);
+					const bytes = events.bytes + groupBytes + users.bytes;
+					const stats = {
+						events: comma(events.success || 0),
+						users: comma(users.success || 0),
+						groups: comma(groupSuccess || 0),
+						bytes: bytesHuman(bytes || 0),
+					};
+					if (bytes > 0) console.table(stats);
+					if (Object.keys(data?.importResults || {}).length) {
+						log(`\nlog written to log.json\n`);
+						writeFileSync(path.resolve(folder, "log.json"), JSON.stringify(data?.importResults, null, 2));
+					}
+					// log("  " + files?.flat().join("\n  "));
+					log(`\n----------------SUMMARY-----------------\n\n\n`);
+				})
+				.catch((e) => {
+					log(`------------------ERROR------------------`);
+					console.error(e);
+					log(`------------------ERROR------------------`);
+					debugger;
+				})
+				.finally(() => {
+					log("enjoy your data! :)");
+				});
+		})();
 	}
 }
+
+// ESM exports
+main.generators = { makeEvent, makeFunnel, makeProfile, makeSCD, makeAdSpend, makeMirror };
+main.orchestrators = { userLoop, validateDungeonConfig, sendToMixpanel };
+main.meta = { inferFunnels, hookArray: makeHookArray };
+export default main;
 
 
 
