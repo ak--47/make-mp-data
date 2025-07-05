@@ -38,7 +38,8 @@ export default defineConfig({
     // Don't watch in CI/test environments
     watch: false,
     
-    // Ensure we can run tests sequentially if needed
+    // Allow mixed concurrent/sequential execution
+    // CLI tests use describe.sequential() due to execSync collisions
     sequence: {
       concurrent: true
     }

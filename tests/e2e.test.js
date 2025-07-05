@@ -107,17 +107,18 @@ describe('module', () => {
 
 	test('works as module (scd)', async () => {
 		console.log('MODULE TEST: scd');
-		scd;
-		const results = await generate({
+		// const scdSchema = (await import('../dungeons/scd.js')).default;
+		const config = {
 			...scd,
 			token: testToken,
 			serviceAccount: process.env.SERVICE_ACCOUNT,
 			projectId: process.env.PROJECT_ID,
 			serviceSecret: process.env.SERVICE_SECRET,
-			verbose: true, writeToDisk: false, numEvents: 100, numUsers: 10, seed: "deal with it"
-		});
-		const { importResults} = results;
-		const {MRR_scd, NPS_scd, plan_scd, role_scd} = importResults;
+			verbose: false, writeToDisk: false, numEvents: 100, numUsers: 10, seed: "deal with it"
+		};
+		const results = await generate(config);
+		const { importResults } = results;
+		const { MRR_scd, NPS_scd, plan_scd, role_scd } = importResults;
 		expect(MRR_scd.success).toBeGreaterThan(10);
 		expect(NPS_scd.success).toBeGreaterThan(10);
 		expect(plan_scd.success).toBeGreaterThan(10);
@@ -126,7 +127,7 @@ describe('module', () => {
 		expect(NPS_scd.failed).toBe(0);
 		expect(plan_scd.failed).toBe(0);
 		expect(role_scd.failed).toBe(0);
-	
+
 
 	}, timeout);
 
