@@ -14,7 +14,7 @@ import dayjs from "dayjs";
 import utc from "dayjs/plugin/utc.js";
 dayjs.extend(utc);
 import { uid, comma } from 'ak-tools';
-import { pickAWinner, weighNumRange, date, integer } from '../components/utils.js';
+import { pickAWinner, weighNumRange, date, integer } from '../lib/utils/utils.js';
 
 
 

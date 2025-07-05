@@ -6,24 +6,71 @@ dayjs.extend(utc);
 import 'dotenv/config';
 import path from 'path';
 
-/** @typedef {import('../types.js').Dungeon} Config */
-/** @typedef {import('../types.js').EventConfig} EventConfig */
-/** @typedef {import("../types.js").EventSchema} EventSchema */
-/** @typedef {import('../types.js').ValueValid} ValueValid */
-/** @typedef {import('../types.js').HookedArray} hookArray */
-/** @typedef {import('../types.js').hookArrayOptions} hookArrayOptions */
-/** @typedef {import('../types.js').Person} Person */
-/** @typedef {import('../types.js').Funnel} Funnel */
-/** @typedef {import('../types.js').UserProfile} UserProfile */
-/** @typedef {import('../types.js').SCDSchema} SCDSchema */
-/** @typedef {import('../types.js').Storage} Storage */
+/** @typedef {import('../types').Dungeon} Config */
+/** @typedef {import('../types').EventConfig} EventConfig */
+/** @typedef {import("../types").EventSchema} EventSchema */
+/** @typedef {import('../types').ValueValid} ValueValid */
+/** @typedef {import('../types').HookedArray} hookArray */
+/** @typedef {import('../types').hookArrayOptions} hookArrayOptions */
+/** @typedef {import('../types').Person} Person */
+/** @typedef {import('../types').Funnel} Funnel */
+/** @typedef {import('../types').UserProfile} UserProfile */
+/** @typedef {import('../types').SCDSchema} SCDSchema */
+/** @typedef {import('../types').Storage} Storage */
 
-import MAIN from '../index.js';
-const { generators, orchestrators, meta } = MAIN;
-const { makeAdSpend, makeEvent, makeFunnel, makeProfile, makeSCD, makeMirror } = generators;
-const { sendToMixpanel, userLoop, validateDungeonConfig } = orchestrators;
-const { hookArray, inferFunnels } = meta;
-import { validEvent } from '../components/utils.js';
+// Import main function
+import main from '../index.js';
+
+// Import generators directly
+import { makeAdSpend } from '../lib/generators/adspend.js';
+import { makeEvent } from '../lib/generators/events.js';
+import { makeFunnel } from '../lib/generators/funnels.js';
+import { makeProfile } from '../lib/generators/profiles.js';
+import { makeSCD } from '../lib/generators/scd.js';
+import { makeMirror } from '../lib/generators/mirror.js';
+
+// Import orchestrators directly
+import { sendToMixpanel } from '../lib/orchestrators/mixpanel-sender.js';
+import { userLoop } from '../lib/orchestrators/user-loop.js';
+import { validateDungeonConfig } from '../lib/core/config-validator.js';
+
+// Import utilities directly
+import { createHookArray } from '../lib/core/storage.js';
+import { inferFunnels } from '../lib/core/config-validator.js';
+import { validEvent } from '../lib/utils/utils.js';
+import { createContext } from '../lib/core/context.js';
+import { validateDungeonConfig } from '../lib/core/config-validator.js';
+
+// Alias for compatibility
+const hookArray = createHookArray;
+
+/**
+ * Creates a test context object for generator function testing
+ * @param {Object} configOverrides - Config overrides for testing
+ * @returns {Object} Test context object
+ */
+function createTestContext(configOverrides = {}) {
+    const baseConfig = {
+        numEvents: 100,
+        numUsers: 10,
+        numDays: 30,
+        hasAdSpend: false,
+        hasLocation: false,
+        hasAvatar: false,
+        verbose: false,
+        writeToDisk: false,
+        isAnonymous: false,
+        hasAnonIds: false,
+        hasSessionIds: false,
+        concurrency: 1,
+        ...configOverrides
+    };
+    
+    const validatedConfig = validateDungeonConfig(baseConfig);
+    const context = createContext(validatedConfig);
+    
+    return context;
+}
 
 
 // Mock the global variables
@@ -31,7 +78,7 @@ let CAMPAIGNS;
 let DEFAULTS;
 let STORAGE;
 let CONFIG;
-import { campaigns, devices, locations } from '../components/defaults.js';
+import { campaigns, devices, locations } from '../lib/data/defaults.js';
 
 beforeEach(async () => {
 	// Reset global variables before each test
@@ -81,7 +128,7 @@ beforeEach(() => {
 
 });
 
-describe('generators', () => {
+describe.sequential('generators', () => {
 
 	test('adspend: works', async () => {
 		const campaigns = [{
@@ -98,14 +145,16 @@ describe('generators', () => {
 			utm_content: ["seven"],
 			utm_term: ["eight"]
 		}];
-		const result = await makeAdSpend(dayjs().subtract(30, 'day').toISOString(), campaigns);
+		const context = createTestContext({ hasAdSpend: true });
+		const result = await makeAdSpend(context, dayjs().subtract(30, 'day').toISOString(), campaigns);
 		expect(result.length).toBe(2);
 		expect(result[0]).toHaveProperty('event', '$ad_spend');
 		expect(result[1]).toHaveProperty('event', '$ad_spend');
 	});
 
 	test('adspend: empty', async () => {
-		const result = await makeAdSpend(dayjs().subtract(30, 'day').toISOString(), []);
+		const context = createTestContext({ hasAdSpend: true });
+		const result = await makeAdSpend(context, dayjs().subtract(30, 'day').toISOString(), []);
 		expect(result.length).toBe(0);
 	});
 
@@ -114,7 +163,8 @@ describe('generators', () => {
 			{ utm_source: ["source1"], utm_campaign: ["one"], utm_medium: ["two"], utm_content: ["three"], utm_term: ["four"] },
 			{ utm_source: ["source2"], utm_campaign: ["two"], utm_medium: ["three"], utm_content: ["four"], utm_term: ["five"] }
 		];
-		const result = await makeAdSpend(dayjs().subtract(30, 'day').toISOString(), campaigns);
+		const context = createTestContext({ hasAdSpend: true });
+		const result = await makeAdSpend(context, dayjs().subtract(30, 'day').toISOString(), campaigns);
 		expect(result.length).toBe(2);
 		result.forEach(event => {
 			expect(event).toHaveProperty('event', '$ad_spend');
@@ -138,7 +188,8 @@ describe('generators', () => {
 				prop3: ["value5"]
 			},
 		};
-		const result = await makeEvent("known_id", dayjs.unix(global.FIXED_NOW).subtract(30, 'd').unix(), eventConfig, ["anon_id"], ["session_id"]);
+		const context = createTestContext();
+		const result = await makeEvent(context, "known_id", dayjs.unix(global.FIXED_NOW).subtract(30, 'd').unix(), eventConfig, ["anon_id"], ["session_id"]);
 		expect(result).toHaveProperty('event', 'test_event');
 		expect(result).toHaveProperty('device_id', 'anon_id');
 		// expect(result).toHaveProperty('user_id', 'known_id'); // Known ID not always on the event
@@ -155,7 +206,8 @@ describe('generators', () => {
 
 	test('makeEvent: opt params', async () => {
 		const eventConfig = { event: "test_event", properties: {} };
-		const result = await makeEvent("known_id", dayjs.unix(global.FIXED_NOW).subtract(30, 'd').unix(), eventConfig);
+		const context = createTestContext();
+		const result = await makeEvent(context, "known_id", dayjs.unix(global.FIXED_NOW).subtract(30, 'd').unix(), eventConfig);
 		expect(result).toHaveProperty('event', 'test_event');
 		expect(result).toHaveProperty('user_id', 'known_id');
 		expect(result).toHaveProperty('source', 'dm4');
@@ -171,7 +223,8 @@ describe('generators', () => {
 				prop2: ["value3", "value4"]
 			},
 		};
-		const result = await makeEvent("known_id", dayjs.unix(global.FIXED_NOW).subtract(30, 'd').unix(), eventConfig, ["anon_id"], ["session_id"]);
+		const context = createTestContext();
+		const result = await makeEvent(context, "known_id", dayjs.unix(global.FIXED_NOW).subtract(30, 'd').unix(), eventConfig, ["anon_id"], ["session_id"]);
 		expect(result.prop1 === "value1" || result.prop1 === "value2").toBeTruthy();
 		expect(result.prop2 === "value3" || result.prop2 === "value4").toBeTruthy();
 	});
@@ -190,7 +243,8 @@ describe('generators', () => {
 		/** @type {Record<string, SCDSchema[]>} */
 		const scd = { "scd_example": [{ distinct_id: "user1", insertTime: dayjs().toISOString(), startTime: dayjs().toISOString() }] };
 
-		const [result, converted] = await makeFunnel(funnelConfig, user, dayjs.unix(global.FIXED_NOW).subtract(30, 'd').unix(), profile, scd, {});
+		const context = createTestContext();
+		const [result, converted] = await makeFunnel(context, funnelConfig, user, dayjs.unix(global.FIXED_NOW).subtract(30, 'd').unix(), profile, scd);
 		expect(result.length).toBe(2);
 		expect(converted).toBe(true);
 		expect(result.every(e => validEvent(e))).toBeTruthy();
@@ -206,7 +260,8 @@ describe('generators', () => {
 		const profile = { created: dayjs().toISOString(), distinct_id: "user1" };
 		const scd = { "scd_example": [{ distinct_id: "user1", insertTime: dayjs().toISOString(), startTime: dayjs().toISOString() }] };
 
-		const [result, converted] = await makeFunnel(funnelConfig, user, dayjs.unix(global.FIXED_NOW).subtract(30, 'd').unix(), profile, scd, {});
+		const context = createTestContext();
+		const [result, converted] = await makeFunnel(context, funnelConfig, user, dayjs.unix(global.FIXED_NOW).subtract(30, 'd').unix(), profile, scd);
 		expect(result.length).toBeGreaterThanOrEqual(1);
 		expect(result.length).toBeLessThanOrEqual(3);
 		expect(result.every(e => validEvent(e))).toBeTruthy();
@@ -222,7 +277,8 @@ describe('generators', () => {
 		const profile = { created: dayjs().toISOString(), distinct_id: "user1" };
 		const scd = { "scd_example": [{ distinct_id: "user1", insertTime: dayjs().toISOString(), startTime: dayjs().toISOString() }] };
 
-		const [result, converted] = await makeFunnel(funnelConfig, user, dayjs.unix(global.FIXED_NOW).subtract(30, 'd').unix(), profile, scd, {});
+		const context = createTestContext();
+		const [result, converted] = await makeFunnel(context, funnelConfig, user, dayjs.unix(global.FIXED_NOW).subtract(30, 'd').unix(), profile, scd);
 		expect(result.length).toBe(3);
 		expect(converted).toBe(true);
 		expect(result.every(e => validEvent(e))).toBeTruthy();
@@ -230,11 +286,12 @@ describe('generators', () => {
 
 
 	test('makeProfile: works', async () => {
+		const context = createTestContext();
 		const props = {
 			name: ["John", "Jane"],
 			age: [25, 30]
 		};
-		const result = await makeProfile(props, { foo: "bar" });
+		const result = await makeProfile(context, props, { foo: "bar" });
 		expect(result).toHaveProperty('name');
 		expect(result).toHaveProperty('age');
 		expect(result).toHaveProperty('foo', 'bar');
@@ -243,11 +300,12 @@ describe('generators', () => {
 	});
 
 	test('makeProfile: correct defaults', async () => {
+		const context = createTestContext();
 		const props = {
 			name: ["John", "Jane"],
 			age: [25, 30]
 		};
-		const result = await makeProfile(props);
+		const result = await makeProfile(context, props);
 		expect(result).toHaveProperty('name');
 		expect(result).toHaveProperty('age');
 		expect(result.name === "John" || result.name === "Jane").toBeTruthy();
@@ -256,7 +314,8 @@ describe('generators', () => {
 
 
 	test('makeSCD: works', async () => {
-		const result = await makeSCD(["value1", "value2"], "prop1", "distinct_id", 5, dayjs().toISOString());
+		const context = createTestContext();
+		const result = await makeSCD(context, ["value1", "value2"], "prop1", "distinct_id", 5, dayjs().toISOString());
 		expect(result.length).toBeGreaterThan(0);
 		const [first, second] = result;
 		expect(first).toHaveProperty('prop1');
@@ -275,12 +334,14 @@ describe('generators', () => {
 	});
 
 	test('makeSCD: no mutations', async () => {
-		const result = await makeSCD(["value1", "value2"], "prop1", "distinct_id", 0, dayjs().toISOString());
+		const context = createTestContext();
+		const result = await makeSCD(context, ["value1", "value2"], "prop1", "distinct_id", 0, dayjs().toISOString());
 		expect(result.length).toBe(0);
 	});
 
 	test('makeSCD: large mutations', async () => {
-		const result = await makeSCD(["value1", "value2"], "prop1", "distinct_id", 100, dayjs().subtract(100, 'd').toISOString());
+		const context = createTestContext();
+		const result = await makeSCD(context, ["value1", "value2"], "prop1", "distinct_id", 100, dayjs().subtract(100, 'd').toISOString());
 		expect(result.length).toBeGreaterThan(0);
 		result.forEach(entry => {
 			expect(entry).toHaveProperty('prop1');
@@ -313,7 +374,10 @@ describe('generators', () => {
 		};
 		await STORAGE.eventData.hookPush(oldEvent);
 		//ugh side fx
-		await makeMirror(config, STORAGE);
+		// Create context with the test config and storage
+		const context = createTestContext(config);
+		context.setStorage(STORAGE);
+		await makeMirror(context);
 		const [newData] = STORAGE.mirrorEventData;
 		expect(newData).toHaveProperty('newProp', "new");
 	});
@@ -340,7 +404,10 @@ describe('generators', () => {
 		};
 		await STORAGE.eventData.hookPush(oldEvent);
 
-		await makeMirror(config, STORAGE);
+		// Create context with the test config and storage
+		const context = createTestContext(config);
+		context.setStorage(STORAGE);
+		await makeMirror(context);
 		const [newData] = STORAGE.mirrorEventData;
 		expect(newData).not.toHaveProperty('oldProp');
 	});
@@ -369,7 +436,10 @@ describe('generators', () => {
 		};
 		await STORAGE.eventData.hookPush(oldEvent);
 
-		await makeMirror(config, STORAGE);
+		// Create context with the test config and storage
+		const context = createTestContext(config);
+		context.setStorage(STORAGE);
+		await makeMirror(context);
 		const [newData] = STORAGE.mirrorEventData;
 		expect(newData).toHaveProperty('fillProp', "filledValue");
 	});
@@ -397,7 +467,10 @@ describe('generators', () => {
 		};
 		await STORAGE.eventData.hookPush(oldEvent);
 
-		await makeMirror(config, STORAGE);
+		// Create context with the test config and storage
+		const context = createTestContext(config);
+		context.setStorage(STORAGE);
+		await makeMirror(context);
 		const [newData] = STORAGE.mirrorEventData;
 		expect(newData).toHaveProperty('updateProp', "initialValue");
 	});
@@ -425,7 +498,10 @@ describe('generators', () => {
 		};
 		await STORAGE.eventData.hookPush(oldEvent);
 
-		await makeMirror(config, STORAGE);
+		// Create context with the test config and storage
+		const context = createTestContext(config);
+		context.setStorage(STORAGE);
+		await makeMirror(context);
 		const [newData] = STORAGE.mirrorEventData;
 		expect(newData).toHaveProperty('updateProp', "updatedValue");
 	});
@@ -454,7 +530,10 @@ describe('generators', () => {
 		};
 		await STORAGE.eventData.hookPush(oldEvent);
 
-		await makeMirror(config, STORAGE);
+		// Create context with the test config and storage
+		const context = createTestContext(config);
+		context.setStorage(STORAGE);
+		await makeMirror(context);
 		const [newData] = STORAGE.mirrorEventData;
 		expect(newData).toHaveProperty('updateProp', "updatedValue");
 	});
@@ -463,7 +542,7 @@ describe('generators', () => {
 
 });
 
-describe('orchestrators', () => {
+describe.sequential('orchestrators', () => {
 
 	test('sendToMixpanel: works', async () => {
 		CONFIG.token = "test_token";
@@ -530,7 +609,9 @@ describe('orchestrators', () => {
 			events: [],
 			funnels: [{ sequence: ["step1", "step2"], conversionRate: 100, order: 'sequential' }],
 		};
-		await userLoop(config, STORAGE);
+		const context = createTestContext(config);
+		context.setStorage(STORAGE);
+		await userLoop(context);
 		expect(STORAGE.userProfilesData.length).toBe(2);
 		expect(STORAGE.eventData.length).toBeGreaterThan(15);
 		expect(STORAGE.eventData.every(e => validEvent(e))).toBeTruthy();

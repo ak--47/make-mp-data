@@ -55,11 +55,14 @@ import {
 	optimizedBoxMuller,
 	datesBetween,
 	weighChoices
-} from '../components/utils.js';
+} from '../lib/utils/utils.js';
 
 import main from '../index.js';
+import { createHookArray } from '../lib/core/storage.js';
+import { inferFunnels } from '../lib/core/config-validator.js';
+
 //todo: test for funnel inference
-const { hookArray, inferFunnels } = main.meta;
+const hookArray = createHookArray;
 
 
 describe('timesoup', () => {

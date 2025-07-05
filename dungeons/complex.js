@@ -8,7 +8,7 @@
 
 import Chance from 'chance';
 const chance = new Chance();
-import { weighNumRange, date, integer } from '../components/utils.js';
+import { weighNumRange, date, integer } from '../lib/utils/utils.js';
 import * as u from 'ak-tools';
 
 /** @type {import('../types.js').Dungeon} */
