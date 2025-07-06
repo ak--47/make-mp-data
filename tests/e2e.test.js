@@ -3,29 +3,30 @@
 /* eslint-disable no-undef */
 /* eslint-disable no-debugger */
 /* eslint-disable no-unused-vars */
-const generate = require('../index.js');
-require('dotenv').config();
-const { execSync } = require("child_process");
-const u = require('ak-tools');
-const Papa = require('papaparse');
+import generate from '../index.js';
+import 'dotenv/config';
+import { execSync } from "child_process";
+import * as u from 'ak-tools';
+import Papa from 'papaparse';
 
-const simple = require('../dungeons/simple.js');
-const complex = require('../dungeons/complex.js');
-const anon = require('../dungeons/anon.js');
-const funnels = require('../dungeons/funnels.js');
-const foobar = require('../dungeons/foobar.js');
-const mirror = require('../dungeons/mirror.js');
-const adspend = require('../dungeons/adspend.js');
-const scd = require('../dungeons/scd.js');
+import simple from '../dungeons/simple.js';
+import complex from '../dungeons/complex.js';
+import anon from '../dungeons/anon.js';
+import funnels from '../dungeons/funnels.js';
+import foobar from '../dungeons/foobar.js';
+import mirror from '../dungeons/mirror.js';
+import adspend from '../dungeons/adspend.js';
+import scd from '../dungeons/scd.js';
 
-const timeout = 600000;
+// 1 minute timeout
+const timeout = 60000;
 const testToken = process.env.TEST_TOKEN || "hello token!";
 
 describe('module', () => {
 
 	test('works as module (no config)', async () => {
 		console.log('MODULE TEST');
-		const results = await generate({ verbose: true, writeToDisk: false, numEvents: 1100, numUsers: 100, seed: "deal with it" });
+		const results = await generate({ verbose: false, writeToDisk: false, numEvents: 1100, numUsers: 100, seed: "deal with it" });
 		const { eventData, groupProfilesData, lookupTableData, scdTableData, userProfilesData } = results;
 		expect(eventData.length).toBeGreaterThan(980);
 		expect(groupProfilesData.length).toBe(0);
@@ -37,7 +38,7 @@ describe('module', () => {
 
 	test('works as module (simple)', async () => {
 		console.log('MODULE TEST: SIMPLE');
-		const results = await generate({ ...simple, verbose: true, writeToDisk: false, numEvents: 1100, numUsers: 100, seed: "deal with it" });
+		const results = await generate({ ...simple, verbose: false, writeToDisk: false, numEvents: 1100, numUsers: 100, seed: "deal with it" });
 		const { eventData, groupProfilesData, lookupTableData, scdTableData, userProfilesData } = results;
 		expect(eventData.length).toBeGreaterThan(980);
 		expect(groupProfilesData.length).toBe(0);
@@ -49,7 +50,7 @@ describe('module', () => {
 
 	test('works as module (complex)', async () => {
 		console.log('MODULE TEST: COMPLEX');
-		const results = await generate({ ...complex, verbose: true, writeToDisk: false, numEvents: 1100, numUsers: 100, seed: "deal with it" });
+		const results = await generate({ ...complex, verbose: false, writeToDisk: false, numEvents: 1100, numUsers: 100, seed: "deal with it" });
 		const { eventData, groupProfilesData, lookupTableData, scdTableData, userProfilesData } = results;
 		expect(eventData.length).toBeGreaterThan(980);
 		expect(groupProfilesData[0]?.length).toBe(500);
@@ -62,7 +63,7 @@ describe('module', () => {
 
 	test('works as module (funnels)', async () => {
 		console.log('MODULE TEST: FUNNELS');
-		const results = await generate({ ...funnels, verbose: true, writeToDisk: false, numEvents: 1100, numUsers: 100, seed: "deal with it" });
+		const results = await generate({ ...funnels, verbose: false, writeToDisk: false, numEvents: 1100, numUsers: 100, seed: "deal with it" });
 		const { eventData, groupProfilesData, scdTableData, userProfilesData } = results;
 		expect(eventData.length).toBeGreaterThan(980);
 		expect(groupProfilesData.length).toBe(3);
@@ -75,7 +76,7 @@ describe('module', () => {
 
 	test('works as module (mirror)', async () => {
 		console.log('MODULE TEST: MIRROR');
-		const results = await generate({ ...mirror, verbose: true, writeToDisk: false, numEvents: 1100, numUsers: 100, seed: "deal with it" });
+		const results = await generate({ ...mirror, verbose: false, writeToDisk: false, numEvents: 1100, numUsers: 100, seed: "deal with it" });
 		const { eventData, userProfilesData, mirrorEventData } = results;
 		expect(eventData.length).toBeGreaterThan(980);
 		expect(mirrorEventData.length).toBeGreaterThan(980);
@@ -87,7 +88,7 @@ describe('module', () => {
 
 	test('works as module (foobar)', async () => {
 		console.log('MODULE TEST: FOOBAR');
-		const results = await generate({ ...foobar, verbose: true, writeToDisk: false, numEvents: 1100, numUsers: 100, seed: "deal with it" });
+		const results = await generate({ ...foobar, verbose: false, writeToDisk: false, numEvents: 1100, numUsers: 100, seed: "deal with it" });
 		const { eventData, userProfilesData } = results;
 		expect(eventData.length).toBeGreaterThan(980);
 		expect(userProfilesData.length).toBe(100);
@@ -96,7 +97,7 @@ describe('module', () => {
 
 	test('works as module (adspend)', async () => {
 		console.log('MODULE TEST: ADSPEND');
-		const results = await generate({ ...adspend, verbose: true, writeToDisk: false, numEvents: 1100, numUsers: 100, seed: "deal with it" });
+		const results = await generate({ ...adspend, verbose: false, writeToDisk: false, numEvents: 1100, numUsers: 100, seed: "deal with it" });
 		const { eventData, adSpendData, userProfilesData } = results;
 		expect(eventData.length).toBeGreaterThan(980);
 		expect(userProfilesData.length).toBe(100);
@@ -107,17 +108,18 @@ describe('module', () => {
 
 	test('works as module (scd)', async () => {
 		console.log('MODULE TEST: scd');
-		scd;
-		const results = await generate({
+		// const scdSchema = (await import('../dungeons/scd.js')).default;
+		const config = {
 			...scd,
 			token: testToken,
 			serviceAccount: process.env.SERVICE_ACCOUNT,
 			projectId: process.env.PROJECT_ID,
 			serviceSecret: process.env.SERVICE_SECRET,
-			verbose: true, writeToDisk: false, numEvents: 100, numUsers: 10, seed: "deal with it"
-		});
-		const { importResults} = results;
-		const {MRR_scd, NPS_scd, plan_scd, role_scd} = importResults;
+			verbose: false, writeToDisk: false, numEvents: 100, numUsers: 10, seed: "deal with it"
+		};
+		const results = await generate(config);
+		const { importResults } = results;
+		const { MRR_scd, NPS_scd, plan_scd, role_scd } = importResults;
 		expect(MRR_scd.success).toBeGreaterThan(10);
 		expect(NPS_scd.success).toBeGreaterThan(10);
 		expect(plan_scd.success).toBeGreaterThan(10);
@@ -126,7 +128,7 @@ describe('module', () => {
 		expect(NPS_scd.failed).toBe(0);
 		expect(plan_scd.failed).toBe(0);
 		expect(role_scd.failed).toBe(0);
-	
+
 
 	}, timeout);
 
@@ -289,7 +291,7 @@ describe('options + tweaks', () => {
 
 	test('sends data to mixpanel', async () => {
 		console.log('NETWORK TEST');
-		const results = await generate({ verbose: true, writeToDisk: false, numEvents: 1100, numUsers: 100, seed: "deal with it", token: testToken });
+		const results = await generate({ verbose: false, writeToDisk: false, numEvents: 1100, numUsers: 100, seed: "deal with it", token: testToken });
 		const { events, users, groups } = results.importResults;
 		expect(events.success).toBeGreaterThan(980);
 		expect(users.success).toBe(100);
@@ -298,7 +300,7 @@ describe('options + tweaks', () => {
 
 	test('every record is valid', async () => {
 		console.log('VALIDATION TEST');
-		const results = await generate({ verbose: true, writeToDisk: false, numEvents: 1000, numUsers: 100 });
+		const results = await generate({ verbose: false, writeToDisk: false, numEvents: 1000, numUsers: 100 });
 		const { eventData, userProfilesData } = results;
 		const areEventsValid = eventData.every(validateEvent);
 		const areUsersValid = userProfilesData.every(validateUser);
@@ -312,7 +314,7 @@ describe('options + tweaks', () => {
 
 	test('every date is valid', async () => {
 		console.log('DATE TEST');
-		const results = await generate({ ...simple, writeToDisk: false, verbose: true, numEvents: 1000, numUsers: 100 });
+		const results = await generate({ ...simple, writeToDisk: false, verbose: false, numEvents: 1000, numUsers: 100 });
 		const { eventData } = results;
 		const invalidDates = eventData.filter(e => !validTime(e.time));
 		expect(eventData.every(e => validTime(e.time))).toBe(true);
@@ -321,7 +323,7 @@ describe('options + tweaks', () => {
 
 	test('anonymous users', async () => {
 		console.log('ANON TEST');
-		const results = await generate({ ...anon, writeToDisk: false, verbose: true, numEvents: 1000, numUsers: 100 });
+		const results = await generate({ ...anon, writeToDisk: false, verbose: false, numEvents: 1000, numUsers: 100 });
 		const { userProfilesData } = results;
 		expect(userProfilesData.every(u => u.name === 'Anonymous User')).toBe(true);
 
@@ -329,7 +331,7 @@ describe('options + tweaks', () => {
 
 	test('no avatars (default)', async () => {
 		console.log('AVATAR TEST');
-		const results = await generate({ ...simple, writeToDisk: false, verbose: true, numEvents: 1000, numUsers: 100 });
+		const results = await generate({ ...simple, writeToDisk: false, verbose: false, numEvents: 1000, numUsers: 100 });
 		const { userProfilesData } = results;
 		expect(userProfilesData.every(u => !u.avatar)).toBe(true);
 
@@ -337,7 +339,7 @@ describe('options + tweaks', () => {
 
 	test('yes avatars', async () => {
 		console.log('AVATAR TEST');
-		const results = await generate({ ...simple, writeToDisk: false, verbose: true, numEvents: 1000, numUsers: 100, hasAvatar: true });
+		const results = await generate({ ...simple, writeToDisk: false, verbose: false, numEvents: 1000, numUsers: 100, hasAvatar: true });
 		const { userProfilesData } = results;
 		expect(userProfilesData.every(u => u.avatar)).toBe(true);
 

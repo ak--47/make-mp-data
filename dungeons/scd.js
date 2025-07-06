@@ -8,13 +8,13 @@
 
 
 
-const Chance = require('chance');
+import Chance from 'chance';
 const chance = new Chance();
-const dayjs = require("dayjs");
-const utc = require("dayjs/plugin/utc");
+import dayjs from "dayjs";
+import utc from "dayjs/plugin/utc.js";
 dayjs.extend(utc);
-const { uid, comma } = require('ak-tools');
-const { pickAWinner, weighNumRange, date, integer, weighChoices } = require('../components/utils');
+import { uid, comma } from 'ak-tools';
+import { pickAWinner, weighNumRange, date, integer, weighChoices } from '../lib/utils/utils.js';
 
 const itemCategories = ["Books", "Movies", "Music", "Games", "Electronics", "Computers", "Smart Home", "Home", "Garden", "Pet", "Beauty", "Health", "Toys", "Kids", "Baby", "Handmade", "Sports", "Outdoors", "Automotive", "Industrial", "Entertainment", "Art", "Food", "Appliances", "Office", "Wedding", "Software"];
 
@@ -32,7 +32,7 @@ const config = {
 	hasAnonIds: false, //if true, anonymousIds are created for each user
 	hasSessionIds: false, //if true, hasSessionIds are created for each user
 	hasAdSpend: false,
-	makeChart: true,
+	makeChart: false,
 	hasLocation: true,
 	hasAndroidDevices: true,
 	hasIOSDevices: true,
@@ -202,4 +202,4 @@ const config = {
 
 
 
-module.exports = config;
+export default config;

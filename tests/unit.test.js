@@ -1,10 +1,10 @@
-const generate = require('../index.js');
-const dayjs = require("dayjs");
-const utc = require("dayjs/plugin/utc");
-const fs = require('fs');
-const u = require('ak-tools');
+import generate from '../index.js';
+import dayjs from "dayjs";
+import utc from "dayjs/plugin/utc.js";
+import fs from 'fs';
+import * as u from 'ak-tools';
 dayjs.extend(utc);
-require('dotenv').config();
+import 'dotenv/config';
 
 /** @typedef {import('../types').Dungeon} Config */
 /** @typedef {import('../types').EventConfig} EventConfig */
@@ -15,7 +15,7 @@ require('dotenv').config();
 /** @typedef {import('../types').Funnel} Funnel */
 
 
-const {
+import {
 	applySkew,
 	boxMullerRandom,
 	choose,
@@ -32,7 +32,6 @@ const {
 	range,
 	pickAWinner,
 	weighNumRange,
-
 	fixFirstAndLast,
 	generateUser,
 	openFinder,
@@ -54,14 +53,16 @@ const {
 	validTime,
 	interruptArray,
 	optimizedBoxMuller,
-
 	datesBetween,
 	weighChoices
-} = require('../components/utils.js');
+} from '../lib/utils/utils.js';
 
-const main = require('../index.js');
+import main from '../index.js';
+import { createHookArray } from '../lib/core/storage.js';
+import { inferFunnels } from '../lib/core/config-validator.js';
+
 //todo: test for funnel inference
-const { hookArray, inferFunnels } = main.meta;
+const hookArray = createHookArray;
 
 
 describe('timesoup', () => {
@@ -266,7 +267,7 @@ describe('determinism', () => {
 describe('generation', () => {
 
 	test('user: works', () => {
-		const uuid = { guid: jest.fn().mockReturnValue('uuid-123') };
+		const uuid = { guid: vi.fn().mockReturnValue('uuid-123') };
 		const numDays = 30;
 		const user = generateUser('123', { numDays });
 		expect(user).toHaveProperty('distinct_id');
@@ -662,7 +663,7 @@ describe('utilities', () => {
 
 	test('progress: output', () => {
 		// @ts-ignore
-		const mockStdoutWrite = jest.spyOn(process.stdout, 'write').mockImplementation(() => { });
+		const mockStdoutWrite = vi.spyOn(process.stdout, 'write').mockImplementation(() => { });
 		progress([['test', 50]]);
 		expect(mockStdoutWrite).toHaveBeenCalled();
 		mockStdoutWrite.mockRestore();

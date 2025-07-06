@@ -136,7 +136,7 @@ const seed = Math.random().toString()
 
 /** @type {import('../types').Dungeon} */
 const config = {
-	token: "3cd6d9fb43b02f8fd731a6d814ac4b8f",
+	token: "",
 	seed: seed,
 	numDays: 30, //how many days worth of data
 	numEvents: numEvents, //how many events
@@ -238,4 +238,4 @@ const config = {
 
 
 
-module.exports = config;
+export default config;

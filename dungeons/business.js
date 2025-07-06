@@ -8,7 +8,7 @@
 
 const Chance = require('chance');
 const chance = new Chance();
-const { weighNumRange, date, integer, pickAWinner, exhaust } = require('../components/utils.js');
+const { weighNumRange, date, integer, pickAWinner, exhaust } = require('../lib/utils/utils.js');
 const u = require('ak-tools');
 
 const channel_ids = [...Array(1234).keys()].map(i => i + 1).map(n => `channel_id_${n}`);

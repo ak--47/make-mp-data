@@ -8,13 +8,13 @@
 
 
 
-const Chance = require('chance');
+import Chance from 'chance';
 const chance = new Chance();
-const dayjs = require("dayjs");
-const utc = require("dayjs/plugin/utc");
+import dayjs from "dayjs";
+import utc from "dayjs/plugin/utc.js";
 dayjs.extend(utc);
-const { uid, comma } = require('ak-tools');
-const { pickAWinner, weighNumRange, date, integer } = require('../components/utils');
+import { uid, comma } from 'ak-tools';
+import { pickAWinner, weighNumRange, date, integer } from '../lib/utils/utils.js';
 
 
 /** @type {import('../types').Dungeon} */
@@ -126,4 +126,4 @@ const config = {
 
 
 
-module.exports = config;
+export default config;

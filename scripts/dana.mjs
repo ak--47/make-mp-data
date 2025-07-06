@@ -8,7 +8,7 @@ const { NODE_ENV = "unknown" } = process.env;
 import main from "../index.js";
 import simple from '../dungeons/simple.js';
 import complex from '../dungeons/complex.js';
-import gaming from '../dungeons/gaming.js';
+import gaming from '../dungeons/customers/gaming.js';
 import big from '../dungeons/big.js';
 
 import Chance from 'chance';

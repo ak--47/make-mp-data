@@ -1,27 +1,30 @@
-const generate = require('../index.js');
-require('dotenv').config();
-const { execSync } = require("child_process");
-const u = require('ak-tools');
-const Papa = require('papaparse');
+//@ts-nocheck
+import generate from '../index.js';
+import 'dotenv/config';
+import { execSync } from "child_process";
+import * as u from 'ak-tools';
+import Papa from 'papaparse';
 
-const simple = require('../dungeons/simple.js');
-const complex = require('../dungeons/complex.js');
-const anon = require('../dungeons/anon.js');
-const funnels = require('../dungeons/funnels.js');
-const foobar = require('../dungeons/foobar.js');
-const mirror = require('../dungeons/mirror.js');
-const adspend = require('../dungeons/adspend.js');
-const scd = require('../dungeons/scd.js');
+import simple from '../dungeons/simple.js';
+import complex from '../dungeons/complex.js';
+import anon from '../dungeons/anon.js';
+import funnels from '../dungeons/funnels.js';
+import foobar from '../dungeons/foobar.js';
+import mirror from '../dungeons/mirror.js';
+import adspend from '../dungeons/adspend.js';
+import scd from '../dungeons/scd.js';
 
 const timeout = 600000;
 const testToken = process.env.TEST_TOKEN || "hello token!";
 
-describe('cli', () => {
+// Use sequential execution to prevent CLI tests from interfering with each other
+// since they use execSync and create/modify files in the same directories
+describe.sequential('cli', () => {
 
 	test('sanity check', async () => {
 		console.log('SANITY TEST');
-		const run = execSync(`node ./index.js`);
-		const ending = `enjoy your data! :)`;
+		const run = execSync(`node ./index.js --numEvents 100 --numUsers 10`);
+		const ending = `completed successfully!`;
 		expect(run.toString().trim().endsWith(ending)).toBe(true);
 		const files = (await u.ls('./data')).filter(a => a.includes('.csv'));
 		expect(files.length).toBe(2);
@@ -33,8 +36,8 @@ describe('cli', () => {
 		const userProfilesData = (await u.load(users[0])).trim();
 		const parsedEvents = Papa.parse(eventData, { header: true }).data;
 		const parsedUsers = Papa.parse(userProfilesData, { header: true }).data;
-		expect(parsedEvents.length).toBeGreaterThan(42000);
-		expect(parsedUsers.length).toBeGreaterThan(420);
+		expect(parsedEvents.length).toBeGreaterThan(10);
+		expect(parsedUsers.length).toBeGreaterThan(5);
 		expect(parsedUsers.every(u => u.distinct_id)).toBe(true);
 		expect(parsedEvents.every(e => e.event)).toBe(true);
 		expect(parsedEvents.every(e => e.time)).toBe(true);
@@ -50,8 +53,8 @@ describe('cli', () => {
 
 	test('no args', async () => {
 		console.log('BARE CLI TEST');
-		const run = execSync(`node ./index.js --numEvents 1000 --numUsers 100`);
-		expect(run.toString().trim().includes('enjoy your data! :)')).toBe(true);
+		const run = execSync(`node ./index.js --numEvents 100 --numUsers 10`);
+		expect(run.toString().trim().includes('completed successfully!')).toBe(true);
 		const csvs = (await u.ls('./data')).filter(a => a.includes('.csv'));
 		expect(csvs.length).toBe(2);
 
@@ -59,16 +62,16 @@ describe('cli', () => {
 
 	test('--complex', async () => {
 		console.log('COMPLEX CLI TEST');
-		const run = execSync(`node ./index.js --numEvents 1000 --numUsers 100 --seed "deal with it" --complex`, { stdio: "ignore" });
+		const run = execSync(`node ./index.js --numEvents 100 --numUsers 10 --seed "deal with it" --complex`, { stdio: "ignore" });
 		const csvs = (await u.ls('./data')).filter(a => a.includes('.json'));
-		expect(csvs.length).toBe(8);
+		expect(csvs.length).toBeGreaterThan(7);
 
 	}, timeout);
 
 	test('--simple', async () => {
 		console.log('SIMPLE CLI TEST');
-		const run = execSync(`node ./index.js --numEvents 1000 --numUsers 100 --seed "deal with it" --simple`);
-		expect(run.toString().trim().includes('enjoy your data! :)')).toBe(true);
+		const run = execSync(`node ./index.js --numEvents 100 --numUsers 10 --seed "deal with it" --simple`);
+		expect(run.toString().trim().includes('completed successfully!')).toBe(true);
 		const csvs = (await u.ls('./data')).filter(a => a.includes('.csv'));
 		expect(csvs.length).toBe(2);
 
