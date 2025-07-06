@@ -187,7 +187,41 @@ const config = {
 	},
 
 	scdProps: {
-		
+		role: {
+			type: "user",
+			frequency: "week",
+			values: ["admin", "collaborator", "user", "view only", "no access"],
+			timing: 'fuzzy',
+			max: 10
+		},
+		NPS: {
+			type: "user",
+			frequency: "day",
+			values: weighNumRange(1, 10, 2, 150),
+			timing: 'fuzzy',
+			max: 10
+		},
+		MRR: {
+			type: "company_id",
+			frequency: "month",
+			values: weighNumRange(0, 10000, .15),
+			timing: 'fixed',
+			max: 10
+		},
+		AccountHealthScore: {
+			type: "company_id",
+			frequency: "week",
+			values: weighNumRange(1, 10, .15),
+			timing: 'fixed',
+			max: 40
+		},
+		plan: {
+			type: "company_id",
+			frequency: "month",
+			values: ["free", "basic", "premium", "enterprise"],
+			timing: 'fixed',
+			max: 10
+		}
 	},
 	mirrorProps: {
 		isBot: { events: "*", values: [false, false, false, false, true] },
@@ -208,7 +242,25 @@ const config = {
 		["team_id", 500],
 		["department_id", 50]
 	],
-	groupProps: {},
+	groupProps: {
+		company_id: {
+			name: () => { return chance.company(); },
+			email: () => { return `CSM: ${chance.pickone(["AK", "Jessica", "Michelle", "Dana", "Brian", "Dave"])}`; },
+			industry: pickAWinner(["tech", "finance", "healthcare", "education", "government", "non-profit"]),
+			segment: ["enterprise", "SMB", "mid-market"],
+			"# active users": chance.integer({ min: 2, max: 20 })
+		},
+		team_id: {
+			name: () => { return `Team ${chance.word({ capitalize: true })}`; },
+			department: pickAWinner(["Engineering", "Sales", "Marketing", "Support", "HR"]),
+			size: integer(3, 50)
+		},
+		department_id: {
+			name: () => { return `${chance.pickone(["Engineering", "Sales", "Marketing", "Support", "HR"])} Department`; },
+			budget: weighNumRange(10000, 1000000),
+			headcount: integer(5, 200)
+		}
+	},
 	lookupTables: [],
 	hook: function (record, type, meta) {
 		return record;

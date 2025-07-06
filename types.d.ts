@@ -73,17 +73,13 @@ declare namespace main {
     percentUsersBornInDataset?: number;
   }
 
-  export type complexSCDProp = {
-    type?: string | "user_id" | "company_id";
+  export type SCDProp = {
+    type?: string | "user" | "company_id" | "team_id" | "department_id";
     frequency: "day" | "week" | "month" | "year";
     values: ValueValid;
     timing: "fixed" | "fuzzy";
     max?: number;
   };
-
-  export type SimpleSCDProp = string[];
-
-  export type SCDProp = complexSCDProp | SimpleSCDProp;
 
   /**
    * the soup is a set of parameters that determine the distribution of events over time
@@ -158,6 +154,64 @@ declare namespace main {
     lookupTableData?: HookedArray<LookupTableSchema>[];
     scdTableData?: HookedArray<SCDSchema>[];
     groupEventData?: HookedArray<EventSchema>;
+  }
+
+  /**
+   * Runtime state for tracking execution metrics and flags
+   */
+  export interface RuntimeState {
+    operations: number;
+    eventCount: number;
+    userCount: number;
+    isBatchMode: boolean;
+    verbose: boolean;
+    isCLI: boolean;
+  }
+
+  /**
+   * Default data factories for generating realistic test data
+   */
+  export interface Defaults {
+    locationsUsers: () => any[];
+    locationsEvents: () => any[];
+    iOSDevices: () => any[];
+    androidDevices: () => any[];
+    desktopDevices: () => any[];
+    browsers: () => any[];
+    campaigns: () => any[];
+  }
+
+  /**
+   * Context object that replaces global variables with dependency injection
+   * Contains validated config, storage containers, defaults, and runtime state
+   */
+  export interface Context {
+    config: Dungeon;
+    storage: Storage | null;
+    defaults: Defaults;
+    campaigns: any[];
+    runtime: RuntimeState;
+    FIXED_NOW: number;
+    FIXED_BEGIN?: number;
+
+    // State update methods
+    incrementOperations(): void;
+    incrementEvents(): void;
+    incrementUsers(): void;
+    setStorage(storage: Storage): void;
+
+    // State getter methods
+    getOperations(): number;
+    getEventCount(): number;
+    getUserCount(): number;
+    incrementUserCount(): void;
+    incrementEventCount(): void;
+    isBatchMode(): boolean;
+    isCLI(): boolean;
+
+    // Time helper methods
+    getTimeShift(): number;
+    getDaysShift(): number;
   }
 
   /**
@@ -335,10 +389,10 @@ declare namespace main {
     eventData: EventSchema[];
     mirrorEventData: EventSchema[];
     userProfilesData: any[];
-    scdTableData: any[];
+    scdTableData: any[][];
     adSpendData: EventSchema[];
-    groupProfilesData: GroupProfileSchema[];
-    lookupTableData: LookupTableData[];
+    groupProfilesData: GroupProfileSchema[][];
+    lookupTableData: LookupTableData[][];
     importResults?: ImportResults;
     files?: string[];
     time?: {
@@ -347,6 +401,9 @@ declare namespace main {
       delta: number;
       human: string;
     };
+    operations?: number;
+    eventCount?: number;
+    userCount?: number;
   };
 }
 

@@ -546,7 +546,9 @@ describe.sequential('orchestrators', () => {
 
 	test('sendToMixpanel: works', async () => {
 		CONFIG.token = "test_token";
-		const result = await sendToMixpanel(CONFIG, STORAGE);
+		const context = createTestContext(CONFIG);
+		context.setStorage(STORAGE);
+		const result = await sendToMixpanel(context);
 		expect(result).toHaveProperty('events');
 		expect(result).toHaveProperty('users');
 		expect(result).toHaveProperty('groups');
@@ -554,7 +556,9 @@ describe.sequential('orchestrators', () => {
 
 	test('sendToMixpanel: no token', async () => {
 		CONFIG.token = null;
-		await expect(sendToMixpanel(CONFIG, STORAGE)).rejects.toThrow();
+		const context = createTestContext(CONFIG);
+		context.setStorage(STORAGE);
+		await expect(sendToMixpanel(context)).rejects.toThrow();
 	});
 
 	test('sendToMixpanel: empty storage', async () => {
@@ -568,7 +572,9 @@ describe.sequential('orchestrators', () => {
 			lookupTableData: await hookArray([], {}),
 			mirrorEventData: await hookArray([], {})
 		};
-		const result = await sendToMixpanel(CONFIG, STORAGE);
+		const context = createTestContext(CONFIG);
+		context.setStorage(STORAGE);
+		const result = await sendToMixpanel(context);
 		expect(result.events.success).toBe(0);
 		expect(result.users.success).toBe(0);
 		expect(result.groups).toHaveLength(0);
@@ -591,7 +597,9 @@ describe.sequential('orchestrators', () => {
 			alsoInferFunnels: false,
 			events: [{ event: "foo" }, { event: "bar" }, { event: "baz" }]
 		};
-		await userLoop(config, STORAGE);
+		const context = createTestContext(config);
+	context.setStorage(STORAGE);
+	await userLoop(context);
 		expect(STORAGE.userProfilesData.length).toBe(2);
 		expect(STORAGE.eventData.length).toBeGreaterThan(15);
 		expect(STORAGE.eventData.every(e => validEvent(e))).toBeTruthy();
@@ -630,8 +638,9 @@ describe.sequential('orchestrators', () => {
 			events: [{ event: "event1" }, { event: "event2" }]
 			
 		};
-		const validatedConfig = validateDungeonConfig(config);
-		await userLoop(validatedConfig, STORAGE);
+		const context = createTestContext(config);
+		context.setStorage(STORAGE);
+		await userLoop(context);
 		expect(STORAGE.userProfilesData.length).toBe(3);
 		expect(STORAGE.eventData.length).toBeGreaterThan(5);
 		expect(STORAGE.scdTableData[0].length).toBeGreaterThan(5);
@@ -652,7 +661,9 @@ describe.sequential('orchestrators', () => {
 			hasLocation: false,
 			events: []
 		};
-		await userLoop(config, STORAGE);
+		const context = createTestContext(config);
+		context.setStorage(STORAGE);
+		await userLoop(context);
 		expect(STORAGE.userProfilesData.length).toBe(2);
 		expect(STORAGE.eventData.length).toBe(0);
 	});

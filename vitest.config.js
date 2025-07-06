@@ -18,8 +18,8 @@ export default defineConfig({
       reportsDirectory: './coverage'
     },
     
-    // Test execution settings
-    testTimeout: 600000, // 10 minutes for long-running tests
+    // Test execution settings	
+    testTimeout: 60000, // one min
     hookTimeout: 30000,
     teardownTimeout: 10000,
     

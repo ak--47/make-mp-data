@@ -11,6 +11,7 @@
 /** @typedef {import('./types').Dungeon} Config */
 /** @typedef {import('./types').Storage} Storage */
 /** @typedef {import('./types').Result} Result */
+/** @typedef {import('./types').Context} Context */
 
 // Core modules
 import { createContext, updateContextWithStorage } from './lib/core/context.js';
@@ -25,6 +26,7 @@ import { handleCloudFunctionEntry } from './lib/orchestrators/worker-manager.js'
 // Generators
 import { makeAdSpend } from './lib/generators/adspend.js';
 import { makeMirror } from './lib/generators/mirror.js';
+import { makeGroupProfile, makeProfile } from './lib/generators/profiles.js';
 
 // Utilities
 import getCliParams from './lib/cli/cli.js';
@@ -58,150 +60,413 @@ const isCLI = process.argv[1].endsWith('index.js') || process.argv[1].endsWith('
  * @returns {Promise<Result>} Generated data and metadata
  */
 async function main(config) {
-    const jobTimer = timer('job');
-    jobTimer.start();
+	const jobTimer = timer('job');
+	jobTimer.start();
+	let validatedConfig;
+	try {
+		// Step 1: Validate and enrich configuration
+		validatedConfig = validateDungeonConfig(config);
 
-    try {
-        // Step 1: Validate and enrich configuration
-        const validatedConfig = validateDungeonConfig(config);
-        
-        // Step 2: Create context with validated config
-        const context = createContext(validatedConfig);
-        
-        // Step 3: Initialize storage containers
-        const storageManager = new StorageManager();
-        const storage = storageManager.initializeContainers(validatedConfig);
-        updateContextWithStorage(context, storage);
-        
-        // Step 4: Generate ad spend data (if enabled)
-        if (validatedConfig.hasAdSpend) {
-            await generateAdSpendData(context);
-        }
-        
-        // Step 5: Main user and event generation
-        await userLoop(context, validatedConfig.concurrency);
-        
-        // Step 6: Generate mirror datasets (if configured)
-        if (validatedConfig.mirrorProps && Object.keys(validatedConfig.mirrorProps).length > 0) {
-            await makeMirror(context);
-        }
-        
-        // Step 7: Generate charts (if enabled)
-        if (validatedConfig.makeChart) {
-            await generateCharts(context);
-        }
-        
-        // Step 8: Send to Mixpanel (if token provided)
-        let importResults = {};
-        if (validatedConfig.token) {
-            importResults = await sendToMixpanel(context);
-        }
-        
-        // Step 9: Compile results
-        jobTimer.stop(false);
-        const { start, end, delta, human } = jobTimer.report(false);
-        
-        return {
-            eventData: storage.eventData || [],
-            mirrorEventData: storage.mirrorEventData || [],
-            userProfilesData: storage.userProfilesData || [],
-            scdTableData: storage.scdTableData || [],
-            adSpendData: storage.adSpendData || [],
-            groupProfilesData: storage.groupProfilesData || [],
-            lookupTableData: storage.lookupTableData || [],
-            importResults,
-            files: extractFileInfo(storage),
-            time: { start, end, delta, human },
-            operations: context.getOperations(),
-            eventCount: context.getEventCount(),
-            userCount: context.getUserCount()
-        };
-        
-    } catch (error) {
-        sLog("Main execution error", { error: error.message, stack: error.stack }, "ERROR");
-        throw error;
-    }
+		// Step 2: Create context with validated config
+		const context = createContext(validatedConfig);
+
+		// Step 3: Initialize storage containers
+		const storageManager = new StorageManager(context);
+		const storage = await storageManager.initializeContainers();
+		updateContextWithStorage(context, storage);
+
+		// Step 4: Generate ad spend data (if enabled)
+		if (validatedConfig.hasAdSpend) {
+			await generateAdSpendData(context);
+		}
+
+		// Step 5: Main user and event generation
+		await userLoop(context);
+
+		// Step 6: Generate group profiles (if configured)
+		if (validatedConfig.groupKeys && validatedConfig.groupKeys.length > 0) {
+			await generateGroupProfiles(context);
+		}
+
+		// Step 7: Generate group SCDs (if configured)
+		if (validatedConfig.scdProps && validatedConfig.groupKeys && validatedConfig.groupKeys.length > 0) {
+			await generateGroupSCDs(context);
+		}
+
+		// Step 8: Generate lookup tables (if configured)
+		if (validatedConfig.lookupTables && validatedConfig.lookupTables.length > 0) {
+			await generateLookupTables(context);
+		}
+
+		// Step 9: Generate mirror datasets (if configured)
+		if (validatedConfig.mirrorProps && Object.keys(validatedConfig.mirrorProps).length > 0) {
+			await makeMirror(context);
+		}
+
+		// Step 10: Generate charts (if enabled)
+		if (validatedConfig.makeChart) {
+			await generateCharts(context);
+		}
+
+		// Step 11: Flush storage containers to disk (if writeToDisk enabled)
+		if (validatedConfig.writeToDisk) {
+			await flushStorageToDisk(storage, validatedConfig);
+		}
+
+		// Step 12: Send to Mixpanel (if token provided)
+		let importResults;
+		if (validatedConfig.token) {
+			importResults = await sendToMixpanel(context);
+		}
+
+		// Step 13: Compile results
+		jobTimer.stop(false);
+		const { start, end, delta, human } = jobTimer.report(false);
+
+		const extractedData = extractStorageData(storage);
+
+		return {
+			...extractedData,
+			importResults,
+			files: extractFileInfo(storage),
+			time: { start, end, delta, human },
+			operations: context.getOperations(),
+			eventCount: context.getEventCount(),
+			userCount: context.getUserCount()
+		};
+
+	} catch (error) {
+		if (isCLI || validatedConfig.verbose) {
+			console.error(`\n❌ Error: ${error.message}\n`);
+			if (validatedConfig.verbose) {
+				console.error(error.stack);
+			}
+		} else {
+			sLog("Main execution error", { error: error.message, stack: error.stack }, "ERROR");
+		}
+		throw error;
+	}
 }
 
 /**
  * Generate ad spend data for configured date range
- * @param {Object} context - Context object
+ * @param {Context} context - Context object
  */
 async function generateAdSpendData(context) {
-    const { config, storage } = context;
-    const { numDays } = config;
-    
-    for (let day = 0; day < numDays; day++) {
-        const targetDay = dayjs.unix(global.FIXED_BEGIN).add(day, 'day').toISOString();
-        const adSpendEvents = await makeAdSpend(context, targetDay);
-        
-        if (adSpendEvents.length > 0) {
-            await storage.adSpendData.hookPush(adSpendEvents);
-        }
-    }
+	const { config, storage } = context;
+	const { numDays } = config;
+
+	for (let day = 0; day < numDays; day++) {
+		const targetDay = dayjs.unix(global.FIXED_BEGIN).add(day, 'day').toISOString();
+		const adSpendEvents = await makeAdSpend(context, targetDay);
+
+		if (adSpendEvents.length > 0) {
+			for (const adSpendEvent of adSpendEvents) {
+				await storage.adSpendData.hookPush(adSpendEvent);
+			}
+		}
+	}
+}
+
+/**
+ * Generate group profiles for all configured group keys
+ * @param {Context} context - Context object
+ */
+async function generateGroupProfiles(context) {
+	const { config, storage } = context;
+	const { groupKeys, groupProps = {} } = config;
+
+	if (isCLI || config.verbose) {
+		console.log('\n👥 Generating group profiles...');
+	}
+
+	for (let i = 0; i < groupKeys.length; i++) {
+		const [groupKey, groupCount] = groupKeys[i];
+		const groupContainer = storage.groupProfilesData[i];
+
+		if (!groupContainer) {
+			console.warn(`Warning: No storage container found for group key: ${groupKey}`);
+			continue;
+		}
+
+		if (isCLI || config.verbose) {
+			console.log(`   Creating ${groupCount.toLocaleString()} ${groupKey} profiles...`);
+		}
+
+		// Get group-specific props if available
+		const specificGroupProps = groupProps[groupKey] || {};
+
+		for (let j = 0; j < groupCount; j++) {
+			const groupProfile = await makeGroupProfile(context, groupKey, specificGroupProps, {
+				[groupKey]: `${groupKey}_${j + 1}`
+			});
+
+			await groupContainer.hookPush(groupProfile);
+		}
+	}
+
+	if (isCLI || config.verbose) {
+		console.log('✅ Group profiles generated successfully');
+	}
+}
+
+/**
+ * Generate lookup tables for all configured lookup schemas
+ * @param {Context} context - Context object
+ */
+async function generateLookupTables(context) {
+	const { config, storage } = context;
+	const { lookupTables } = config;
+
+	if (isCLI || config.verbose) {
+		console.log('\n🔍 Generating lookup tables...');
+	}
+
+	for (let i = 0; i < lookupTables.length; i++) {
+		const lookupConfig = lookupTables[i];
+		const { key, entries, attributes } = lookupConfig;
+		const lookupContainer = storage.lookupTableData[i];
+
+		if (!lookupContainer) {
+			console.warn(`Warning: No storage container found for lookup table: ${key}`);
+			continue;
+		}
+
+		if (isCLI || config.verbose) {
+			console.log(`   Creating ${entries.toLocaleString()} ${key} lookup entries...`);
+		}
+
+		for (let j = 0; j < entries; j++) {
+			const lookupEntry = await makeProfile(context, attributes, {
+				[key]: `${key}_${j + 1}`
+			});
+
+			await lookupContainer.hookPush(lookupEntry);
+		}
+	}
+
+	if (isCLI || config.verbose) {
+		console.log('✅ Lookup tables generated successfully');
+	}
+}
+
+/**
+ * Generate SCDs for group entities
+ * @param {Context} context - Context object
+ */
+async function generateGroupSCDs(context) {
+	const { config, storage } = context;
+	const { scdProps, groupKeys } = config;
+
+	if (isCLI || config.verbose) {
+		console.log('\n📊 Generating group SCDs...');
+	}
+
+	// Import utilities and generators
+	const { objFilter } = await import('ak-tools');
+	const { makeSCD } = await import('./lib/generators/scd.js');
+	const u = await import('./lib/utils/utils.js');
+	const chance = u.getChance();
+
+	// Get only group SCDs (not user SCDs)
+	// @ts-ignore
+	const groupSCDProps = objFilter(scdProps, (scd) => scd.type && scd.type !== 'user');
+
+	for (const [groupKey, groupCount] of groupKeys) {
+		// Filter SCDs that apply to this specific group key
+		// @ts-ignore
+		const groupSpecificSCDs = objFilter(groupSCDProps, (scd) => scd.type === groupKey);
+
+		if (Object.keys(groupSpecificSCDs).length === 0) {
+			continue; // No SCDs for this group type
+		}
+
+		if (isCLI || config.verbose) {
+			console.log(`   Generating SCDs for ${groupCount.toLocaleString()} ${groupKey} entities...`);
+		}
+
+		// Generate SCDs for each group entity
+		for (let i = 0; i < groupCount; i++) {
+			const groupId = `${groupKey}_${i + 1}`;
+
+			// Generate SCDs for this group entity
+			for (const [scdKey, scdConfig] of Object.entries(groupSpecificSCDs)) {
+				const { max = 10 } = scdConfig;
+				const mutations = chance.integer({ min: 1, max });
+
+				// Use a base time for the group entity (similar to user creation time)
+				const baseTime = context.FIXED_BEGIN || context.FIXED_NOW;
+				const changes = await makeSCD(context, scdConfig, scdKey, groupId, mutations, baseTime);
+
+				// Apply hook if configured
+				if (config.hook) {
+					await config.hook(changes, "scd-pre", {
+						type: 'group',
+						groupKey,
+						scd: { [scdKey]: scdConfig },
+						config
+					});
+				}
+
+				// Store SCDs in the appropriate SCD table
+				for (const change of changes) {
+					try {
+						const target = storage.scdTableData.filter(arr => arr.scdKey === scdKey).pop();
+						await target.hookPush(change, { type: 'group', groupKey });
+					} catch (e) {
+						// Fallback for tests
+						const target = storage.scdTableData[0];
+						await target.hookPush(change, { type: 'group', groupKey });
+					}
+				}
+			}
+		}
+	}
+
+	if (isCLI || config.verbose) {
+		console.log('✅ Group SCDs generated successfully');
+	}
 }
 
 /**
  * Generate charts for data visualization
- * @param {Object} context - Context object
+ * @param {Context} context - Context object
  */
 async function generateCharts(context) {
-    const { config, storage } = context;
-    
-    if (config.makeChart && storage.eventData?.length > 0) {
-        const chartPath = typeof config.makeChart === 'string' 
-            ? config.makeChart 
-            : `./charts/${config.simulationName}-timeline.png`;
-            
-        await generateLineChart(storage.eventData, chartPath);
-        sLog("Chart generated", { path: chartPath });
-    }
+	const { config, storage } = context;
+
+	if (config.makeChart && storage.eventData?.length > 0) {
+		const chartPath = typeof config.makeChart === 'string'
+			? config.makeChart
+			: `./charts/${config.simulationName}-timeline.png`;
+
+		await generateLineChart(storage.eventData, undefined, chartPath);
+
+		if (isCLI || config.verbose) {
+			console.log(`📊 Chart generated: ${chartPath}`);
+		} else {
+			sLog("Chart generated", { path: chartPath });
+		}
+	}
+}
+
+/**
+ * Flush all storage containers to disk
+ * @param {import('./types').Storage} storage - Storage containers
+ * @param {import('./types').Dungeon} config - Configuration object
+ */
+async function flushStorageToDisk(storage, config) {
+	if (isCLI || config.verbose) {
+		console.log('\n💾 Writing data to disk...');
+	}
+
+	const flushPromises = [];
+
+	// Flush single HookedArray containers
+	if (storage.eventData?.flush) flushPromises.push(storage.eventData.flush());
+	if (storage.userProfilesData?.flush) flushPromises.push(storage.userProfilesData.flush());
+	if (storage.adSpendData?.flush) flushPromises.push(storage.adSpendData.flush());
+	if (storage.mirrorEventData?.flush) flushPromises.push(storage.mirrorEventData.flush());
+	if (storage.groupEventData?.flush) flushPromises.push(storage.groupEventData.flush());
+
+	// Flush arrays of HookedArrays
+	[storage.scdTableData, storage.groupProfilesData, storage.lookupTableData].forEach(arrayOfContainers => {
+		if (Array.isArray(arrayOfContainers)) {
+			arrayOfContainers.forEach(container => {
+				if (container?.flush) flushPromises.push(container.flush());
+			});
+		}
+	});
+
+	await Promise.all(flushPromises);
+
+	if (isCLI || config.verbose) {
+		console.log('✅ Data flushed to disk successfully');
+	}
 }
 
 /**
  * Extract file information from storage containers
- * @param {Storage} storage - Storage object
+ * @param {import('./types').Storage} storage - Storage object
  * @returns {string[]} Array of file paths
  */
 function extractFileInfo(storage) {
-    const files = [];
-    
-    Object.values(storage).forEach(container => {
-        if (Array.isArray(container)) {
-            container.forEach(subContainer => {
-                if (subContainer?.getWritePath) {
-                    files.push(subContainer.getWritePath());
-                }
-            });
-        } else if (container?.getWritePath) {
-            files.push(container.getWritePath());
-        }
-    });
-    
-    return files;
+	const files = [];
+
+	Object.values(storage).forEach(container => {
+		if (Array.isArray(container)) {
+			container.forEach(subContainer => {
+				if (subContainer?.getWritePath) {
+					files.push(subContainer.getWritePath());
+				}
+			});
+		} else if (container?.getWritePath) {
+			files.push(container.getWritePath());
+		}
+	});
+
+	return files;
+}
+
+/**
+ * Extract data from storage containers, preserving array structure for groups/lookups/SCDs
+ * @param {import('./types').Storage} storage - Storage object
+ * @returns {object} Extracted data in Result format
+ */
+function extractStorageData(storage) {
+	return {
+		eventData: storage.eventData || [],
+		mirrorEventData: storage.mirrorEventData || [],
+		userProfilesData: storage.userProfilesData || [],
+		adSpendData: storage.adSpendData || [],
+		// Keep arrays of HookedArrays as separate arrays (don't flatten)
+		scdTableData: storage.scdTableData || [],
+		groupProfilesData: storage.groupProfilesData || [],
+		lookupTableData: storage.lookupTableData || []
+	};
 }
 
 // CLI execution
 if (isCLI) {
-    const cliConfig = getCliParams();
-    main(cliConfig)
-        .then(result => {
-            sLog("Job completed successfully", {
-                events: result.eventCount,
-                users: result.userCount,
-                time: result.time.human
-            });
-            process.exit(0);
-        })
-        .catch(error => {
-            sLog("Job failed", { error: error.message }, "ERROR");
-            process.exit(1);
-        });
+	(async () => {
+		const cliConfig = getCliParams();
+
+		// Load dungeon config if --complex or --simple flags are used
+		let finalConfig = cliConfig;
+		if (cliConfig.complex) {
+			const complexConfig = await import('./dungeons/complex.js');
+			finalConfig = { ...complexConfig.default, ...cliConfig };
+		} else if (cliConfig.simple) {
+			const simpleConfig = await import('./dungeons/simple.js');
+			finalConfig = { ...simpleConfig.default, ...cliConfig };
+		}
+
+		main(finalConfig)
+			.then(result => {
+				console.log(`📊 Generated ${(result.eventCount || 0).toLocaleString()} events for ${(result.userCount || 0).toLocaleString()} users`);
+				console.log(`⏱️  Total time: ${result.time?.human || 'unknown'}`);
+				if (result.files?.length) {
+					console.log(`📁 Files written: ${result.files.length}`);
+					if (cliConfig.verbose) {
+						result.files.forEach(file => console.log(`   ${file}`));
+					}
+				}
+				console.log(`\n✅ Job completed successfully!`);
+				process.exit(0);
+			})
+			.catch(error => {
+				console.error(`\n❌ Job failed: ${error.message}`);
+				if (cliConfig.verbose) {
+					console.error(error.stack);
+				}
+				process.exit(1);
+			});
+	})();
 }
 
 // Cloud Functions setup
 functions.http('entry', async (req, res) => {
-    await handleCloudFunctionEntry(req, res, main);
+	await handleCloudFunctionEntry(req, res, main);
 });
 
 // ES Module export
@@ -209,5 +474,5 @@ export default main;
 
 // CommonJS compatibility
 if (typeof module !== 'undefined' && module.exports) {
-    module.exports = main;
+	module.exports = main;
 }

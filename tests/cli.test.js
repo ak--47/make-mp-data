@@ -1,3 +1,4 @@
+//@ts-nocheck
 import generate from '../index.js';
 import 'dotenv/config';
 import { execSync } from "child_process";
@@ -23,7 +24,7 @@ describe.sequential('cli', () => {
 	test('sanity check', async () => {
 		console.log('SANITY TEST');
 		const run = execSync(`node ./index.js --numEvents 100 --numUsers 10`);
-		const ending = `enjoy your data! :)`;
+		const ending = `completed successfully!`;
 		expect(run.toString().trim().endsWith(ending)).toBe(true);
 		const files = (await u.ls('./data')).filter(a => a.includes('.csv'));
 		expect(files.length).toBe(2);
@@ -53,7 +54,7 @@ describe.sequential('cli', () => {
 	test('no args', async () => {
 		console.log('BARE CLI TEST');
 		const run = execSync(`node ./index.js --numEvents 100 --numUsers 10`);
-		expect(run.toString().trim().includes('enjoy your data! :)')).toBe(true);
+		expect(run.toString().trim().includes('completed successfully!')).toBe(true);
 		const csvs = (await u.ls('./data')).filter(a => a.includes('.csv'));
 		expect(csvs.length).toBe(2);
 
@@ -70,7 +71,7 @@ describe.sequential('cli', () => {
 	test('--simple', async () => {
 		console.log('SIMPLE CLI TEST');
 		const run = execSync(`node ./index.js --numEvents 100 --numUsers 10 --seed "deal with it" --simple`);
-		expect(run.toString().trim().includes('enjoy your data! :)')).toBe(true);
+		expect(run.toString().trim().includes('completed successfully!')).toBe(true);
 		const csvs = (await u.ls('./data')).filter(a => a.includes('.csv'));
 		expect(csvs.length).toBe(2);
 
