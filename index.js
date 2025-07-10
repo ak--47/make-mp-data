@@ -39,6 +39,8 @@ import utc from "dayjs/plugin/utc.js";
 import functions from '@google-cloud/functions-framework';
 import { timer, sLog } from 'ak-tools';
 import fs, { existsSync } from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
 
 // Initialize dayjs and time constants
 dayjs.extend(utc);
@@ -48,7 +50,9 @@ let FIXED_BEGIN = dayjs.unix(FIXED_NOW).subtract(90, 'd').unix();
 global.FIXED_BEGIN = FIXED_BEGIN;
 
 // Package version
-const { version } = JSON.parse(fs.readFileSync('./package.json', 'utf8'));
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const packageJsonPath = path.join(__dirname, 'package.json');
+const { version } = JSON.parse(fs.readFileSync(packageJsonPath, 'utf8'));
 
 // Environment
 const { NODE_ENV = "unknown" } = process.env;

@@ -1,10 +1,19 @@
 {
 	"name": "make-mp-data",
-	"version": "2.0.1",
+	"version": "2.0.12",
 	"description": "builds all mixpanel primitives for a given project",
 	"type": "module",
 	"main": "index.js",
 	"types": "types.d.ts",
+	"files": [
+		"index.js",
+		"types.d.ts",
+		"lib/",
+		"dungeons/",
+		"!dungeons/customers/",
+		"package.json",
+		"README.md"
+	],
 	"scripts": {
 		"start": "node ./index.js",
 		"dev": "nodemon scratch.mjs --ignore ./data/*",
