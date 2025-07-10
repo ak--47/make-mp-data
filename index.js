@@ -454,12 +454,13 @@ if (isCLI) {
 	(async () => {
 		const cliConfig = getCliParams();
 
-		// Load dungeon config if --complex or --simple flags are used
+		// Load dungeon config - default to simple mode if no mode specified
 		let finalConfig = cliConfig;
 		if (cliConfig.complex) {
 			const complexConfig = await import('./dungeons/complex.js');
 			finalConfig = { ...complexConfig.default, ...cliConfig };
-		} else if (cliConfig.simple) {
+		} else if (cliConfig.simple || (!cliConfig.complex && !cliConfig.simple)) {
+			// Default to simple mode when no flags or when --simple is explicitly set
 			const simpleConfig = await import('./dungeons/simple.js');
 			finalConfig = { ...simpleConfig.default, ...cliConfig };
 		}
