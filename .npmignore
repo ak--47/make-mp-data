@@ -1,0 +1,51 @@
+# Development and testing files
+tests/
+coverage/
+node_modules/
+.nyc_output/
+
+# Build and temporary files
+data/
+tmp/
+*.log
+log.json
+
+# Development configuration
+.env
+.env.*
+env.yml
+.DS_Store
+*.tgz
+
+# Documentation and examples (keep README.md)
+examples/
+docs/
+CLAUDE.md
+
+# Version control and CI
+.git/
+.github/
+.gitignore
+.gcloudignore
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Customer-specific configurations
+dungeons/customers/
+
+# Cloud and deployment files
+cloud/
+scripts/
+
+# Chart output
+charts/
+
+# Development scripts
+scratch.*
+vitest.config.js
+vscode-profile-*

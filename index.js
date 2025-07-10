@@ -56,7 +56,6 @@ const { version } = JSON.parse(fs.readFileSync(packageJsonPath, 'utf8'));
 
 // Environment
 const { NODE_ENV = "unknown" } = process.env;
-const isCLI = process.argv[1].endsWith('index.js') || process.argv[1].endsWith('cli.js');
 
 /**
  * Main data generation function
@@ -68,6 +67,7 @@ async function main(config) {
 	jobTimer.start();
 
 	//cli mode check for positional dungeon config
+	const isCLI = import.meta.url === `file://${process.argv[1]}`;
 	if (isCLI) {
 		const firstArg = config._.slice().pop()
 		if (firstArg?.endsWith('.js') && existsSync(firstArg)) {
@@ -86,12 +86,13 @@ async function main(config) {
 	}
 
 	let validatedConfig;
+	let context;
 	try {
 		// Step 1: Validate and enrich configuration
 		validatedConfig = validateDungeonConfig(config);
 
 		// Step 2: Create context with validated config
-		const context = createContext(validatedConfig);
+		const context = createContext(validatedConfig, null, isCLI);
 
 		// Step 3: Initialize storage containers
 		const storageManager = new StorageManager(context);
@@ -159,7 +160,9 @@ async function main(config) {
 		};
 
 	} catch (error) {
-		if (isCLI || validatedConfig.verbose) {
+		
+		// @ts-ignore
+		if (context.isCLI() || validatedConfig.verbose) {
 			console.error(`\n❌ Error: ${error.message}\n`);
 			if (validatedConfig.verbose) {
 				console.error(error.stack);
@@ -199,7 +202,7 @@ async function generateGroupProfiles(context) {
 	const { config, storage } = context;
 	const { groupKeys, groupProps = {} } = config;
 
-	if (isCLI || config.verbose) {
+	if (context.isCLI() || config.verbose) {
 		console.log('\n👥 Generating group profiles...');
 	}
 
@@ -212,7 +215,7 @@ async function generateGroupProfiles(context) {
 			continue;
 		}
 
-		if (isCLI || config.verbose) {
+		if (context.isCLI() || config.verbose) {
 			console.log(`   Creating ${groupCount.toLocaleString()} ${groupKey} profiles...`);
 		}
 
@@ -228,7 +231,7 @@ async function generateGroupProfiles(context) {
 		}
 	}
 
-	if (isCLI || config.verbose) {
+	if (context.isCLI() || config.verbose) {
 		console.log('✅ Group profiles generated successfully');
 	}
 }
@@ -241,7 +244,7 @@ async function generateLookupTables(context) {
 	const { config, storage } = context;
 	const { lookupTables } = config;
 
-	if (isCLI || config.verbose) {
+	if (context.isCLI() || config.verbose) {
 		console.log('\n🔍 Generating lookup tables...');
 	}
 
@@ -255,7 +258,7 @@ async function generateLookupTables(context) {
 			continue;
 		}
 
-		if (isCLI || config.verbose) {
+		if (context.isCLI() || config.verbose) {
 			console.log(`   Creating ${entries.toLocaleString()} ${key} lookup entries...`);
 		}
 
@@ -268,7 +271,7 @@ async function generateLookupTables(context) {
 		}
 	}
 
-	if (isCLI || config.verbose) {
+	if (context.isCLI() || config.verbose) {
 		console.log('✅ Lookup tables generated successfully');
 	}
 }
@@ -281,7 +284,7 @@ async function generateGroupSCDs(context) {
 	const { config, storage } = context;
 	const { scdProps, groupKeys } = config;
 
-	if (isCLI || config.verbose) {
+	if (context.isCLI() || config.verbose) {
 		console.log('\n📊 Generating group SCDs...');
 	}
 
@@ -304,7 +307,7 @@ async function generateGroupSCDs(context) {
 			continue; // No SCDs for this group type
 		}
 
-		if (isCLI || config.verbose) {
+		if (context.isCLI() || config.verbose) {
 			console.log(`   Generating SCDs for ${groupCount.toLocaleString()} ${groupKey} entities...`);
 		}
 
@@ -346,7 +349,7 @@ async function generateGroupSCDs(context) {
 		}
 	}
 
-	if (isCLI || config.verbose) {
+	if (context.isCLI() || config.verbose) {
 		console.log('✅ Group SCDs generated successfully');
 	}
 }
@@ -365,7 +368,7 @@ async function generateCharts(context) {
 
 		await generateLineChart(storage.eventData, undefined, chartPath);
 
-		if (isCLI || config.verbose) {
+		if (context.isCLI() || config.verbose) {
 			console.log(`📊 Chart generated: ${chartPath}`);
 		} else {
 			sLog("Chart generated", { path: chartPath });
@@ -379,7 +382,7 @@ async function generateCharts(context) {
  * @param {import('./types').Dungeon} config - Configuration object
  */
 async function flushStorageToDisk(storage, config) {
-	if (isCLI || config.verbose) {
+	if (config.verbose) {
 		console.log('\n💾 Writing data to disk...');
 	}
 
@@ -403,7 +406,7 @@ async function flushStorageToDisk(storage, config) {
 
 	await Promise.all(flushPromises);
 
-	if (isCLI || config.verbose) {
+	if (config.verbose) {
 		console.log('✅ Data flushed to disk successfully');
 	}
 }
@@ -449,8 +452,21 @@ function extractStorageData(storage) {
 	};
 }
 
-// CLI execution
-if (isCLI) {
+// Cloud Functions setup
+functions.http('entry', async (req, res) => {
+	await handleCloudFunctionEntry(req, res, main);
+});
+
+// ES Module export
+export default main;
+
+// CommonJS compatibility
+if (typeof module !== 'undefined' && module.exports) {
+	module.exports = main;
+}
+
+// CLI execution - check if this file is being run directly
+if (import.meta.url === `file://${process.argv[1]}`) {
 	(async () => {
 		const cliConfig = getCliParams();
 
@@ -486,17 +502,4 @@ if (isCLI) {
 				process.exit(1);
 			});
 	})();
-}
-
-// Cloud Functions setup
-functions.http('entry', async (req, res) => {
-	await handleCloudFunctionEntry(req, res, main);
-});
-
-// ES Module export
-export default main;
-
-// CommonJS compatibility
-if (typeof module !== 'undefined' && module.exports) {
-	module.exports = main;
 }
