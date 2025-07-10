@@ -67,7 +67,7 @@ async function main(config) {
 	jobTimer.start();
 
 	//cli mode check for positional dungeon config
-	const isCLI = import.meta.url === `file://${process.argv[1]}`;
+	const isCLI = process.argv[1] === fileURLToPath(import.meta.url);
 	if (isCLI) {
 		const firstArg = config._.slice().pop()
 		if (firstArg?.endsWith('.js') && existsSync(firstArg)) {
@@ -466,7 +466,8 @@ if (typeof module !== 'undefined' && module.exports) {
 }
 
 // CLI execution - check if this file is being run directly
-if (import.meta.url === `file://${process.argv[1]}`) {
+const __filename = fileURLToPath(import.meta.url);
+if (process.argv[1] === __filename) {
 	(async () => {
 		const cliConfig = getCliParams();
 
