@@ -29,8 +29,6 @@ import { makeMirror } from './lib/generators/mirror.js';
 import { makeGroupProfile, makeProfile } from './lib/generators/profiles.js';
 
 // Utilities
-import getCliParams from './lib/cli/cli.js';
-import * as u from './lib/utils/utils.js';
 import { generateLineChart } from './lib/utils/chart.js';
 
 // External dependencies
@@ -49,13 +47,6 @@ global.FIXED_NOW = FIXED_NOW;
 let FIXED_BEGIN = dayjs.unix(FIXED_NOW).subtract(90, 'd').unix();
 global.FIXED_BEGIN = FIXED_BEGIN;
 
-// Package version
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const packageJsonPath = path.join(__dirname, 'package.json');
-const { version } = JSON.parse(fs.readFileSync(packageJsonPath, 'utf8'));
-
-// Environment
-const { NODE_ENV = "unknown" } = process.env;
 
 /**
  * Main data generation function
@@ -86,7 +77,6 @@ async function main(config) {
 	}
 
 	let validatedConfig;
-	let context;
 	try {
 		// Step 1: Validate and enrich configuration
 		validatedConfig = validateDungeonConfig(config);
