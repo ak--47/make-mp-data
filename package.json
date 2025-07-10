@@ -1,12 +1,13 @@
 {
 	"name": "make-mp-data",
-	"version": "2.0.15",
+	"version": "2.0.16",
 	"description": "builds all mixpanel primitives for a given project",
 	"type": "module",
 	"main": "index.js",
 	"types": "types.d.ts",
 	"files": [
 		"index.js",
+		"cli.js",
 		"types.d.ts",
 		"lib/",
 		"dungeons/",
@@ -37,7 +38,7 @@
 		"url": "git+https://github.com/ak--47/make-mp-data.git"
 	},
 	"bin": {
-		"make-mp-data": "./index.js"
+		"make-mp-data": "./cli.js"
 	},
 	"keywords": [
 		"mixpanel",

@@ -67,7 +67,7 @@ async function main(config) {
 	jobTimer.start();
 
 	//cli mode check for positional dungeon config
-	const isCLI = process.argv[1] === fileURLToPath(import.meta.url);
+	const isCLI = config._ && Array.isArray(config._);
 	if (isCLI) {
 		const firstArg = config._.slice().pop()
 		if (firstArg?.endsWith('.js') && existsSync(firstArg)) {
@@ -160,13 +160,9 @@ async function main(config) {
 		};
 
 	} catch (error) {
-		
-		// @ts-ignore
-		if (context.isCLI() || validatedConfig.verbose) {
+		if (validatedConfig?.verbose) {
 			console.error(`\n❌ Error: ${error.message}\n`);
-			if (validatedConfig.verbose) {
-				console.error(error.stack);
-			}
+			console.error(error.stack);
 		} else {
 			sLog("Main execution error", { error: error.message, stack: error.stack }, "ERROR");
 		}
@@ -465,42 +461,3 @@ if (typeof module !== 'undefined' && module.exports) {
 	module.exports = main;
 }
 
-// CLI execution - check if this file is being run directly
-const __filename = fileURLToPath(import.meta.url);
-if (process.argv[1] === __filename) {
-	(async () => {
-		const cliConfig = getCliParams();
-
-		// Load dungeon config - default to simple mode if no mode specified
-		let finalConfig = cliConfig;
-		if (cliConfig.complex) {
-			const complexConfig = await import('./dungeons/complex.js');
-			finalConfig = { ...complexConfig.default, ...cliConfig };
-		} else if (cliConfig.simple || (!cliConfig.complex && !cliConfig.simple)) {
-			// Default to simple mode when no flags or when --simple is explicitly set
-			const simpleConfig = await import('./dungeons/simple.js');
-			finalConfig = { ...simpleConfig.default, ...cliConfig };
-		}
-
-		main(finalConfig)
-			.then(result => {
-				console.log(`📊 Generated ${(result.eventCount || 0).toLocaleString()} events for ${(result.userCount || 0).toLocaleString()} users`);
-				console.log(`⏱️  Total time: ${result.time?.human || 'unknown'}`);
-				if (result.files?.length) {
-					console.log(`📁 Files written: ${result.files.length}`);
-					if (cliConfig.verbose) {
-						result.files.forEach(file => console.log(`   ${file}`));
-					}
-				}
-				console.log(`\n✅ Job completed successfully!`);
-				process.exit(0);
-			})
-			.catch(error => {
-				console.error(`\n❌ Job failed: ${error.message}`);
-				if (cliConfig.verbose) {
-					console.error(error.stack);
-				}
-				process.exit(1);
-			});
-	})();
-}
