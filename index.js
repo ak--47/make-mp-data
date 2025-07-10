@@ -38,7 +38,7 @@ import dayjs from "dayjs";
 import utc from "dayjs/plugin/utc.js";
 import functions from '@google-cloud/functions-framework';
 import { timer, sLog } from 'ak-tools';
-import fs from 'fs';
+import fs, { existsSync } from 'fs';
 
 // Initialize dayjs and time constants
 dayjs.extend(utc);
@@ -62,6 +62,25 @@ const isCLI = process.argv[1].endsWith('index.js') || process.argv[1].endsWith('
 async function main(config) {
 	const jobTimer = timer('job');
 	jobTimer.start();
+
+	//cli mode check for positional dungeon config
+	if (isCLI) {
+		const firstArg = config._.slice().pop()
+		if (firstArg?.endsWith('.js') && existsSync(firstArg)) {
+			if (config.verbose) {
+				console.log(`\n🔍 Loading dungeon config from: ${firstArg}`);
+			}
+			try {
+				const dungeonConfig = await import(firstArg);
+				config = dungeonConfig.default || dungeonConfig;
+			} catch (error) {
+				console.error(`\n❌ Error loading dungeon config from ${firstArg}: ${error.message}`);
+				throw error;
+			}
+		}
+		
+	}
+
 	let validatedConfig;
 	try {
 		// Step 1: Validate and enrich configuration
