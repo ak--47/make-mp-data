@@ -13,26 +13,17 @@ TO DOs
 
 import main from "./index.js";
 
+import * as execSync from 'child_process';
 import simple from './dungeons/simple.js';
-import funnels from './dungeons/funnels.js';
-import foobar from './dungeons/foobar.js';
-import complex from './dungeons/complex.js';
-import adspend from './dungeons/adspend.js'
-
-import anon from './dungeons/anon.js';
-import execSync from 'child_process';
-import mirror from './dungeons/mirror.js'
-// import mds from './dungeons/modern-data-stack.js'
-import big from './dungeons/big.js'
 
 const numEvents = 1000;
 
-/** @type {main.Config} */
+/** @type {import('./types').Dungeon} */
 const spec = {
 	...simple,
 	numEvents: 10_000,
-	batchSize: 1_000,	
-	writeToDisk: "gs://dungeon_master_4/scratch",
+	// batchSize: 1_000,	
+	// writeToDisk: "gs://dungeon_master_4/scratch",
 	verbose: true,
 	makeChart: false,
 	hasAnonIds: true,
