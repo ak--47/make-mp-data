@@ -11,6 +11,12 @@
 			"type": "node-terminal"
 		},
 		{
+			"command": "npm run test:quick",
+			"name": "quick",
+			"request": "launch",
+			"type": "node-terminal"
+		},
+		{
             "type": "node",
             "request": "launch",
             "name": "run dungeon",

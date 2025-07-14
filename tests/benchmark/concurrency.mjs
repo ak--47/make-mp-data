@@ -38,7 +38,7 @@ const results = [];
 for (const concurrent of concurrency) {
 	console.log(`concurrency: ${concurrent}`);
 	// @ts-ignore
-	const test = await main({ ...noWrites, concurrency: concurrent });
+	const test = await main({ ...noWrites, concurrency: concurrent, verbose: true });
 	results.push({ human: test.time.human, concurrency: concurrent });
 	console.log(`\t\tdone: ${test.time.human}\n\n`);
 }
