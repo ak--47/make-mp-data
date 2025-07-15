@@ -16,6 +16,8 @@ import scd from '../dungeons/scd.js';
 
 const timeout = 600000;
 const testToken = process.env.TEST_TOKEN || "hello token!";
+const successStatement = `✅ Job completed successfully!`
+const runCommand = `node ./cli.js`
 
 // Use sequential execution to prevent CLI tests from interfering with each other
 // since they use execSync and create/modify files in the same directories
@@ -23,9 +25,9 @@ describe.sequential('cli', () => {
 
 	test('sanity check', async () => {
 		console.log('SANITY TEST');
-		const run = execSync(`node ./index.js --numEvents 100 --numUsers 10`);
-		const ending = `completed successfully!`;
-		expect(run.toString().trim().endsWith(ending)).toBe(true);
+		const run = execSync(`${runCommand} --numEvents 100 --numUsers 10`);
+		const result = run.toString().trim();
+		expect(result.endsWith(successStatement)).toBe(true);
 		const files = (await u.ls('./data')).filter(a => a.includes('.csv'));
 		expect(files.length).toBe(2);
 		const users = files.filter(a => a.includes('USERS'));
@@ -53,8 +55,9 @@ describe.sequential('cli', () => {
 
 	test('no args', async () => {
 		console.log('BARE CLI TEST');
-		const run = execSync(`node ./index.js --numEvents 100 --numUsers 10`);
-		expect(run.toString().trim().includes('completed successfully!')).toBe(true);
+		const run = execSync(`${runCommand} --numEvents 100 --numUsers 10`);
+		const result = run.toString().trim();
+		expect(result.endsWith(successStatement)).toBe(true);
 		const csvs = (await u.ls('./data')).filter(a => a.includes('.csv'));
 		expect(csvs.length).toBe(2);
 
@@ -62,7 +65,7 @@ describe.sequential('cli', () => {
 
 	test('--complex', async () => {
 		console.log('COMPLEX CLI TEST');
-		const run = execSync(`node ./index.js --numEvents 100 --numUsers 10 --seed "deal with it" --complex`, { stdio: "ignore" });
+		const run = execSync(`${runCommand} --numEvents 100 --numUsers 10 --seed "deal with it" --complex`, { stdio: "ignore" });		
 		const csvs = (await u.ls('./data')).filter(a => a.includes('.json'));
 		expect(csvs.length).toBeGreaterThan(7);
 
@@ -70,8 +73,9 @@ describe.sequential('cli', () => {
 
 	test('--simple', async () => {
 		console.log('SIMPLE CLI TEST');
-		const run = execSync(`node ./index.js --numEvents 100 --numUsers 10 --seed "deal with it" --simple`);
-		expect(run.toString().trim().includes('completed successfully!')).toBe(true);
+		const run = execSync(`${runCommand} --numEvents 100 --numUsers 10 --seed "deal with it" --simple`);
+		const result = run.toString().trim();
+		expect(result.endsWith(successStatement)).toBe(true);
 		const csvs = (await u.ls('./data')).filter(a => a.includes('.csv'));
 		expect(csvs.length).toBe(2);
 

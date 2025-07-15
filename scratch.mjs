@@ -21,7 +21,8 @@ const numEvents = 1000;
 /** @type {import('./types').Dungeon} */
 const spec = {
 	...simple,
-	numEvents: 10_000,
+	numUsers: 10_000,
+	numEvents: 100_000,
 	// batchSize: 1_000,	
 	// writeToDisk: "gs://dungeon_master_4/scratch",
 	verbose: true,

@@ -1,4 +1,4 @@
-import { generateLineChart } from '../components/chart.js';
+import { generateLineChart } from '../lib/utils/chart.js';
 import { TimeSoup } from '../lib/utils/utils.js';
 import dayjs from 'dayjs';
 import { progress } from 'ak-tools';
