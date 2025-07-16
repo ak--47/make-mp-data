@@ -36,7 +36,7 @@ const config = {
 	makeChart: false,
 
 	batchSize: 500_000,
-	concurrency: 500,
+	concurrency: 10,
 
 	funnels: [],
 	events: [

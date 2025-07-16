@@ -40,6 +40,7 @@ const config = {
 	hasBrowser: true,
 	hasCampaigns: true,
 	isAnonymous: false,
+	concurrency: 10,
 
 
 	events: [

@@ -29,6 +29,7 @@ const config = {
 	hasSessionIds: false, //if true, hasSessionIds are created for each user
 	alsoInferFunnels: true, //if true, infer funnels from events
 	makeChart: true,
+	concurrency: 10,
 	funnels: [
 		{
 			sequence: ["qux", "garply", "durtle", "linny", "fonk", "crumn", "yak"],			
