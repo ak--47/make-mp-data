@@ -60,7 +60,7 @@ async function main(config) {
 	//cli mode check for positional dungeon config
 	const isCLI = config._ && Array.isArray(config._);
 	if (isCLI) {
-		const firstArg = config._.slice().pop()
+		const firstArg = config._.slice().pop();
 		if (firstArg?.endsWith('.js') && existsSync(firstArg)) {
 			if (config.verbose) {
 				console.log(`\n🔍 Loading dungeon config from: ${firstArg}`);
@@ -73,9 +73,10 @@ async function main(config) {
 				throw error;
 			}
 		}
-		
+
 	}
 
+	if (config.verbose) console.log(`\n🔧 Configuring dungeon with seed: ${config.seed}`);
 	let validatedConfig;
 	try {
 		// Step 1: Validate and enrich configuration
@@ -94,6 +95,7 @@ async function main(config) {
 			await generateAdSpendData(context);
 		}
 
+		if (context.config.verbose) console.log(`\n🔄 Starting user and event generation...\n`);
 		// Step 5: Main user and event generation
 		await userLoop(context);
 
