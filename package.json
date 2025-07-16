@@ -38,7 +38,7 @@
 		"url": "git+https://github.com/ak--47/make-mp-data.git"
 	},
 	"bin": {
-		"make-mp-data": "./cli.js"
+		"make-mp-data": "./entry.js"
 	},
 	"keywords": [
 		"mixpanel",
