@@ -20,3 +20,5 @@ dungeons/customers/*.js
 !dungeons/customers/.gitkeep
 log.json
 CLAUDE.md
+vscode-profile-*
+PHASE1-IMPROVEMENTS.md

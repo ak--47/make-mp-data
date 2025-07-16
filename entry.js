@@ -22,12 +22,13 @@ import getCliParams from './lib/cli/cli.js';
             const simpleConfig = await import('./dungeons/simple.js');
             finalConfig = { ...simpleConfig.default, ...cliConfig };
         }
-
-        const result = await main(finalConfig);
-        
+		
+		
+        const result = await main(finalConfig);        
         console.log(`📊 Generated ${(result.eventCount || 0).toLocaleString()} events for ${(result.userCount || 0).toLocaleString()} users`);
         console.log(`⏱️  Total time: ${result.time?.human || 'unknown'}`);
-        if (result.files?.length) {
+        
+		if (result.files?.length) {
             console.log(`📁 Files written: ${result.files.length}`);
             if (cliConfig.verbose) {
                 result.files.forEach(file => console.log(`   ${file}`));

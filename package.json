@@ -1,6 +1,6 @@
 {
 	"name": "make-mp-data",
-	"version": "2.0.17",
+	"version": "2.0.18",
 	"description": "builds all mixpanel primitives for a given project",
 	"type": "module",
 	"main": "index.js",
@@ -22,13 +22,13 @@
 		"post": "npm publish",
 		"deps": "./scripts/update-deps.sh",
 		"test": "NODE_ENV=test vitest run",
-		"test:watch": "NODE_ENV=test vitest",
-		"test:ui": "NODE_ENV=test vitest --ui",
 		"coverage": "vitest run --coverage && open ./coverage/index.html",
 		"typecheck": "tsc --noEmit",
 		"new:dungeon": "./scripts/new-dungeon.sh",
 		"new:project": "node ./scripts/new-project.mjs",
-		"exp:benchmark": "node --no-warnings --experimental-vm-modules ./tests/benchmark/concurrency.mjs",
+		"exp:benchmark": "node ./tests/benchmark/concurrency.mjs",
+		"benchmark:phase1": "node ./tests/benchmark/phase1-performance.mjs",
+		"test:quick": "node ./tests/benchmark/quick-test.mjs",
 		"exp:soup": "node ./tests/testSoup.mjs",
 		"func:local": "functions-framework --target=entry",
 		"func:deploy": "./scripts/deploy.sh"
@@ -38,7 +38,7 @@
 		"url": "git+https://github.com/ak--47/make-mp-data.git"
 	},
 	"bin": {
-		"make-mp-data": "./cli.js"
+		"make-mp-data": "./entry.js"
 	},
 	"keywords": [
 		"mixpanel",

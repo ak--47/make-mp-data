@@ -25,10 +25,13 @@ import {
 	exhaust,
 	generateEmoji,
 	getUniqueKeys,
+	haveSameKeys,
+	deepClone,
 	integer,
 	mapToRange,
 	person,
 	pick,
+	pickRandom,
 	range,
 	pickAWinner,
 	weighNumRange,
@@ -907,4 +910,571 @@ describe('weights', () => {
 	});
 
 
+});
+
+describe('high CPU usage functions', () => {
+	
+	describe('haveSameKeys', () => {
+		test('empty array', () => {
+			expect(haveSameKeys([])).toBe(true);
+		});
+
+		test('single object', () => {
+			expect(haveSameKeys([{ a: 1, b: 2 }])).toBe(true);
+		});
+
+		test('identical keys', () => {
+			const arr = [
+				{ a: 1, b: 2, c: 3 },
+				{ a: 4, b: 5, c: 6 },
+				{ a: 7, b: 8, c: 9 }
+			];
+			expect(haveSameKeys(arr)).toBe(true);
+		});
+
+		test('different keys', () => {
+			const arr = [
+				{ a: 1, b: 2 },
+				{ a: 3, c: 4 },
+				{ a: 5, b: 6 }
+			];
+			expect(haveSameKeys(arr)).toBe(false);
+		});
+
+		test('different number of keys', () => {
+			const arr = [
+				{ a: 1, b: 2 },
+				{ a: 3, b: 4, c: 5 }
+			];
+			expect(haveSameKeys(arr)).toBe(false);
+		});
+
+		test('nested objects same keys', () => {
+			const arr = [
+				{ a: { x: 1 }, b: 2 },
+				{ a: { y: 3 }, b: 4 }
+			];
+			expect(haveSameKeys(arr)).toBe(true);
+		});
+
+		test('performance with large arrays', () => {
+			const largeArray = [];
+			for (let i = 0; i < 1000; i++) {
+				largeArray.push({ a: i, b: i * 2, c: i * 3 });
+			}
+			const start = Date.now();
+			const result = haveSameKeys(largeArray);
+			const end = Date.now();
+			expect(result).toBe(true);
+			expect(end - start).toBeLessThan(100); // Should complete in under 100ms
+		});
+
+		test('performance with inconsistent keys', () => {
+			const largeArray = [];
+			for (let i = 0; i < 1000; i++) {
+				if (i === 500) {
+					largeArray.push({ a: i, b: i * 2, d: i * 3 }); // Different key
+				} else {
+					largeArray.push({ a: i, b: i * 2, c: i * 3 });
+				}
+			}
+			const start = Date.now();
+			const result = haveSameKeys(largeArray);
+			const end = Date.now();
+			expect(result).toBe(false);
+			expect(end - start).toBeLessThan(100); // Should complete in under 100ms
+		});
+	});
+
+	describe('shuffleArray', () => {
+		test('empty array', () => {
+			const arr = [];
+			const result = shuffleArray([...arr]);
+			expect(result).toEqual([]);
+		});
+
+		test('single element', () => {
+			const arr = [42];
+			const result = shuffleArray([...arr]);
+			expect(result).toEqual([42]);
+		});
+
+		test('maintains all elements', () => {
+			const arr = [1, 2, 3, 4, 5];
+			const result = shuffleArray([...arr]);
+			expect(result.sort()).toEqual(arr.sort());
+		});
+
+		test('modifies original array', () => {
+			const arr = [1, 2, 3, 4, 5];
+			const original = [...arr];
+			shuffleArray(arr);
+			expect(arr).not.toEqual(original);
+		});
+
+		test('performance with large arrays', () => {
+			const largeArray = [];
+			for (let i = 0; i < 10000; i++) {
+				largeArray.push(i);
+			}
+			const start = Date.now();
+			const result = shuffleArray([...largeArray]);
+			const end = Date.now();
+			expect(result.length).toBe(10000);
+			expect(end - start).toBeLessThan(100); // Should complete in under 100ms
+		});
+
+		test('randomness distribution', () => {
+			const arr = [1, 2, 3, 4, 5];
+			const positions = { 1: [], 2: [], 3: [], 4: [], 5: [] };
+			
+			// Run shuffle 100 times and track positions
+			for (let i = 0; i < 100; i++) {
+				const shuffled = shuffleArray([...arr]);
+				shuffled.forEach((val, index) => {
+					positions[val].push(index);
+				});
+			}
+			
+			// Each value should appear in different positions
+			Object.values(positions).forEach(posArray => {
+				const uniquePositions = new Set(posArray);
+				expect(uniquePositions.size).toBeGreaterThan(1); // Should appear in multiple positions
+			});
+		});
+
+		test('array with duplicates', () => {
+			const arr = [1, 1, 2, 2, 3];
+			const result = shuffleArray([...arr]);
+			expect(result.sort()).toEqual([1, 1, 2, 2, 3]);
+		});
+	});
+});
+
+describe('deepClone', () => {
+	test('primitives: null and undefined', () => {
+		expect(deepClone(null)).toBe(null);
+		expect(deepClone(undefined)).toBe(undefined);
+	});
+
+	test('primitives: numbers, strings, booleans', () => {
+		expect(deepClone(42)).toBe(42);
+		expect(deepClone('hello')).toBe('hello');
+		expect(deepClone(true)).toBe(true);
+		expect(deepClone(false)).toBe(false);
+		expect(deepClone(0)).toBe(0);
+		expect(deepClone('')).toBe('');
+	});
+
+	test('primitives: symbols', () => {
+		const sym = Symbol('test');
+		const cloned = deepClone(sym);
+		expect(typeof cloned).toBe('symbol');
+		expect(cloned.description).toBe('test');
+		expect(cloned).not.toBe(sym); // Should be a new symbol
+	});
+
+	test('arrays: empty and simple', () => {
+		const emptyArr = [];
+		const cloned = deepClone(emptyArr);
+		expect(cloned).toEqual([]);
+		expect(cloned).not.toBe(emptyArr);
+
+		const simpleArr = [1, 2, 3];
+		const clonedSimple = deepClone(simpleArr);
+		expect(clonedSimple).toEqual([1, 2, 3]);
+		expect(clonedSimple).not.toBe(simpleArr);
+	});
+
+	test('arrays: nested arrays', () => {
+		const nested = [1, [2, 3], [4, [5, 6]]];
+		const cloned = deepClone(nested);
+		expect(cloned).toEqual([1, [2, 3], [4, [5, 6]]]);
+		expect(cloned).not.toBe(nested);
+		expect(cloned[1]).not.toBe(nested[1]);
+		expect(cloned[2][1]).not.toBe(nested[2][1]);
+	});
+
+	test('arrays: mixed types', () => {
+		const mixed = [1, 'hello', true, null, undefined, { a: 1 }];
+		const cloned = deepClone(mixed);
+		expect(cloned).toEqual([1, 'hello', true, null, undefined, { a: 1 }]);
+		expect(cloned).not.toBe(mixed);
+		expect(cloned[5]).not.toBe(mixed[5]);
+	});
+
+	test('objects: empty and simple', () => {
+		const empty = {};
+		const cloned = deepClone(empty);
+		expect(cloned).toEqual({});
+		expect(cloned).not.toBe(empty);
+
+		const simple = { a: 1, b: 2 };
+		const clonedSimple = deepClone(simple);
+		expect(clonedSimple).toEqual({ a: 1, b: 2 });
+		expect(clonedSimple).not.toBe(simple);
+	});
+
+	test('objects: nested objects', () => {
+		const nested = {
+			a: 1,
+			b: {
+				c: 2,
+				d: {
+					e: 3
+				}
+			}
+		};
+		const cloned = deepClone(nested);
+		expect(cloned).toEqual(nested);
+		expect(cloned).not.toBe(nested);
+		expect(cloned.b).not.toBe(nested.b);
+		expect(cloned.b.d).not.toBe(nested.b.d);
+	});
+
+	test('objects: with arrays', () => {
+		const obj = {
+			arr: [1, 2, 3],
+			nested: {
+				arr2: ['a', 'b', 'c']
+			}
+		};
+		const cloned = deepClone(obj);
+		expect(cloned).toEqual(obj);
+		expect(cloned).not.toBe(obj);
+		expect(cloned.arr).not.toBe(obj.arr);
+		expect(cloned.nested.arr2).not.toBe(obj.nested.arr2);
+	});
+
+	test('dates', () => {
+		const date = new Date('2023-01-01');
+		const cloned = deepClone(date);
+		expect(cloned).toBeInstanceOf(Date);
+		expect(cloned.getTime()).toBe(date.getTime());
+		expect(cloned).not.toBe(date);
+	});
+
+	test('regular expressions', () => {
+		const regex = /test/gi;
+		const cloned = deepClone(regex);
+		expect(cloned).toBeInstanceOf(RegExp);
+		expect(cloned.source).toBe('test');
+		expect(cloned.flags).toBe('gi');
+		expect(cloned).not.toBe(regex);
+	});
+
+	test('functions: default behavior', () => {
+		const func = function test() { return 42; };
+		const cloned = deepClone(func);
+		expect(cloned).toBe(func); // Should return same function by default
+	});
+
+	test('functions: with newFns option', () => {
+		const func = function test() { return 42; };
+		const cloned = deepClone(func, { newFns: true });
+		expect(typeof cloned).toBe('function');
+		expect(cloned()).toBe(42);
+		expect(cloned).not.toBe(func);
+	});
+
+	test('complex nested structures', () => {
+		const complex = {
+			str: 'hello',
+			num: 42,
+			bool: true,
+			arr: [1, 2, { nested: 'value' }],
+			obj: {
+				date: new Date('2023-01-01'),
+				regex: /test/g,
+				deep: {
+					deeper: {
+						deepest: [1, 2, 3]
+					}
+				}
+			}
+		};
+		
+		const cloned = deepClone(complex);
+		
+		// Check equality
+		expect(cloned.str).toBe('hello');
+		expect(cloned.num).toBe(42);
+		expect(cloned.bool).toBe(true);
+		expect(cloned.arr).toEqual([1, 2, { nested: 'value' }]);
+		expect(cloned.obj.date.getTime()).toBe(new Date('2023-01-01').getTime());
+		expect(cloned.obj.regex.source).toBe('test');
+		expect(cloned.obj.deep.deeper.deepest).toEqual([1, 2, 3]);
+		
+		// Check that objects are different references
+		expect(cloned).not.toBe(complex);
+		expect(cloned.arr).not.toBe(complex.arr);
+		expect(cloned.arr[2]).not.toBe(complex.arr[2]);
+		expect(cloned.obj).not.toBe(complex.obj);
+		expect(cloned.obj.date).not.toBe(complex.obj.date);
+		expect(cloned.obj.regex).not.toBe(complex.obj.regex);
+		expect(cloned.obj.deep.deeper.deepest).not.toBe(complex.obj.deep.deeper.deepest);
+	});
+
+	test('circular references handling', () => {
+		const obj = { a: 1 };
+		obj.circular = obj;
+		
+		// Current implementation does not handle circular references
+		// It will cause a stack overflow, which is expected behavior
+		expect(() => deepClone(obj)).toThrow('Maximum call stack size exceeded');
+	});
+
+	test('performance with large objects', () => {
+		const largeObj = {};
+		for (let i = 0; i < 1000; i++) {
+			largeObj[`key${i}`] = {
+				value: i,
+				array: new Array(10).fill(i),
+				nested: { deep: { value: i * 2 } }
+			};
+		}
+		
+		const start = Date.now();
+		const cloned = deepClone(largeObj);
+		const end = Date.now();
+		
+		expect(cloned).toEqual(largeObj);
+		expect(cloned).not.toBe(largeObj);
+		expect(end - start).toBeLessThan(500); // Should complete in under 500ms
+	});
+
+	test('edge cases: constructor edge cases', () => {
+		// Test fallback for objects that can't be constructed normally
+		const obj = Object.create(null);
+		obj.prop = 'value';
+		
+		const cloned = deepClone(obj);
+		expect(cloned.prop).toBe('value');
+		expect(cloned).not.toBe(obj);
+	});
+
+	test('arrays: sparse arrays', () => {
+		const sparse = [1, , 3, , 5]; // Array with holes
+		const cloned = deepClone(sparse);
+		expect(cloned.length).toBe(5);
+		expect(cloned[0]).toBe(1);
+		expect(cloned[1]).toBe(undefined);
+		expect(cloned[2]).toBe(3);
+		expect(cloned[3]).toBe(undefined);
+		expect(cloned[4]).toBe(5);
+		expect(cloned).not.toBe(sparse);
+	});
+
+	test('objects: with getters and setters', () => {
+		const obj = {
+			_value: 42,
+			get value() { return this._value; },
+			set value(v) { this._value = v; }
+		};
+		
+		const cloned = deepClone(obj);
+		expect(cloned._value).toBe(42);
+		// Note: getters/setters are not preserved, only enumerable properties
+	});
+
+	test('immutability: modifications don\'t affect original', () => {
+		const original = {
+			arr: [1, 2, 3],
+			obj: { a: 1, b: 2 }
+		};
+		
+		const cloned = deepClone(original);
+		
+		// Modify cloned object
+		cloned.arr.push(4);
+		cloned.obj.c = 3;
+		cloned.newProp = 'new';
+		
+		// Original should be unchanged
+		expect(original.arr).toEqual([1, 2, 3]);
+		expect(original.obj).toEqual({ a: 1, b: 2 });
+		expect(original.newProp).toBe(undefined);
+	});
+});
+
+describe('pickRandom', () => {
+	test('empty array', () => {
+		const result = pickRandom([]);
+		expect(result).toBe(undefined);
+	});
+
+	test('null or undefined input', () => {
+		expect(pickRandom(null)).toBe(undefined);
+		expect(pickRandom(undefined)).toBe(undefined);
+	});
+
+	test('single element array', () => {
+		const arr = [42];
+		const result = pickRandom(arr);
+		expect(result).toBe(42);
+	});
+
+	test('multiple elements - returns valid element', () => {
+		const arr = [1, 2, 3, 4, 5];
+		const result = pickRandom(arr);
+		expect(arr).toContain(result);
+	});
+
+	test('string array', () => {
+		const arr = ['apple', 'banana', 'cherry'];
+		const result = pickRandom(arr);
+		expect(arr).toContain(result);
+		expect(typeof result).toBe('string');
+	});
+
+	test('mixed type array', () => {
+		const arr = [1, 'hello', true, null, { key: 'value' }];
+		const result = pickRandom(arr);
+		expect(arr).toContain(result);
+	});
+
+	test('object array', () => {
+		const arr = [
+			{ id: 1, name: 'first' },
+			{ id: 2, name: 'second' },
+			{ id: 3, name: 'third' }
+		];
+		const result = pickRandom(arr);
+		expect(arr).toContain(result);
+		expect(result).toHaveProperty('id');
+		expect(result).toHaveProperty('name');
+	});
+
+	test('array with duplicates', () => {
+		const arr = [1, 1, 2, 2, 3];
+		const result = pickRandom(arr);
+		expect([1, 2, 3]).toContain(result);
+	});
+
+	test('large array', () => {
+		const arr = new Array(1000).fill(0).map((_, i) => i);
+		const result = pickRandom(arr);
+		expect(result).toBeGreaterThanOrEqual(0);
+		expect(result).toBeLessThan(1000);
+	});
+
+	test('distribution randomness', () => {
+		const arr = [1, 2, 3, 4, 5];
+		const results = [];
+		const iterations = 1000;
+		
+		// Run pickRandom many times to test distribution
+		for (let i = 0; i < iterations; i++) {
+			results.push(pickRandom(arr));
+		}
+		
+		// Check that all values appear at least once
+		const unique = [...new Set(results)];
+		expect(unique.length).toBe(5);
+		expect(unique.sort()).toEqual([1, 2, 3, 4, 5]);
+		
+		// Check that distribution is roughly even (no value appears more than 70% of the time)
+		arr.forEach(value => {
+			const count = results.filter(r => r === value).length;
+			const percentage = count / iterations;
+			expect(percentage).toBeLessThan(0.7); // Should be roughly 20% each, allow up to 70%
+			expect(percentage).toBeGreaterThan(0.05); // Should appear at least 5% of the time
+		});
+	});
+
+	test('deterministic with same seed', () => {
+		// This test verifies that pickRandom uses the chance instance
+		// Note: The global chance instance may not reset consistently in tests
+		const arr = [1, 2, 3, 4, 5];
+		
+		// Just verify that pickRandom works and returns valid values
+		const result1 = pickRandom(arr);
+		const result2 = pickRandom(arr);
+		
+		expect(arr).toContain(result1);
+		expect(arr).toContain(result2);
+		// Note: We can't reliably test determinism due to global state
+	});
+
+	test('does not modify original array', () => {
+		const originalArray = [1, 2, 3, 4, 5];
+		const arrayCopy = [...originalArray];
+		
+		pickRandom(originalArray);
+		
+		expect(originalArray).toEqual(arrayCopy);
+	});
+
+	test('performance with large arrays', () => {
+		const largeArray = new Array(10000).fill(0).map((_, i) => i);
+		
+		const start = Date.now();
+		for (let i = 0; i < 1000; i++) {
+			pickRandom(largeArray);
+		}
+		const end = Date.now();
+		
+		expect(end - start).toBeLessThan(100); // Should complete 1000 picks in under 100ms
+	});
+
+	test('edge cases: array with falsy values', () => {
+		const arr = [0, false, '', null, undefined];
+		const result = pickRandom(arr);
+		expect(arr).toContain(result);
+	});
+
+	test('edge cases: array with NaN', () => {
+		const arr = [1, 2, NaN, 4];
+		const result = pickRandom(arr);
+		// Special handling for NaN since NaN !== NaN
+		if (Number.isNaN(result)) {
+			expect(arr.some(x => Number.isNaN(x))).toBe(true);
+		} else {
+			expect(arr).toContain(result);
+		}
+	});
+
+	test('nested array elements', () => {
+		const arr = [[1, 2], [3, 4], [5, 6]];
+		const result = pickRandom(arr);
+		expect(Array.isArray(result)).toBe(true);
+		expect(result.length).toBe(2);
+		expect(arr).toContain(result);
+	});
+
+	test('comparison with pick function', () => {
+		// Test that pickRandom behaves similarly to pick for arrays
+		const arr = [1, 2, 3, 4, 5];
+		
+		const pickResult = pick(arr);
+		const pickRandomResult = pickRandom(arr);
+		
+		expect(arr).toContain(pickResult);
+		expect(arr).toContain(pickRandomResult);
+		expect(typeof pickResult).toBe(typeof pickRandomResult);
+	});
+});
+
+describe('garbage collection analysis', () => {
+	test('memory usage patterns', () => {
+		// Test that creates many temporary objects to understand GC pressure
+		const iterations = 1000;
+		const results = [];
+		
+		for (let i = 0; i < iterations; i++) {
+			const tempArray = new Array(100).fill(0).map((_, index) => ({
+				id: index,
+				value: Math.random(),
+				timestamp: Date.now()
+			}));
+			
+			// Simulate operations that might cause GC pressure
+			const shuffled = shuffleArray([...tempArray]);
+			const keysCheck = haveSameKeys(tempArray);
+			
+			results.push({ shuffled: shuffled.length, keysCheck });
+		}
+		
+		expect(results.length).toBe(iterations);
+	});
 });

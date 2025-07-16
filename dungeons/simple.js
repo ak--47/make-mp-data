@@ -118,8 +118,8 @@ const config = {
 			}
 		}
 	],
-	superProps: {		
-		currentTheme: weighChoices(["light", "dark", "custom", "light", "dark"]),
+	superProps: {
+		theme: pickAWinner(["light", "dark", "custom", "light", "dark"]),
 	},
 	/*
 	user properties work the same as event properties
@@ -141,10 +141,53 @@ const config = {
 	groupProps: {},
 	lookupTables: [],
 	hook: function (record, type, meta) {
+		if (type === "everything") {
+
+			//custom themers purchase more:
+			const numCustomMode = record.filter(a => a.theme === 'custom').length;
+			const numLightMode = record.filter(a => a.theme === 'light').length;
+			const numDarkMode = record.filter(a => a.theme === 'dark').length;
+			if (numCustomMode > numLightMode || numCustomMode > numDarkMode) {
+				//triple their checkout events
+				const checkoutEvents = record.filter(a => a.event === 'checkout');
+				const newCheckouts = checkoutEvents.map(a => {
+					const randomInt = integer(-48, 48);
+					const newCheckout = {
+						...a,
+						time: dayjs(a.time).add(randomInt, 'hour').toISOString(),
+						event: "checkout",
+						amount: a.amount * 2,
+						coupon: "50%OFF"
+					};
+					return newCheckout;
+				});
+				record.push(...newCheckouts);
+			}
+
+			//users who watch low quality videos churn more:
+			const loQuality = ["480p", "360p", "240p"];
+			const lowQualityWatches = record.filter(a => a.event === 'watch video' && loQuality.includes(a.quality));
+			const highQualityWatches = record.filter(a => a.event === 'watch video' && !loQuality.includes(a.quality));
+			if (lowQualityWatches.length > highQualityWatches.length) {
+				if (flip()) {
+					// find midpoint of records
+					const midpoint = Math.floor(record.length / 2);
+					record = record.slice(0, midpoint);
+
+				}
+			}
+
+		}
+
+
+
 		return record;
 	}
 };
 
+function flip(likelihood = 50) {
+	return chance.bool({ likelihood });
+}
 
 
 export default config;

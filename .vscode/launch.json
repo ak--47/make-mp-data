@@ -11,11 +11,17 @@
 			"type": "node-terminal"
 		},
 		{
+			"command": "npm run test:quick",
+			"name": "quick",
+			"request": "launch",
+			"type": "node-terminal"
+		},
+		{
             "type": "node",
             "request": "launch",
             "name": "run dungeon",
             "runtimeExecutable": "nodemon",            
-            "program": "${workspaceFolder}/index.js",
+            "program": "${workspaceFolder}/entry.js",
 			"args": ["${file}"],
             "restart": true,
             "console": "integratedTerminal",
@@ -57,7 +63,7 @@
             "name": "sanity",
             "runtimeExecutable": "nodemon",
             "runtimeArgs": ["--inspect"],
-            "program": "${workspaceFolder}/index.js",
+            "program": "${workspaceFolder}/entry.js",
 			"args": ["--ignore", "./data/*", "./schemas/sanity.js"],
             "restart": true,
             "console": "integratedTerminal",
@@ -68,13 +74,13 @@
             "type": "node-terminal",
             "request": "launch",
             "name": "simple",
-            "command": "node ${workspaceFolder}/index.js --simple"
+            "command": "node ${workspaceFolder}/entry.js --simple"
         },
 		{
             "type": "node-terminal",
             "request": "launch",
             "name": "complex",
-            "command": "node ${workspaceFolder}/index.js --complex"
+            "command": "node ${workspaceFolder}/entry.js --complex"
         }
 	]
 }
