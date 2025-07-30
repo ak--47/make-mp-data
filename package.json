@@ -61,7 +61,6 @@
 	"dependencies": {
 		"@google-cloud/functions-framework": "^3.4.2",
 		"@google-cloud/storage": "^7.14.0",
-		"@google/generative-ai": "^0.24.1",
 		"ak-fetch": "^2.0.1",
 		"ak-gemini": "^1.0.55",
 		"ak-tools": "^1.1.0",

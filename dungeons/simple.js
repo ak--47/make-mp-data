@@ -41,6 +41,7 @@ const config = {
 	hasCampaigns: true,
 	isAnonymous: false,
 	concurrency: 10,
+	batchSize: 1_500_000,
 
 
 	events: [

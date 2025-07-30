@@ -17,7 +17,7 @@ import * as v from "ak-tools";
 const SEED = "my-seed";
 dayjs.extend(utc);
 const chance = u.initChance(SEED);
-const num_users = 25_000
+const num_users = 1_000
 const days = 100
 
 /** @typedef  {import("../types.d.ts").Dungeon} Config */
