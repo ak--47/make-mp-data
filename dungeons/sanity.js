@@ -8,15 +8,15 @@
 
 
 
-const Chance = require('chance');
+import Chance from 'chance';
 const chance = new Chance();
-const dayjs = require("dayjs");
-const utc = require("dayjs/plugin/utc");
+import dayjs from 'dayjs';
+import utc from 'dayjs/plugin/utc';
 dayjs.extend(utc);
-const { weighNumRange, integer } = require('../components/utils');
+import { weighNumRange, integer } from '../lib/utils/utils.js';
 
 
-/** @type {import('../types').Dungeon} */
+/** @type {import('../types.js').Dungeon} */
 const config = {
 	token: "",
 	seed: "foo bar",
@@ -116,4 +116,4 @@ const config = {
 
 
 
-module.exports = config;
+export default config;

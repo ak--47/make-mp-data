@@ -1,0 +1,43 @@
+{
+  "compilerOptions": {
+    "target": "es2020",
+    "module": "es2020",
+    "allowJs": true,
+    "checkJs": true,
+    "noEmit": true,
+    "strict": false,
+    "esModuleInterop": true,
+    "allowSyntheticDefaultImports": true,
+    "resolveJsonModule": true,
+    "moduleResolution": "node",
+    "skipLibCheck": true,
+    "typeRoots": [],
+    "types": [],
+    
+    // Balanced strictness - catch real issues without being overly pedantic
+    "noImplicitReturns": false,
+    "noFallthroughCasesInSwitch": true,
+    "noImplicitAny": false,
+    "noUnusedLocals": false,
+    "noUnusedParameters": false,
+    
+    // Allow flexible null/undefined handling (your code handles this at runtime)
+    "strictNullChecks": false,
+    "strictBindCallApply": false,
+    "strictFunctionTypes": false
+  },
+  "include": [
+    "index.js",
+    "entry.js", 
+    "cli.js",
+    "lib/**/*.js",
+    "types.d.ts",
+    "dungeons/*.js"
+  ],
+  "exclude": [
+    "node_modules",
+    "tests",
+    "scripts",
+    "dungeons/customers"
+  ]
+}

@@ -195,9 +195,27 @@ const config = {
 
 	/** each generates it's own table */
 	scdProps: {
-		plan: ["free", "free", "free", "free", "basic", "basic", "basic", "premium", "premium", "enterprise"],
-		MRR: weighNumRange(0, 10000, .15),
-		NPS: weighNumRange(0, 10, 2, 150),
+		plan: {
+			type: "user",
+			frequency: "month",
+			values: ["free", "free", "free", "free", "basic", "basic", "basic", "premium", "premium", "enterprise"],
+			timing: "fixed",
+			max: 3
+		},
+		MRR: {
+			type: "user", 
+			frequency: "month",
+			values: weighNumRange(0, 10000, .15),
+			timing: "fixed",
+			max: 5
+		},
+		NPS: {
+			type: "user",
+			frequency: "month", 
+			values: weighNumRange(0, 10, 2, 150),
+			timing: "fixed",
+			max: 3
+		}
 	},
 
 	mirrorProps: {

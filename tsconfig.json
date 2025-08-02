@@ -10,6 +10,7 @@
     "allowSyntheticDefaultImports": true,
     "resolveJsonModule": true,
     "moduleResolution": "node",
+    "skipLibCheck": true,
 	"types": ["vitest/globals"]
   },
   "include": [

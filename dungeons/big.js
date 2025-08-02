@@ -1,11 +1,12 @@
+import Chance from 'chance';
+import dayjs from 'dayjs';
+import utc from 'dayjs/plugin/utc';
+import { uid, comma, makeName } from 'ak-tools';
+import { pickAWinner, weighNumRange, integer, date, choose } from '../lib/utils/utils.js';
+
 const seed = "lets go big";
-const Chance = require('chance');
 const chance = new Chance();
-const dayjs = require("dayjs");
-const utc = require("dayjs/plugin/utc");
 dayjs.extend(utc);
-const { uid, comma, makeName } = require('ak-tools');
-const { pickAWinner, weighNumRange, integer, date, choose } = require('../components/utils');
 
 
 const eventsPerQuarter = 5_000_000_000 // ~5 billion
@@ -221,4 +222,4 @@ function buildObjArrayProp(maxItems = 5) {
 };
 
 
-module.exports = config;
+export default config;

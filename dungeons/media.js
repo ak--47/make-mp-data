@@ -1,16 +1,16 @@
 
 const SEED = "my-seed";
-const dayjs = require("dayjs");
-const utc = require("dayjs/plugin/utc");
+import dayjs from 'dayjs';
+import utc from 'dayjs/plugin/utc';
 dayjs.extend(utc);
-require("dotenv").config();
-const u = require("../components/utils");
-const v = require("ak-tools");
+import 'dotenv/config';
+import * as u from '../lib/utils/utils.js';
+import * as v from 'ak-tools';
 const chance = u.initChance(SEED);
 const num_users = 10_000;
 const days = 125;
 
-/** @typedef  {import("../types").Dungeon} Config */
+/** @typedef  {import("../types.js").Dungeon} Config */
 
 function genIds(numIds = 1000) {
 	const ids = [];
@@ -368,4 +368,4 @@ const config = {
 	}
 };
 
-module.exports = config;
+export default config;
