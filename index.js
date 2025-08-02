@@ -352,7 +352,7 @@ async function generateCharts(context) {
 	if (config.makeChart && storage.eventData?.length > 0) {
 		const chartPath = typeof config.makeChart === 'string'
 			? config.makeChart
-			: `./charts/${config.simulationName}-timeline.png`;
+			: `./${config.simulationName}-timeline`;
 
 		await generateLineChart(storage.eventData, undefined, chartPath);
 

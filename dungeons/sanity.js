@@ -11,7 +11,7 @@
 import Chance from 'chance';
 const chance = new Chance();
 import dayjs from 'dayjs';
-import utc from 'dayjs/plugin/utc';
+import utc from 'dayjs/plugin/utc.js';
 dayjs.extend(utc);
 import { weighNumRange, integer } from '../lib/utils/utils.js';
 
@@ -21,8 +21,8 @@ const config = {
 	token: "",
 	seed: "foo bar",
 	numDays: 90, //how many days worth of data
-	numEvents: 50_000, //how many events
-	numUsers: 500, //how many users	
+	numEvents: 25_000, //how many events
+	numUsers: 250, //how many users	
 	format: 'json', //csv or json
 	region: "US",
 	hasAnonIds: false, //if true, anonymousIds are created for each user
@@ -102,13 +102,6 @@ const config = {
 		luckyNumber: weighNumRange(42, 420),
 		spiritAnimal: ["duck", "dog", "otter", "penguin", "cat", "elephant", "lion", "cheetah", "giraffe", "zebra", "rhino", "hippo", "whale", "dolphin", "shark", "octopus", "squid", "jellyfish", "starfish", "seahorse", "crab", "lobster", "shrimp", "clam", "snail", "slug", "butterfly", "moth", "bee", "wasp", "ant", "beetle", "ladybug", "caterpillar", "centipede", "millipede", "scorpion", "spider", "tarantula", "tick", "mite", "mosquito", "fly", "dragonfly", "damselfly", "grasshopper", "cricket", "locust", "mantis", "cockroach", "termite", "praying mantis", "walking stick", "stick bug", "leaf insect", "lacewing", "aphid", "cicada", "thrips", "psyllid", "scale insect", "whitefly", "mealybug", "planthopper", "leafhopper", "treehopper", "flea", "louse", "bedbug", "flea beetle", "weevil", "longhorn beetle", "leaf beetle", "tiger beetle", "ground beetle", "lady beetle", "firefly", "click beetle", "rove beetle", "scarab beetle", "dung beetle", "stag beetle", "rhinoceros beetle", "hercules beetle", "goliath beetle", "jewel beetle", "tortoise beetle"]
 	},
-
-	scdProps: {},
-	mirrorProps: {},
-	lookupTables: [],
-	groupKeys: [],
-	groupProps: {},
-
 	hook: function (record, type, meta) {
 		return record;
 	}

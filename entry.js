@@ -27,7 +27,18 @@ import getCliParams from './lib/cli/cli.js';
         const result = await main(finalConfig);        
         console.log(`📊 Generated ${(result.eventCount || 0).toLocaleString()} events for ${(result.userCount || 0).toLocaleString()} users`);
         console.log(`⏱️  Total time: ${result.time?.human || 'unknown'}`);
-        
+		const recordsPerSecond = result.eventCount / result.time.delta * 1000;
+		console.log(`⚡ Records per second: ${recordsPerSecond.toFixed(2)}`);
+		
+		if (result.errors?.length) {
+			console.error(`\n❗ Errors encountered: ${result.errors.length}`);
+			if (cliConfig.verbose) {
+				result.errors.forEach(err => console.error(`   ${err}`));
+			}
+		} else {
+			console.log(`\n✅ No errors encountered.`);
+		}
+
 		if (result.files?.length) {
             console.log(`📁 Files written: ${result.files.length}`);
             if (cliConfig.verbose) {

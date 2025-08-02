@@ -64,7 +64,7 @@
             "runtimeExecutable": "nodemon",
             "runtimeArgs": ["--inspect"],
             "program": "${workspaceFolder}/entry.js",
-			"args": ["--ignore", "./data/*", "./schemas/sanity.js"],
+			"args": ["--ignore", "./data/*", "./dungeons/sanity.js"],
             "restart": true,
             "console": "integratedTerminal",
             "internalConsoleOptions": "neverOpen",
