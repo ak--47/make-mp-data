@@ -78,7 +78,7 @@ let CAMPAIGNS;
 let DEFAULTS;
 let STORAGE;
 let CONFIG;
-import { campaigns, devices, locations } from '../lib/data/defaults.js';
+import { campaigns, devices, locations } from '../lib/templates/defaults.js';
 
 beforeEach(async () => {
 	// Reset global variables before each test

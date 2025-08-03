@@ -15,7 +15,7 @@
   },
   "include": [
     "**/*.js"
-, "soupTemplates.mjs", "tests/testSoup.mjs", "tests/testCases.mjs", "tests/benchmark/concurrency.mjs", "dungeons/customers/pos.mjs", "scripts/new-project.mjs", "scripts/dana.mjs"  ],
+, "soupTemplates.mjs", "tests/testSoup.mjs", "tests/testCases.mjs", "tests/benchmark/concurrency.mjs", "dungeons/customers/pos.mjs", "scripts/new-project.mjs", "scripts/dana.mjs", "tests/esm-intellisense.mjs"  ],
   "exclude": [
     "node_modules"
   ]

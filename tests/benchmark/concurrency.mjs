@@ -10,6 +10,7 @@ TO DOs
 //!feature: send and map lookup tables to mixpanel (also blocked on dev)
 //!bug: using --mc flag reverts to --complex for some reason
 
+// FINDINGS: concurrency is not dramatically changing performance
 
 import main from "../../index.js";
 import simple from '../../dungeons/simple.js';
@@ -19,8 +20,8 @@ import simple from '../../dungeons/simple.js';
 /** @type {Config} */
 const noWrites = {
 	...simple,
-	numUsers: 10_000,
-	numEvents: 250_000,
+	numUsers: 250,
+	numEvents: 10_000,
 	writeToDisk: false,
 };
 
@@ -32,7 +33,7 @@ const yesWrites = {
 
 console.log('concurrency benchmarking');
 
-const concurrency = [1, 2, 3, 4, 5];
+const concurrency = [1, 5, 10, 20, 50, 100, 200];
 
 const results = [];
 for (const concurrent of concurrency) {
@@ -48,5 +49,5 @@ const display = results.map((r) => {
 });
 
 console.log(display.join('\n\n'));
-
+console.log('\n\n');
 debugger;
