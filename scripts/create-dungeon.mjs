@@ -37,27 +37,57 @@ function generateRandomFileName() {
 
 function parseAIResponse(aiResponse) {
     try {
-        // Try to extract JavaScript object from AI response
-        // Look for patterns like: const config = { ... } or { ... }
-        const objectMatch = aiResponse.match(/(?:const\s+\w+\s*=\s*)?(\{[\s\S]*\})/);
+        // Handle case where aiResponse might be an object (convert to string first)
+        let responseStr = typeof aiResponse === 'string' ? aiResponse : JSON.stringify(aiResponse, null, 2);
         
+        // Try to extract individual dungeon properties from AI response
+        const patterns = {
+            events: /events\s*:\s*(\[[\s\S]*?\](?=\s*[,}]))/,
+            funnels: /funnels\s*:\s*(\[[\s\S]*?\](?=\s*[,}]))/,
+            userProps: /userProps\s*:\s*(\{[\s\S]*?\}(?=\s*[,}]))/,
+            superProps: /superProps\s*:\s*(\{[\s\S]*?\}(?=\s*[,}]))/,
+            scdProps: /scdProps\s*:\s*(\{[\s\S]*?\}(?=\s*[,}]))/,
+            mirrorProps: /mirrorProps\s*:\s*(\{[\s\S]*?\}(?=\s*[,}]))/,
+            groupKeys: /groupKeys\s*:\s*(\[[\s\S]*?\](?=\s*[,}]))/,
+            groupProps: /groupProps\s*:\s*(\{[\s\S]*?\}(?=\s*[,}]))/,
+            lookupTables: /lookupTables\s*:\s*(\[[\s\S]*?\](?=\s*[,}]))/
+        };
+        
+        let extractedProps = {};
+        let foundAny = false;
+        
+        for (const [prop, pattern] of Object.entries(patterns)) {
+            const match = responseStr.match(pattern);
+            if (match) {
+                extractedProps[prop] = match[1];
+                foundAny = true;
+            }
+        }
+        
+        if (foundAny) {
+            // Build the properties string
+            const propsArray = [];
+            for (const [prop, value] of Object.entries(extractedProps)) {
+                propsArray.push(`${prop}: ${value}`);
+            }
+            return propsArray.join(',\n    ');
+        }
+        
+        // Fallback: try to extract a complete object
+        const objectMatch = responseStr.match(/(?:const\s+\w+\s*=\s*)?(\{[\s\S]*\})/);
         if (objectMatch) {
-            // Clean up the response to make it valid JavaScript
             let objectStr = objectMatch[1];
-            
-            // Remove any trailing commas and semicolons
+            // Remove any trailing commas and clean up
             objectStr = objectStr.replace(/,(\s*[}\]])/g, '$1');
-            
-            // Try to evaluate it safely (Note: In production, use a proper parser)
-            // For now, we'll return the raw object string and let the template handle it
             return objectStr;
         }
         
-        // If no object found, return the whole response
-        return aiResponse;
+        // Last resort: return the response as a comment with empty defaults
+        return `/* AI Response:\n${responseStr}\n*/\n    events: [],\n    funnels: [],\n    superProps: {},\n    userProps: {},\n    scdProps: {},\n    mirrorProps: {},\n    groupKeys: [],\n    groupProps: {},\n    lookupTables: []`;
+        
     } catch (error) {
-        console.warn('Could not parse AI response, using raw response:', error.message);
-        return aiResponse;
+        console.warn('Could not parse AI response, using fallback:', error.message);
+        return `/* Error parsing AI response: ${error.message}\n*/\n    events: [],\n    funnels: [],\n    superProps: {},\n    userProps: {},\n    scdProps: {},\n    mirrorProps: {},\n    groupKeys: [],\n    groupProps: {},\n    lookupTables: []`;
     }
 }
 
@@ -154,7 +184,7 @@ async function main() {
         console.log('This will create a new dungeon configuration using AI.');
         console.log('Describe the type of data you want to generate.\n');
         
-        const userPrompt = await askQuestion('Enter your prompt for the dungeon (describe events, user behavior, etc.): ');
+        const userPrompt = await askQuestion('Enter your prompt for the dungeon (describe events, user behavior, etc...):\n\n> ');
         
         if (!userPrompt.trim()) {
             console.log('❌ Please provide a prompt');
@@ -176,14 +206,15 @@ async function main() {
         console.log('✅ AI schema generated successfully');
         
         // Parse the AI response
-        const parsedSchema = parseAIResponse(aiResponse);
+        // const parsedSchema = parseAIResponse(aiResponse);
+		const stringifiedSchema = JSON.stringify(aiResponse, null, 2).slice(1, -1) + ',';
         
         // Generate file name
         const fileName = generateRandomFileName();
         const filePath = path.join(dungeonsDir, fileName);
         
         // Create the complete dungeon file
-        const fileContent = createDungeonFile(parsedSchema, fileName, userPrompt);
+        const fileContent = createDungeonFile(stringifiedSchema, fileName, userPrompt);
         
         // Write the file
         await fs.writeFile(filePath, fileContent, 'utf8');
