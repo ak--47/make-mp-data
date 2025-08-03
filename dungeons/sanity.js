@@ -21,15 +21,16 @@ const config = {
 	token: "",
 	seed: "foo bar",
 	numDays: 90, //how many days worth of data
-	numEvents: 25_000, //how many events
-	numUsers: 250, //how many users	
+	numEvents: 50_000, //how many events
+	numUsers: 500, //how many users	
 	format: 'json', //csv or json
 	region: "US",
 	hasAnonIds: false, //if true, anonymousIds are created for each user
 	hasSessionIds: false, //if true, hasSessionIds are created for each user
 	alsoInferFunnels: true, //if true, infer funnels from events
 	makeChart: true,
-	concurrency: 10,
+	writeToDisk: true,
+	concurrency: 25,
 	funnels: [
 		{
 			sequence: ["qux", "garply", "durtle", "linny", "fonk", "crumn", "yak"],			

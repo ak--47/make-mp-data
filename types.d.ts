@@ -193,6 +193,7 @@ export interface Context {
   runtime: RuntimeState;
   FIXED_NOW: number;
   FIXED_BEGIN?: number;
+  TIME_SHIFT_SECONDS: number;
 
   // State update methods
   incrementOperations(): void;

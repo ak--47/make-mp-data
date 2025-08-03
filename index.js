@@ -90,6 +90,8 @@ async function main(config) {
 		const storage = await storageManager.initializeContainers();
 		updateContextWithStorage(context, storage);
 
+		// ! DATA GENERATION STARTS HERE
+
 		// Step 4: Generate ad spend data (if enabled)
 		if (validatedConfig.hasAdSpend) {
 			await generateAdSpendData(context);
@@ -118,6 +120,8 @@ async function main(config) {
 		if (validatedConfig.mirrorProps && Object.keys(validatedConfig.mirrorProps).length > 0) {
 			await makeMirror(context);
 		}
+
+		// ! DATA GENERATION ENDS HERE
 
 		// Step 10: Generate charts (if enabled)
 		if (validatedConfig.makeChart) {
