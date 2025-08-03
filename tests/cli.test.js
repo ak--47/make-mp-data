@@ -16,7 +16,7 @@ import scd from '../dungeons/scd.js';
 
 const timeout = 600000;
 const testToken = process.env.TEST_TOKEN || "hello token!";
-const successStatement = `✅ Job completed successfully!`
+const successStatement = `👋 Job completed successfully!`
 const runCommand = `node ./entry.js`
 
 // Use sequential execution to prevent CLI tests from interfering with each other
