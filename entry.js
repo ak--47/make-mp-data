@@ -36,7 +36,7 @@ import getCliParams from './lib/cli/cli.js';
 				result.errors.forEach(err => console.error(`   ${err}`));
 			}
 		} else {
-			console.log(`\n✅ No errors encountered.`);
+			console.log(`\n🙌 No errors encountered.`);
 		}
 
 		if (result.files?.length) {
@@ -45,7 +45,7 @@ import getCliParams from './lib/cli/cli.js';
                 result.files.forEach(file => console.log(`   ${file}`));
             }
         }
-        console.log(`\n✅ Job completed successfully!`);
+        console.log(`\n👋 Job completed successfully!\n`);
         process.exit(0);
     } catch (error) {
         console.error(`\n❌ Job failed: ${error.message}`);

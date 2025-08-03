@@ -47,6 +47,65 @@ global.FIXED_NOW = FIXED_NOW;
 let FIXED_BEGIN = dayjs.unix(FIXED_NOW).subtract(90, 'd').unix();
 global.FIXED_BEGIN = FIXED_BEGIN;
 
+/**
+ * Display configuration summary for CLI mode
+ * @param {Config} config - Validated configuration object
+ */
+function displayConfigurationSummary(config) {
+	console.log('\n📋 Configuration Summary');
+	console.log('─'.repeat(40));
+	
+	// Core parameters
+	console.log(`🎯 Target:      ${config.numUsers?.toLocaleString()} users, ${config.numEvents?.toLocaleString()} events`);
+	console.log(`📅 Timeline:    ${config.numDays} days (${config.seed ? config.seed : 'random seed'})`);
+	console.log(`💾 Output:      ${config.format} format${config.region ? ` (${config.region})` : ''}`);
+	console.log(`⚡ Performance: ${config.concurrency || 'auto'} threads`);
+	
+	// Feature flags
+	const features = [];
+	if (config.hasAnonIds) features.push('anonymous IDs');
+	if (config.hasSessionIds) features.push('session IDs');
+	if (config.alsoInferFunnels) features.push('funnel inference');
+	if (config.makeChart) features.push('chart generation');
+	if (config.writeToDisk) features.push('disk output');
+	
+	if (features.length > 0) {
+		console.log(`🔧 Features:    ${features.join(', ')}`);
+	}
+	
+	// Schema preview
+	if (config.events && config.events.length > 0) {
+		console.log('\n🎭 Event Schema');
+		console.log('─'.repeat(40));
+		const eventNames = config.events.slice(0, 6).map(e => e.event || e).join(', ');
+		const more = config.events.length > 6 ? ` (+${config.events.length - 6} more)` : '';
+		console.log(`📊 Events:      ${eventNames}${more}`);
+	}
+	
+	// Funnels preview
+	if (config.funnels && config.funnels.length > 0) {
+		console.log(`🔄 Funnels:     ${config.funnels.length} funnel${config.funnels.length > 1 ? 's' : ''} configured`);
+		config.funnels.slice(0, 4).forEach((funnel, i) => {
+			if (funnel.sequence) {
+				const arrow = ' → ';
+				const sequence = funnel.sequence.join(arrow);
+				const rate = funnel.conversionRate ? ` (${(funnel.conversionRate * 100).toFixed(0)}% conversion)` : '';
+				console.log(`    ${i + 1}. ${sequence}${rate}`);
+			}
+		});
+		if (config.funnels.length > 4) {
+			console.log(`    ...and ${config.funnels.length - 4} more funnels`);
+		}
+	}
+	
+	// Group analytics
+	if (config.groupKeys && config.groupKeys.length > 0) {
+		const groups = config.groupKeys.map(([key, count]) => `${count} ${key}s`).join(', ');
+		console.log(`👥 Groups:      ${groups}`);
+	}
+	
+	console.log(''); // Extra spacing before generation starts
+}
 
 /**
  * Main data generation function
@@ -81,6 +140,11 @@ async function main(config) {
 	try {
 		// Step 1: Validate and enrich configuration
 		validatedConfig = validateDungeonConfig(config);
+		
+		// Step 1.5: Display configuration summary (CLI mode only)
+		if (isCLI && validatedConfig.verbose) {
+			displayConfigurationSummary(validatedConfig);
+		}
 
 		// Step 2: Create context with validated config
 		const context = createContext(validatedConfig, null, isCLI);
@@ -120,6 +184,8 @@ async function main(config) {
 		if (validatedConfig.mirrorProps && Object.keys(validatedConfig.mirrorProps).length > 0) {
 			await makeMirror(context);
 		}
+
+		if (context.config.verbose) console.log(`\n✅ Data generation completed successfully!\n`);
 
 		// ! DATA GENERATION ENDS HERE
 
@@ -399,7 +465,7 @@ async function flushStorageToDisk(storage, config) {
 	await Promise.all(flushPromises);
 
 	if (config.verbose) {
-		console.log('✅ Data flushed to disk successfully');
+		console.log('🙏 Data flushed to disk successfully');
 	}
 }
 
