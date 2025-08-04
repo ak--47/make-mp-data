@@ -46,8 +46,7 @@ import {
 	shuffleOutside,
 	streamCSV,
 	streamJSON,
-	weighArray,
-	weighFunnels,
+	weighArray,	
 	buildFileNames,
 	TimeSoup,
 	getChance,
@@ -59,6 +58,11 @@ import {
 	datesBetween,
 	weighChoices
 } from '../lib/utils/utils.js';
+
+import {
+	weighFunnels,
+	matchConditions,
+ } from '../lib/orchestrators/user-loop.js';
 
 import main from '../index.js';
 import { createHookArray } from '../lib/core/storage.js';
@@ -907,6 +911,15 @@ describe('weights', () => {
 		const funnel = { weight: 3 };
 		const result = weighFunnels(acc, funnel);
 		expect(result.length).toBe(3);
+	});
+
+	test('match conditions: works', () => {
+		const conditions = [
+			{ key: 'age', value: 30, operator: 'equals' },
+			{ key: 'country', value: 'US', operator: 'equals' }
+		];
+		const user = { age: 30, country: 'US' };
+		expect(matchConditions(user, conditions)).toBe(true);
 	});
 
 

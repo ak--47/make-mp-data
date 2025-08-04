@@ -1,4 +1,3 @@
-// Generated from prompt: Create a digital classroom data set where we have two types of users students and teachers and students do student actions like reading writing arithmetic homework tests and teachers do teaching actions like teach grade take attendance etc. importantly each event done by each persona should have a 'student:' or teacher: prefix to indicate that this is an event on by students or this is not done by teachers... make many unique events + funnels.
 
 import dayjs from "dayjs";
 import utc from "dayjs/plugin/utc.js";
@@ -24,7 +23,7 @@ const config = {
 	hasAnonIds: false,
 	hasSessionIds: false,
 	format: "json",
-	alsoInferFunnels: true,
+	alsoInferFunnels: false,
 	hasLocation: true,
 	hasAndroidDevices: true,
 	hasIOSDevices: true,
@@ -53,6 +52,9 @@ const config = {
 			"isFirstFunnel": true,
 			"conversionRate": 95,
 			"timeToConvert": 0.1,
+			"conditions": {
+				"role": "student"
+			},
 			"order": "sequential",
 			"props": {
 				"onboarding_source": [
@@ -69,6 +71,9 @@ const config = {
 				"teacher: create class",
 				"teacher: post announcement"
 			],
+			"conditions": {
+				"role": "teacher"
+			},
 			"isFirstFunnel": true,
 			"conversionRate": 98,
 			"timeToConvert": 0.2,
@@ -82,6 +87,9 @@ const config = {
 				"student: submit assignment",
 				"student: view grade"
 			],
+			"conditions": {
+				"role": "student"
+			},
 			"isFirstFunnel": false,
 			"conversionRate": 70,
 			"timeToConvert": 48,
@@ -92,6 +100,9 @@ const config = {
 		},
 		{
 			"name": "Student Takes Test",
+			"conditions": {
+				"role": "student"
+			},
 			"sequence": [
 				"student: view assignment",
 				"student: start test",
@@ -109,6 +120,9 @@ const config = {
 		},
 		{
 			"name": "Teacher Grades Assignment",
+			"conditions": {
+				"role": "teacher"
+			},
 			"sequence": [
 				"teacher: create assignment",
 				"teacher: assign homework",
@@ -126,10 +140,21 @@ const config = {
 				"teacher: start lesson",
 				"teacher: end lesson"
 			],
+			"conditions": {
+				"role": "teacher"
+			},
 			"isFirstFunnel": false,
 			"conversionRate": 99,
 			"timeToConvert": 1,
 			"order": "sequential"
+		},
+		{
+			"name": "all peoples doing stuf (no conditions)",
+			"sequence": [
+				"foo",
+				"bar",
+				"baz"
+			]
 		}
 	],
 	"events": [
@@ -291,6 +316,15 @@ const config = {
 					"Event"
 				]
 			}
+		},
+		{
+			"event": "foo"
+		},
+		{
+			"event": "bar"
+		},
+		{
+			"event": "baz"
 		}
 	],
 	"superProps": {
@@ -326,8 +360,6 @@ const config = {
 			"student",
 			"teacher"
 		],
-		"first_name": "chance.first.bind(chance)",
-		"last_name": "chance.last.bind(chance)"
 	},
 	"scdProps": {
 		"gpa": {
@@ -358,88 +390,7 @@ const config = {
 			"max": 12
 		}
 	},
-	"groupKeys": [
-		[
-			"class_id",
-			100
-		]
-	],
-	"groupProps": {
-		"class_id": {
-			"teacher_name": "() => `Mrs. ${chance.last()}`",
-			"school_name": "() => `${chance.city()} ${chance.pickone(['Elementary', 'Middle School', 'High School'])}`",
-			"class_size": "weighNumRange(15, 35, 0.5)",
-			"subject_id": "range(1, 20)"
-		}
-	},
-	"lookupTables": [
-		{
-			"key": "assignment_id",
-			"entries": 500,
-			"attributes": {
-				"type": [
-					"homework",
-					"test",
-					"quiz",
-					"project",
-					"reading"
-				],
-				"difficulty": [
-					"easy",
-					"medium",
-					"hard"
-				],
-				"max_points": [
-					10,
-					20,
-					25,
-					50,
-					100
-				],
-				"subject_id": "range(1, 20)"
-			}
-		},
-		{
-			"key": "subject_id",
-			"entries": 20,
-			"attributes": {
-				"subject_name": [
-					"Mathematics",
-					"English Language Arts",
-					"Science",
-					"Social Studies",
-					"History",
-					"Art",
-					"Music",
-					"Physical Education",
-					"Computer Science",
-					"Spanish",
-					"French",
-					"German",
-					"Biology",
-					"Chemistry",
-					"Physics",
-					"Algebra",
-					"Geometry",
-					"Calculus",
-					"Literature",
-					"World History"
-				],
-				"department": [
-					"STEM",
-					"Humanities",
-					"Arts",
-					"Foreign Language"
-				],
-				"is_core_subject": [
-					true,
-					true,
-					false
-				]
-			}
-		}
-	]
-	,
+
 
 	hook: function (record, type, meta) {
 		const NOW = dayjs();
@@ -460,7 +411,7 @@ const config = {
 
 		}
 
-		if (type === "scd") {
+		if (type === "scd-pre") {
 
 		}
 

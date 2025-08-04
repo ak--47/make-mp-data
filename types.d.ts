@@ -311,6 +311,11 @@ export interface Funnel {
      * funnel properties go onto each event in the funnel and are held constant
      */
     props?: Record<string, ValueValid>;
+	/**
+	 * funnel conditions (user properties) are used to filter users who are eligible for the funnel
+	 * these conditions must match the current user's profile for the user to be eligible for the funnel
+	 */
+	conditions?: Record<string, ValueValid>;
 }
 
 /**
