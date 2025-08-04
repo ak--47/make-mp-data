@@ -322,7 +322,8 @@ async function generateLookupTables(context) {
 
 		for (let j = 0; j < entries; j++) {
 			const lookupEntry = await makeProfile(context, attributes, {
-				[key]: `${key}_${j + 1}`
+				id: j + 1 //primary key is always a number so it joins simply with events
+				// [key]: `${key}_${j + 1}` // we don't want to use the lookup name as a prefix here
 			});
 
 			await lookupContainer.hookPush(lookupEntry);
