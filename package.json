@@ -16,6 +16,7 @@
 		"README.md"
 	],
 	"scripts": {
+		"new:dungeon": "node ./scripts/create-dungeon.mjs",
 		"start": "node ./index.js",
 		"dev": "nodemon scratch.mjs --ignore ./data/*",
 		"prune": "rm -f ./data/* && rm -f ./tmp/* && rm -f vscode-profile-*",
@@ -27,8 +28,6 @@
 		"typecheck:build": "tsc --noEmit --project tsconfig.build.json",
 		"typecheck:strict": "echo '⚠️  Running pedantic strict checks (many false positives expected)...' && tsc --noEmit --project tsconfig.build.json --strict",
 		"typecheck:summary": "echo '🔍 Type-checking all shipped files...' && npm run typecheck:build && echo '✅ All TypeScript checks passed!'",
-		"new:dungeon": "node ./scripts/create-dungeon.mjs",
-		"new:project": "node ./scripts/new-project.mjs",		
 		"test:quick": "node ./tests/benchmark/quick-test.mjs",
 		"exp:soup": "node ./tests/testSoup.mjs",
 		"func:local": "functions-framework --target=entry",
