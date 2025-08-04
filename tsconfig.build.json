@@ -38,6 +38,7 @@
     "node_modules",
     "tests",
     "scripts",
-    "dungeons/customers"
+    "dungeons",
+	"customers"
   ]
 }

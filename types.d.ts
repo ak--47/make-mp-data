@@ -97,7 +97,7 @@ export type hookTypes =
     | "user"
     | "group"
     | "lookup"
-    // | "scd"
+    | "scd"
     | "scd-pre"
     | "mirror"
     | "funnel-pre"

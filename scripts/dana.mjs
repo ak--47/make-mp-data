@@ -69,6 +69,7 @@ for (const [name, spec] of Object.entries(allSpecs)) {
 	delete spec.groupProps;
 	delete spec.mirrorProps;
 	delete spec.token;
+	// @ts-ignore
 	delete spec.secret;
 }
 
@@ -87,6 +88,7 @@ if (process.env.__SIM_CHILD) {
 	})();
 } else {
 	// 2. PARENT: fork a child for each simulation
+	// @ts-ignore
 	const { promisify } = await import('util');
 	const limit = 5; // parallelism limit
 	let running = 0, idx = 0, results = [];
@@ -130,6 +132,7 @@ if (process.env.__SIM_CHILD) {
 		};
 		check();
 	});
+	// @ts-ignore
 	(await wait()).forEach(res => {
 		console.log(`Finished simulation: ${res.name}`);
 		// optionally: console.log(res.result);
