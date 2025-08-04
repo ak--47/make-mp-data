@@ -94,6 +94,9 @@ interface Funnel {
     
     /** Properties that will be attached to every event generated within this funnel journey. */
     props?: Record<string, ValueValid>;
+    
+    /** User property conditions that determine which users are eligible for this funnel. Only users whose properties match these conditions will be considered for this funnel. */
+    conditions?: Record<string, ValueValid>;
 }
 
 
@@ -154,5 +157,3 @@ interface LookupTableSchema {
     /** A dictionary of attributes (columns) for the table and their possible values. */
     attributes: Record<string, ValueValid>;
 }
-/**
- 

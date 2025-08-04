@@ -56,6 +56,7 @@ Core Requirements:
 		- Use groups if the prompt involves B2B, teams, companies, or organizations.
 		- Use SCD if user or group traits change over time (e.g., subscription tier).
 		- Use lookup tables if events reference external entities with their own attributes (e.g., product_id, video_id).
+		- Use funnel conditions when different user segments or cohorts should have different behavioral patterns (e.g., premium vs free users, students vs teachers, rider vs driver, doctor vs patient).
 
 	4. Available Functions: You have access to these built-in functions: date, weighNumRange, range, and the chance library.
 
