@@ -70,7 +70,7 @@
 		"dayjs": "^1.11.11",
 		"dotenv": "^16.4.5",
 		"google-auth-library": "^9.15.0",
-		"mixpanel-import": "^2.8.15",
+		"mixpanel-import": "^2.8.161",
 		"p-limit": "^3.1.0",
 		"yargs": "^17.7.2"
 	},

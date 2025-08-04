@@ -6,26 +6,14 @@
 	"configurations": [
 		{
 			"command": "npm run new:dungeon",
-			"name": "new",
-			"request": "launch",
-			"type": "node-terminal"
-		},
-		{
-			"command": "npm run dev",
-			"name": "scratch",
-			"request": "launch",
-			"type": "node-terminal"
-		},
-		{
-			"command": "npm run test:quick",
-			"name": "quick",
+			"name": "🏰 new dungeon",
 			"request": "launch",
 			"type": "node-terminal"
 		},
 		{
             "type": "node",
             "request": "launch",
-            "name": "run dungeon",
+            "name": "🚀 run dungeon",
             "runtimeExecutable": "nodemon",            
             "program": "${workspaceFolder}/entry.js",
 			"args": ["${file}"],
@@ -41,9 +29,22 @@
 			
         },
 		{
+			"command": "npm run dev",
+			"name": "✏️ scratch",
+			"request": "launch",
+			"type": "node-terminal"
+		},
+		{
+			"command": "npm run test:quick",
+			"name": "⚡ quick",
+			"request": "launch",
+			"type": "node-terminal"
+		},
+		
+		{
 			"type": "node",
 			"request": "launch",
-			"name": "current file",
+			"name": "📄 current file",
 			"runtimeExecutable": "nodemon",
 			"program": "${file}",
 			"restart": true,
@@ -56,7 +57,7 @@
 		},
 		{
 			"command": "npm run func:local",
-			"name": "cloud local",
+			"name": "☁️ cloud local",
 			"request": "launch",
 			"type": "node-terminal",
 			"env": {
@@ -66,7 +67,7 @@
 		{
             "type": "node",
             "request": "launch",
-            "name": "sanity",
+            "name": "🧪 sanity",
             "runtimeExecutable": "nodemon",
             "runtimeArgs": ["--inspect"],
             "program": "${workspaceFolder}/entry.js",
@@ -79,13 +80,13 @@
 		{
             "type": "node-terminal",
             "request": "launch",
-            "name": "simple",
+            "name": "🌱 simple",
             "command": "node ${workspaceFolder}/entry.js --simple"
         },
 		{
             "type": "node-terminal",
             "request": "launch",
-            "name": "complex",
+            "name": "🎯 complex",
             "command": "node ${workspaceFolder}/entry.js --complex"
         }
 	]

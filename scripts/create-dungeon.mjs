@@ -13,13 +13,13 @@ import { fileURLToPath } from 'url';
 import path from 'path';
 import fs from 'fs/promises';
 import generateAISchema from '../lib/utils/ai.js';
-
+	
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// Ensure the dungeons directory exists
-const dungeonsDir = path.join(__dirname, '..', 'dungeons');
-await fs.mkdir(dungeonsDir, { recursive: true });
+// Ensure the customers directory exists
+const customersDir = path.join(__dirname, '..', 'customers');
+await fs.mkdir(customersDir, { recursive: true });
 
 const rl = readline.createInterface({
 	input: process.stdin,
@@ -162,7 +162,7 @@ const dungeon = {
 
         }
 
-        if (type === "scd") {
+        if (type === "scd-pre") {
 
         }
 
@@ -211,7 +211,7 @@ async function main() {
 
 		// Generate file name
 		const fileName = generateRandomFileName();
-		const filePath = path.join(dungeonsDir, fileName);
+		const filePath = path.join(customersDir, fileName);
 
 		// Create the complete dungeon file
 		const fileContent = createDungeonFile(dungeonSchema, fileName, userPrompt);

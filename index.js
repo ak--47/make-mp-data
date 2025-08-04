@@ -89,7 +89,7 @@ function displayConfigurationSummary(config) {
 			if (funnel.sequence) {
 				const arrow = ' → ';
 				const sequence = funnel.sequence.join(arrow);
-				const rate = funnel.conversionRate ? ` (${(funnel.conversionRate * 100).toFixed(0)}% conversion)` : '';
+				const rate = funnel.conversionRate ? ` (${(funnel.conversionRate).toFixed(0)}% conversion)` : '';
 				console.log(`    ${i + 1}. ${sequence}${rate}`);
 			}
 		});
@@ -194,7 +194,10 @@ async function main(config) {
 			await generateCharts(context);
 		}
 
-		// Step 11: Flush storage containers to disk (if writeToDisk enabled)
+		// Step 11a: Always flush lookup tables to disk (regardless of writeToDisk setting)
+		await flushLookupTablesToDisk(storage, validatedConfig);
+
+		// Step 11b: Flush other storage containers to disk (if writeToDisk enabled)
 		if (validatedConfig.writeToDisk) {
 			await flushStorageToDisk(storage, validatedConfig);
 		}
@@ -436,7 +439,33 @@ async function generateCharts(context) {
 }
 
 /**
- * Flush all storage containers to disk
+ * Flush lookup tables to disk (always runs, regardless of writeToDisk setting)
+ * @param {import('./types').Storage} storage - Storage containers
+ * @param {import('./types').Dungeon} config - Configuration object
+ */
+async function flushLookupTablesToDisk(storage, config) {
+	if (!storage.lookupTableData || !Array.isArray(storage.lookupTableData) || storage.lookupTableData.length === 0) {
+		return; // No lookup tables to flush
+	}
+
+	if (config.verbose) {
+		console.log('💾 Writing lookup tables to disk...');
+	}
+
+	const flushPromises = [];
+	storage.lookupTableData.forEach(container => {
+		if (container?.flush) flushPromises.push(container.flush());
+	});
+
+	await Promise.all(flushPromises);
+
+	if (config.verbose) {
+		console.log('🗂️  Lookup tables flushed to disk successfully');
+	}
+}
+
+/**
+ * Flush all storage containers to disk (excluding lookup tables)
  * @param {import('./types').Storage} storage - Storage containers
  * @param {import('./types').Dungeon} config - Configuration object
  */
@@ -454,8 +483,8 @@ async function flushStorageToDisk(storage, config) {
 	if (storage.mirrorEventData?.flush) flushPromises.push(storage.mirrorEventData.flush());
 	if (storage.groupEventData?.flush) flushPromises.push(storage.groupEventData.flush());
 
-	// Flush arrays of HookedArrays
-	[storage.scdTableData, storage.groupProfilesData, storage.lookupTableData].forEach(arrayOfContainers => {
+	// Flush arrays of HookedArrays (excluding lookup tables which are handled separately)
+	[storage.scdTableData, storage.groupProfilesData].forEach(arrayOfContainers => {
 		if (Array.isArray(arrayOfContainers)) {
 			arrayOfContainers.forEach(container => {
 				if (container?.flush) flushPromises.push(container.flush());
