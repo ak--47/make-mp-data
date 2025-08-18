@@ -914,10 +914,10 @@ describe('weights', () => {
 	});
 
 	test('match conditions: works', () => {
-		const conditions = [
-			{ key: 'age', value: 30, operator: 'equals' },
-			{ key: 'country', value: 'US', operator: 'equals' }
-		];
+		const conditions = {
+			age: 30,
+			country: 'US'
+		};
 		const user = { age: 30, country: 'US' };
 		expect(matchConditions(user, conditions)).toBe(true);
 	});

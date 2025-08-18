@@ -33,7 +33,9 @@ export default defineConfig({
     },
     
     // Reporter settings
-    reporters: isDebugMode ? 'verbose' : 'default',
+	reporters: isDebugMode ? ['verbose'] : ['default'],
+
+    // reporters: isDebugMode ? 'verbose' : 'default',
     
     // Don't watch in CI/test environments
     watch: false,
