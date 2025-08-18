@@ -25,7 +25,7 @@ import {
 	exhaust,
 	generateEmoji,
 	getUniqueKeys,
-	haveSameKeys,
+	hasSameKeys,
 	deepClone,
 	integer,
 	mapToRange,
@@ -927,13 +927,13 @@ describe('weights', () => {
 
 describe('high CPU usage functions', () => {
 	
-	describe('haveSameKeys', () => {
+	describe('hasSameKeys', () => {
 		test('empty array', () => {
-			expect(haveSameKeys([])).toBe(true);
+			expect(hasSameKeys([])).toBe(true);
 		});
 
 		test('single object', () => {
-			expect(haveSameKeys([{ a: 1, b: 2 }])).toBe(true);
+			expect(hasSameKeys([{ a: 1, b: 2 }])).toBe(true);
 		});
 
 		test('identical keys', () => {
@@ -942,7 +942,7 @@ describe('high CPU usage functions', () => {
 				{ a: 4, b: 5, c: 6 },
 				{ a: 7, b: 8, c: 9 }
 			];
-			expect(haveSameKeys(arr)).toBe(true);
+			expect(hasSameKeys(arr)).toBe(true);
 		});
 
 		test('different keys', () => {
@@ -951,7 +951,7 @@ describe('high CPU usage functions', () => {
 				{ a: 3, c: 4 },
 				{ a: 5, b: 6 }
 			];
-			expect(haveSameKeys(arr)).toBe(false);
+			expect(hasSameKeys(arr)).toBe(false);
 		});
 
 		test('different number of keys', () => {
@@ -959,7 +959,7 @@ describe('high CPU usage functions', () => {
 				{ a: 1, b: 2 },
 				{ a: 3, b: 4, c: 5 }
 			];
-			expect(haveSameKeys(arr)).toBe(false);
+			expect(hasSameKeys(arr)).toBe(false);
 		});
 
 		test('nested objects same keys', () => {
@@ -967,7 +967,7 @@ describe('high CPU usage functions', () => {
 				{ a: { x: 1 }, b: 2 },
 				{ a: { y: 3 }, b: 4 }
 			];
-			expect(haveSameKeys(arr)).toBe(true);
+			expect(hasSameKeys(arr)).toBe(true);
 		});
 
 		test('performance with large arrays', () => {
@@ -976,7 +976,7 @@ describe('high CPU usage functions', () => {
 				largeArray.push({ a: i, b: i * 2, c: i * 3 });
 			}
 			const start = Date.now();
-			const result = haveSameKeys(largeArray);
+			const result = hasSameKeys(largeArray);
 			const end = Date.now();
 			expect(result).toBe(true);
 			expect(end - start).toBeLessThan(100); // Should complete in under 100ms
@@ -992,7 +992,7 @@ describe('high CPU usage functions', () => {
 				}
 			}
 			const start = Date.now();
-			const result = haveSameKeys(largeArray);
+			const result = hasSameKeys(largeArray);
 			const end = Date.now();
 			expect(result).toBe(false);
 			expect(end - start).toBeLessThan(100); // Should complete in under 100ms
@@ -1483,7 +1483,7 @@ describe('garbage collection analysis', () => {
 			
 			// Simulate operations that might cause GC pressure
 			const shuffled = shuffleArray([...tempArray]);
-			const keysCheck = haveSameKeys(tempArray);
+			const keysCheck = hasSameKeys(tempArray);
 			
 			results.push({ shuffled: shuffled.length, keysCheck });
 		}
