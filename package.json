@@ -70,6 +70,7 @@
 		"dayjs": "^1.11.11",
 		"dotenv": "^16.4.5",
 		"google-auth-library": "^9.15.0",
+		"hyparquet-writer": "^0.6.1",
 		"mixpanel-import": "^2.8.162",
 		"p-limit": "^3.1.0",
 		"yargs": "^17.7.2"

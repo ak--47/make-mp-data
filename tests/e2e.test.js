@@ -105,32 +105,32 @@ describe('module', () => {
 
 	}, timeout);
 
+	// // ! this test takes 35s because SCDs don't have a public API
+	// test('works as module (scd)', async () => {
+	// 	console.log('MODULE TEST: scd');
+	// 	// const scdSchema = (await import('../dungeons/scd.js')).default;
+	// 	const config = {
+	// 		...scd,
+	// 		token: testToken,
+	// 		serviceAccount: process.env.SERVICE_ACCOUNT,
+	// 		projectId: process.env.PROJECT_ID,
+	// 		serviceSecret: process.env.SERVICE_SECRET,
+	// 		verbose: false, writeToDisk: false, numEvents: 100, numUsers: 10, seed: "deal with it"
+	// 	};
+	// 	const results = await generate(config);
+	// 	const { importResults } = results;
+	// 	const { MRR_scd, NPS_scd, plan_scd, role_scd } = importResults;
+	// 	expect(MRR_scd.success).toBeGreaterThan(10);
+	// 	expect(NPS_scd.success).toBeGreaterThan(10);
+	// 	expect(plan_scd.success).toBeGreaterThan(10);
+	// 	expect(role_scd.success).toBeGreaterThan(10);
+	// 	expect(MRR_scd.failed).toBe(0);
+	// 	expect(NPS_scd.failed).toBe(0);
+	// 	expect(plan_scd.failed).toBe(0);
+	// 	expect(role_scd.failed).toBe(0);
 
-	test('works as module (scd)', async () => {
-		console.log('MODULE TEST: scd');
-		// const scdSchema = (await import('../dungeons/scd.js')).default;
-		const config = {
-			...scd,
-			token: testToken,
-			serviceAccount: process.env.SERVICE_ACCOUNT,
-			projectId: process.env.PROJECT_ID,
-			serviceSecret: process.env.SERVICE_SECRET,
-			verbose: false, writeToDisk: false, numEvents: 100, numUsers: 10, seed: "deal with it"
-		};
-		const results = await generate(config);
-		const { importResults } = results;
-		const { MRR_scd, NPS_scd, plan_scd, role_scd } = importResults;
-		expect(MRR_scd.success).toBeGreaterThan(10);
-		expect(NPS_scd.success).toBeGreaterThan(10);
-		expect(plan_scd.success).toBeGreaterThan(10);
-		expect(role_scd.success).toBeGreaterThan(10);
-		expect(MRR_scd.failed).toBe(0);
-		expect(NPS_scd.failed).toBe(0);
-		expect(plan_scd.failed).toBe(0);
-		expect(role_scd.failed).toBe(0);
 
-
-	}, timeout);
+	// }, timeout);
 
 	test('fails with invalid configuration', async () => {
 		try {

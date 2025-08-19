@@ -614,7 +614,14 @@ describe.sequential('orchestrators', () => {
 			numDays: 30,
 			userProps: {},
 			scdProps: {},
-			events: [],
+			events: [
+				{
+					"event": "step1",
+				},
+				{
+					"event": "step2"
+				}
+			],
 			funnels: [{ sequence: ["step1", "step2"], conversionRate: 100, order: 'sequential' }],
 		};
 		const context = createTestContext(config);

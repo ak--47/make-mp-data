@@ -194,8 +194,10 @@ async function main(config) {
 			await generateCharts(context);
 		}
 
-		// Step 11a: Always flush lookup tables to disk (regardless of writeToDisk setting)
-		await flushLookupTablesToDisk(storage, validatedConfig);
+		// Step 11a:  flush lookup tables to disk (always as CSVs)
+		if (validatedConfig.writeToDisk) {
+			await flushLookupTablesToDisk(storage, validatedConfig);
+		}
 
 		// Step 11b: Flush other storage containers to disk (if writeToDisk enabled)
 		if (validatedConfig.writeToDisk) {
