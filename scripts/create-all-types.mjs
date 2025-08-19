@@ -7,10 +7,6 @@ const { NODE_ENV = "unknown" } = process.env;
 
 import main from "../index.js";
 import simple from '../dungeons/simple.js';
-import complex from '../dungeons/complex.js';
-import gaming from '../dungeons/gaming.js';
-import big from '../dungeons/big.js';
-
 import Chance from 'chance';
 const chance = new Chance();
 
@@ -24,7 +20,8 @@ if (NODE_ENV === "dev") divisor = 1000;
 /** @type {Spec} */
 const commonOptions = {
 	verbose: true,
-	writeToDisk: true
+	writeToDisk: true,
+	...simple,
 }
 
 /** @type {Spec} */
@@ -45,16 +42,30 @@ const oneMillionOptions = {
 const allSpecs = {
 	"csv-250k": { ...twoFiftyKOptions, format: "csv" },
 	"csv-1m": { ...oneMillionOptions, format: "csv" },
+	"csv-gz-250k": {...twoFiftyKOptions, format: "csv", gzip: true },
+	"csv-gz-1m": {...oneMillionOptions, format: "csv", gzip: true },
 	"json-250k": { ...twoFiftyKOptions, format: "json" },
 	"json-1m": { ...oneMillionOptions, format: "json" },
+	"json-gz-250k": {...twoFiftyKOptions, format: "json", gzip: true },
+	"json-gz-1m": {...oneMillionOptions, format: "json", gzip: true },
 	"parquet-250k": { ...twoFiftyKOptions, format: "parquet" },
 	"parquet-1m": { ...oneMillionOptions, format: "parquet" },
+	"parquet-gz-250k": {...twoFiftyKOptions, format: "parquet", gzip: true },
+	"parquet-gz-1m": {...oneMillionOptions, format: "parquet", gzip: true }
 };
 
 
 
-const simulations = Object.entries(allSpecs).map(([name, spec]) => ({ name, spec }));
+function getSimulations(specs) {
+    const sims = [];
+    for (const [name, spec] of Object.entries(specs)) {
+        spec.name = name;
+		sims.push({ name, spec });
+    }
+    return sims;
+}
 
+const simulations = getSimulations(allSpecs);
 // 1. If this process is a CHILD, just run the spec!
 if (process.env.__SIM_CHILD) {
 	const name = process.env.__SIM_NAME;

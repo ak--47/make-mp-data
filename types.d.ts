@@ -30,7 +30,6 @@ export interface Dungeon {
     projectId?: string;
 
     // ids
-    simulationName?: string;
     name?: string;
 
     //switches

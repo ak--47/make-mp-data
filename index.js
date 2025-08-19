@@ -428,7 +428,7 @@ async function generateCharts(context) {
 	if (config.makeChart && storage.eventData?.length > 0) {
 		const chartPath = typeof config.makeChart === 'string'
 			? config.makeChart
-			: `./${config.simulationName}-timeline`;
+			: `./${config.name}-timeline`;
 
 		await generateLineChart(storage.eventData, undefined, chartPath);
 
@@ -536,7 +536,7 @@ async function extractFileInfo(storage, config) {
 			
 			if (fs.existsSync(dataDir)) {
 				const allFiles = fs.readdirSync(dataDir);
-				const simulationName = config.simulationName;
+				const simulationName = config.name;
 				
 				// Filter files that match our patterns and were likely created by this run
 				const relevantFiles = allFiles.filter(file => {

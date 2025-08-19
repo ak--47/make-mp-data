@@ -112,7 +112,7 @@ beforeEach(async () => {
 		numUsers: 10,
 		numEvents: 100,
 		numDays: 30,
-		simulationName: 'TestSimulation',
+		name: 'TestSimulation',
 		hook: (record) => record
 	};
 	global.CAMPAIGNS = CAMPAIGNS;

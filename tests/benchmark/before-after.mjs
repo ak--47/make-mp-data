@@ -28,7 +28,7 @@ async function testOldBehavior() {
     const config = {
         ...testConfig,
         concurrency: 1,
-        simulationName: 'old-behavior'
+        name: 'old-behavior'
     };
     
     const timer1 = timer('old');
@@ -57,7 +57,7 @@ async function testNewBehavior() {
     const config = {
         ...testConfig,
         concurrency: os.cpus().length * 2, // New default
-        simulationName: 'new-behavior'
+        name: 'new-behavior'
     };
     
     const timer2 = timer('new');

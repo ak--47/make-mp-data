@@ -126,7 +126,7 @@ describe('timesoup', () => {
 describe('filenames', () => {
 
 	test('default config', () => {
-		const config = { simulationName: 'testSim' };
+		const config = { name: 'testSim' };
 		const result = buildFileNames(config);
 		const { eventFiles, folder, groupFiles, lookupFiles, mirrorFiles, scdFiles, userFiles, adSpendFiles } = result;
 		expect(eventFiles).toEqual(['testSim-EVENTS.csv']);
@@ -141,7 +141,7 @@ describe('filenames', () => {
 
 	test('json format', () => {
 		/** @type {Config} */
-		const config = { simulationName: 'testSim', format: 'json' };
+		const config = { name: 'testSim', format: 'json' };
 		const result = buildFileNames(config);
 		const { eventFiles, folder, groupFiles, lookupFiles, mirrorFiles, scdFiles, userFiles, adSpendFiles } = result;
 		expect(eventFiles).toEqual(['testSim-EVENTS.json']);
@@ -156,7 +156,7 @@ describe('filenames', () => {
 
 	test('scd tables', () => {
 		const config = {
-			simulationName: 'testSim',
+			name: 'testSim',
 			scdProps: { prop1: {}, prop2: {} }
 		};
 		const result = buildFileNames(config);
@@ -174,7 +174,7 @@ describe('filenames', () => {
 	test('group keys', () => {
 		/** @type {Config} */
 		const config = {
-			simulationName: 'testSim',
+			name: 'testSim',
 			groupKeys: [['group1', 10], ['group2', 20]]
 		};
 		const result = buildFileNames(config);
@@ -187,7 +187,7 @@ describe('filenames', () => {
 	test('lookup tables', () => {
 		/** @type {Config} */
 		const config = {
-			simulationName: 'testSim',
+			name: 'testSim',
 			lookupTables: [{ key: 'lookup1', attributes: {}, entries: 10 }, { key: 'lookup2', attributes: {}, entries: 10 }]
 		};
 		const result = buildFileNames(config);
@@ -200,7 +200,7 @@ describe('filenames', () => {
 	test('mirror tables', () => {
 		/** @type {Config} */
 		const config = {
-			simulationName: 'testSim',
+			name: 'testSim',
 			mirrorProps: { prop1: { values: [] } }
 		};
 		const result = buildFileNames(config);
@@ -208,7 +208,7 @@ describe('filenames', () => {
 	});
 
 	test('validate disk path', async () => {
-		const config = { simulationName: 'testSim', writeToDisk: true };
+		const config = { name: 'testSim', writeToDisk: true };
 		const result = await buildFileNames(config);
 		expect(result.folder).toBeDefined();
 	});
@@ -217,7 +217,7 @@ describe('filenames', () => {
 	test('bad name', () => {
 		/** @type {Config} */
 		// @ts-ignore
-		const config = { simulationName: 123 };
+		const config = { name: 123 };
 		expect(() => buildFileNames(config)).toThrow('simName must be a string');
 	});
 
