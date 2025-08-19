@@ -219,7 +219,7 @@ async function main(config) {
 		return {
 			...extractedData,
 			importResults,
-			files: extractFileInfo(storage),
+			files: await extractFileInfo(storage, validatedConfig),
 			time: { start, end, delta, human },
 			operations: context.getOperations(),
 			eventCount: context.getEventCount(),
@@ -504,11 +504,13 @@ async function flushStorageToDisk(storage, config) {
 /**
  * Extract file information from storage containers
  * @param {import('./types').Storage} storage - Storage object
+ * @param {import('./types').Dungeon} config - Configuration object
  * @returns {string[]} Array of file paths
  */
-function extractFileInfo(storage) {
+async function extractFileInfo(storage, config) {
 	const files = [];
 
+	// Try to get paths from containers first
 	Object.values(storage).forEach(container => {
 		if (Array.isArray(container)) {
 			container.forEach(subContainer => {
@@ -520,6 +522,55 @@ function extractFileInfo(storage) {
 			files.push(container.getWritePath());
 		}
 	});
+
+	// If no files found from containers and writeToDisk is enabled, scan the data directory
+	if (files.length === 0 && config.writeToDisk) {
+		try {
+			const fs = await import('fs');
+			const path = await import('path');
+			
+			let dataDir = path.resolve("./data");
+			if (!fs.existsSync(dataDir)) {
+				dataDir = path.resolve("./");
+			}
+			
+			if (fs.existsSync(dataDir)) {
+				const allFiles = fs.readdirSync(dataDir);
+				const simulationName = config.simulationName;
+				
+				// Filter files that match our patterns and were likely created by this run
+				const relevantFiles = allFiles.filter(file => {
+					// Skip system files
+					if (file.startsWith('.')) return false;
+					
+					// If we have a simulation name, only include files with that prefix
+					if (simulationName && !file.startsWith(simulationName)) {
+						return false;
+					}
+					
+					// Check for common patterns
+					const hasEventPattern = file.includes('-EVENTS.');
+					const hasUserPattern = file.includes('-USERS.');
+					const hasScdPattern = file.includes('-SCD.');
+					const hasGroupPattern = file.includes('-GROUPS.');
+					const hasLookupPattern = file.includes('-LOOKUP.');
+					const hasAdspendPattern = file.includes('-ADSPEND.');
+					const hasMirrorPattern = file.includes('-MIRROR.');
+					
+					return hasEventPattern || hasUserPattern || hasScdPattern || 
+						   hasGroupPattern || hasLookupPattern || hasAdspendPattern || hasMirrorPattern;
+				});
+				
+				// Convert to full paths
+				relevantFiles.forEach(file => {
+					files.push(path.join(dataDir, file));
+				});
+			}
+		} catch (error) {
+			// If scanning fails, just return empty array
+			console.warn('Warning: Could not scan data directory for files:', error.message);
+		}
+	}
 
 	return files;
 }

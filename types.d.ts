@@ -20,7 +20,7 @@ export interface Dungeon {
     epochEnd?: number;
     numEvents?: number;
     numUsers?: number;
-    format?: "csv" | "json" | string;
+    format?: "csv" | "json" | "parquet" | string;
     region?: "US" | "EU";
     concurrency?: number;
     batchSize?: number;
@@ -44,6 +44,7 @@ export interface Dungeon {
     hasDesktopDevices?: boolean;
     hasBrowser?: boolean;
     writeToDisk?: boolean | string;
+    gzip?: boolean;
     verbose?: boolean;
     hasAnonIds?: boolean;
     hasSessionIds?: boolean;
@@ -117,7 +118,7 @@ export interface hookArrayOptions<T> {
     hook?: Hook<T>;
     type?: hookTypes;
     filename?: string;
-    format?: "csv" | "json" | string;
+    format?: "csv" | "json" | "parquet" | string;
     concurrency?: number;
     context?: Context;
     [key: string]: any;

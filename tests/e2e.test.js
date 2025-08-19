@@ -345,6 +345,190 @@ describe('options + tweaks', () => {
 
 	}, timeout);
 
+	test('parquet format support', async () => {
+		console.log('PARQUET FORMAT TEST');
+		const results = await generate({ 
+			writeToDisk: true, 
+			format: 'parquet',
+			verbose: false, 
+			numEvents: 100, 
+			numUsers: 10,
+			numDays: 5,
+			seed: 'parquet-test',
+			events: [
+				{
+					event: 'test_event',
+					weight: 10,
+					properties: {
+						value: [1, 2, 3, 4, 5]
+					}
+				}
+			]
+		});
+		
+		const { files } = results;
+		expect(files.some(f => f.endsWith('.parquet'))).toBe(true);
+
+		// Check that files exist on disk
+		const fs = await import('fs');
+		const parquetFiles = files.filter(f => f.endsWith('.parquet'));
+		expect(parquetFiles.length).toBeGreaterThan(0);
+		
+		for (const file of parquetFiles) {
+			expect(fs.existsSync(file)).toBe(true);
+			const stats = fs.statSync(file);
+			expect(stats.size).toBeGreaterThan(0); // File should not be empty
+		}
+
+	}, timeout);
+
+	test('gzip compression for CSV', async () => {
+		console.log('GZIP CSV TEST');
+		const results = await generate({ 
+			writeToDisk: true, 
+			format: 'csv',
+			gzip: true,
+			verbose: false, 
+			numEvents: 100, 
+			numUsers: 10,
+			numDays: 5,
+			seed: 'gzip-csv-test',
+			events: [
+				{
+					event: 'test_event',
+					weight: 10,
+					properties: {
+						value: [1, 2, 3, 4, 5]
+					}
+				}
+			]
+		});
+		
+		const { files } = results;
+		expect(files.some(f => f.endsWith('.csv.gz'))).toBe(true);
+
+		// Check that gzipped files exist on disk
+		const fs = await import('fs');
+		const gzipFiles = files.filter(f => f.endsWith('.csv.gz'));
+		expect(gzipFiles.length).toBeGreaterThan(0);
+		
+		for (const file of gzipFiles) {
+			expect(fs.existsSync(file)).toBe(true);
+			const stats = fs.statSync(file);
+			expect(stats.size).toBeGreaterThan(0); // File should not be empty
+		}
+
+	}, timeout);
+
+	test('gzip compression for JSON', async () => {
+		console.log('GZIP JSON TEST');
+		const results = await generate({ 
+			writeToDisk: true, 
+			format: 'json',
+			gzip: true,
+			verbose: false, 
+			numEvents: 100, 
+			numUsers: 10,
+			numDays: 5,
+			seed: 'gzip-json-test',
+			events: [
+				{
+					event: 'test_event',
+					weight: 10,
+					properties: {
+						value: [1, 2, 3, 4, 5]
+					}
+				}
+			]
+		});
+		
+		const { files } = results;
+		expect(files.some(f => f.endsWith('.json.gz'))).toBe(true);
+
+		// Check that gzipped files exist on disk
+		const fs = await import('fs');
+		const gzipFiles = files.filter(f => f.endsWith('.json.gz'));
+		expect(gzipFiles.length).toBeGreaterThan(0);
+		
+		for (const file of gzipFiles) {
+			expect(fs.existsSync(file)).toBe(true);
+			const stats = fs.statSync(file);
+			expect(stats.size).toBeGreaterThan(0); // File should not be empty
+		}
+
+	}, timeout);
+
+	test('gzip compression for parquet', async () => {
+		console.log('GZIP PARQUET TEST');
+		const results = await generate({ 
+			writeToDisk: true, 
+			format: 'parquet',
+			gzip: true,
+			verbose: false, 
+			numEvents: 100, 
+			numUsers: 10,
+			numDays: 5,
+			seed: 'gzip-parquet-test',
+			events: [
+				{
+					event: 'test_event',
+					weight: 10,
+					properties: {
+						value: [1, 2, 3, 4, 5]
+					}
+				}
+			]
+		});
+		
+		const { files } = results;
+		expect(files.some(f => f.endsWith('.parquet.gz'))).toBe(true);
+
+		// Check that gzipped parquet files exist on disk
+		const fs = await import('fs');
+		const gzipFiles = files.filter(f => f.endsWith('.parquet.gz'));
+		expect(gzipFiles.length).toBeGreaterThan(0);
+		
+		for (const file of gzipFiles) {
+			expect(fs.existsSync(file)).toBe(true);
+			const stats = fs.statSync(file);
+			expect(stats.size).toBeGreaterThan(0); // File should not be empty
+		}
+
+	}, timeout);
+
+	test('validation: writeToDisk=false with low batchSize throws error', async () => {
+		console.log('VALIDATION ERROR TEST');
+		
+		await expect(async () => {
+			await generate({
+				numUsers: 10,
+				numEvents: 100,
+				batchSize: 50,
+				writeToDisk: false,
+				verbose: false,
+				seed: 'validation-test'
+			});
+		}).rejects.toThrow(/Configuration error.*writeToDisk.*batchSize/);
+
+	}, timeout);
+
+	test('validation: writeToDisk=false with adequate batchSize works', async () => {
+		console.log('VALIDATION SUCCESS TEST');
+		
+		const results = await generate({
+			numUsers: 10,
+			numEvents: 100,
+			batchSize: 150, // Higher than numEvents
+			writeToDisk: false,
+			verbose: false,
+			seed: 'validation-success-test'
+		});
+		
+		expect(results.eventData.length).toBeGreaterThan(70);
+		expect(results.userProfilesData.length).toBe(10);
+
+	}, timeout);
+
 });
 
 
