@@ -64,7 +64,7 @@ async function runBenchmark(configName, config, concurrency) {
 	const testConfig = {
 		...config,
 		concurrency,
-		simulationName: `bench-${configName}-c${concurrency}`
+		name: `bench-${configName}-c${concurrency}`
 	};
 
 	console.log(`\n🔄 Running ${configName} with concurrency ${concurrency}...`);

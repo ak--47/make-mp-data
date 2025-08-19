@@ -38,26 +38,29 @@
 	// Vitest settings
 	"vitest.enable": true,
 	"vitest.commandLine": "npx vitest",
-	"vitest.include": ["tests/**/*.test.js"],
-	"vitest.exclude": ["**/node_modules/**", "**/coverage/**", "**/data/**", "**/tmp/**"],
-	
+	"vitest.include": [
+		"tests/**/*.test.js"
+	],
+	"vitest.exclude": [
+		"**/node_modules/**",
+		"**/coverage/**",
+		"**/data/**",
+		"**/tmp/**"
+	],
 	// Test Explorer settings
 	"testing.automaticallyOpenPeekView": "never",
 	"testing.openTesting": "neverOpen",
 	"js/ts.implicitProjectConfig.checkJs": true,
-	
 	// ESM and import settings
 	"typescript.preferences.includePackageJsonAutoImports": "auto",
 	"typescript.suggest.autoImports": true,
 	"javascript.suggest.autoImports": true,
-	
 	// File associations
 	"files.associations": {
 		"*.js": "javascript",
 		"*.mjs": "javascript",
 		"*.cjs": "javascript"
 	},
-	
 	// Search settings
 	"search.exclude": {
 		"**/node_modules": true,
@@ -65,5 +68,7 @@
 		"**/data": true,
 		"**/tmp": true
 	},
-	"testing.automaticallyOpenTestResults": "neverOpen"
+	"testing.automaticallyOpenTestResults": "neverOpen",
+	"batsTestExplorer.enabled": false,
+	"batsTestExplorer.testAdapter": false
 }

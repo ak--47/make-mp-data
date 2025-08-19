@@ -27,6 +27,7 @@ import getCliParams from './lib/cli/cli.js';
             const simpleConfig = await import('./dungeons/simple.js');
             finalConfig = { ...simpleConfig.default, ...cliConfig };
         }
+
 		
 		
         const result = await main(finalConfig);        

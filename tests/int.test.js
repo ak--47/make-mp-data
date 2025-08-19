@@ -112,7 +112,7 @@ beforeEach(async () => {
 		numUsers: 10,
 		numEvents: 100,
 		numDays: 30,
-		simulationName: 'TestSimulation',
+		name: 'TestSimulation',
 		hook: (record) => record
 	};
 	global.CAMPAIGNS = CAMPAIGNS;
@@ -614,7 +614,14 @@ describe.sequential('orchestrators', () => {
 			numDays: 30,
 			userProps: {},
 			scdProps: {},
-			events: [],
+			events: [
+				{
+					"event": "step1",
+				},
+				{
+					"event": "step2"
+				}
+			],
 			funnels: [{ sequence: ["step1", "step2"], conversionRate: 100, order: 'sequential' }],
 		};
 		const context = createTestContext(config);
