@@ -10,8 +10,8 @@ import { buildGenerator } from "../lib/generators/text.js";
 const SEED = "make me text yo";
 dayjs.extend(utc);
 const chance = initChance(SEED);
-const num_users = 1_000;
-const days = 100;
+const num_users = 5_000;
+const days = 90;
 
 /** @typedef  {import("../types.js").Dungeon} Dungeon */
 
@@ -19,14 +19,14 @@ const supportTicketGen = buildGenerator({
 	chaos: 0.2,
 	formality: "technical",
 	style: "support",
-	min: 150,
+	min: 50,
 	max: 255
 })
 
 const reviewWritingGen = buildGenerator({
 	chaos: 0.2,
 	style: "review",
-	min: 100,
+	min: 10,
 	max: 255
 	
 })
@@ -35,30 +35,25 @@ const reviewWritingGen = buildGenerator({
 const searchGen = buildGenerator({
 	chaos: 0.3,
 	style: "search",
-	min: 10,
-	max: 255
+	min: 4,
+	max: 42
 })
 
 const feedbackGen = buildGenerator({
 	chaos: 0.25,
 	style: "feedback",
 	min: 20,
-	max: 255
+	max: 120
 })
 
 const conversationGen = buildGenerator({
 	chaos: 0.4,
 	style: "chat",
-	min: 20,
+	min: 3,
 	max: 255
 })
 
-const reviewGen = buildGenerator({
-	chaos: 0.2,
-	style: "review",
-	min: 50,
-	max: 255
-})
+
 
 
 /** @type {Dungeon} */
@@ -243,10 +238,10 @@ const dungeon = {
 	],
 
 	hook: function (record, type, meta) {
-		const NOW = dayjs();
+		// const NOW = dayjs();
 
 		if (type === "event") {
-			const EVENT_TIME = dayjs(record.time);
+			// const EVENT_TIME = dayjs(record.time);
 		}
 
 		if (type === "user") {
