@@ -8,7 +8,7 @@ import { createGenerator, generateBatch } from "../lib/generators/text.js";
 const SEED = "make me text yo";
 dayjs.extend(utc);
 const chance = initChance(SEED);
-const num_users = 10_000;
+const num_users = 100;
 const days = 90;
 
 /** @typedef  {import("../types.js").Dungeon} Dungeon */
@@ -182,10 +182,10 @@ const dungeon = {
 	format: "json",
 	alsoInferFunnels: true,
 	hasLocation: true,
-	hasAndroidDevices: true,
-	hasIOSDevices: true,
-	hasDesktopDevices: true,
-	hasBrowser: true,
+	hasAndroidDevices: false,
+	hasIOSDevices: false,
+	hasDesktopDevices: false,
+	hasBrowser: false,
 	hasCampaigns: false,
 	isAnonymous: false,
 	hasAdSpend: false,

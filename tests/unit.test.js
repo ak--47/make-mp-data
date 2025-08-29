@@ -77,7 +77,7 @@ const hookArray = createHookArray;
 
 
 
-describe('text generator (new API)', () => {
+describe('text generator', () => {
 
 	describe('createGenerator', () => {
 		test('creates generator with default config', () => {
