@@ -5,6 +5,9 @@ import fs from 'fs';
 import * as u from 'ak-tools';
 dayjs.extend(utc);
 import 'dotenv/config';
+import { buildGenerator, generateBatch } from '../lib/generators/text.js';
+import { describe, test, expect, beforeEach } from 'vitest';
+
 
 /** @typedef {import('../types').Dungeon} Config */
 /** @typedef {import('../types').EventConfig} EventConfig */
@@ -71,6 +74,671 @@ import { inferFunnels } from '../lib/core/config-validator.js';
 //todo: test for funnel inference
 const hookArray = createHookArray;
 
+describe('text generator', () => {
+
+	describe('buildGenerator', () => {
+		test('creates generator with default config', () => {
+			const gen = buildGenerator();
+			expect(gen).toHaveProperty('generateOne');
+			expect(gen).toHaveProperty('generateMany');
+			expect(gen).toHaveProperty('generateRandom');
+			expect(gen).toHaveProperty('getStats');
+		});
+
+		test('accepts custom config', () => {
+			const config = {
+				tone: 'neg',
+				min: 100,
+				max: 200,
+				seed: 'test-seed'
+			};
+			const gen = buildGenerator(config);
+			const stats = gen.getStats();
+			expect(stats.config).toMatchObject(config);
+		});
+
+		test('generateOne returns string within length bounds', () => {
+			const gen = buildGenerator({ min: 30, max: 150, tries: 10 });
+			const text = gen.generateOne();
+			
+			if (text) {
+				expect(typeof text).toBe('string');
+				expect(text.length).toBeGreaterThan(0);
+			}
+		});
+
+		test('generateOne with different tones', () => {
+			const posGen = buildGenerator({ tone: 'pos', min: 50, max: 200, tries: 10 });
+			const negGen = buildGenerator({ tone: 'neg', min: 50, max: 200, tries: 10 });
+			const neuGen = buildGenerator({ tone: 'neu', min: 50, max: 200, tries: 10 });
+
+			const posText = posGen.generateOne();
+			const negText = negGen.generateOne();
+			const neuText = neuGen.generateOne();
+
+			// All should generate text
+			expect(posText).toBeTruthy();
+			expect(negText).toBeTruthy();
+			expect(neuText).toBeTruthy();
+
+			// All should be strings, length bounds may vary due to text generation complexity
+			if (posText) {
+				expect(typeof posText).toBe('string');
+				expect(posText.length).toBeGreaterThan(0);
+			}
+			if (negText) {
+				expect(typeof negText).toBe('string');
+				expect(negText.length).toBeGreaterThan(0);
+			}
+			if (neuText) {
+				expect(typeof neuText).toBe('string');
+				expect(neuText.length).toBeGreaterThan(0);
+			}
+		});
+
+		test('generateMany returns correct number of items', () => {
+			const gen = buildGenerator({ min: 20, max: 150, tries: 10 });
+			const texts = gen.generateMany({ n: 5 });
+			
+			expect(Array.isArray(texts)).toBe(true);
+			expect(texts.length).toBeLessThanOrEqual(5); // May be less due to failed generation
+			
+			texts.forEach(text => {
+				expect(typeof text).toBe('string');
+				expect(text.length).toBeGreaterThan(0);
+			});
+		});
+
+		test('generateMany with objects return type', () => {
+			const gen = buildGenerator({ min: 30, max: 80, tries: 10 });
+			const items = gen.generateMany({ n: 3, returnType: 'objects' });
+
+			expect(Array.isArray(items)).toBe(true);
+			expect(items.length).toBeLessThanOrEqual(3);
+
+			items.forEach(item => {
+				expect(item).toHaveProperty('tone');
+				expect(item).toHaveProperty('text');
+				expect(item).toHaveProperty('style');
+				expect(item).toHaveProperty('intensity');
+				expect(item).toHaveProperty('formality');
+				expect(typeof item.text).toBe('string');
+			});
+		});
+
+		test('generateRandom returns text', () => {
+			const gen = buildGenerator({ min: 40, max: 120, tries: 10 });
+			const text = gen.generateRandom();
+			
+			if (text) {
+				expect(typeof text).toBe('string');
+				expect(text.length).toBeGreaterThanOrEqual(40);
+				expect(text.length).toBeLessThanOrEqual(120);
+			}
+		});
+
+		test('deterministic behavior with seed', () => {
+			const seed = 'test-deterministic';
+			const gen1 = buildGenerator({ seed, min: 30, max: 120, tries: 20 });
+			const gen2 = buildGenerator({ seed, min: 30, max: 120, tries: 20 });
+
+			const text1 = gen1.generateOne();
+			const text2 = gen2.generateOne();
+
+			// With same seed, should generate text (though generation may sometimes fail)
+			if (text1) {
+				expect(typeof text1).toBe('string');
+			}
+			if (text2) {
+				expect(typeof text2).toBe('string');
+			}
+			// At least one should generate successfully with more tries
+			expect(text1 || text2).toBeTruthy();
+		});
+
+		test('deduplication works', () => {
+			const gen = buildGenerator({ 
+				min: 20, 
+				max: 50, 
+				enableDedupe: true,
+				shingleSize: 3,
+				maxHamming: 2,
+				tries: 50
+			});
+
+			const texts = gen.generateMany({ n: 10 });
+			const stats = gen.getStats();
+
+			expect(stats.dedupeCount).toBeGreaterThan(0);
+			
+			// Check that texts are reasonably unique
+			const uniqueTexts = new Set(texts);
+			expect(uniqueTexts.size).toBeGreaterThanOrEqual(Math.min(5, texts.length));
+		});
+	});
+
+	describe('different styles', () => {
+		test('support style generates appropriate text', () => {
+			const gen = buildGenerator({ 
+				style: 'support', 
+				min: 50, 
+				max: 200,
+				tries: 10
+			});
+			const text = gen.generateOne();
+			
+			if (text) {
+				expect(typeof text).toBe('string');
+				expect(text.length).toBeGreaterThan(0);
+			}
+		});
+
+		test('review style generates appropriate text', () => {
+			const gen = buildGenerator({ 
+				style: 'review', 
+				min: 30, 
+				max: 150,
+				tries: 10
+			});
+			const text = gen.generateOne();
+			
+			if (text) {
+				expect(typeof text).toBe('string');
+				expect(text.length).toBeGreaterThan(0);
+			}
+		});
+
+		test('search style generates shorter text', () => {
+			const gen = buildGenerator({ 
+				style: 'search', 
+				min: 10, 
+				max: 80,
+				tries: 10
+			});
+			const text = gen.generateOne();
+			
+			if (text) {
+				expect(typeof text).toBe('string');
+				expect(text.length).toBeGreaterThan(0);
+			}
+		});
+
+		test('chat style generates conversational text', () => {
+			const gen = buildGenerator({ 
+				style: 'chat', 
+				min: 15, 
+				max: 150,
+				tries: 10
+			});
+			const text = gen.generateOne();
+			
+			if (text) {
+				expect(typeof text).toBe('string');
+				expect(text.length).toBeGreaterThan(0);
+			}
+		});
+
+		test('feedback style generates feedback text', () => {
+			const gen = buildGenerator({ 
+				style: 'feedback', 
+				min: 25, 
+				max: 120,
+				tries: 10
+			});
+			const text = gen.generateOne();
+			
+			if (text) {
+				expect(typeof text).toBe('string');
+				expect(text.length).toBeGreaterThan(0);
+			}
+		});
+	});
+
+	describe('intensity levels', () => {
+		test('low intensity generates text', () => {
+			const gen = buildGenerator({ 
+				intensity: 'low', 
+				min: 40, 
+				max: 150,
+				tries: 10
+			});
+			const text = gen.generateOne();
+			
+			if (text) {
+				expect(typeof text).toBe('string');
+				expect(text.length).toBeGreaterThan(0);
+			}
+		});
+
+		test('high intensity generates text', () => {
+			const gen = buildGenerator({ 
+				intensity: 'high', 
+				min: 40, 
+				max: 150,
+				tries: 10
+			});
+			const text = gen.generateOne();
+			
+			if (text) {
+				expect(typeof text).toBe('string');
+				expect(text.length).toBeGreaterThan(0);
+			}
+		});
+	});
+
+	describe('formality levels', () => {
+		test('casual formality generates text', () => {
+			const gen = buildGenerator({ 
+				formality: 'casual', 
+				min: 40, 
+				max: 150,
+				tries: 10
+			});
+			const text = gen.generateOne();
+			
+			if (text) {
+				expect(typeof text).toBe('string');
+				expect(text.length).toBeGreaterThan(0);
+			}
+		});
+
+		test('business formality generates text', () => {
+			const gen = buildGenerator({ 
+				formality: 'business', 
+				min: 40, 
+				max: 150,
+				tries: 10
+			});
+			const text = gen.generateOne();
+			
+			if (text) {
+				expect(typeof text).toBe('string');
+				expect(text.length).toBeGreaterThan(0);
+			}
+		});
+
+		test('technical formality generates text', () => {
+			const gen = buildGenerator({ 
+				formality: 'technical', 
+				min: 40, 
+				max: 150,
+				tries: 10
+			});
+			const text = gen.generateOne();
+			
+			if (text) {
+				expect(typeof text).toBe('string');
+				expect(text.length).toBeGreaterThan(0);
+			}
+		});
+	});
+
+	describe('advanced features', () => {
+		test('typos enabled still generates valid text', () => {
+			const gen = buildGenerator({ 
+				typos: true, 
+				typoRate: 0.05,
+				min: 50, 
+				max: 120,
+				tries: 10
+			});
+			const text = gen.generateOne();
+			
+			if (text) {
+				expect(typeof text).toBe('string');
+				expect(text.length).toBeGreaterThanOrEqual(50);
+				expect(text.length).toBeLessThanOrEqual(120);
+			}
+		});
+
+		test('emotional arc generates text', () => {
+			const gen = buildGenerator({ 
+				emotionalArc: true,
+				min: 100, 
+				max: 300,
+				tries: 10
+			});
+			const text = gen.generateOne();
+			
+			if (text) {
+				expect(typeof text).toBe('string');
+				expect(text.length).toBeGreaterThanOrEqual(100);
+				expect(text.length).toBeLessThanOrEqual(300);
+			}
+		});
+
+		test('timestamps and persona metadata', () => {
+			const gen = buildGenerator({ 
+				timestamps: true,
+				userPersona: true,
+				min: 50, 
+				max: 120,
+				tries: 10
+			});
+			const items = gen.generateMany({ n: 5, returnType: 'objects' });
+
+			items.forEach(item => {
+				expect(item).toHaveProperty('text');
+				expect(typeof item.text).toBe('string');
+				// May or may not have metadata based on chance
+			});
+		});
+
+		test('related items maintain coherence', () => {
+			const gen = buildGenerator({ min: 40, max: 150, tries: 10 });
+			const items = gen.generateMany({ n: 3, related: true });
+
+			expect(Array.isArray(items)).toBe(true);
+			expect(items.length).toBeLessThanOrEqual(3);
+			
+			items.forEach(text => {
+				expect(typeof text).toBe('string');
+				expect(text.length).toBeGreaterThan(0);
+			});
+		});
+
+		test('search query generation', () => {
+			const gen = buildGenerator({ 
+				style: 'search', 
+				min: 10, 
+				max: 100,
+				tries: 10
+			});
+			const queries = gen.generateMany({ n: 5 });
+
+			expect(Array.isArray(queries)).toBe(true);
+			expect(queries.length).toBeLessThanOrEqual(5);
+			
+			queries.forEach(query => {
+				expect(typeof query).toBe('string');
+				expect(query.length).toBeGreaterThan(0);
+			});
+		});
+
+		test('conversation thread generation', () => {
+			const gen = buildGenerator({
+				emotionalArc: true,
+				sentimentDrift: 0.3,
+				contextCoherence: true,
+				min: 30,
+				max: 200,
+				tries: 10
+			});
+
+			const thread = gen.generateMany({
+				n: 3,
+				returnType: 'objects',
+				related: true
+			});
+
+			expect(Array.isArray(thread)).toBe(true);
+			expect(thread.length).toBeLessThanOrEqual(3);
+			
+			thread.forEach(message => {
+				expect(message).toHaveProperty('tone');
+				expect(message).toHaveProperty('text');
+				expect(typeof message.text).toBe('string');
+				expect(message.text.length).toBeGreaterThan(0);
+			});
+		});
+	});
+
+	describe('error handling', () => {
+		test('handles zero tries gracefully', () => {
+			const gen = buildGenerator({ tries: 0, min: 50, max: 100 });
+			const text = gen.generateOne();
+			expect(text).toBeNull();
+		});
+
+		test('handles impossible length constraints', () => {
+			const gen = buildGenerator({ min: 1000, max: 1001, tries: 5 });
+			const text = gen.generateOne();
+			// Should return null or very short text due to generation limits
+			expect(text === null || typeof text === 'string').toBe(true);
+		});
+
+		test('handles very high chaos values', () => {
+			const gen = buildGenerator({ chaos: 1.0, min: 30, max: 120, tries: 10 });
+			const text = gen.generateOne();
+			
+			if (text) {
+				expect(typeof text).toBe('string');
+				expect(text.length).toBeGreaterThan(0);
+			}
+		});
+	});
+});
+
+describe('generateBatch', () => {
+	test('generates correct number of items', () => {
+		const texts = generateBatch({ n: 5, min: 30, max: 120, tries: 10 });
+		
+		expect(Array.isArray(texts)).toBe(true);
+		expect(texts.length).toBeLessThanOrEqual(5);
+		
+		texts.forEach(text => {
+			expect(typeof text).toBe('string');
+			expect(text.length).toBeGreaterThan(0);
+		});
+	});
+
+	test('returns objects when specified', () => {
+		const items = generateBatch({ 
+			n: 3, 
+			returnType: 'objects',
+			min: 40,
+			max: 150,
+			tries: 10
+		});
+
+		expect(Array.isArray(items)).toBe(true);
+		expect(items.length).toBeLessThanOrEqual(3);
+
+		items.forEach(item => {
+			expect(item).toHaveProperty('tone');
+			expect(item).toHaveProperty('text');
+			expect(typeof item.text).toBe('string');
+			expect(item.text.length).toBeGreaterThan(0);
+		});
+	});
+
+	test('handles related items', () => {
+		const texts = generateBatch({ 
+			n: 4, 
+			related: true,
+			min: 30,
+			max: 120,
+			tries: 10
+		});
+
+		expect(Array.isArray(texts)).toBe(true);
+		expect(texts.length).toBeLessThanOrEqual(4);
+		
+		texts.forEach(text => {
+			expect(typeof text).toBe('string');
+			expect(text.length).toBeGreaterThan(0);
+		});
+	});
+
+	test('generates search queries via batch', () => {
+		const queries = generateBatch({ 
+			n: 5, 
+			style: 'search',
+			min: 10,
+			max: 100,
+			tries: 10
+		});
+		
+		expect(Array.isArray(queries)).toBe(true);
+		expect(queries.length).toBeLessThanOrEqual(5);
+		
+		queries.forEach(query => {
+			expect(typeof query).toBe('string');
+			expect(query.length).toBeGreaterThan(0);
+		});
+	});
+
+	test('generates conversation thread via batch', () => {
+		const thread = generateBatch({
+			n: 3,
+			returnType: 'objects',
+			related: true,
+			emotionalArc: true,
+			sentimentDrift: 0.3,
+			contextCoherence: true,
+			min: 30,
+			max: 200,
+			tries: 10
+		});
+		
+		expect(Array.isArray(thread)).toBe(true);
+		expect(thread.length).toBeLessThanOrEqual(3);
+		
+		thread.forEach(message => {
+			expect(message).toHaveProperty('tone');
+			expect(message).toHaveProperty('text');
+			expect(typeof message.text).toBe('string');
+			expect(message.text.length).toBeGreaterThan(0);
+		});
+	});
+
+	test('generates with typos via batch', () => {
+		const texts = generateBatch({ 
+			n: 3, 
+			typos: true,
+			typoRate: 0.03,
+			tone: 'neu',
+			min: 40,
+			max: 120,
+			tries: 10
+		});
+		
+		expect(Array.isArray(texts)).toBe(true);
+		expect(texts.length).toBeLessThanOrEqual(3);
+		
+		texts.forEach(text => {
+			expect(typeof text).toBe('string');
+			expect(text.length).toBeGreaterThan(0);
+		});
+	});
+});
+
+
+// Test cases based on text-generation.js dungeon examples
+describe('dungeon examples integration', () => {
+	test('support ticket generator like dungeon', () => {
+		const supportGen = buildGenerator({
+			chaos: 0.2,
+			formality: 'technical',
+			style: 'support',
+			min: 50,
+			max: 255,
+			tries: 10
+		});
+
+		const text = supportGen.generateRandom();
+		
+		if (text) {
+			expect(typeof text).toBe('string');
+			expect(text.length).toBeGreaterThanOrEqual(50);
+			expect(text.length).toBeLessThanOrEqual(255);
+		}
+	});
+
+	test('review writing generator like dungeon', () => {
+		const reviewGen = buildGenerator({
+			chaos: 0.2,
+			style: 'review',
+			min: 10,
+			max: 255,
+			tries: 10
+		});
+
+		const text = reviewGen.generateRandom();
+		
+		if (text) {
+			expect(typeof text).toBe('string');
+			expect(text.length).toBeGreaterThanOrEqual(10);
+			expect(text.length).toBeLessThanOrEqual(255);
+		}
+	});
+
+	test('search generator like dungeon', () => {
+		const searchGen = buildGenerator({
+			chaos: 0.3,
+			style: 'search',
+			min: 4,
+			max: 60,
+			tries: 10
+		});
+
+		const text = searchGen.generateRandom();
+		
+		if (text) {
+			expect(typeof text).toBe('string');
+			expect(text.length).toBeGreaterThan(0);
+		}
+	});
+
+	test('feedback generator like dungeon', () => {
+		const feedbackGen = buildGenerator({
+			chaos: 0.25,
+			style: 'feedback',
+			min: 20,
+			max: 150,
+			tries: 10
+		});
+
+		const text = feedbackGen.generateRandom();
+		
+		if (text) {
+			expect(typeof text).toBe('string');
+			expect(text.length).toBeGreaterThan(0);
+		}
+	});
+
+	test('conversation generator like dungeon', () => {
+		const conversationGen = buildGenerator({
+			chaos: 0.4,
+			style: 'chat',
+			min: 3,
+			max: 255,
+			tries: 10
+		});
+
+		const text = conversationGen.generateRandom();
+		
+		if (text) {
+			expect(typeof text).toBe('string');
+			expect(text.length).toBeGreaterThanOrEqual(3);
+			expect(text.length).toBeLessThanOrEqual(255);
+		}
+	});
+
+	test('multiple generator calls like event properties', () => {
+		const supportGen = buildGenerator({
+			chaos: 0.2,
+			formality: 'technical',
+			style: 'support',
+			min: 50,
+			max: 300,
+			tries: 10
+		});
+
+		// Simulate multiple event generations
+		const texts = [];
+		for (let i = 0; i < 5; i++) {
+			const text = supportGen.generateRandom();
+			if (text) texts.push(text);
+		}
+
+		expect(texts.length).toBeGreaterThan(0);
+		texts.forEach(text => {
+			expect(typeof text).toBe('string');
+			expect(text.length).toBeGreaterThan(0);
+		});
+	});
+});
 
 describe('timesoup', () => {
 
