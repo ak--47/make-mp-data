@@ -430,3 +430,188 @@ export type Result = {
 declare function main(config: Dungeon): Promise<Result>;
 
 export default main;
+
+// ============= Text Generator Types =============
+
+/**
+ * Sentiment tone of generated text
+ */
+export type TextTone = 'pos' | 'neg' | 'neu';
+
+/**
+ * Style of text generation
+ */
+export type TextStyle = 'support' | 'review' | 'search' | 'feedback' | 'chat' | 'email' | 'forum';
+
+/**
+ * Emotional intensity level
+ */
+export type TextIntensity = 'low' | 'medium' | 'high';
+
+/**
+ * Language formality level
+ */
+export type TextFormality = 'casual' | 'business' | 'technical';
+
+/**
+ * Output format for batch generation
+ */
+export type TextReturnType = 'strings' | 'objects';
+
+/**
+ * Domain-specific keywords to inject into generated text
+ */
+export interface TextKeywordSet {
+    /** Product features to mention */
+    features?: string[];
+    /** Product/company names */
+    products?: string[];
+    /** Competitor names for comparisons */
+    competitors?: string[];
+    /** Technical terms and jargon */
+    technical?: string[];
+    /** Version numbers and releases */
+    versions?: string[];
+    /** Specific error messages or codes */
+    errors?: string[];
+    /** Business metrics or KPIs */
+    metrics?: string[];
+}
+
+/**
+ * Configuration for text generator instance
+ */
+export interface TextGeneratorConfig {
+    /** Default sentiment tone */
+    tone?: TextTone;
+    /** Type of text to generate */
+    style?: TextStyle;
+    /** Emotional intensity */
+    intensity?: TextIntensity;
+    /** Language formality */
+    formality?: TextFormality;
+    /** Minimum text length in characters */
+    min?: number;
+    /** Maximum text length in characters */
+    max?: number;
+    /** RNG seed for reproducibility */
+    seed?: string;
+    /** Domain-specific keywords to inject */
+    keywords?: TextKeywordSet;
+    /** Probability of keyword injection (0-1) */
+    keywordDensity?: number;
+    /** Enable realistic typos */
+    typos?: boolean;
+    /** Base typo probability per word */
+    typoRate?: number;
+    /** Allow sentiment mixing for realism */
+    mixedSentiment?: boolean;
+    /** Amount of authentic markers (0-1) */
+    authenticityLevel?: number;
+    /** Add timestamps to some messages */
+    timestamps?: boolean;
+    /** Include user role/experience markers */
+    userPersona?: boolean;
+    /** Allow sentiment to drift during generation (0-1) */
+    sentimentDrift?: number;
+    /** Add metadata to generated text */
+    includeMetadata?: boolean;
+    /** How specific/detailed to make claims (0-1) */
+    specificityLevel?: number;
+    /** Filter near-duplicates */
+    enableDeduplication?: boolean;
+    /** Max generation attempts per item */
+    maxAttempts?: number;
+}
+
+/**
+ * Metadata for generated text
+ */
+export interface TextMetadata {
+    /** Timestamp if enabled */
+    timestamp?: string;
+    /** Sentiment analysis score */
+    sentimentScore?: number;
+    /** Keywords that were injected */
+    injectedKeywords?: string[];
+    /** User persona information */
+    persona?: Record<string, any>;
+    /** Flesch reading ease score */
+    readabilityScore?: number;
+    /** Text style used */
+    style?: TextStyle;
+    /** Intensity level used */
+    intensity?: TextIntensity;
+}
+
+/**
+ * Generated text with metadata
+ */
+export interface GeneratedText {
+    /** The generated text */
+    text: string;
+    /** Actual tone of generated text */
+    tone: TextTone;
+    /** Additional metadata */
+    metadata?: TextMetadata;
+}
+
+/**
+ * Options for batch text generation
+ */
+export interface TextBatchOptions {
+    /** Number of items to generate */
+    n: number;
+    /** Output format */
+    returnType?: TextReturnType;
+    /** Override tone for this batch */
+    tone?: TextTone;
+    /** Generate related/coherent items */
+    related?: boolean;
+    /** Shared context/topic for related items */
+    sharedContext?: string;
+}
+
+/**
+ * Statistics for text generator performance
+ */
+export interface TextGeneratorStats {
+    /** Configuration used */
+    config: TextGeneratorConfig;
+    /** Total items generated */
+    generatedCount: number;
+    /** Items that were duplicates */
+    duplicateCount: number;
+    /** Items that failed generation */
+    failedCount: number;
+    /** Average generation time per item */
+    avgGenerationTime: number;
+    /** Total generation time */
+    totalGenerationTime: number;
+}
+
+/**
+ * Text generator instance interface
+ */
+export interface TextGenerator {
+    /** Generate a single text item */
+    generateOne(): string | GeneratedText | null;
+    /** Generate multiple text items in batch */
+    generateBatch(options: TextBatchOptions): (string | GeneratedText)[];
+    /** Get generation statistics */
+    getStats(): TextGeneratorStats;
+}
+
+/**
+ * Creates a new text generator instance
+ * @param config - Configuration options for the generator
+ * @returns Text generator instance
+ */
+export declare function createGenerator(config?: TextGeneratorConfig): TextGenerator;
+
+/**
+ * Generate a batch of text items directly (standalone function)
+ * @param options - Combined generator config and batch options
+ * @returns Array of generated text items
+ */
+export declare function generateBatch(options: TextGeneratorConfig & TextBatchOptions): (string | GeneratedText)[];
