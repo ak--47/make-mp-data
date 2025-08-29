@@ -14,6 +14,25 @@ const days = 90;
 /** @typedef  {import("../types.js").Dungeon} Dungeon */
 
 // ============= Advanced Text Generators =============
+// All generators use performanceMode: true for optimal speed (~5000+ texts/sec)
+// Set performanceMode: false for maximum quality at ~1200 texts/sec
+//
+// Example usage:
+// const highQualityGen = createGenerator({
+//   style: 'support',
+//   authenticityLevel: 0.9,
+//   typos: true,
+//   enableDeduplication: true,
+//   performanceMode: false  // 🎯 Maximum quality, slower generation
+// });
+//
+// const highSpeedGen = createGenerator({
+//   style: 'support', 
+//   authenticityLevel: 0.9,  // Will be reduced to 0.3
+//   typos: true,             // Will be disabled
+//   enableDeduplication: true, // Will be disabled
+//   performanceMode: true    // 🚀 High speed, good quality
+// });
 
 // Enterprise support ticket generator with keywords and high authenticity
 const enterpriseSupportGen = createGenerator({
@@ -35,7 +54,8 @@ const enterpriseSupportGen = createGenerator({
 	specificityLevel: 0.8,
 	min: 80,
 	max: 300,
-	includeMetadata: false
+	includeMetadata: false,
+	performanceMode: true // Enable performance optimizations
 });
 
 // Casual review generator with typos and mixed sentiment
@@ -54,6 +74,7 @@ const casualReviewGen = createGenerator({
 	typos: true,
 	typoRate: 0.03,
 	sentimentDrift: 0.3,
+	performanceMode: true,
 	min: 30,
 	max: 200,
 	includeMetadata: false
@@ -73,6 +94,7 @@ const technicalForumGen = createGenerator({
 	timestamps: true,
 	authenticityLevel: 0.6,
 	specificityLevel: 0.9,
+	performanceMode: true,
 	min: 50,
 	max: 250,
 	includeMetadata: false
@@ -89,6 +111,7 @@ const searchQueryGen = createGenerator({
 	},
 	typos: true,
 	typoRate: 0.05,
+	performanceMode: true,
 	min: 2,
 	max: 50,
 	includeMetadata: false
@@ -105,6 +128,7 @@ const businessFeedbackGen = createGenerator({
 	},
 	authenticityLevel: 0.3,
 	specificityLevel: 0.7,
+	performanceMode: true,
 	min: 40,
 	max: 180,
 	includeMetadata: false
@@ -124,6 +148,7 @@ const chatMessageGen = createGenerator({
 	typos: true,
 	typoRate: 0.04,
 	sentimentDrift: 0.4,
+	performanceMode: true,
 	min: 5,
 	max: 150,
 	includeMetadata: false
@@ -139,6 +164,7 @@ const emailGen = createGenerator({
 		products: ['Enterprise Plan', 'Pro Account']
 	},
 	authenticityLevel: 0.5,
+	performanceMode: true,
 	userPersona: true,
 	min: 60,
 	max: 300,

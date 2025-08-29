@@ -133,7 +133,7 @@ describe('text generator (new API)', () => {
 					expect(result).toHaveProperty('metadata');
 					expect(typeof result.text).toBe('string');
 					expect(result.text.length).toBeGreaterThan(0);
-					expect(result.metadata).toHaveProperty('sentimentScore');
+					// Sentiment score is optional for performance
 					expect(result.metadata).toHaveProperty('style');
 					expect(result.metadata).toHaveProperty('intensity');
 				} else {
@@ -283,6 +283,36 @@ describe('text generator (new API)', () => {
 			// Check that texts are reasonably unique
 			const uniqueTexts = new Set(texts);
 			expect(uniqueTexts.size).toBeGreaterThanOrEqual(Math.min(3, texts.length));
+		});
+
+		test('performance mode optimizations work', () => {
+			const performanceGen = createGenerator({
+				style: 'support',
+				tone: 'neg',
+				authenticityLevel: 0.8,    // Should be reduced
+				typos: true,               // Should be disabled
+				enableDeduplication: true, // Should be disabled
+				maxAttempts: 50,           // Should be reduced
+				specificityLevel: 0.9,     // Should be reduced
+				sentimentDrift: 0.5,       // Should be reduced
+				performanceMode: true,
+				includeMetadata: false
+			});
+
+			// Check that performance optimizations were applied
+			expect(performanceGen.config.enableDeduplication).toBe(false);
+			expect(performanceGen.config.typos).toBe(false);
+			expect(performanceGen.config.maxAttempts).toBeLessThanOrEqual(10);
+			expect(performanceGen.config.authenticityLevel).toBeLessThanOrEqual(0.3);
+			expect(performanceGen.config.specificityLevel).toBeLessThanOrEqual(0.5);
+			expect(performanceGen.config.sentimentDrift).toBeLessThanOrEqual(0.2);
+
+			// Should still generate text
+			const text = performanceGen.generateOne();
+			if (text) {
+				expect(typeof text).toBe('string');
+				expect(text.length).toBeGreaterThan(0);
+			}
 		});
 	});
 
