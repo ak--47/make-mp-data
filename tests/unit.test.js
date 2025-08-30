@@ -285,33 +285,41 @@ describe('text generator', () => {
 			expect(uniqueTexts.size).toBeGreaterThanOrEqual(Math.min(3, texts.length));
 		});
 
-		test('performance mode optimizations work', () => {
-			const performanceGen = createGenerator({
+		test('optimized generation with diversity and fast duplicate detection', () => {
+			const generator = createGenerator({
 				style: 'support',
 				tone: 'neg',
-				authenticityLevel: 0.8,    // Should be reduced
-				typos: true,               // Should be disabled
-				enableDeduplication: true, // Should be disabled
-				maxAttempts: 50,           // Should be reduced
-				specificityLevel: 0.9,     // Should be reduced
-				sentimentDrift: 0.5,       // Should be reduced
-				performanceMode: true,
+				min: 30,
+				max: 80,
 				includeMetadata: false
 			});
 
-			// Check that performance optimizations were applied
-			expect(performanceGen.config.enableDeduplication).toBe(false);
-			expect(performanceGen.config.typos).toBe(false);
-			expect(performanceGen.config.maxAttempts).toBeLessThanOrEqual(10);
-			expect(performanceGen.config.authenticityLevel).toBeLessThanOrEqual(0.3);
-			expect(performanceGen.config.specificityLevel).toBeLessThanOrEqual(0.5);
-			expect(performanceGen.config.sentimentDrift).toBeLessThanOrEqual(0.2);
+			// Check that the generator has the new diversity systems
+			expect(generator.recentCache).toBeDefined();
+			expect(generator.diversityRNG).toBeDefined();
+			
+			// Test performance and uniqueness
+			const texts = [];
+			const startTime = Date.now();
+			
+			for (let i = 0; i < 50; i++) {
+				const text = generator.generateOne();
+				if (text) texts.push(text);
+			}
+			
+			const duration = Date.now() - startTime;
+			const uniqueTexts = new Set(texts);
+			
+			// Should be fast, generate all texts, and maintain high uniqueness
+			expect(duration).toBeLessThan(200); // Should be fast
+			expect(texts.length).toBe(50); // Should generate all requested texts
+			expect(uniqueTexts.size).toBeGreaterThanOrEqual(48); // Should have >95% uniqueness
 
-			// Should still generate text
-			const text = performanceGen.generateOne();
-			if (text) {
-				expect(typeof text).toBe('string');
-				expect(text.length).toBeGreaterThan(0);
+			// Should still generate text of good quality
+			const sampleText = generator.generateOne();
+			if (sampleText) {
+				expect(typeof sampleText).toBe('string');
+				expect(sampleText.length).toBeGreaterThan(0);
 			}
 		});
 	});

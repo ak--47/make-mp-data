@@ -522,8 +522,7 @@ export interface TextGeneratorConfig {
     enableDeduplication?: boolean;
     /** Max generation attempts per item */
     maxAttempts?: number;
-    /** Enable performance optimizations (reduces quality slightly for speed) */
-    performanceMode?: boolean;
+    // performanceMode removed - system is always optimized for speed + uniqueness
 }
 
 /**

@@ -55,7 +55,7 @@ const enterpriseSupportGen = createGenerator({
 	min: 80,
 	max: 300,
 	includeMetadata: false,
-	performanceMode: true // Enable performance optimizations
+	// System is now always optimized for speed + uniqueness
 });
 
 // Casual review generator with typos and mixed sentiment
