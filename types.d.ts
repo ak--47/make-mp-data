@@ -542,9 +542,21 @@ export interface TextMetadata {
     /** Flesch reading ease score */
     readabilityScore?: number;
     /** Text style used */
-    style?: TextStyle;
+    style?: TextStyle | string;
     /** Intensity level used */
-    intensity?: TextIntensity;
+    intensity?: TextIntensity | string;
+    /** Formality level used */
+    formality?: TextFormality | string;
+}
+
+/**
+ * Simple generated text object (without metadata)
+ */
+export interface SimpleGeneratedText {
+    /** The generated text */
+    text: string;
+    /** Actual tone of generated text */
+    tone: TextTone | string;
 }
 
 /**
@@ -554,7 +566,7 @@ export interface GeneratedText {
     /** The generated text */
     text: string;
     /** Actual tone of generated text */
-    tone: TextTone;
+    tone: TextTone | string;
     /** Additional metadata */
     metadata?: TextMetadata;
 }
@@ -600,7 +612,7 @@ export interface TextGenerator {
     /** Generate a single text item */
     generateOne(): string | GeneratedText | null;
     /** Generate multiple text items in batch */
-    generateBatch(options: TextBatchOptions): (string | GeneratedText)[];
+    generateBatch(options: TextBatchOptions): (string | GeneratedText | SimpleGeneratedText)[];
     /** Get generation statistics */
     getStats(): TextGeneratorStats;
 }
@@ -617,4 +629,43 @@ export declare function createGenerator(config?: TextGeneratorConfig): TextGener
  * @param options - Combined generator config and batch options
  * @returns Array of generated text items
  */
-export declare function generateBatch(options: TextGeneratorConfig & TextBatchOptions): (string | GeneratedText)[];
+export declare function generateBatch(options: TextGeneratorConfig & TextBatchOptions): (string | GeneratedText | SimpleGeneratedText)[];
+
+// ============= Additional Utility Types =============
+
+/**
+ * File path configuration for data generation output
+ */
+export interface WritePaths {
+    eventFiles: string[];
+    userFiles: string[];
+    adSpendFiles: string[];
+    scdFiles: string[];
+    mirrorFiles: string[];
+    groupFiles: string[];
+    lookupFiles: string[];
+    folder: string;
+}
+
+/**
+ * Configuration for TimeSoup time distribution function
+ */
+export interface TimeSoupOptions {
+    earliestTime?: number;
+    latestTime?: number;
+    peaks?: number;
+    deviation?: number;
+    mean?: number;
+}
+
+/**
+ * Test context configuration for unit/integration tests
+ */
+export interface TestContext {
+    config: Dungeon;
+    storage: Storage | null;
+    defaults: Defaults;
+    campaigns: any[];
+    runtime: RuntimeState;
+    [key: string]: any;
+}
