@@ -100,7 +100,10 @@ function displayConfigurationSummary(config) {
 	
 	// Group analytics
 	if (config.groupKeys && config.groupKeys.length > 0) {
-		const groups = config.groupKeys.map(([key, count]) => `${count} ${key}s`).join(', ');
+		const groups = config.groupKeys.map((group) => {
+			const [key, count] = Array.isArray(group) ? group : [group, 0];
+			return `${count} ${key}s`;
+		}).join(', ');
 		console.log(`👥 Groups:      ${groups}`);
 	}
 	
@@ -505,7 +508,7 @@ async function flushStorageToDisk(storage, config) {
  * Extract file information from storage containers
  * @param {import('./types').Storage} storage - Storage object
  * @param {import('./types').Dungeon} config - Configuration object
- * @returns {string[]} Array of file paths
+ * @returns {Promise<string[]>} Array of file paths
  */
 async function extractFileInfo(storage, config) {
 	const files = [];

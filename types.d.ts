@@ -179,6 +179,8 @@ export interface Defaults {
     desktopDevices: () => any[];
     browsers: () => any[];
     campaigns: () => any[];
+    devicePools: { android: any[]; ios: any[]; desktop: any[] };
+    allDevices:any[];
 }
 
 /**
@@ -311,11 +313,11 @@ export interface Funnel {
      * funnel properties go onto each event in the funnel and are held constant
      */
     props?: Record<string, ValueValid>;
-	/**
-	 * funnel conditions (user properties) are used to filter users who are eligible for the funnel
-	 * these conditions must match the current user's profile for the user to be eligible for the funnel
-	 */
-	conditions?: Record<string, ValueValid>;
+    /**
+     * funnel conditions (user properties) are used to filter users who are eligible for the funnel
+     * these conditions must match the current user's profile for the user to be eligible for the funnel
+     */
+    conditions?: Record<string, ValueValid>;
 }
 
 /**
@@ -436,27 +438,27 @@ export default main;
 /**
  * Sentiment tone of generated text
  */
-export type TextTone = 'pos' | 'neg' | 'neu';
+export type TextTone = "pos" | "neg" | "neu";
 
 /**
  * Style of text generation
  */
-export type TextStyle = 'support' | 'review' | 'search' | 'feedback' | 'chat' | 'email' | 'forum';
+export type TextStyle = "support" | "review" | "search" | "feedback" | "chat" | "email" | "forum";
 
 /**
  * Emotional intensity level
  */
-export type TextIntensity = 'low' | 'medium' | 'high';
+export type TextIntensity = "low" | "medium" | "high";
 
 /**
  * Language formality level
  */
-export type TextFormality = 'casual' | 'business' | 'technical';
+export type TextFormality = "casual" | "business" | "technical";
 
 /**
  * Output format for batch generation
  */
-export type TextReturnType = 'strings' | 'objects';
+export type TextReturnType = "strings" | "objects";
 
 /**
  * Domain-specific keywords to inject into generated text
