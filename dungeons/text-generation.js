@@ -8,7 +8,7 @@ import { createGenerator, generateBatch } from "../lib/generators/text.js";
 const SEED = "make me text yo";
 dayjs.extend(utc);
 const chance = initChance(SEED);
-const num_users = 100;
+const num_users = 5_000;
 const days = 90;
 
 /** @typedef  {import("../types.js").Dungeon} Dungeon */
@@ -153,7 +153,7 @@ const dungeon = {
 	numUsers: num_users,
 	hasAnonIds: false,
 	hasSessionIds: true, // Enable for chat flow tracking
-	format: "json",
+	format: "csv",
 	alsoInferFunnels: true,
 	hasLocation: true,
 	hasAndroidDevices: false,
@@ -298,24 +298,8 @@ const dungeon = {
 		}
 	],
 	
-	// ============= Enhanced Funnels =============
 	funnels: [
-		{
-			sequence: ["search_query", "casual_product_review", "enterprise_support_ticket"],
-			conversionRate: 0.05, // 5% conversion from search to review to support
-			timeToConvert: 24,
-			props: {
-				funnel_type: "research_to_concern"
-			}
-		},
-		{
-			sequence: ["chat_message", "email_correspondence", "business_feedback"],
-			conversionRate: 0.12, // 12% go from chat to email to feedback
-			timeToConvert: 6,
-			props: {
-				funnel_type: "support_to_feedback"
-			}
-		}
+		
 	],
 	
 	superProps: {
@@ -345,22 +329,7 @@ const dungeon = {
 	},
 	
 	// ============= Slowly Changing Dimensions =============
-	scdProps: {
-		user_tier: {
-			type: "user",
-			frequency: "month",
-			values: ["free", "basic", "pro", "enterprise"],
-			timing: "fixed",
-			max: 3 // Max 3 tier changes per user
-		},
-		engagement_level: {
-			type: "user", 
-			frequency: "week",
-			values: ["low", "medium", "high"],
-			timing: "fuzzy",
-			max: 8 // Can change engagement weekly
-		}
-	},
+	scdProps: {},
 	
 	// ============= Lookup Tables =============
 	lookupTables: [
@@ -368,42 +337,6 @@ const dungeon = {
 	],
 
 	hook: function (record, type, meta) {
-		// Enhanced hooks for realistic data patterns
-		
-		if (type === "event") {
-			// Add realistic timestamp patterns for business hours
-			const eventTime = dayjs(record.time);
-			const hour = eventTime.hour();
-			const dayOfWeek = eventTime.day();
-			
-			// Business events more likely during business hours
-			if (["enterprise_support_ticket", "business_feedback", "email_correspondence"].includes(record.event)) {
-				// Add business_hours flag
-				record.is_business_hours = hour >= 9 && hour <= 17 && dayOfWeek >= 1 && dayOfWeek <= 5;
-			}
-			
-			// Chat messages more frequent during peak hours
-			if (record.event === "chat_message") {
-				record.is_peak_hours = hour >= 10 && hour <= 16;
-			}
-		}
-
-		if (type === "user") {
-			// Add computed fields based on other properties
-			if (record.user_tier === "enterprise" && record.company_size) {
-				record.is_enterprise_account = record.company_size.includes("1000+") || record.company_size.includes("201-1000");
-			}
-			
-			// Add engagement scoring
-			const factors = [
-				record.has_purchased ? 30 : 0,
-				record.notification_enabled ? 10 : 0,
-				record.account_age_days > 30 ? 15 : 0,
-				record.technical_expertise === "expert" ? 20 : 0
-			];
-			record.computed_engagement_score = factors.reduce((a, b) => a + b, 0);
-		}
-
 		return record;
 	}
 };
