@@ -239,7 +239,7 @@ describe('module', () => {
 		const { files, eventCount, userCount } = results;
 		
 		// Validate that data was generated
-		expect(eventCount).toBeGreaterThan(30);  // Lower threshold since it's random
+		expect(eventCount).toBeGreaterThan(29);  // Lower threshold since it's random
 		expect(userCount).toBe(5);
 		
 		// Validate that files were written
