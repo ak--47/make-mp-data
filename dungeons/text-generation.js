@@ -8,7 +8,7 @@ import { createGenerator, generateBatch } from "../lib/generators/text.js";
 const SEED = "make me text yo";
 dayjs.extend(utc);
 const chance = initChance(SEED);
-const num_users = 5_000;
+const num_users = 1_000;
 const days = 90;
 
 /** @typedef  {import("../types.js").Dungeon} Dungeon */
@@ -145,6 +145,148 @@ const emailGen = createGenerator({
 	includeMetadata: false
 });
 
+// Social Media Generators
+const twitterGen = createGenerator({
+	style: "chat",
+	tone: "neu",
+	formality: "casual",
+	keywords: {
+		products: ['@company', 'the app', 'your platform'],
+		features: ['new update', 'dark mode', 'mobile app', 'API'],
+		hashtags: ['#ProductHunt', '#SaaS', '#TechReview', '#UserExperience']
+	},
+	mixedSentiment: true,
+	authenticityLevel: 0.9,
+	typos: true,
+	typoRate: 0.06,
+	sentimentDrift: 0.5,
+	min: 10,
+	max: 280, // Twitter character limit
+	includeMetadata: false
+});
+
+const linkedinGen = createGenerator({
+	style: "feedback", 
+	tone: "neu",
+	formality: "business",
+	keywords: {
+		business: ['ROI', 'team productivity', 'workflow efficiency', 'digital transformation'],
+		products: ['this solution', 'the platform', 'our implementation'],
+		metrics: ['25% time savings', '40% faster', 'reduced costs', 'improved outcomes']
+	},
+	authenticityLevel: 0.4,
+	specificityLevel: 0.8,
+	userPersona: true,
+	min: 50,
+	max: 400,
+	includeMetadata: false
+});
+
+const redditGen = createGenerator({
+	style: "forum",
+	tone: "neu", 
+	formality: "casual",
+	keywords: {
+		reddit: ['UPDATE:', 'TL;DR', 'Edit:', 'Anyone else?', 'PSA'],
+		products: ['this tool', 'the service', 'their platform'],
+		community: ['r/SaaS', 'fellow devs', 'community']
+	},
+	mixedSentiment: true,
+	authenticityLevel: 0.8,
+	typos: true,
+	typoRate: 0.03,
+	sentimentDrift: 0.4,
+	min: 30,
+	max: 500,
+	includeMetadata: false
+});
+
+// Product Usage Generators
+const bugReportGen = createGenerator({
+	style: "support",
+	tone: "neg",
+	formality: "technical",
+	keywords: {
+		technical: ['console errors', 'reproduction steps', 'browser version', 'stack trace'],
+		errors: ['TypeError', 'ReferenceError', '404', '500', 'timeout'],
+		environment: ['Chrome 118', 'macOS Ventura', 'Windows 11', 'mobile Safari']
+	},
+	authenticityLevel: 0.6,
+	specificityLevel: 0.9,
+	typos: true,
+	typoRate: 0.02,
+	min: 80,
+	max: 400,
+	includeMetadata: false
+});
+
+const featureRequestGen = createGenerator({
+	style: "feedback",
+	tone: "pos",
+	formality: "business", 
+	keywords: {
+		requests: ['would love to see', 'feature request', 'enhancement idea', 'suggestion'],
+		features: ['bulk export', 'dark mode', 'keyboard shortcuts', 'advanced filters'],
+		justification: ['save time', 'improve workflow', 'user experience', 'competitive feature']
+	},
+	authenticityLevel: 0.5,
+	specificityLevel: 0.7,
+	min: 40,
+	max: 300,
+	includeMetadata: false
+});
+
+const onboardingGen = createGenerator({
+	style: "feedback",
+	tone: "neu",
+	formality: "casual",
+	keywords: {
+		onboarding: ['getting started', 'first impression', 'setup process', 'initial experience'],
+		products: ['the dashboard', 'onboarding flow', 'tutorial', 'setup wizard'],
+		feelings: ['confused', 'excited', 'overwhelmed', 'impressed', 'frustrated']
+	},
+	mixedSentiment: true,
+	authenticityLevel: 0.6,
+	typos: true,
+	typoRate: 0.04,
+	min: 30,
+	max: 250,
+	includeMetadata: false
+});
+
+// Community Interaction Generators  
+const tutorialCommentGen = createGenerator({
+	style: "forum",
+	tone: "pos",
+	formality: "casual",
+	keywords: {
+		tutorial: ['thanks for this', 'helpful tutorial', 'step by step', 'great explanation'],
+		products: ['the docs', 'this guide', 'the video', 'walkthrough'],
+		learning: ['learned something new', 'finally understand', 'makes sense now']
+	},
+	authenticityLevel: 0.5,
+	min: 20,
+	max: 150,
+	includeMetadata: false
+});
+
+const webinarChatGen = createGenerator({
+	style: "chat",
+	tone: "neu",
+	formality: "casual", 
+	keywords: {
+		webinar: ['great presentation', 'can you share slides', 'question about', 'thanks for hosting'],
+		products: ['the demo', 'live demo', 'presentation', 'your product'],
+		chat: ['Q:', 'thanks!', 'link?', '+1', 'same question']
+	},
+	authenticityLevel: 0.7,
+	typos: true,
+	typoRate: 0.05,
+	min: 5,
+	max: 100,
+	includeMetadata: false
+});
+
 /** @type {Dungeon} */
 const dungeon = {
 	seed: SEED,
@@ -153,7 +295,7 @@ const dungeon = {
 	numUsers: num_users,
 	hasAnonIds: false,
 	hasSessionIds: true, // Enable for chat flow tracking
-	format: "csv",
+	format: "json",
 	alsoInferFunnels: true,
 	hasLocation: true,
 	hasAndroidDevices: false,
@@ -169,7 +311,7 @@ const dungeon = {
 
 	batchSize: 1_500_000,
 	concurrency: 50,
-	writeToDisk: true,
+	writeToDisk: false,
 
 	// ============= Enhanced Events with New API =============
 	events: [		
@@ -267,6 +409,129 @@ const dungeon = {
 				auto_response: [true, false, false, false], // 25% auto-responses
 				response_time_hours: weighNumRange(0.25, 48, 0.5),
 				customer_type: ["new", "existing", "enterprise", "trial"]
+			}
+		},
+		
+		// Social Media Events
+		{
+			event: "twitter_post",
+			weight: 8,
+			properties: {
+				post_text: () => twitterGen.generateOne(),
+				character_count: weighNumRange(10, 280, 0.4),
+				has_hashtags: [true, true, false], // 67% have hashtags
+				has_mentions: [true, false, false], // 33% have mentions
+				engagement_type: ["like", "retweet", "reply", "quote_tweet"],
+				follower_count: weighNumRange(50, 50000, 0.7),
+				is_thread: [true, false, false, false], // 25% are threads
+				posted_via: ["web", "mobile", "api", "third_party"]
+			}
+		},
+		{
+			event: "linkedin_post",
+			weight: 4,
+			properties: {
+				post_text: () => linkedinGen.generateOne(),
+				post_type: ["update", "article", "job_posting", "company_news"],
+				industry_tag: ["technology", "business", "marketing", "sales", "hr"],
+				connection_level: ["1st", "2nd", "3rd", "not_connected"],
+				engagement_score: weighNumRange(0, 1000, 0.6),
+				is_sponsored: [true, false, false, false], // 25% sponsored
+				company_size: ["startup", "small", "medium", "large", "enterprise"]
+			}
+		},
+		{
+			event: "reddit_comment",
+			weight: 12,
+			properties: {
+				comment_text: () => redditGen.generateOne(),
+				subreddit: ["r/SaaS", "r/webdev", "r/startups", "r/technology", "r/programming"],
+				comment_depth: weighNumRange(0, 10, 0.8), // Most are top-level
+				upvotes: weighNumRange(-5, 500, 0.5),
+				is_edited: [true, false, false], // 33% edited
+				account_age_days: weighNumRange(1, 3650, 0.3),
+				is_op: [true, false, false, false], // 25% from original poster
+				parent_comment_id: () => chance.hash({ length: 8 })
+			}
+		},
+		
+		// Product Usage Events
+		{
+			event: "bug_report_submitted",
+			weight: 5,
+			properties: {
+				report_text: () => bugReportGen.generateOne(),
+				severity: ["critical", "high", "medium", "low"],
+				bug_category: ["ui", "api", "performance", "data", "security"],
+				steps_to_reproduce: weighNumRange(2, 10, 0.4),
+				browser_info: ["Chrome 118", "Firefox 119", "Safari 17", "Edge 118"],
+				os_info: ["Windows 11", "macOS Ventura", "Ubuntu 22.04", "iOS 17"],
+				is_reproducible: [true, true, true, false], // 75% reproducible
+				affects_workflow: [true, true, false], // 67% affect workflow
+				has_screenshot: [true, true, false], // 67% include screenshots
+				reporter_role: ["admin", "user", "developer", "qa_tester"]
+			}
+		},
+		{
+			event: "feature_request_submitted",
+			weight: 6,
+			properties: {
+				request_text: () => featureRequestGen.generateOne(),
+				request_category: ["ui_improvement", "new_feature", "integration", "performance"],
+				priority_level: ["nice_to_have", "important", "critical", "blocker"],
+				estimated_users_affected: weighNumRange(1, 10000, 0.6),
+				business_impact: ["low", "medium", "high", "critical"],
+				similar_requests: weighNumRange(0, 50, 0.7),
+				requester_plan: ["free", "basic", "pro", "enterprise"],
+				implementation_complexity: ["simple", "moderate", "complex", "very_complex"],
+				votes: weighNumRange(0, 200, 0.5)
+			}
+		},
+		{
+			event: "onboarding_feedback",
+			weight: 15,
+			properties: {
+				feedback_text: () => onboardingGen.generateOne(),
+				onboarding_step: ["signup", "email_verification", "profile_setup", "first_use", "tutorial"],
+				completion_rate: weighNumRange(0, 100, 0.3), // Most struggle
+				time_spent_minutes: weighNumRange(1, 120, 0.6),
+				dropped_at_step: ["signup", "tutorial", "first_action", "payment", "completed"],
+				help_docs_accessed: [true, false, false], // 33% read docs
+				support_contacted: [true, false, false, false], // 25% contact support
+				device_type: ["desktop", "mobile", "tablet"],
+				signup_source: ["organic", "paid_ad", "referral", "social_media"]
+			}
+		},
+		
+		// Community Interaction Events
+		{
+			event: "tutorial_comment_posted",
+			weight: 7,
+			properties: {
+				comment_text: () => tutorialCommentGen.generateOne(),
+				tutorial_section: ["getting_started", "advanced_features", "api_guide", "troubleshooting"],
+				helpfulness_rating: weighNumRange(1, 5, 0.4), // Skewed positive
+				comment_type: ["question", "clarification", "praise", "suggestion", "correction"],
+				user_experience_level: ["beginner", "intermediate", "advanced", "expert"],
+				tutorial_completion: weighNumRange(0, 100, 0.5),
+				follow_up_questions: weighNumRange(0, 5, 0.8),
+				marked_as_helpful: [true, true, false], // 67% helpful
+				time_on_tutorial_minutes: weighNumRange(2, 60, 0.6)
+			}
+		},
+		{
+			event: "webinar_chat_message",
+			weight: 20,
+			properties: {
+				message_text: () => webinarChatGen.generateOne(),
+				webinar_topic: ["product_demo", "feature_update", "best_practices", "q_and_a"],
+				message_timestamp_minutes: weighNumRange(0, 90, 0.5), // Throughout webinar
+				attendee_count: weighNumRange(50, 1000, 0.4),
+				is_question: [true, true, false], // 67% are questions
+				is_answered: [true, false, false], // 33% get answered
+				reaction_emoji: ["👍", "❤️", "😍", "🤔", "👏", null, null], // Some have reactions
+				is_moderator: [true, false, false, false, false], // 20% from moderators
+				attendee_type: ["customer", "prospect", "partner", "employee"]
 			}
 		},
 		
