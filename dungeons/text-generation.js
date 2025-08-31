@@ -13,26 +13,6 @@ const days = 90;
 
 /** @typedef  {import("../types.js").Dungeon} Dungeon */
 
-// ============= Advanced Text Generators =============
-// All generators use performanceMode: true for optimal speed (~5000+ texts/sec)
-// Set performanceMode: false for maximum quality at ~1200 texts/sec
-//
-// Example usage:
-// const highQualityGen = createGenerator({
-//   style: 'support',
-//   authenticityLevel: 0.9,
-//   typos: true,
-//   enableDeduplication: true,
-//   performanceMode: false  // 🎯 Maximum quality, slower generation
-// });
-//
-// const highSpeedGen = createGenerator({
-//   style: 'support', 
-//   authenticityLevel: 0.9,  // Will be reduced to 0.3
-//   typos: true,             // Will be disabled
-//   enableDeduplication: true, // Will be disabled
-//   performanceMode: true    // 🚀 High speed, good quality
-// });
 
 // Enterprise support ticket generator with keywords and high authenticity
 const enterpriseSupportGen = createGenerator({
@@ -73,8 +53,7 @@ const casualReviewGen = createGenerator({
 	authenticityLevel: 0.4,
 	typos: true,
 	typoRate: 0.03,
-	sentimentDrift: 0.3,
-	performanceMode: true,
+	sentimentDrift: 0.3,	
 	min: 30,
 	max: 200,
 	includeMetadata: false
@@ -93,8 +72,7 @@ const technicalForumGen = createGenerator({
 	userPersona: true,
 	timestamps: true,
 	authenticityLevel: 0.6,
-	specificityLevel: 0.9,
-	performanceMode: true,
+	specificityLevel: 0.9,	
 	min: 50,
 	max: 250,
 	includeMetadata: false
@@ -110,8 +88,7 @@ const searchQueryGen = createGenerator({
 		technical: ['API documentation', 'integration guide', 'troubleshooting']
 	},
 	typos: true,
-	typoRate: 0.05,
-	performanceMode: true,
+	typoRate: 0.05,	
 	min: 2,
 	max: 50,
 	includeMetadata: false
@@ -127,8 +104,7 @@ const businessFeedbackGen = createGenerator({
 		features: ['reporting', 'analytics', 'integration capabilities']
 	},
 	authenticityLevel: 0.3,
-	specificityLevel: 0.7,
-	performanceMode: true,
+	specificityLevel: 0.7,	
 	min: 40,
 	max: 180,
 	includeMetadata: false
@@ -147,8 +123,7 @@ const chatMessageGen = createGenerator({
 	authenticityLevel: 0.8,
 	typos: true,
 	typoRate: 0.04,
-	sentimentDrift: 0.4,
-	performanceMode: true,
+	sentimentDrift: 0.4,	
 	min: 5,
 	max: 150,
 	includeMetadata: false
@@ -163,8 +138,7 @@ const emailGen = createGenerator({
 		features: ['account management', 'billing', 'subscription'],
 		products: ['Enterprise Plan', 'Pro Account']
 	},
-	authenticityLevel: 0.5,
-	performanceMode: true,
+	authenticityLevel: 0.5,	
 	userPersona: true,
 	min: 60,
 	max: 300,
@@ -350,7 +324,8 @@ const dungeon = {
 		feature_flags: () => {
 			// Dynamic feature flags
 			const flags = ["new_dashboard", "beta_api", "advanced_analytics", "mobile_v2"];
-			return flags.filter(() => chance.bool({likelihood: 30})); // 30% chance each flag is enabled
+			// @ts-ignore
+			return flags.filter(() => chance.bool({likelihood: 5})); // 5% chance each flag is enabled
 		}
 	},
 	

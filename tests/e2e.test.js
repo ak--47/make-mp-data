@@ -33,6 +33,11 @@ function clearData() {
 	}
 }
 
+// Clean data directory before each test
+beforeEach(() => {
+	clearData();
+});
+
 describe('module', () => {
 
 	test('works as module (no config)', async () => {
@@ -166,9 +171,6 @@ describe('module', () => {
 	test('respects explicit name in file output', async () => {
 		console.log('EXPLICIT NAME TEST');
 		
-		// Clean up before test
-		clearData();
-		
 		const customName = 'my-test-dataset';
 
 		// Generate data with explicit name
@@ -221,9 +223,6 @@ describe('module', () => {
 
 	test('generates random name when name is empty string', async () => {
 		console.log('EMPTY NAME TEST');
-		
-		// Clean up before test
-		clearData();
 		
 		// Generate data with empty name (should trigger makeName)
 		const results = await generate({
@@ -458,9 +457,6 @@ describe('options + tweaks', () => {
 
 	test('parquet format support', async () => {
 		console.log('PARQUET FORMAT TEST');
-		
-		// Clean up before test
-		clearData();
 		const results = await generate({ 
 			writeToDisk: true, 
 			format: 'parquet',
@@ -498,9 +494,6 @@ describe('options + tweaks', () => {
 
 	test('gzip compression for CSV', async () => {
 		console.log('GZIP CSV TEST');
-		
-		// Clean up before test
-		clearData();
 		const results = await generate({ 
 			writeToDisk: true, 
 			format: 'csv',
@@ -539,9 +532,6 @@ describe('options + tweaks', () => {
 
 	test('gzip compression for JSON', async () => {
 		console.log('GZIP JSON TEST');
-		
-		// Clean up before test
-		clearData();
 		const results = await generate({ 
 			writeToDisk: true, 
 			format: 'json',
@@ -580,9 +570,6 @@ describe('options + tweaks', () => {
 
 	test('gzip compression for parquet', async () => {
 		console.log('GZIP PARQUET TEST');
-		
-		// Clean up before test
-		clearData();
 		const results = await generate({ 
 			writeToDisk: true, 
 			format: 'parquet',
