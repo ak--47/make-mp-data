@@ -31,7 +31,8 @@
 		"test:quick": "node ./tests/benchmark/quick-test.mjs",
 		"exp:soup": "node ./tests/testSoup.mjs",
 		"func:local": "functions-framework --target=entry",
-		"func:deploy": "./scripts/deploy.sh"
+		"func:deploy": "./scripts/deploy.sh",
+		"textGen": "node ./lib/templates/textQuickTest.js"
 	},
 	"repository": {
 		"type": "git",
