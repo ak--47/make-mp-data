@@ -2,7 +2,6 @@ import dayjs from "dayjs";
 import utc from "dayjs/plugin/utc.js";
 import "dotenv/config";
 import { weighNumRange, range, date, initChance, exhaust, choose, integer } from "../lib/utils/utils.js";
-
 import { createGenerator, generateBatch } from "../lib/generators/text.js";
 
 const SEED = "make me text yo";
