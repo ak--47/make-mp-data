@@ -4,7 +4,7 @@ import "dotenv/config";
 import { weighNumRange, range, date, initChance, exhaust, choose, integer } from "../lib/utils/utils.js";
 import { createGenerator, generateBatch } from "../lib/generators/text.js";
 
-const SEED = "make me text yo";
+const SEED = "make sdfsme textsdfsdf sdsdfljkhasdflsadf yo";
 dayjs.extend(utc);
 const chance = initChance(SEED);
 const num_users = 1_000;
@@ -289,6 +289,7 @@ const webinarChatGen = createGenerator({
 /** @type {Dungeon} */
 const dungeon = {
 	seed: SEED,
+	token: "cc98e23ef93281fe99d5f3da1cd3b613",
 	numDays: days,
 	numEvents: num_users * 120, // Increased for more variety
 	numUsers: num_users,
@@ -316,7 +317,7 @@ const dungeon = {
 	events: [		
 		{
 			event: "enterprise_support_ticket",
-			weight: 3,
+			weight: 1,
 			properties: {
 				ticket_text: () => enterpriseSupportGen.generateOne(),
 				priority: ["critical", "high", "medium", "low"],
@@ -332,7 +333,7 @@ const dungeon = {
 		},
 		{
 			event: "casual_product_review",
-			weight: 5,
+			weight: 1,
 			properties: {
 				review_text: () => casualReviewGen.generateOne(),
 				rating: weighNumRange(1, 5, 0.4), // Skewed toward higher ratings
@@ -345,7 +346,7 @@ const dungeon = {
 		},
 		{
 			event: "technical_forum_post",
-			weight: 4,
+			weight: 1,
 			properties: {
 				post_text: () => technicalForumGen.generateOne(),
 				topic_category: ["api_help", "integration", "troubleshooting", "feature_request"],
@@ -358,7 +359,7 @@ const dungeon = {
 		},
 		{
 			event: "search_query",
-			weight: 25, // Most frequent event
+			weight: 1, // Most frequent event
 			properties: {
 				query_text: () => searchQueryGen.generateOne(),
 				search_category: ["help", "documentation", "features", "pricing", "support"],
@@ -371,7 +372,7 @@ const dungeon = {
 		},
 		{
 			event: "business_feedback",
-			weight: 3,
+			weight: 1,
 			properties: {
 				feedback_text: () => businessFeedbackGen.generateOne(),
 				satisfaction_score: weighNumRange(1, 10, 0.3),
@@ -384,7 +385,7 @@ const dungeon = {
 		},
 		{
 			event: "chat_message",
-			weight: 20,
+			weight: 10,
 			properties: {
 				message_text: () => chatMessageGen.generateOne(),
 				chat_type: ["support", "sales", "general", "technical"],
@@ -398,7 +399,7 @@ const dungeon = {
 		},
 		{
 			event: "email_correspondence",
-			weight: 6,
+			weight: 1,
 			properties: {
 				email_text: () => emailGen.generateOne(),
 				email_type: ["support", "billing", "account", "marketing_opt_out"],
@@ -414,7 +415,7 @@ const dungeon = {
 		// Social Media Events
 		{
 			event: "twitter_post",
-			weight: 8,
+			weight: 1,
 			properties: {
 				post_text: () => twitterGen.generateOne(),
 				character_count: weighNumRange(10, 280, 0.4),
@@ -428,7 +429,7 @@ const dungeon = {
 		},
 		{
 			event: "linkedin_post",
-			weight: 4,
+			weight: 1,
 			properties: {
 				post_text: () => linkedinGen.generateOne(),
 				post_type: ["update", "article", "job_posting", "company_news"],
@@ -441,7 +442,7 @@ const dungeon = {
 		},
 		{
 			event: "reddit_comment",
-			weight: 12,
+			weight: 1,
 			properties: {
 				comment_text: () => redditGen.generateOne(),
 				subreddit: ["r/SaaS", "r/webdev", "r/startups", "r/technology", "r/programming"],
@@ -457,7 +458,7 @@ const dungeon = {
 		// Product Usage Events
 		{
 			event: "bug_report_submitted",
-			weight: 5,
+			weight: 1,
 			properties: {
 				report_text: () => bugReportGen.generateOne(),
 				severity: ["critical", "high", "medium", "low"],
@@ -473,7 +474,7 @@ const dungeon = {
 		},
 		{
 			event: "feature_request_submitted",
-			weight: 6,
+			weight: 1,
 			properties: {
 				request_text: () => featureRequestGen.generateOne(),
 				request_category: ["ui_improvement", "new_feature", "integration", "performance"],
@@ -488,7 +489,7 @@ const dungeon = {
 		},
 		{
 			event: "onboarding_feedback",
-			weight: 15,
+			weight: 1,
 			properties: {
 				feedback_text: () => onboardingGen.generateOne(),
 				onboarding_step: ["signup", "email_verification", "profile_setup", "first_use", "tutorial"],
@@ -505,7 +506,7 @@ const dungeon = {
 		// Community Interaction Events
 		{
 			event: "tutorial_comment_posted",
-			weight: 7,
+			weight: 1,
 			properties: {
 				comment_text: () => tutorialCommentGen.generateOne(),
 				tutorial_section: ["getting_started", "advanced_features", "api_guide", "troubleshooting"],
@@ -520,7 +521,7 @@ const dungeon = {
 		},
 		{
 			event: "webinar_chat_message",
-			weight: 20,
+			weight: 1,
 			properties: {
 				message_text: () => webinarChatGen.generateOne(),
 				webinar_topic: ["product_demo", "feature_update", "best_practices", "q_and_a"],
@@ -537,7 +538,7 @@ const dungeon = {
 		// Batch generation examples for related content
 		{
 			event: "api_discussion_thread",
-			weight: 2,
+			weight: 1,
 			properties: {
 				// Using generateBatch for related forum posts in a thread
 				thread_messages: () => generateBatch({
