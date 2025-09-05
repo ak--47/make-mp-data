@@ -443,7 +443,7 @@ export type TextTone = "pos" | "neg" | "neu";
 /**
  * Style of text generation
  */
-export type TextStyle = "support" | "review" | "search" | "feedback" | "chat" | "email" | "forum";
+export type TextStyle = "support" | "review" | "search" | "feedback" | "chat" | "email" | "forum" | "comments" | "tweet";
 
 /**
  * Emotional intensity level

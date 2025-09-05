@@ -372,6 +372,54 @@ describe('text generator', () => {
 				expect(text.length).toBeGreaterThan(0);
 			}
 		});
+
+		test('comments style generates appropriate text for charity/wedding sites', () => {
+			const gen = createGenerator({
+				style: 'comments',
+				tone: 'pos',
+				formality: 'casual',
+				keywords: {
+					causes: ['medical expenses', 'education fund'],
+					events: ['wedding', 'graduation']
+				},
+				min: 10,
+				max: 100,
+				maxAttempts: 10,
+				includeMetadata: false
+			});
+
+			const text = gen.generateOne();
+
+			if (text) {
+				expect(typeof text).toBe('string');
+				expect(text.length).toBeGreaterThan(0);
+				expect(text.length).toBeLessThanOrEqual(100); // Comments should be brief
+			}
+		});
+
+		test('tweet style generates social media appropriate text', () => {
+			const gen = createGenerator({
+				style: 'tweet',
+				tone: 'neu',
+				formality: 'casual',
+				keywords: {
+					announcements: ['new feature', 'product launch'],
+					hashtags: ['#startup', '#tech']
+				},
+				min: 10,
+				max: 280, // Twitter character limit
+				maxAttempts: 10,
+				includeMetadata: false
+			});
+
+			const text = gen.generateOne();
+
+			if (text) {
+				expect(typeof text).toBe('string');
+				expect(text.length).toBeGreaterThan(0);
+				expect(text.length).toBeLessThanOrEqual(280); // Should respect Twitter limit
+			}
+		});
 	});
 
 	describe('advanced features', () => {
@@ -575,6 +623,61 @@ describe('generateBatch standalone function', () => {
 		texts.forEach(text => {
 			expect(typeof text).toBe('string');
 			expect(text.length).toBeGreaterThan(0);
+		});
+	});
+
+	test('generates comments style batch for charity/wedding sites', () => {
+		const texts = generateBatch({
+			n: 5,
+			style: 'comments',
+			tone: 'pos',
+			formality: 'casual',
+			keywords: {
+				causes: ['medical expenses', 'education fund'],
+				events: ['wedding', 'graduation'],
+				emotions: ['inspiring', 'heartwarming']
+			},
+			min: 10,
+			max: 100,
+			maxAttempts: 10,
+			includeMetadata: false
+		});
+
+		expect(Array.isArray(texts)).toBe(true);
+		expect(texts.length).toBeLessThanOrEqual(5);
+
+		texts.forEach(text => {
+			expect(typeof text).toBe('string');
+			expect(text.length).toBeGreaterThan(0);
+			expect(text.length).toBeLessThanOrEqual(100); // Comments should be brief
+		});
+	});
+
+	test('generates tweet style batch for social media', () => {
+		const texts = generateBatch({
+			n: 5,
+			style: 'tweet',
+			tone: 'neu',
+			formality: 'casual',
+			keywords: {
+				announcements: ['new feature', 'product launch'],
+				hashtags: ['#startup', '#tech', '#innovation'],
+				mentions: ['@followers', '@team']
+			},
+			mixedSentiment: true,
+			min: 10,
+			max: 280, // Twitter character limit
+			maxAttempts: 10,
+			includeMetadata: false
+		});
+
+		expect(Array.isArray(texts)).toBe(true);
+		expect(texts.length).toBeLessThanOrEqual(5);
+
+		texts.forEach(text => {
+			expect(typeof text).toBe('string');
+			expect(text.length).toBeGreaterThan(0);
+			expect(text.length).toBeLessThanOrEqual(280); // Should respect Twitter limit
 		});
 	});
 });

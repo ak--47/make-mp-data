@@ -128,6 +128,45 @@ const chatMessageGen = createGenerator({
 	includeMetadata: false
 });
 
+// Comment generator for charity/fundraiser/wedding sites
+const charityCommentGen = createGenerator({
+	style: "comments",
+	tone: "pos",
+	formality: "casual", 
+	keywords: {
+		causes: ['medical expenses', 'education fund', 'disaster relief', 'animal rescue'],
+		events: ['wedding', 'graduation', 'celebration', 'memorial'],
+		emotions: ['inspiring', 'heartwarming', 'touching', 'amazing']
+	},
+	mixedSentiment: false,
+	authenticityLevel: 0.9,
+	typos: true,
+	typoRate: 0.02,
+	min: 10,
+	max: 100,
+	includeMetadata: false
+});
+
+// Tweet generator for social media announcements
+const socialTweetGen = createGenerator({
+	style: "tweet", 
+	tone: "neu",
+	formality: "casual",
+	keywords: {
+		announcements: ['new feature', 'product launch', 'company news', 'milestone'],
+		hashtags: ['#startup', '#tech', '#innovation', '#community'],
+		mentions: ['@followers', '@team', '@customers']
+	},
+	mixedSentiment: true,
+	authenticityLevel: 0.7,
+	typos: true,
+	typoRate: 0.03,
+	sentimentDrift: 0.3,
+	min: 10,
+	max: 280, // Twitter character limit
+	includeMetadata: false
+});
+
 // Email communication generator
 const emailGen = createGenerator({
 	style: "email",
@@ -531,6 +570,65 @@ const dungeon = {
 				reaction_emoji: ["👍", "❤️", "😍", "🤔", "👏", null, null], // Some have reactions
 				is_moderator: [true, false, false, false, false], // 20% from moderators
 				attendee_type: ["customer", "prospect", "partner", "employee"]
+			}
+		},
+		
+		// New text types - Comments for charity/fundraiser/wedding sites
+		{
+			event: "charity_comment_posted",
+			weight: 8,
+			properties: {
+				comment_text: () => charityCommentGen.generateOne(),
+				comment_type: ["donation_thanks", "support_message", "congratulations", "encouragement"],
+				cause_category: ["medical", "education", "disaster_relief", "animal_welfare", "community"],
+				donation_amount: weighNumRange(5, 500, 0.7), // Most small donations
+				is_anonymous: [true, false, false], // 33% anonymous
+				includes_prayer: [true, false, false, false], // 25% include prayers
+				emotional_tone: ["supportive", "inspiring", "grateful", "hopeful"],
+				relationship_to_cause: ["friend", "family", "stranger", "community_member"]
+			}
+		},
+		{
+			event: "wedding_comment_posted", 
+			weight: 6,
+			properties: {
+				comment_text: () => charityCommentGen.generateOne(), // Reuse same generator
+				comment_type: ["congratulations", "well_wishes", "memory_share", "blessing"],
+				wedding_phase: ["engagement", "ceremony", "reception", "honeymoon"],
+				includes_emoji: [true, true, false], // 67% have emojis
+				relationship_to_couple: ["family", "friend", "coworker", "acquaintance"],
+				comment_length: weighNumRange(10, 150, 0.6),
+				is_public: [true, true, true, false] // 75% public
+			}
+		},
+		{
+			event: "social_media_tweet",
+			weight: 15,
+			properties: {
+				tweet_text: () => socialTweetGen.generateOne(),
+				tweet_type: ["announcement", "update", "opinion", "question", "share"],
+				character_count: weighNumRange(10, 280, 0.4),
+				has_hashtags: [true, true, false], // 67% have hashtags
+				has_mentions: [true, false, false], // 33% have mentions
+				has_media: [true, false, false, false], // 25% have images/videos
+				engagement_score: weighNumRange(0, 1000, 0.8), // Most get low engagement
+				is_retweet: [true, false, false, false], // 25% are retweets
+				time_of_day: ["morning", "afternoon", "evening", "night"],
+				device_type: ["mobile", "desktop", "tablet"]
+			}
+		},
+		{
+			event: "company_announcement_tweet",
+			weight: 3,
+			properties: {
+				tweet_text: () => socialTweetGen.generateOne(),
+				announcement_type: ["product_launch", "milestone", "hiring", "partnership", "event"],
+				urgency: ["low", "medium", "high"],
+				target_audience: ["customers", "investors", "employees", "general_public"],
+				includes_link: [true, true, false], // 67% include links
+				is_scheduled: [true, false], // 50% are scheduled posts
+				campaign_tag: ["product", "brand", "recruitment", "pr", "organic"],
+				expected_reach: weighNumRange(100, 50000, 0.6)
 			}
 		},
 		

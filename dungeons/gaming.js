@@ -8,15 +8,15 @@ import * as v from "ak-tools";
 const SEED = "my-seed";
 dayjs.extend(utc);
 const chance = u.initChance(SEED);
-const num_users = 25_000;
+const num_users = 1_000;
 const days = 180;
 
 /** @typedef  {import("../types.js").Dungeon} Config */
 
 /** @type {Config} */
 const config = {
-	token: "17f327eeb2217278f5b2c42a54aafe96",
-	seed: "sdgsdfgdfgkfj dfgkjh",
+	token: "",
+	seed: "i am gamer face",
 	numDays: days,
 	numEvents: num_users * 90,
 	numUsers: num_users,
@@ -25,11 +25,11 @@ const config = {
 	format: "json",
 	alsoInferFunnels: true,
 	hasLocation: true,
-	hasAndroidDevices: true,
-	hasIOSDevices: true,
-	hasDesktopDevices: true,
+	hasAndroidDevices: false,
+	hasIOSDevices: false,
+	hasDesktopDevices: false,
 	hasBrowser: false,
-	hasCampaigns: true,
+	hasCampaigns: false,
 	isAnonymous: false,
 	hasAdSpend: false,
 	percentUsersBornInDataset: 35,
@@ -39,7 +39,7 @@ const config = {
 
 	batchSize: 1_500_000,
 	concurrency: 1,
-	writeToDisk: false,
+	writeToDisk: true,
 	funnels: [
 		{
 			"sequence": ["app install", "character creation", "join party"],
@@ -105,12 +105,46 @@ const config = {
 		{
 			event: "start quest",
 			weight: 12,
-			properties: {},
+			properties: {
+				"quest type": u.pickAWinner([
+					"Rescue",
+					"Retrieve",
+					"Explore",
+					"Destroy",
+					"Investigate",
+				]),
+				"quest difficulty": u.pickAWinner([
+					"Easy",
+					"Medium",
+					"Hard",
+					"Legendary",
+				]),
+				"quest location": u.pickAWinner([
+					"Forest",
+					"Dungeon",
+					"Mountain",
+					"City",
+					"Desert",
+				]),
+				"party size": u.weighNumRange(1, 6),
+				"used hint": u.pickAWinner(["yes", "no"], 0.3),
+				"used boost": u.pickAWinner(["yes", "no"], 0.2),
+				"level at start": u.weighNumRange(1, 20),
+			},
 		},
 		{
 			event: "complete quest",
 			weight: 12,
-			properties: {},
+			properties: {
+				"completion time (mins)": u.weighNumRange(5, 120, 1, 30),
+				"quest reward (gold)": u.weighNumRange(10, 500, 1, 100),
+				"quest success": u.pickAWinner(["yes", "no"], 0.9),
+				"used hint": u.pickAWinner(["yes", "no"], 0.3),
+				"used boost": u.pickAWinner(["yes", "no"], 0.2),
+				"number of deaths": u.weighNumRange(0, 5, 1, 2),
+				"level at start": u.weighNumRange(1, 20),
+				"level at end": u.weighNumRange(1, 20),
+			},
 		},
 		{
 			"event": "gameplay summary",
@@ -173,14 +207,14 @@ const config = {
 			},
 		},
 		{
-			event: "generic event (common)",
+			event: "attack",
 			weight: 5,
 			properties: {
 				generic_prop: u.pickAWinner(["foo", "bar", "baz", "qux"]),
 			}
 		},
 		{
-			event: "generic event (uncommon)",
+			event: "defend",
 			weight: 3,
 			properties: {
 				generic_prop: u.pickAWinner(["foo", "bar", "baz", "qux"]),
