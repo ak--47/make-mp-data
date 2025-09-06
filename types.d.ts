@@ -442,6 +442,17 @@ export type TextTone = "pos" | "neg" | "neu";
 
 /**
  * Style of text generation
+ * 
+ * Supported styles:
+ * - "support": Customer support tickets and requests
+ * - "review": Product reviews and ratings
+ * - "search": Search queries and keywords
+ * - "feedback": User feedback and suggestions
+ * - "chat": Casual chat messages and conversations
+ * - "email": Formal email communications
+ * - "forum": Forum posts and discussions
+ * - "comments": Social media comments and reactions
+ * - "tweet": Twitter-style social media posts
  */
 export type TextStyle = "support" | "review" | "search" | "feedback" | "chat" | "email" | "forum" | "comments" | "tweet";
 
@@ -462,6 +473,33 @@ export type TextReturnType = "strings" | "objects";
 
 /**
  * Domain-specific keywords to inject into generated text
+ * 
+ * Common predefined categories include:
+ * - features: Product features to mention
+ * - products: Product/company names  
+ * - competitors: Competitor names for comparisons
+ * - technical: Technical terms and jargon
+ * - versions: Version numbers and releases
+ * - errors: Specific error messages or codes
+ * - metrics: Business metrics or KPIs
+ * - events: Event types (e.g., 'wedding', 'celebration', 'conference')
+ * - emotions: Emotional descriptors (e.g., 'inspiring', 'heartwarming')
+ * - issues: Common problems or issues
+ * - team: Team or role references
+ * - business_impact: Business impact phrases
+ * - comparisons: Comparison phrases
+ * - credibility: Credibility markers
+ * - user_actions: User action descriptions
+ * - specific_praise: Specific positive details
+ * - specific_issues: Specific negative details
+ * - error_messages: Error message text
+ * - categories: General categories
+ * - brands: Brand names
+ * - vendors: Vendor references
+ * - services: Service types
+ * - locations: Location references
+ * 
+ * Custom categories can be added as needed.
  */
 export interface TextKeywordSet {
     /** Product features to mention */
@@ -478,6 +516,40 @@ export interface TextKeywordSet {
     errors?: string[];
     /** Business metrics or KPIs */
     metrics?: string[];
+    /** Event types (e.g., 'wedding', 'celebration', 'conference') */
+    events?: string[];
+    /** Emotional descriptors (e.g., 'inspiring', 'heartwarming') */
+    emotions?: string[];
+    /** Common problems or issues */
+    issues?: string[];
+    /** Team or role references */
+    team?: string[];
+    /** Business impact phrases */
+    business_impact?: string[];
+    /** Comparison phrases */
+    comparisons?: string[];
+    /** Credibility markers */
+    credibility?: string[];
+    /** User action descriptions */
+    user_actions?: string[];
+    /** Specific positive details */
+    specific_praise?: string[];
+    /** Specific negative details */
+    specific_issues?: string[];
+    /** Error message text */
+    error_messages?: string[];
+    /** General categories */
+    categories?: string[];
+    /** Brand names */
+    brands?: string[];
+    /** Vendor references */
+    vendors?: string[];
+    /** Service types */
+    services?: string[];
+    /** Location references */
+    locations?: string[];
+    /** Allow any custom keyword category */
+    [key: string]: string[] | undefined;
 }
 
 /**
