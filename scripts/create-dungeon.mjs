@@ -5,15 +5,15 @@
  * Prompts user for a description, generates AI schema, and creates complete dungeon file
  */
 let INJECT_PROMPT;
-INJECT_PROMPT = ``
+INJECT_PROMPT = ``;
 
 
 import readline from 'readline';
 import { fileURLToPath } from 'url';
 import path from 'path';
 import fs from 'fs/promises';
-import generateAISchema from '../lib/utils/ai.js';
-	
+import generateAISchema, { ask } from '../lib/utils/ai.js';
+
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
@@ -94,7 +94,7 @@ function parseAIResponse(aiResponseObject) {
 
 
 function createDungeonFile(aiSchema, fileName, userPrompt) {
-	const seed = `ai-generated-${Date.now()}`;
+	const seed = `${fileName?.replace(".js", "")}-${Date.now()}`;
 
 
 	// Create the complete dungeon file content
@@ -206,11 +206,23 @@ async function main() {
 
 		console.log('✅ AI schema generated successfully');
 
+
+
 		// Parse the AI response
 		const dungeonSchema = parseAIResponse(aiResponse);
 
 		// Generate file name
-		const fileName = generateRandomFileName();
+		// const fileName = generateRandomFileName();
+		let fileName = "";
+		try {
+			fileName = await ask(`this is the spec of our dataset\n\n${userPrompt}\n\ni need you to come up with a short slug name for this dungeon; all lowercase letters and hyphens, no spaces or special characters`);
+			fileName = fileName.trim().toLowerCase().replace(/[^a-z0-9-]/g, '');
+			fileName += "-" + Math.random().toString(36).substring(2, 8);
+			if (!fileName.endsWith('.js')) fileName += '.js';
+		}
+		catch {
+			fileName = generateRandomFileName();
+		}
 		const filePath = path.join(customersDir, fileName);
 
 		// Create the complete dungeon file

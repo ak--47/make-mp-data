@@ -8,7 +8,7 @@ import * as v from "ak-tools";
 const SEED = "my-seed";
 dayjs.extend(utc);
 const chance = u.initChance(SEED);
-const num_users = 1_000;
+const num_users = 12_000;
 const days = 180;
 
 /** @typedef  {import("../types.js").Dungeon} Config */
@@ -32,7 +32,7 @@ const config = {
 	hasCampaigns: false,
 	isAnonymous: false,
 	hasAdSpend: false,
-	percentUsersBornInDataset: 35,
+	percentUsersBornInDataset: 25,
 
 	hasAvatar: true,
 	makeChart: false,
