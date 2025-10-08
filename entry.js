@@ -36,9 +36,12 @@ import getCliParams from './lib/cli/cli.js';
 		const recordsPerSecond = result.eventCount / result.time.delta * 1000;
 		console.log(`⚡ Records per second: ${recordsPerSecond.toFixed(2)}`);
 		
+		// @ts-ignore
 		if (result.errors?.length) {
+			// @ts-ignore
 			console.error(`\n❗ Errors encountered: ${result.errors.length}`);
 			if (cliConfig.verbose) {
+				// @ts-ignore
 				result.errors.forEach(err => console.error(`   ${err}`));
 			}
 		} else {

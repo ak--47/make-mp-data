@@ -179,6 +179,8 @@ export interface Defaults {
     desktopDevices: () => any[];
     browsers: () => any[];
     campaigns: () => any[];
+    devicePools: { android: any[]; ios: any[]; desktop: any[] };
+    allDevices:any[];
 }
 
 /**
@@ -311,11 +313,11 @@ export interface Funnel {
      * funnel properties go onto each event in the funnel and are held constant
      */
     props?: Record<string, ValueValid>;
-	/**
-	 * funnel conditions (user properties) are used to filter users who are eligible for the funnel
-	 * these conditions must match the current user's profile for the user to be eligible for the funnel
-	 */
-	conditions?: Record<string, ValueValid>;
+    /**
+     * funnel conditions (user properties) are used to filter users who are eligible for the funnel
+     * these conditions must match the current user's profile for the user to be eligible for the funnel
+     */
+    conditions?: Record<string, ValueValid>;
 }
 
 /**
@@ -430,3 +432,312 @@ export type Result = {
 declare function main(config: Dungeon): Promise<Result>;
 
 export default main;
+
+// ============= Text Generator Types =============
+
+/**
+ * Sentiment tone of generated text
+ */
+export type TextTone = "pos" | "neg" | "neu";
+
+/**
+ * Style of text generation
+ * 
+ * Supported styles:
+ * - "support": Customer support tickets and requests
+ * - "review": Product reviews and ratings
+ * - "search": Search queries and keywords
+ * - "feedback": User feedback and suggestions
+ * - "chat": Casual chat messages and conversations
+ * - "email": Formal email communications
+ * - "forum": Forum posts and discussions
+ * - "comments": Social media comments and reactions
+ * - "tweet": Twitter-style social media posts
+ */
+export type TextStyle = "support" | "review" | "search" | "feedback" | "chat" | "email" | "forum" | "comments" | "tweet";
+
+/**
+ * Emotional intensity level
+ */
+export type TextIntensity = "low" | "medium" | "high";
+
+/**
+ * Language formality level
+ */
+export type TextFormality = "casual" | "business" | "technical";
+
+/**
+ * Output format for batch generation
+ */
+export type TextReturnType = "strings" | "objects";
+
+/**
+ * Domain-specific keywords to inject into generated text
+ * 
+ * Common predefined categories include:
+ * - features: Product features to mention
+ * - products: Product/company names  
+ * - competitors: Competitor names for comparisons
+ * - technical: Technical terms and jargon
+ * - versions: Version numbers and releases
+ * - errors: Specific error messages or codes
+ * - metrics: Business metrics or KPIs
+ * - events: Event types (e.g., 'wedding', 'celebration', 'conference')
+ * - emotions: Emotional descriptors (e.g., 'inspiring', 'heartwarming')
+ * - issues: Common problems or issues
+ * - team: Team or role references
+ * - business_impact: Business impact phrases
+ * - comparisons: Comparison phrases
+ * - credibility: Credibility markers
+ * - user_actions: User action descriptions
+ * - specific_praise: Specific positive details
+ * - specific_issues: Specific negative details
+ * - error_messages: Error message text
+ * - categories: General categories
+ * - brands: Brand names
+ * - vendors: Vendor references
+ * - services: Service types
+ * - locations: Location references
+ * 
+ * Custom categories can be added as needed.
+ */
+export interface TextKeywordSet {
+    /** Product features to mention */
+    features?: string[];
+    /** Product/company names */
+    products?: string[];
+    /** Competitor names for comparisons */
+    competitors?: string[];
+    /** Technical terms and jargon */
+    technical?: string[];
+    /** Version numbers and releases */
+    versions?: string[];
+    /** Specific error messages or codes */
+    errors?: string[];
+    /** Business metrics or KPIs */
+    metrics?: string[];
+    /** Event types (e.g., 'wedding', 'celebration', 'conference') */
+    events?: string[];
+    /** Emotional descriptors (e.g., 'inspiring', 'heartwarming') */
+    emotions?: string[];
+    /** Common problems or issues */
+    issues?: string[];
+    /** Team or role references */
+    team?: string[];
+    /** Business impact phrases */
+    business_impact?: string[];
+    /** Comparison phrases */
+    comparisons?: string[];
+    /** Credibility markers */
+    credibility?: string[];
+    /** User action descriptions */
+    user_actions?: string[];
+    /** Specific positive details */
+    specific_praise?: string[];
+    /** Specific negative details */
+    specific_issues?: string[];
+    /** Error message text */
+    error_messages?: string[];
+    /** General categories */
+    categories?: string[];
+    /** Brand names */
+    brands?: string[];
+    /** Vendor references */
+    vendors?: string[];
+    /** Service types */
+    services?: string[];
+    /** Location references */
+    locations?: string[];
+    /** Allow any custom keyword category */
+    [key: string]: string[] | undefined;
+}
+
+/**
+ * Configuration for text generator instance
+ */
+export interface TextGeneratorConfig {
+    /** Default sentiment tone */
+    tone?: TextTone;
+    /** Type of text to generate */
+    style?: TextStyle;
+    /** Emotional intensity */
+    intensity?: TextIntensity;
+    /** Language formality */
+    formality?: TextFormality;
+    /** Minimum text length in characters */
+    min?: number;
+    /** Maximum text length in characters */
+    max?: number;
+    /** RNG seed for reproducibility */
+    seed?: string;
+    /** Domain-specific keywords to inject */
+    keywords?: TextKeywordSet;
+    /** Probability of keyword injection (0-1) */
+    keywordDensity?: number;
+    /** Enable realistic typos */
+    typos?: boolean;
+    /** Base typo probability per word */
+    typoRate?: number;
+    /** Allow sentiment mixing for realism */
+    mixedSentiment?: boolean;
+    /** Amount of authentic markers (0-1) */
+    authenticityLevel?: number;
+    /** Add timestamps to some messages */
+    timestamps?: boolean;
+    /** Include user role/experience markers */
+    userPersona?: boolean;
+    /** Allow sentiment to drift during generation (0-1) */
+    sentimentDrift?: number;
+    /** Add metadata to generated text */
+    includeMetadata?: boolean;
+    /** How specific/detailed to make claims (0-1) */
+    specificityLevel?: number;
+    /** Filter near-duplicates */
+    enableDeduplication?: boolean;
+    /** Max generation attempts per item */
+    maxAttempts?: number;
+    // performanceMode removed - system is always optimized for speed + uniqueness
+}
+
+/**
+ * Metadata for generated text
+ */
+export interface TextMetadata {
+    /** Timestamp if enabled */
+    timestamp?: string;
+    /** Sentiment analysis score */
+    sentimentScore?: number;
+    /** Keywords that were injected */
+    injectedKeywords?: string[];
+    /** User persona information */
+    persona?: Record<string, any>;
+    /** Flesch reading ease score */
+    readabilityScore?: number;
+    /** Text style used */
+    style?: TextStyle | string;
+    /** Intensity level used */
+    intensity?: TextIntensity | string;
+    /** Formality level used */
+    formality?: TextFormality | string;
+}
+
+/**
+ * Simple generated text object (without metadata)
+ */
+export interface SimpleGeneratedText {
+    /** The generated text */
+    text: string;
+    /** Actual tone of generated text */
+    tone: TextTone | string;
+}
+
+/**
+ * Generated text with metadata
+ */
+export interface GeneratedText {
+    /** The generated text */
+    text: string;
+    /** Actual tone of generated text */
+    tone: TextTone | string;
+    /** Additional metadata */
+    metadata?: TextMetadata;
+}
+
+/**
+ * Options for batch text generation
+ */
+export interface TextBatchOptions {
+    /** Number of items to generate */
+    n: number;
+    /** Output format */
+    returnType?: TextReturnType;
+    /** Override tone for this batch */
+    tone?: TextTone;
+    /** Generate related/coherent items */
+    related?: boolean;
+    /** Shared context/topic for related items */
+    sharedContext?: string;
+}
+
+/**
+ * Statistics for text generator performance
+ */
+export interface TextGeneratorStats {
+    /** Configuration used */
+    config: TextGeneratorConfig;
+    /** Total items generated */
+    generatedCount: number;
+    /** Items that were duplicates */
+    duplicateCount: number;
+    /** Items that failed generation */
+    failedCount: number;
+    /** Average generation time per item */
+    avgGenerationTime: number;
+    /** Total generation time */
+    totalGenerationTime: number;
+}
+
+/**
+ * Text generator instance interface
+ */
+export interface TextGenerator {
+    /** Generate a single text item */
+    generateOne(): string | GeneratedText | null;
+    /** Generate multiple text items in batch */
+    generateBatch(options: TextBatchOptions): (string | GeneratedText | SimpleGeneratedText)[];
+    /** Get generation statistics */
+    getStats(): TextGeneratorStats;
+}
+
+/**
+ * Creates a new text generator instance
+ * @param config - Configuration options for the generator
+ * @returns Text generator instance
+ */
+export declare function createGenerator(config?: TextGeneratorConfig): TextGenerator;
+
+/**
+ * Generate a batch of text items directly (standalone function)
+ * @param options - Combined generator config and batch options
+ * @returns Array of generated text items
+ */
+export declare function generateBatch(options: TextGeneratorConfig & TextBatchOptions): (string | GeneratedText | SimpleGeneratedText)[];
+
+// ============= Additional Utility Types =============
+
+/**
+ * File path configuration for data generation output
+ */
+export interface WritePaths {
+    eventFiles: string[];
+    userFiles: string[];
+    adSpendFiles: string[];
+    scdFiles: string[];
+    mirrorFiles: string[];
+    groupFiles: string[];
+    lookupFiles: string[];
+    folder: string;
+}
+
+/**
+ * Configuration for TimeSoup time distribution function
+ */
+export interface TimeSoupOptions {
+    earliestTime?: number;
+    latestTime?: number;
+    peaks?: number;
+    deviation?: number;
+    mean?: number;
+}
+
+/**
+ * Test context configuration for unit/integration tests
+ */
+export interface TestContext {
+    config: Dungeon;
+    storage: Storage | null;
+    defaults: Defaults;
+    campaigns: any[];
+    runtime: RuntimeState;
+    [key: string]: any;
+}

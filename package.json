@@ -31,7 +31,8 @@
 		"test:quick": "node ./tests/benchmark/quick-test.mjs",
 		"exp:soup": "node ./tests/testSoup.mjs",
 		"func:local": "functions-framework --target=entry",
-		"func:deploy": "./scripts/deploy.sh"
+		"func:deploy": "./scripts/deploy.sh",
+		"textGen": "node ./lib/templates/textQuickTest.js"
 	},
 	"repository": {
 		"type": "git",
@@ -71,7 +72,7 @@
 		"dotenv": "^16.4.5",
 		"google-auth-library": "^9.15.0",
 		"hyparquet-writer": "^0.6.1",
-		"mixpanel-import": "^2.8.162",
+		"mixpanel-import": "^3.0.0",
 		"p-limit": "^3.1.0",
 		"seedrandom": "^3.0.5",
 		"sentiment": "^5.0.2",
