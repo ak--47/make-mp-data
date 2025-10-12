@@ -1,19 +1,38 @@
 // Dungeon Master 4 - Complete Rebuild
 
 let editor = null;
+let hooksEditor = null;
 let currentSchema = null;
+let currentHooks = null;
 let originalPrompt = '';
 let isUpdatingFromEditor = false;
 let isUpdatingFromForm = false;
+let isUpdatingFromHooks = false;
 
 // ========== MONACO EDITOR ==========
 function initMonaco() {
     require.config({ paths: { vs: 'https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.45.0/min/vs' } });
 
     require(['vs/editor/editor.main'], function () {
+        // Initialize JSON editor
         editor = monaco.editor.create(document.getElementById('editor'), {
             value: '',
             language: 'json',
+            theme: 'vs-dark',
+            automaticLayout: true,
+            fontSize: 14,
+            minimap: { enabled: true },
+            scrollBeyondLastLine: false,
+            wordWrap: 'on',
+            formatOnPaste: true,
+            formatOnType: true,
+            tabSize: 2,
+        });
+
+        // Initialize Hooks editor
+        hooksEditor = monaco.editor.create(document.getElementById('hooksEditor'), {
+            value: '',
+            language: 'javascript',
             theme: 'vs-dark',
             automaticLayout: true,
             fontSize: 14,
@@ -49,13 +68,24 @@ function initMonaco() {
         // Initialize with empty schema template
         initializeEmptySchema();
 
-        // Watch for editor changes
+        // Watch for JSON editor changes
         editor.onDidChangeModelContent(() => {
-            if (!isUpdatingFromForm) {
+            if (!isUpdatingFromForm && !isUpdatingFromHooks) {
                 clearTimeout(window._editorDebounce);
                 window._editorDebounce = setTimeout(() => {
                     syncEditorToForm();
                     updateSchemaViz();
+                    syncHooksToJson();
+                }, 500);
+            }
+        });
+
+        // Watch for hooks editor changes
+        hooksEditor.onDidChangeModelContent(() => {
+            if (!isUpdatingFromHooks) {
+                clearTimeout(window._hooksDebounce);
+                window._hooksDebounce = setTimeout(() => {
+                    syncHooksToJson();
                 }, 500);
             }
         });
@@ -308,14 +338,95 @@ function syncEditorToForm() {
     }
 }
 
-// ========== CONFIG HEADER TOGGLE ==========
-const configHeader = document.getElementById('configHeader');
-const configContent = document.getElementById('configContent');
+// ========== HOOKS SYNC ==========
+function syncHooksToJson() {
+    if (!hooksEditor || !editor || isUpdatingFromHooks) return;
 
-configHeader.addEventListener('click', () => {
-    configHeader.classList.toggle('collapsed');
-    configContent.classList.toggle('collapsed');
-});
+    try {
+        const hooksCode = hooksEditor.getValue().trim();
+        currentHooks = hooksCode;
+
+        // Update JSON editor with hooks
+        isUpdatingFromHooks = true;
+        const jsonData = JSON.parse(editor.getValue());
+
+        if (hooksCode) {
+            jsonData.hook = hooksCode;
+        } else {
+            delete jsonData.hook;
+        }
+
+        editor.setValue(JSON.stringify(jsonData, null, 2));
+    } catch (e) {
+        console.debug('Error syncing hooks to JSON:', e);
+    } finally {
+        isUpdatingFromHooks = false;
+    }
+}
+
+function syncJsonToHooks() {
+    if (!hooksEditor || !editor || isUpdatingFromHooks) return;
+
+    try {
+        isUpdatingFromHooks = true;
+        const jsonData = JSON.parse(editor.getValue());
+
+        if (jsonData.hook && typeof jsonData.hook === 'string') {
+            hooksEditor.setValue(jsonData.hook);
+            currentHooks = jsonData.hook;
+            showHooksEditor();
+        } else {
+            hooksEditor.setValue('');
+            currentHooks = null;
+        }
+    } catch (e) {
+        console.debug('Error syncing JSON to hooks:', e);
+    } finally {
+        isUpdatingFromHooks = false;
+    }
+}
+
+function showHooksEditor() {
+    const hooksEditor = document.getElementById('hooksEditor');
+    const hooksEmpty = document.getElementById('hooksEmpty');
+
+    if (hooksEditor && hooksEmpty) {
+        hooksEditor.style.display = 'block';
+        hooksEmpty.style.display = 'none';
+    }
+}
+
+function hideHooksEditor() {
+    const hooksEditorEl = document.getElementById('hooksEditor');
+    const hooksEmpty = document.getElementById('hooksEmpty');
+
+    if (hooksEditorEl && hooksEmpty) {
+        hooksEditorEl.style.display = 'none';
+        hooksEmpty.style.display = 'flex';
+    }
+}
+
+// ========== COLLAPSIBLE SECTIONS ==========
+function initCollapsibleSections() {
+    const sections = [
+        { header: 'configHeader', content: 'configContent' },
+        { header: 'schemaHeader', content: 'schemaContent' },
+        { header: 'hooksHeader', content: 'hooksContent' },
+        { header: 'jsonHeader', content: 'jsonContent' }
+    ];
+
+    sections.forEach(({ header, content }) => {
+        const headerEl = document.getElementById(header);
+        const contentEl = document.getElementById(content);
+
+        if (headerEl && contentEl) {
+            headerEl.addEventListener('click', () => {
+                headerEl.classList.toggle('collapsed');
+                contentEl.classList.toggle('collapsed');
+            });
+        }
+    });
+}
 
 // ========== TRIPPY LOTTIE DICE ANIMATION ==========
 let diceAnimationState = {
@@ -566,6 +677,20 @@ async function handleGenerate() {
         currentSchema = data.schema;
         displaySchema(currentSchema);
 
+        // Auto-expand schema section when schema is generated
+        const schemaHeader = document.getElementById('schemaHeader');
+        const schemaContent = document.getElementById('schemaContent');
+        if (schemaHeader && schemaContent) {
+            schemaHeader.classList.remove('collapsed');
+            schemaContent.classList.remove('collapsed');
+        }
+
+        // Enable hooks generation button
+        const generateHooksBtn = document.getElementById('generateHooksBtn');
+        if (generateHooksBtn) {
+            generateHooksBtn.disabled = false;
+        }
+
         // Update UI for iteration mode
         if (!isIteration) {
             promptTitle.textContent = '🔄 Refine Your Schema';
@@ -603,17 +728,209 @@ function displaySchema(schema) {
     updateSchemaViz();
 }
 
+// ========== GENERATE HOOKS ==========
+async function handleGenerateHooks() {
+    const hooksPromptInput = document.getElementById('hooksPromptInput');
+    const generateHooksBtn = document.getElementById('generateHooksBtn');
+
+    if (!hooksPromptInput) {
+        // Fallback: use prompt() if no input field
+        const prompt = window.prompt('Describe the statistical trends you want to engineer in your data:\n\nExample: "Users who watch low quality videos tend to churn more" or "Users in California spend 30% more than other states"');
+
+        if (!prompt || !prompt.trim()) return;
+
+        await generateHooks(prompt.trim());
+        return;
+    }
+
+    const prompt = hooksPromptInput.value.trim();
+
+    if (!prompt) {
+        showError('Please describe the trends you want to engineer');
+        return;
+    }
+
+    await generateHooks(prompt);
+}
+
+async function generateHooks(prompt) {
+    const generateHooksBtn = document.getElementById('generateHooksBtn');
+
+    if (!currentSchema) {
+        showError('Please generate a schema first');
+        return;
+    }
+
+    if (generateHooksBtn) generateHooksBtn.disabled = true;
+    hideError();
+    showLoadingModal('Weaving statistical magic...', 'The AI is engineering your data trends');
+
+    try {
+        const response = await fetch('/api/generate-hooks', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                prompt,
+                currentSchema
+            }),
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+            throw new Error(data.error || 'Failed to generate hooks');
+        }
+
+        const hooksCode = data.hooks;
+        currentHooks = hooksCode;
+
+        // Update hooks editor
+        if (hooksEditor) {
+            isUpdatingFromHooks = true;
+            hooksEditor.setValue(hooksCode);
+            isUpdatingFromHooks = false;
+        }
+
+        // Show hooks editor
+        showHooksEditor();
+
+        // Sync to JSON
+        syncHooksToJson();
+
+        console.log('✅ Hooks generated successfully');
+    } catch (error) {
+        console.error('Error generating hooks:', error);
+        showError(error.message || 'Failed to generate hooks');
+    } finally {
+        if (generateHooksBtn) generateHooksBtn.disabled = false;
+        hideLoadingModal();
+    }
+}
+
+// ========== SAVE & LOAD ==========
+async function handleSave() {
+    try {
+        const saveBtn = document.getElementById('saveBtn');
+
+        // Get current state
+        const dungeonState = {
+            schema: currentSchema || JSON.parse(editor.getValue()),
+            hooks: currentHooks,
+            timestamp: new Date().toISOString(),
+            version: '4.0'
+        };
+
+        const content = JSON.stringify(dungeonState, null, 2);
+        const blob = new Blob([content], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+
+        const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, -5);
+        const name = dungeonState.schema?.name || 'dungeon';
+        const filename = `${name}-${timestamp}.json`;
+
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+
+        // Visual feedback
+        const originalText = saveBtn.textContent;
+        saveBtn.textContent = '✓ Saved';
+        saveBtn.style.background = '#059669';
+
+        setTimeout(() => {
+            saveBtn.textContent = originalText;
+            saveBtn.style.background = '';
+        }, 2000);
+    } catch (error) {
+        console.error('Error saving dungeon:', error);
+        showError('Failed to save dungeon: ' + error.message);
+    }
+}
+
+async function handleLoad() {
+    const fileInput = document.getElementById('fileInput');
+    if (!fileInput) return;
+
+    fileInput.click();
+}
+
+async function loadDungeonFromFile(file) {
+    try {
+        const loadBtn = document.getElementById('loadBtn');
+        showLoadingModal('Loading your dungeon...', 'Restoring your configuration');
+
+        const text = await file.text();
+        const dungeonState = JSON.parse(text);
+
+        // Validate structure
+        if (!dungeonState.schema) {
+            throw new Error('Invalid dungeon file: missing schema');
+        }
+
+        // Load schema
+        currentSchema = dungeonState.schema;
+        displaySchema(currentSchema);
+
+        // Load hooks if present
+        if (dungeonState.hooks && hooksEditor) {
+            currentHooks = dungeonState.hooks;
+            isUpdatingFromHooks = true;
+            hooksEditor.setValue(dungeonState.hooks);
+            isUpdatingFromHooks = false;
+            showHooksEditor();
+
+            // Enable hooks button
+            const generateHooksBtn = document.getElementById('generateHooksBtn');
+            if (generateHooksBtn) generateHooksBtn.disabled = false;
+        }
+
+        // Sync hooks to JSON
+        syncHooksToJson();
+
+        // Visual feedback
+        hideLoadingModal();
+        const originalText = loadBtn.textContent;
+        loadBtn.textContent = '✓ Loaded';
+        loadBtn.style.background = '#059669';
+
+        setTimeout(() => {
+            loadBtn.textContent = originalText;
+            loadBtn.style.background = '';
+        }, 2000);
+
+        console.log('✅ Dungeon loaded successfully');
+    } catch (error) {
+        console.error('Error loading dungeon:', error);
+        hideLoadingModal();
+        showError('Failed to load dungeon: ' + error.message);
+    }
+}
+
 // ========== CLEAR ALL ==========
 function handleClear() {
     if (confirm('Clear everything and start fresh?')) {
         promptInput.value = '';
         currentSchema = null;
+        currentHooks = null;
         originalPrompt = '';
         clearBtn.style.display = 'none';
 
         if (editor) {
             editor.setValue('');
         }
+
+        if (hooksEditor) {
+            hooksEditor.setValue('');
+        }
+
+        // Reset hooks UI
+        hideHooksEditor();
+        const generateHooksBtn = document.getElementById('generateHooksBtn');
+        if (generateHooksBtn) generateHooksBtn.disabled = true;
 
         // Reset UI
         promptTitle.textContent = '✨ Generate Your Schema';
@@ -679,16 +996,22 @@ function handleDownload() {
     }
 }
 
-// ========== UI HELPERS ==========
-function showLoading() {
+// ========== MODAL LOADING ==========
+function showLoadingModal(text = 'Rolling the dice of fate...', subtext = 'The AI is conjuring your schema') {
+    const modal = document.getElementById('loadingModal');
+    const loadingText = document.getElementById('loadingText');
+    const loadingSubtext = document.getElementById('loadingSubtext');
+
+    if (loadingText) loadingText.textContent = text;
+    if (loadingSubtext) loadingSubtext.textContent = subtext;
+
     createLottieDice();
-    loadingSection.style.display = 'block';
-    setTimeout(() => {
-        loadingSection.scrollIntoView({ behavior: 'smooth', block: 'center' });
-    }, 100);
+    if (modal) modal.style.display = 'flex';
 }
 
-function hideLoading() {
+function hideLoadingModal() {
+    const modal = document.getElementById('loadingModal');
+
     // Stop the animation interval
     diceAnimationState.isRunning = false;
     if (diceAnimationState.interval) {
@@ -696,12 +1019,22 @@ function hideLoading() {
         diceAnimationState.interval = null;
     }
 
-    loadingSection.style.display = 'none';
+    if (modal) modal.style.display = 'none';
+
     const diceContainer = document.getElementById('diceContainer');
     if (diceContainer) {
         diceContainer.innerHTML = '';
     }
     diceAnimationState.dice = [];
+}
+
+// ========== UI HELPERS ==========
+function showLoading() {
+    showLoadingModal();
+}
+
+function hideLoading() {
+    hideLoadingModal();
 }
 
 function showError(message) {
@@ -1159,6 +1492,7 @@ window.addEventListener('load', () => {
     initSliders();
     initToggles();
     initTextInputs();
+    initCollapsibleSections();
 
     // Dice easter egg
     const diceEmoji = document.getElementById('diceEmoji');
@@ -1166,6 +1500,37 @@ window.addEventListener('load', () => {
         diceEmoji.addEventListener('click', reRollColors);
     }
 
+    // Hooks generation button
+    const generateHooksBtn = document.getElementById('generateHooksBtn');
+    if (generateHooksBtn) {
+        generateHooksBtn.addEventListener('click', handleGenerateHooks);
+    }
+
+    // Save/Load buttons
+    const saveBtn = document.getElementById('saveBtn');
+    const loadBtn = document.getElementById('loadBtn');
+    const fileInput = document.getElementById('fileInput');
+
+    if (saveBtn) {
+        saveBtn.addEventListener('click', handleSave);
+    }
+
+    if (loadBtn) {
+        loadBtn.addEventListener('click', handleLoad);
+    }
+
+    if (fileInput) {
+        fileInput.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (file) {
+                loadDungeonFromFile(file);
+            }
+        });
+    }
+
     // Initialize schema viz with empty state
     renderSchemaViz({});
+
+    // Hide hooks editor initially
+    hideHooksEditor();
 });
