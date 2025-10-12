@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dungeon Master 4 - AI Schema Generator</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1><span class="dice-emoji" id="diceEmoji" title="Click to re-roll colors!">🎲</span> Dungeon Master 4</h1>
+            <p class="subtitle">AI-Powered Mixpanel Data Schema Generator</p>
+            <div class="header-actions">
+                <button id="loadBtn" class="secondary-btn">
+                    <span class="icon">📂</span> Load
+                </button>
+                <button id="saveBtn" class="secondary-btn">
+                    <span class="icon">💾</span> Save
+                </button>
+            </div>
+        </header>
+
+        <main>
+            <!-- 1. CONFIG SECTION (Collapsible) -->
+            <section class="config-section">
+                <div class="config-header collapsed" id="configHeader">
+                    <h2>⚙️ Dungeon Configuration</h2>
+                    <span class="toggle-icon">▼</span>
+                </div>
+                <div class="config-content collapsed" id="configContent">
+                    <!-- Identity -->
+                    <div class="config-group">
+                        <h3>Identity</h3>
+                        <div class="config-grid">
+                            <div class="config-item text-input">
+                                <label for="dungeonName">Dungeon Name</label>
+                                <input type="text" id="dungeonName" placeholder="my-awesome-dungeon">
+                            </div>
+                            <div class="config-item text-input">
+                                <label for="token">Mixpanel Token (optional)</label>
+                                <input type="text" id="token" placeholder="YOUR_PROJECT_TOKEN">
+                            </div>
+                            <div class="config-item text-input">
+                                <label for="website">Website URL (optional)</label>
+                                <input type="url" id="website" placeholder="https://example.com">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Basic Settings -->
+                    <div class="config-group">
+                        <h3>Basic Settings</h3>
+                        <div class="config-grid">
+                            <div class="config-item">
+                                <label for="numUsers">
+                                    Users: <span id="numUsersDisplay">1,000</span>
+                                </label>
+                                <input type="range" id="numUsers" min="10" max="100000" value="1000" step="10">
+                                <input type="number" id="numUsersInput" value="1000" min="10" max="1000000">
+                            </div>
+                            <div class="config-item">
+                                <label for="numEvents">
+                                    Events: <span id="numEventsDisplay">100,000</span>
+                                </label>
+                                <input type="range" id="numEvents" min="100" max="10000000" value="100000" step="1000">
+                                <input type="number" id="numEventsInput" value="100000" min="100" max="10000000">
+                            </div>
+                            <div class="config-item">
+                                <label for="numDays">
+                                    Days: <span id="numDaysDisplay">100</span>
+                                </label>
+                                <input type="range" id="numDays" min="1" max="365" value="100" step="1">
+                                <input type="number" id="numDaysInput" value="100" min="1" max="365">
+                            </div>
+                            <div class="config-item">
+                                <label for="format">Output Format</label>
+                                <select id="format">
+                                    <option value="json">JSON</option>
+                                    <option value="csv">CSV</option>
+                                    <option value="parquet">Parquet</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Features -->
+                    <div class="config-group">
+                        <h3>Features</h3>
+                        <div class="config-grid">
+                            <div class="toggle-item">
+                                <input type="checkbox" id="hasLocation" class="toggle-checkbox">
+                                <label for="hasLocation" class="toggle-label">Location Data</label>
+                            </div>
+                            <div class="toggle-item">
+                                <input type="checkbox" id="hasCampaigns" class="toggle-checkbox">
+                                <label for="hasCampaigns" class="toggle-label">Campaign Attribution</label>
+                            </div>
+                            <div class="toggle-item">
+                                <input type="checkbox" id="hasAdSpend" class="toggle-checkbox">
+                                <label for="hasAdSpend" class="toggle-label">Ad Spend Data</label>
+                            </div>
+                            <div class="toggle-item">
+                                <input type="checkbox" id="hasAvatar" class="toggle-checkbox">
+                                <label for="hasAvatar" class="toggle-label">User Avatars</label>
+                            </div>
+                            <div class="toggle-item">
+                                <input type="checkbox" id="hasAnonIds" class="toggle-checkbox">
+                                <label for="hasAnonIds" class="toggle-label">Anonymous IDs</label>
+                            </div>
+                            <div class="toggle-item">
+                                <input type="checkbox" id="hasSessionIds" class="toggle-checkbox">
+                                <label for="hasSessionIds" class="toggle-label">Session IDs</label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Device Types -->
+                    <div class="config-group">
+                        <h3>Device Types</h3>
+                        <div class="config-grid">
+                            <div class="toggle-item">
+                                <input type="checkbox" id="hasDesktopDevices" class="toggle-checkbox">
+                                <label for="hasDesktopDevices" class="toggle-label">Desktop</label>
+                            </div>
+                            <div class="toggle-item">
+                                <input type="checkbox" id="hasAndroidDevices" class="toggle-checkbox">
+                                <label for="hasAndroidDevices" class="toggle-label">Android</label>
+                            </div>
+                            <div class="toggle-item">
+                                <input type="checkbox" id="hasIOSDevices" class="toggle-checkbox">
+                                <label for="hasIOSDevices" class="toggle-label">iOS</label>
+                            </div>
+                            <div class="toggle-item">
+                                <input type="checkbox" id="hasBrowser" class="toggle-checkbox">
+                                <label for="hasBrowser" class="toggle-label">Browser Data</label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Performance -->
+                    <div class="config-group">
+                        <h3>Performance</h3>
+                        <div class="config-grid">
+                            <div class="config-item">
+                                <label for="batchSize">
+                                    Batch Size: <span id="batchSizeDisplay">1,500,000</span>
+                                </label>
+                                <input type="range" id="batchSize" min="1000" max="10000000" value="1500000" step="10000">
+                                <input type="number" id="batchSizeInput" value="1500000" min="1000" max="10000000">
+                            </div>
+                            <div class="config-item">
+                                <label for="concurrency">
+                                    Concurrency: <span id="concurrencyDisplay">50</span>
+                                </label>
+                                <input type="range" id="concurrency" min="1" max="100" value="50" step="1">
+                                <input type="number" id="concurrencyInput" value="50" min="1" max="100">
+                            </div>
+                            <div class="toggle-item">
+                                <input type="checkbox" id="writeToDisk" class="toggle-checkbox">
+                                <label for="writeToDisk" class="toggle-label">Write to Disk</label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 2. SCHEMA VISUALIZATION (Collapsible) -->
+            <section class="schema-section">
+                <div class="schema-header collapsed" id="schemaHeader">
+                    <h2>📊 Dungeon Schema</h2>
+                    <div class="schema-header-right">
+                        <div class="schema-controls">
+                            <button id="resetZoomBtn" class="icon-btn" title="Reset Zoom">🔍</button>
+                            <button id="fitViewBtn" class="icon-btn" title="Fit to View">⊡</button>
+                        </div>
+                        <span class="toggle-icon">▼</span>
+                    </div>
+                </div>
+                <div class="schema-content collapsed" id="schemaVisualization">
+                    <div id="schemaViz" class="schema-viz"></div>
+                    <div id="schemaEmpty" class="schema-empty">
+                        <p>✨ Generate a schema to see visualization</p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 3. HOOKS SECTION (Collapsible) -->
+            <section class="hooks-section">
+                <div class="hooks-header collapsed" id="hooksHeader">
+                    <h2>🪝 Data Hooks</h2>
+                    <span class="toggle-icon">▼</span>
+                </div>
+                <div class="hooks-content collapsed" id="hooksContent">
+                    <div class="hooks-info">
+                        <p class="info-text">Generate JavaScript code to engineer statistical trends and correlations in your data.</p>
+                        <button id="generateHooksBtn" class="secondary-btn" disabled>
+                            <span class="icon">⚡</span> Generate Hooks
+                        </button>
+                    </div>
+                    <div id="hooksEditor" class="hooks-editor"></div>
+                    <div id="hooksEmpty" class="hooks-empty">
+                        <p>First generate a schema, then create hooks to engineer data trends</p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 4. PROMPT SECTION -->
+            <section class="prompt-section">
+                <div class="section-header">
+                    <h2 id="promptTitle">✨ Generate Your Schema</h2>
+                    <button id="clearBtn" class="clear-btn" style="display: none;">
+                        <span class="icon">🗑️</span> Clear All
+                    </button>
+                </div>
+                <textarea
+                    id="promptInput"
+                    placeholder="Describe the type of data you want to generate...&#10;&#10;Example: Create an e-commerce platform with product views, add to cart, checkout, and purchase events. Include user profiles with demographics and purchase history."
+                    rows="6"
+                ></textarea>
+                <button id="generateBtn" class="primary-btn">
+                    <span class="btn-text" id="generateBtnText">🎲 Generate Schema</span>
+                </button>
+            </section>
+
+            <!-- 5. JSON SECTION (Collapsible) -->
+            <section class="json-section">
+                <div class="json-header collapsed" id="jsonHeader">
+                    <h2>📝 Complete Dungeon JSON</h2>
+                    <div class="json-header-right">
+                        <div class="actions">
+                            <button id="copyBtn" class="secondary-btn">
+                                <span class="icon">📋</span> Copy
+                            </button>
+                            <button id="downloadBtn" class="secondary-btn">
+                                <span class="icon">💾</span> Download
+                            </button>
+                        </div>
+                        <span class="toggle-icon">▼</span>
+                    </div>
+                </div>
+                <div class="json-content collapsed" id="jsonContent">
+                    <div id="editor" class="editor-container"></div>
+                </div>
+            </section>
+
+            <!-- Error Section -->
+            <section class="error-section" id="errorSection" style="display: none;">
+                <div class="error-box">
+                    <h3>❌ Error</h3>
+                    <p id="errorMessage"></p>
+                </div>
+            </section>
+        </main>
+
+        <footer>
+            <p>Powered by Gemini AI | <a href="https://github.com/ak--47/make-mp-data" target="_blank">make-mp-data</a></p>
+        </footer>
+    </div>
+
+    <!-- MODAL: Loading Animation Overlay -->
+    <div id="loadingModal" class="loading-modal" style="display: none;">
+        <div class="loading-modal-backdrop"></div>
+        <div class="loading-modal-content">
+            <div class="dice-container" id="diceContainer"></div>
+            <p class="loading-text" id="loadingText">Rolling the dice of fate...</p>
+            <p class="loading-subtext" id="loadingSubtext">The AI is conjuring your schema</p>
+        </div>
+    </div>
+
+    <!-- Hidden file input for loading -->
+    <input type="file" id="fileInput" accept=".json" style="display: none;">
+
+    <!-- Lottie Player from CDN -->
+    <script src="https://unpkg.com/@lottiefiles/lottie-player@latest/dist/lottie-player.js"></script>
+
+    <!-- D3.js from CDN -->
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+
+    <!-- Monaco Editor from CDN -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.45.0/min/vs/loader.min.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>
