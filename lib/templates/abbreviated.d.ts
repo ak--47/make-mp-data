@@ -1,10 +1,20 @@
 /**
- * A "validValue" can be a primitive, an array of primitives, 
- * or a function that returns a primitive or an array of primitives.
+ * A "validValue" can be a primitive, an array of primitives,
+ * a function that returns a primitive or an array of primitives,
+ * or a text generator object (from createGenerator).
  * This is the building block for all property values in the dungeon.
  */
 type Primitives = string | number | boolean | Date;
-type ValueValid = Primitives | Primitives[] | (() => Primitives | Primitives[]);
+type ValueValid = Primitives | Primitives[] | (() => Primitives | Primitives[]) | TextGenerator;
+
+/**
+ * Text generator for creating realistic, contextual text content.
+ * Created using createGenerator() with various style, tone, and keyword options.
+ */
+interface TextGenerator {
+    generateOne(): string;
+    next(): string;
+}
 
 
 /**

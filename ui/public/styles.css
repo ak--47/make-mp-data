@@ -1076,3 +1076,104 @@ footer a:hover {
     padding: 1rem;
 }
 
+/* ========== REFINE PROMPT SECTION ========== */
+.refine-prompt-section {
+    margin-bottom: 2rem;
+}
+
+.refine-prompt-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1rem;
+    background: rgba(120, 86, 255, 0.05);
+    border: 1px solid var(--accent-dark);
+    border-radius: 6px;
+    cursor: pointer;
+    transition: background 0.3s ease;
+}
+
+.refine-prompt-header:hover {
+    background: rgba(120, 86, 255, 0.1);
+}
+
+.refine-prompt-header.collapsed .toggle-icon {
+    transform: rotate(-90deg);
+}
+
+.refine-prompt-content {
+    max-height: 5000px;
+    opacity: 1;
+    margin-top: 1rem;
+    transition: max-height 0.4s ease, opacity 0.3s ease, margin-top 0.3s ease;
+}
+
+.refine-prompt-content.collapsed {
+    max-height: 0;
+    overflow: hidden;
+    opacity: 0;
+    margin-top: 0;
+}
+
+.refine-prompt-content textarea {
+    width: 100%;
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    padding: 1rem;
+    font-size: 1rem;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+    resize: vertical;
+    margin-bottom: 1rem;
+}
+
+.refine-prompt-content textarea:focus {
+    outline: none;
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(120, 86, 255, 0.1);
+}
+
+/* ========== HOOKS SECTION UPDATES ========== */
+.hooks-prompt-area {
+    margin-bottom: 2rem;
+    padding: 1.5rem;
+    background: rgba(120, 86, 255, 0.03);
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+}
+
+.hooks-label {
+    display: block;
+    color: var(--text-primary);
+    font-weight: 600;
+    font-size: 1rem;
+    margin-bottom: 0.75rem;
+}
+
+.hooks-prompt-area textarea {
+    width: 100%;
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    padding: 1rem;
+    font-size: 0.95rem;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+    resize: vertical;
+    margin-bottom: 1rem;
+}
+
+.hooks-prompt-area textarea:focus {
+    outline: none;
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(120, 86, 255, 0.1);
+}
+
+.hooks-editor-area {
+    margin-top: 1.5rem;
+}
+
+.hooks-editor-area .hooks-label {
+    margin-bottom: 0.75rem;
+}

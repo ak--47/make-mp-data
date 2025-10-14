@@ -224,8 +224,6 @@ const dungeon = {
     ]
   },
   userProps: {
-    name: chance.name.bind(chance),
-    email: chance.email.bind(chance),
     plan_type: [
       "free",
       "pro",

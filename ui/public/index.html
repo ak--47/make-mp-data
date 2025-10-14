@@ -8,6 +8,7 @@
 </head>
 <body>
     <div class="container">
+        <!-- HEADER -->
         <header>
             <h1><span class="dice-emoji" id="diceEmoji" title="Click to re-roll colors!">🎲</span> Dungeon Master 4</h1>
             <p class="subtitle">AI-Powered Mixpanel Data Schema Generator</p>
@@ -22,7 +23,7 @@
         </header>
 
         <main>
-            <!-- 1. CONFIG SECTION (Collapsible) -->
+            <!-- 1. CONFIG (Collapsible) -->
             <section class="config-section">
                 <div class="config-header collapsed" id="configHeader">
                     <h2>⚙️ Dungeon Configuration</h2>
@@ -165,7 +166,27 @@
                 </div>
             </section>
 
-            <!-- 2. SCHEMA VISUALIZATION (Collapsible) -->
+            <!-- 2. SCHEMA INITIAL PROMPT (Always visible initially, then collapsible) -->
+            <section class="prompt-section" id="initialPromptSection">
+                <div class="prompt-header" id="initialPromptHeader">
+                    <h2>✨ Generate Your Schema</h2>
+                    <button id="clearBtn" class="clear-btn" style="display: none;">
+                        <span class="icon">🗑️</span> Clear All
+                    </button>
+                </div>
+                <div class="prompt-content" id="initialPromptContent">
+                    <textarea
+                        id="promptInput"
+                        placeholder="Describe the type of data you want to generate...&#10;&#10;Example: Create an e-commerce platform with product views, add to cart, checkout, and purchase events. Include user profiles with demographics and purchase history."
+                        rows="6"
+                    ></textarea>
+                    <button id="generateBtn" class="primary-btn">
+                        <span class="btn-text" id="generateBtnText">🎲 Generate Schema</span>
+                    </button>
+                </div>
+            </section>
+
+            <!-- 3. SCHEMA VISUALIZATION (Collapsible) -->
             <section class="schema-section">
                 <div class="schema-header collapsed" id="schemaHeader">
                     <h2>📊 Dungeon Schema</h2>
@@ -185,45 +206,58 @@
                 </div>
             </section>
 
-            <!-- 3. HOOKS SECTION (Collapsible) -->
+            <!-- 4. REFINE SCHEMA PROMPT (Collapsible, only shows after initial generation) -->
+            <section class="refine-prompt-section" id="refinePromptSection" style="display: none;">
+                <div class="refine-prompt-header collapsed" id="refinePromptHeader">
+                    <h2>🔄 Refine Your Schema</h2>
+                    <span class="toggle-icon">▼</span>
+                </div>
+                <div class="refine-prompt-content collapsed" id="refinePromptContent">
+                    <textarea
+                        id="refinePromptInput"
+                        placeholder="Describe changes to make to the schema...&#10;&#10;Example: Add more user properties like age and location, or change the purchase event to include shipping details..."
+                        rows="4"
+                    ></textarea>
+                    <button id="refineBtn" class="primary-btn">
+                        <span class="icon">🔄</span> Update Schema
+                    </button>
+                </div>
+            </section>
+
+            <!-- 5. HOOKS SECTION (Collapsible) -->
             <section class="hooks-section">
                 <div class="hooks-header collapsed" id="hooksHeader">
                     <h2>🪝 Data Hooks</h2>
                     <span class="toggle-icon">▼</span>
                 </div>
                 <div class="hooks-content collapsed" id="hooksContent">
-                    <div class="hooks-info">
-                        <p class="info-text">Generate JavaScript code to engineer statistical trends and correlations in your data.</p>
-                        <button id="generateHooksBtn" class="secondary-btn" disabled>
+                    <!-- Hooks Prompt -->
+                    <div class="hooks-prompt-area">
+                        <label for="hooksPromptInput" class="hooks-label">
+                            Describe the statistical trends you want to engineer:
+                        </label>
+                        <textarea
+                            id="hooksPromptInput"
+                            placeholder="Example: Users who watch low quality videos tend to churn more, or Users in California spend 30% more than other states"
+                            rows="3"
+                        ></textarea>
+                        <button id="generateHooksBtn" class="primary-btn" disabled>
                             <span class="icon">⚡</span> Generate Hooks
                         </button>
                     </div>
-                    <div id="hooksEditor" class="hooks-editor"></div>
-                    <div id="hooksEmpty" class="hooks-empty">
-                        <p>First generate a schema, then create hooks to engineer data trends</p>
+
+                    <!-- Hooks Code Editor -->
+                    <div class="hooks-editor-area">
+                        <label class="hooks-label">JavaScript Hook Code:</label>
+                        <div id="hooksEditor" class="hooks-editor"></div>
+                        <div id="hooksEmpty" class="hooks-empty">
+                            <p>Generate a schema first, then describe your data trends above</p>
+                        </div>
                     </div>
                 </div>
             </section>
 
-            <!-- 4. PROMPT SECTION -->
-            <section class="prompt-section">
-                <div class="section-header">
-                    <h2 id="promptTitle">✨ Generate Your Schema</h2>
-                    <button id="clearBtn" class="clear-btn" style="display: none;">
-                        <span class="icon">🗑️</span> Clear All
-                    </button>
-                </div>
-                <textarea
-                    id="promptInput"
-                    placeholder="Describe the type of data you want to generate...&#10;&#10;Example: Create an e-commerce platform with product views, add to cart, checkout, and purchase events. Include user profiles with demographics and purchase history."
-                    rows="6"
-                ></textarea>
-                <button id="generateBtn" class="primary-btn">
-                    <span class="btn-text" id="generateBtnText">🎲 Generate Schema</span>
-                </button>
-            </section>
-
-            <!-- 5. JSON SECTION (Collapsible) -->
+            <!-- 6. DUNGEON JSON (Collapsible) -->
             <section class="json-section">
                 <div class="json-header collapsed" id="jsonHeader">
                     <h2>📝 Complete Dungeon JSON</h2>
@@ -253,31 +287,23 @@
             </section>
         </main>
 
-        <footer>
-            <p>Powered by Gemini AI | <a href="https://github.com/ak--47/make-mp-data" target="_blank">make-mp-data</a></p>
-        </footer>
-    </div>
-
-    <!-- MODAL: Loading Animation Overlay -->
-    <div id="loadingModal" class="loading-modal" style="display: none;">
-        <div class="loading-modal-backdrop"></div>
-        <div class="loading-modal-content">
-            <div class="dice-container" id="diceContainer"></div>
-            <p class="loading-text" id="loadingText">Rolling the dice of fate...</p>
-            <p class="loading-subtext" id="loadingSubtext">The AI is conjuring your schema</p>
+        <!-- Modal Loading Overlay -->
+        <div id="loadingModal" class="loading-modal" style="display: none;">
+            <div class="loading-modal-backdrop"></div>
+            <div class="loading-modal-content">
+                <div class="dice-container" id="diceContainer"></div>
+                <p class="loading-text" id="loadingText">Rolling the dice of fate...</p>
+                <p class="loading-subtext" id="loadingSubtext">The AI is conjuring your schema</p>
+            </div>
         </div>
+
+        <!-- Hidden file input for load -->
+        <input type="file" id="fileInput" accept=".json" style="display: none;">
     </div>
 
-    <!-- Hidden file input for loading -->
-    <input type="file" id="fileInput" accept=".json" style="display: none;">
-
-    <!-- Lottie Player from CDN -->
-    <script src="https://unpkg.com/@lottiefiles/lottie-player@latest/dist/lottie-player.js"></script>
-
-    <!-- D3.js from CDN -->
+    <!-- Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/@lottiefiles/lottie-player@2.0.2/dist/lottie-player.min.js"></script>
     <script src="https://d3js.org/d3.v7.min.js"></script>
-
-    <!-- Monaco Editor from CDN -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.45.0/min/vs/loader.min.js"></script>
     <script src="app.js"></script>
 </body>

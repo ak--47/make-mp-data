@@ -411,6 +411,7 @@ function initCollapsibleSections() {
     const sections = [
         { header: 'configHeader', content: 'configContent' },
         { header: 'schemaHeader', content: 'schemaContent' },
+        { header: 'refinePromptHeader', content: 'refinePromptContent' },
         { header: 'hooksHeader', content: 'hooksContent' },
         { header: 'jsonHeader', content: 'jsonContent' }
     ];
@@ -685,18 +686,18 @@ async function handleGenerate() {
             schemaContent.classList.remove('collapsed');
         }
 
+        // Show refine prompt section after first generation
+        if (!isIteration) {
+            const refinePromptSection = document.getElementById('refinePromptSection');
+            if (refinePromptSection) {
+                refinePromptSection.style.display = 'block';
+            }
+        }
+
         // Enable hooks generation button
         const generateHooksBtn = document.getElementById('generateHooksBtn');
         if (generateHooksBtn) {
             generateHooksBtn.disabled = false;
-        }
-
-        // Update UI for iteration mode
-        if (!isIteration) {
-            promptTitle.textContent = '🔄 Refine Your Schema';
-            generateBtnText.textContent = '🔄 Update Schema';
-            promptInput.placeholder = 'Describe changes to make to the schema...\n\nExample: Add more user properties like age and location, or change the purchase event to include shipping details...';
-            promptInput.value = '';
         }
     } catch (error) {
         console.error('Error:', error);
@@ -728,18 +729,82 @@ function displaySchema(schema) {
     updateSchemaViz();
 }
 
+// ========== REFINE SCHEMA ==========
+async function handleRefineSchema() {
+    const refinePromptInput = document.getElementById('refinePromptInput');
+    const refineBtn = document.getElementById('refineBtn');
+
+    if (!refinePromptInput) {
+        showError('Refine prompt input not found');
+        return;
+    }
+
+    const prompt = refinePromptInput.value.trim();
+
+    if (!prompt) {
+        showError('Please describe the changes you want to make');
+        return;
+    }
+
+    if (!currentSchema) {
+        showError('No schema to refine. Please generate a schema first.');
+        return;
+    }
+
+    if (refineBtn) refineBtn.disabled = true;
+    hideError();
+    showLoadingModal('Refining your schema...', 'The AI is updating your data model');
+
+    try {
+        let schemaToIterate = null;
+        if (editor) {
+            try {
+                schemaToIterate = JSON.parse(editor.getValue());
+            } catch (e) {
+                schemaToIterate = currentSchema;
+            }
+        }
+
+        const response = await fetch('/api/generate', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                prompt,
+                context: {
+                    originalPrompt,
+                    currentSchema: schemaToIterate
+                }
+            }),
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+            throw new Error(data.error || 'Failed to refine schema');
+        }
+
+        currentSchema = data.schema;
+        displaySchema(currentSchema);
+
+        // Clear refine input
+        refinePromptInput.value = '';
+
+        console.log('✅ Schema refined successfully');
+    } catch (error) {
+        console.error('Error refining schema:', error);
+        showError(error.message || 'Failed to refine schema');
+    } finally {
+        if (refineBtn) refineBtn.disabled = false;
+        hideLoadingModal();
+    }
+}
+
 // ========== GENERATE HOOKS ==========
 async function handleGenerateHooks() {
     const hooksPromptInput = document.getElementById('hooksPromptInput');
-    const generateHooksBtn = document.getElementById('generateHooksBtn');
 
     if (!hooksPromptInput) {
-        // Fallback: use prompt() if no input field
-        const prompt = window.prompt('Describe the statistical trends you want to engineer in your data:\n\nExample: "Users who watch low quality videos tend to churn more" or "Users in California spend 30% more than other states"');
-
-        if (!prompt || !prompt.trim()) return;
-
-        await generateHooks(prompt.trim());
+        showError('Hooks prompt input not found');
         return;
     }
 
@@ -875,6 +940,16 @@ async function loadDungeonFromFile(file) {
         currentSchema = dungeonState.schema;
         displaySchema(currentSchema);
 
+        // Show refine prompt section since schema exists
+        const refinePromptSection = document.getElementById('refinePromptSection');
+        if (refinePromptSection) {
+            refinePromptSection.style.display = 'block';
+        }
+
+        // Enable hooks button
+        const generateHooksBtn = document.getElementById('generateHooksBtn');
+        if (generateHooksBtn) generateHooksBtn.disabled = false;
+
         // Load hooks if present
         if (dungeonState.hooks && hooksEditor) {
             currentHooks = dungeonState.hooks;
@@ -882,10 +957,6 @@ async function loadDungeonFromFile(file) {
             hooksEditor.setValue(dungeonState.hooks);
             isUpdatingFromHooks = false;
             showHooksEditor();
-
-            // Enable hooks button
-            const generateHooksBtn = document.getElementById('generateHooksBtn');
-            if (generateHooksBtn) generateHooksBtn.disabled = false;
         }
 
         // Sync hooks to JSON
@@ -919,6 +990,16 @@ function handleClear() {
         originalPrompt = '';
         clearBtn.style.display = 'none';
 
+        // Clear refine prompt
+        const refinePromptInput = document.getElementById('refinePromptInput');
+        const hooksPromptInput = document.getElementById('hooksPromptInput');
+        if (refinePromptInput) refinePromptInput.value = '';
+        if (hooksPromptInput) hooksPromptInput.value = '';
+
+        // Hide refine prompt section
+        const refinePromptSection = document.getElementById('refinePromptSection');
+        if (refinePromptSection) refinePromptSection.style.display = 'none';
+
         if (editor) {
             editor.setValue('');
         }
@@ -931,11 +1012,6 @@ function handleClear() {
         hideHooksEditor();
         const generateHooksBtn = document.getElementById('generateHooksBtn');
         if (generateHooksBtn) generateHooksBtn.disabled = true;
-
-        // Reset UI
-        promptTitle.textContent = '✨ Generate Your Schema';
-        generateBtnText.textContent = '🎲 Generate Schema';
-        promptInput.placeholder = 'Describe the type of data you want to generate...\n\nExample: Create an e-commerce platform with product views, add to cart, checkout, and purchase events. Include user profiles with demographics and purchase history.';
 
         // Reinitialize empty schema
         initializeEmptySchema();
@@ -1498,6 +1574,12 @@ window.addEventListener('load', () => {
     const diceEmoji = document.getElementById('diceEmoji');
     if (diceEmoji) {
         diceEmoji.addEventListener('click', reRollColors);
+    }
+
+    // Refine schema button
+    const refineBtn = document.getElementById('refineBtn');
+    if (refineBtn) {
+        refineBtn.addEventListener('click', handleRefineSchema);
     }
 
     // Hooks generation button

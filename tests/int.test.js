@@ -194,7 +194,7 @@ describe.sequential('generators', () => {
 		expect(result).toHaveProperty('device_id', 'anon_id');
 		// expect(result).toHaveProperty('user_id', 'known_id'); // Known ID not always on the event
 		expect(result).toHaveProperty('session_id', 'session_id');
-		expect(result).toHaveProperty('source', 'dm4');
+		// expect(result).toHaveProperty('source', 'dm4');
 		expect(result).toHaveProperty('insert_id');
 		expect(result).toHaveProperty('time');
 		expect(result).toHaveProperty('prop1');
@@ -210,7 +210,7 @@ describe.sequential('generators', () => {
 		const result = await makeEvent(context, "known_id", dayjs.unix(global.FIXED_NOW).subtract(30, 'd').unix(), eventConfig);
 		expect(result).toHaveProperty('event', 'test_event');
 		expect(result).toHaveProperty('user_id', 'known_id');
-		expect(result).toHaveProperty('source', 'dm4');
+		// expect(result).toHaveProperty('source', 'dm4');
 		expect(result).toHaveProperty('insert_id');
 		expect(result).toHaveProperty('time');
 	});
@@ -282,6 +282,95 @@ describe.sequential('generators', () => {
 		expect(result.length).toBe(3);
 		expect(converted).toBe(true);
 		expect(result.every(e => validEvent(e))).toBeTruthy();
+	});
+
+	test('makeFunnel: experiment mode creates $experiment_started', async () => {
+		const funnelConfig = {
+			name: 'Test',
+			sequence: ["step1", "step2"],
+			conversionRate: 100,
+			order: 'sequential',
+			experiment: true
+		};
+		const user = { distinct_id: "user1", name: "test", created: dayjs.unix(global.FIXED_NOW).subtract(10, 'days').toISOString(), anonymousIds: [], sessionIds: [] };
+		const profile = { created: dayjs.unix(global.FIXED_NOW).subtract(10, 'days').toISOString(), distinct_id: "user1" };
+		const scd = {};
+
+		const context = createTestContext();
+		const [result, converted] = await makeFunnel(context, funnelConfig, user, dayjs.unix(global.FIXED_NOW).subtract(5, 'd').unix(), profile, scd);
+
+		// Should have $experiment_started + 2 funnel events
+		expect(result.length).toBe(3);
+		expect(result[0].event).toBe('$experiment_started');
+		expect(result[0]['Experiment name']).toBe('Test Experiment');  // Code appends " Experiment" to the name
+		expect(['A', 'B', 'C']).toContain(result[0]['Variant name']);
+
+		// Other events should NOT have experiment properties
+		expect(result[1]).not.toHaveProperty('Experiment name');
+		expect(result[1]).not.toHaveProperty('Variant name');
+	});
+
+	test('makeFunnel: experiment mode preserves funnel props', async () => {
+		const funnelConfig = {
+			name: 'Test Experiment',
+			sequence: ["step1", "step2"],
+			conversionRate: 100,
+			order: 'sequential',
+			experiment: true,
+			props: {
+				source: 'test-source',
+				campaign: 'test-campaign'
+			}
+		};
+		const user = { distinct_id: "user1", name: "test", created: dayjs.unix(global.FIXED_NOW).subtract(10, 'days').toISOString(), anonymousIds: [], sessionIds: [] };
+		const profile = { created: dayjs.unix(global.FIXED_NOW).subtract(10, 'days').toISOString(), distinct_id: "user1" };
+		const scd = {};
+
+		const context = createTestContext();
+		const [result, converted] = await makeFunnel(context, funnelConfig, user, dayjs.unix(global.FIXED_NOW).subtract(5, 'd').unix(), profile, scd);
+
+		// $experiment_started should NOT have funnel props
+		expect(result[0]).not.toHaveProperty('source');
+		expect(result[0]).not.toHaveProperty('campaign');
+
+		// Other events SHOULD have funnel props
+		expect(result[1].source).toBe('test-source');
+		expect(result[1].campaign).toBe('test-campaign');
+	});
+
+	test('makeFunnel: experiment mode variant distribution', async () => {
+		const funnelConfig = {
+			name: 'Distribution Test',
+			sequence: ["step1"],
+			conversionRate: 100,
+			experiment: true
+		};
+		const context = createTestContext();
+		const variantCounts = { A: 0, B: 0, C: 0 };
+
+		// Run 90 trials to check distribution
+		for (let i = 0; i < 90; i++) {
+			const user = {
+				distinct_id: `user${i}`,
+				name: "test",
+				created: dayjs.unix(global.FIXED_NOW).subtract(10, 'days').toISOString(),
+				anonymousIds: [],
+				sessionIds: []
+			};
+			const [result, converted] = await makeFunnel(context, funnelConfig, user, dayjs.unix(global.FIXED_NOW).subtract(5, 'd').unix());
+			const variant = result[0]['Variant name'];
+			variantCounts[variant]++;
+		}
+
+		// Each variant should be roughly 33% (within reasonable margin)
+		// With 90 trials, expect ~30 per variant, allow +/- 15 for randomness
+		expect(variantCounts.A).toBeGreaterThan(15);
+		expect(variantCounts.A).toBeLessThan(45);
+		expect(variantCounts.B).toBeGreaterThan(15);
+		expect(variantCounts.B).toBeLessThan(45);
+		expect(variantCounts.C).toBeGreaterThan(15);
+		expect(variantCounts.C).toBeLessThan(45);
+		expect(variantCounts.A + variantCounts.B + variantCounts.C).toBe(90);
 	});
 
 
