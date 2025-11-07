@@ -11,21 +11,6 @@
 			"type": "node-terminal"
 		},
 		{
-			"type": "node",
-			"request": "launch",
-			"name": "🎲 UI Server",
-			"runtimeExecutable": "nodemon",
-			"program": "${workspaceFolder}/ui/server.js",
-			"restart": true,
-			"console": "integratedTerminal",
-			"internalConsoleOptions": "neverOpen",
-			"skipFiles": ["<node_internals>/**"],
-			"env": {
-				"NODE_ENV": "dev",
-				"PORT": "3000"
-			}
-		},
-		{
             "type": "node",
             "request": "launch",
             "name": "🚀 run dungeon",

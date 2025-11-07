@@ -1,6 +1,6 @@
 {
 	"name": "make-mp-data",
-	"version": "2.0.24",
+	"version": "2.1.0",
 	"description": "builds all mixpanel primitives for a given project",
 	"type": "module",
 	"main": "index.js",
@@ -17,8 +17,6 @@
 	],
 	"scripts": {
 		"new:dungeon": "node ./scripts/create-dungeon.mjs",
-		"ui": "node ./ui/server.js",
-		"ui:dev": "nodemon ./ui/server.js",
 		"start": "node ./index.js",
 		"dev": "nodemon scratch.mjs --ignore ./data/*",
 		"prune": "rm -f ./data/* && rm -f ./tmp/* && rm -f vscode-profile-*",
@@ -70,7 +68,6 @@
 		"chance": "^1.1.11",
 		"dayjs": "^1.11.11",
 		"dotenv": "^16.4.5",
-		"express": "^4.21.2",
 		"google-auth-library": "^9.15.0",
 		"hyparquet-writer": "^0.6.1",
 		"mixpanel-import": "^3.0.0",

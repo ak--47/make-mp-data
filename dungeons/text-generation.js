@@ -328,7 +328,7 @@ const webinarChatGen = createGenerator({
 /** @type {Dungeon} */
 const dungeon = {
 	seed: SEED,
-	token: "cc98e23ef93281fe99d5f3da1cd3b613",
+	token: "",
 	numDays: days,
 	numEvents: num_users * 120, // Increased for more variety
 	numUsers: num_users,

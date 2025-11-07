@@ -15,7 +15,7 @@ const days = 60;
 
 /** @type {Dungeon} */
 const dungeon = {
-	token: "945aa091867cec089e6d26a9d51e86fe",
+	token: "",
 	seed: SEED,
 	numDays: days,
 	numEvents: num_users * 120,
