@@ -14,7 +14,7 @@ const days = 30;
 
 /** @type {Config} */
 const config = {
-	token: "a854e82c2c91ada31c502139d99e8e0d",
+	token: "",
 	seed: SEED,
 	numDays: days,
 	numEvents: num_users * 100,
@@ -33,7 +33,6 @@ const config = {
 	hasAdSpend: true,
 
 	hasAvatar: true,
-	makeChart: false,
 
 	batchSize: 500_000,
 	concurrency: 500,

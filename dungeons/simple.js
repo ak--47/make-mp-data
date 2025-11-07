@@ -9,7 +9,7 @@
 
 
 import Chance from 'chance';
-const chance = new Chance();
+let chance = new Chance();
 import dayjs from "dayjs";
 import utc from "dayjs/plugin/utc.js";
 dayjs.extend(utc);
@@ -23,25 +23,25 @@ const videoCategories = ["funny", "educational", "inspirational", "music", "news
 /** @type {import('../types').Dungeon} */
 const config = {
 	token: "",
-	seed: "simple is best",
-	numDays: 30, //how many days worth1 of data
-	numEvents: 50000, //how many events
-	numUsers: 500, //how many users	
+	seed: "simple is best!",
+	numDays: 100, //how many days worth1 of data
+	numEvents: 250_000, //how many events
+	numUsers: 1_000, //how many users
 	format: 'csv', //csv or json
 	region: "US",
 	hasAnonIds: false, //if true, anonymousIds are created for each user
 	hasSessionIds: false, //if true, hasSessionIds are created for each user
 	hasAdSpend: false,
-	makeChart: false,
 	hasLocation: true,
-	hasAndroidDevices: true,
-	hasIOSDevices: true,
-	hasDesktopDevices: true,
-	hasBrowser: true,
+	hasAndroidDevices: false,
+	hasIOSDevices: false,
+	hasDesktopDevices: false,
+	hasBrowser: false,
 	hasCampaigns: true,
 	isAnonymous: false,
-	concurrency: 10,
-	batchSize: 1_500_000,
+	alsoInferFunnels: true,
+	concurrency: 1,
+	batchSize: 2_500_000,
 
 
 	events: [
@@ -109,16 +109,28 @@ const config = {
 		},
 		{
 			event: "sign up",
+			weight: 1,
 			isFirstEvent: true,
-			weight: 0,
 			properties: {
-				variants: ["A", "B", "C", "Control"],
-				flows: ["new", "existing", "loyal", "churned"],
-				flags: ["on", "off"],
-				experiment_ids: ["1234", "5678", "9012", "3456", "7890"],
-				multiVariate: [true, false]
+				signupMethod: pickAWinner(["email", "google", "facebook", "twitter", "linkedin", "github"]),
+				referral: weighChoices(["none", "none", "none", "friend", "ad", "ad", "ad", "friend", "friend", "friend", "friend"]),
 			}
+		},
+
+	],
+	funnels: [
+		{
+			sequence: ["page view", "view item", "save item", "page view", "sign up"],
+			conversionRate: 50,
+			order: "first-and-last-fixed",
+			weight: 1,
+			isFirstFunnel: true,
+			timeToConvert: 2,
+			experiment: true,
+			name: "Signup Flow"
+
 		}
+
 	],
 	superProps: {
 		theme: pickAWinner(["light", "dark", "custom", "light", "dark"]),
@@ -143,6 +155,33 @@ const config = {
 	groupProps: {},
 	lookupTables: [],
 	hook: function (record, type, meta) {
+
+		const NOW = dayjs();
+		// const DATE_HOMEGROWN_LAUNCH = NOW.subtract(25, 'day');
+		// const DATE_HOMEGROWN_IMPROVEMENT = NOW.subtract(10, 'day');
+		const OVER_THINGS_GET_BETTER = NOW.subtract(15, 'day');
+
+		if (type === "event") {
+			const EVENT_TIME = dayjs(record.time);
+
+			if (EVENT_TIME.isAfter(OVER_THINGS_GET_BETTER)) {
+				// checkouts are bigger
+				if (record.event === "checkout") {
+					record.amount = Math.round(record.amount * 1.5);
+				}
+
+				// videos are longer
+				if (record.event === "watch video") {
+					record.watchTimeSec = Math.round(record.watchTimeSec * 1.5);
+				}
+			}
+
+			if (EVENT_TIME.isBefore(OVER_THINGS_GET_BETTER)) {
+				// kill 33% of all volume
+				if (chance.bool({ likelihood: 33 })) return null;
+			}
+		}
+
 		if (type === "everything") {
 
 			//custom themers purchase more:

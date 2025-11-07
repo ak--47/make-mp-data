@@ -58,7 +58,84 @@ Core Requirements:
 		- Use lookup tables if events reference external entities with their own attributes (e.g., product_id, video_id).
 		- Use funnel conditions when different user segments or cohorts should have different behavioral patterns (e.g., premium vs free users, students vs teachers, rider vs driver, doctor vs patient).
 
-	4. Available Functions: You have access to these built-in functions: date, weighNumRange, range, and the chance library.
+	4. Available Functions: You have access to these built-in functions: date, weighNumRange, range, chance library methods, and createGenerator for structured text generation.
+
+	5. Structured Text Generation: When your use case involves user-generated content (reviews, comments, support tickets, chat messages, social media posts, etc.), use createGenerator() to produce realistic, contextual text.
+
+		Text Generator Usage:
+
+		- createGenerator() creates a text generator object that produces varied, authentic-sounding text
+		- Embed the createGenerator() call directly in the properties object (NOT as a quoted string)
+		- The generator automatically produces unique text for each event
+
+		Example for a customer support platform:
+
+		{
+			event: "support_ticket_submitted",
+			properties: {
+				ticket_text: createGenerator({
+					style: "support",
+					tone: "neg",
+					formality: "business",
+					keywords: {
+						features: ["Dashboard", "Export API", "User Management"],
+						technical: ["timeout", "authentication", "database error"],
+						errors: ["500 Internal Server", "TIMEOUT_ERROR"]
+					},
+					min: 80,
+					max: 300
+				}),
+				priority: ["low", "medium", "high", "critical"]
+			}
+		}
+
+		Example for social media platform:
+
+		{
+			event: "comment_posted",
+			properties: {
+				comment_text: createGenerator({
+					style: "chat",
+					tone: "pos",
+					formality: "casual",
+					keywords: {
+						products: ["the app", "this feature"],
+						emotions: ["love it", "amazing", "great job"]
+					},
+					typos: true,
+					typoRate: 0.03,
+					min: 10,
+					max: 150
+				}),
+				post_type: ["text", "image", "video"]
+			}
+		}
+
+		Text Generator Options:
+
+		- style: "support", "review", "forum", "search", "feedback", "chat", "comments", "tweet", "email"
+		- tone: "pos" (positive), "neg" (negative), "neu" (neutral)
+		- formality: "casual", "business", "technical"
+		- keywords: Object with arrays of domain-specific terms to include (features, products, technical, errors, etc.)
+		- min/max: Character length range
+		- typos: true/false (adds realistic typos)
+		- typoRate: 0.01 to 0.1 (percentage of typos)
+		- mixedSentiment: true/false (varies sentiment within text)
+		- authenticityLevel: 0.0 to 1.0 (how "real" the text sounds)
+		- specificityLevel: 0.0 to 1.0 (level of detail)
+
+		When to Use createGenerator:
+
+		- Customer support tickets and responses
+		- Product reviews and ratings
+		- Social media posts (tweets, LinkedIn, Reddit)
+		- Forum discussions and comments
+		- Chat messages and live support
+		- Search queries
+		- User feedback and feature requests
+		- Email communications
+		- Bug reports
+		- Any scenario involving user-written or generated text content
 
 ❌ Critical Rules to Follow:
 

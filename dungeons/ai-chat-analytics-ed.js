@@ -34,7 +34,6 @@ const dungeon = {
     hasAdSpend: true,
     
     hasAvatar: true,
-    makeChart: false,
 
     batchSize: 1_500_000,
     concurrency: 50,
@@ -224,8 +223,6 @@ const dungeon = {
     ]
   },
   userProps: {
-    name: chance.name.bind(chance),
-    email: chance.email.bind(chance),
     plan_type: [
       "free",
       "pro",

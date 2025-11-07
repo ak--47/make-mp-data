@@ -48,7 +48,6 @@ export interface Dungeon {
     hasAnonIds?: boolean;
     hasSessionIds?: boolean;
     alsoInferFunnels?: boolean;
-    makeChart?: boolean | string;
     singleCountry?: string;
 
     //models
@@ -318,6 +317,11 @@ export interface Funnel {
      * these conditions must match the current user's profile for the user to be eligible for the funnel
      */
     conditions?: Record<string, ValueValid>;
+	/**
+	 * If true, the funnel will be part of an experiment where we generate 3 variants of the funnel with different conversion rates
+	 *
+	 */
+	experiment?: boolean;
 }
 
 /**
