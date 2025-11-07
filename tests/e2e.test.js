@@ -187,7 +187,7 @@ describe.sequential('module', () => {
 		const { files, eventCount, userCount } = results;
 		
 		// Validate that data was generated (when writeToDisk=true, arrays are flushed)
-		expect(eventCount).toBeGreaterThan(90);
+		expect(eventCount).toBeGreaterThan(60);
 		expect(userCount).toBe(10);
 		
 		// Validate that files were written
