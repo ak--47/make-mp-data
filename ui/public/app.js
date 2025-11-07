@@ -104,7 +104,6 @@ function initializeEmptySchema() {
         numEvents: 100000,
         numDays: 100,
         format: "json",
-        batchSize: 1500000,
         concurrency: 50,
         hasLocation: true,
         hasCampaigns: true,
@@ -136,10 +135,9 @@ function formatNumber(num) {
 
 // ========== CONFIGURATION MANAGEMENT ==========
 const SLIDER_CONFIGS = [
-    { id: 'numUsers', min: 10, max: 100000, step: 10 },
-    { id: 'numEvents', min: 100, max: 10000000, step: 1000 },
+    { id: 'numUsers', min: 100, max: 20000, step: 100 },
+    { id: 'numEvents', min: 20000, max: 2000000, step: 10000 },
     { id: 'numDays', min: 1, max: 365, step: 1 },
-    { id: 'batchSize', min: 1000, max: 10000000, step: 10000 },
     { id: 'concurrency', min: 1, max: 100, step: 1 },
 ];
 
@@ -1073,6 +1071,32 @@ function handleDownload() {
 }
 
 // ========== MODAL LOADING ==========
+// D&D Meme Messages for loading screen
+const dndMemes = [
+    "Rolling for initiative...",
+    "Summoning the data demons...",
+    "Consulting the Oracle of Analytics...",
+    "Your dungeon master is thinking...",
+    "Casting Fireball on your database...",
+    "Rolling a nat 20 for data generation...",
+    "The dice of destiny are tumbling...",
+    "Forging your dataset in dragon fire...",
+    "Channeling the power of the arcane...",
+    "Your party is gathering resources...",
+    "The DM is preparing your encounter...",
+    "Brewing a potion of pure data...",
+    "Enchanting your events with magic...",
+    "The dungeon is being procedurally generated...",
+    "Consulting the ancient scrolls of analytics...",
+    "Your adventurers are leveling up...",
+    "Critical hit on data processing!",
+    "The mimic was actually a dataset all along...",
+    "Rolling perception check for anomalies...",
+    "Your schema is being blessed by the gods..."
+];
+
+let loadingMemeInterval = null;
+
 function showLoadingModal(text = 'Rolling the dice of fate...', subtext = 'The AI is conjuring your schema') {
     const modal = document.getElementById('loadingModal');
     const loadingText = document.getElementById('loadingText');
@@ -1081,12 +1105,31 @@ function showLoadingModal(text = 'Rolling the dice of fate...', subtext = 'The A
     if (loadingText) loadingText.textContent = text;
     if (loadingSubtext) loadingSubtext.textContent = subtext;
 
+    // Cycle through D&D memes every 2 seconds
+    let memeIndex = 0;
+    loadingMemeInterval = setInterval(() => {
+        memeIndex = (memeIndex + 1) % dndMemes.length;
+        if (loadingText) {
+            loadingText.style.opacity = '0';
+            setTimeout(() => {
+                loadingText.textContent = dndMemes[memeIndex];
+                loadingText.style.opacity = '1';
+            }, 200);
+        }
+    }, 2000);
+
     createLottieDice();
     if (modal) modal.style.display = 'flex';
 }
 
 function hideLoadingModal() {
     const modal = document.getElementById('loadingModal');
+
+    // Stop the meme cycling interval
+    if (loadingMemeInterval) {
+        clearInterval(loadingMemeInterval);
+        loadingMemeInterval = null;
+    }
 
     // Stop the animation interval
     diceAnimationState.isRunning = false;
@@ -1609,6 +1652,101 @@ window.addEventListener('load', () => {
             }
         });
     }
+
+    // Collapse/Expand All button
+    const collapseAllBtn = document.getElementById('collapseAllBtn');
+    const collapseText = document.getElementById('collapseText');
+    let allCollapsed = false;
+
+    if (collapseAllBtn) {
+        collapseAllBtn.addEventListener('click', () => {
+            const sections = [
+                { header: 'configHeader', content: 'configContent' },
+                { header: 'schemaHeader', content: 'schemaContent' },
+                { header: 'hooksHeader', content: 'hooksContent' },
+                { header: 'jsonHeader', content: 'jsonContent' }
+            ];
+
+            allCollapsed = !allCollapsed;
+
+            sections.forEach(({ header, content }) => {
+                const headerEl = document.getElementById(header);
+                const contentEl = document.getElementById(content);
+                if (headerEl && contentEl) {
+                    if (allCollapsed) {
+                        headerEl.classList.add('collapsed');
+                        contentEl.classList.add('collapsed');
+                    } else {
+                        headerEl.classList.remove('collapsed');
+                        contentEl.classList.remove('collapsed');
+                    }
+                }
+            });
+
+            if (collapseText) {
+                collapseText.textContent = allCollapsed ? 'Expand All' : 'Collapse All';
+            }
+        });
+    }
+
+    // Run Simulation button
+    const runBtn = document.getElementById('runBtn');
+    if (runBtn) {
+        runBtn.addEventListener('click', async () => {
+            try {
+                // Get current schema from editor
+                const schemaText = editor.getValue();
+                const schema = JSON.parse(schemaText);
+
+                // Show loading modal with D&D memes
+                showLoading('Summoning the data demons...', 'Your dungeon is being forged in the fires of computation');
+
+                // Call /api/run endpoint
+                const response = await fetch('/api/run', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ config: schema })
+                });
+
+                const data = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(data.error || 'Failed to run simulation');
+                }
+
+                hideLoading();
+
+                // Show success message
+                alert(`✅ Simulation Complete!\n\nGenerated:\n- ${data.result.eventCount.toLocaleString()} events\n- ${data.result.userCount.toLocaleString()} users\n- ${data.result.files.length} files`);
+
+            } catch (error) {
+                hideLoading();
+                showError('Failed to run simulation: ' + error.message);
+                console.error('Run error:', error);
+            }
+        });
+    }
+
+    // Cycling D&D emoji on header dice
+    const diceEmojis = ['🎲', '🎯', '⚔️', '🛡️', '🧙', '🐉', '👾', '🎭', '🔮', '⚡'];
+    let currentEmojiIndex = 0;
+
+    function cycleDiceEmoji() {
+        const diceEmojiEl = document.getElementById('diceEmoji');
+        if (diceEmojiEl) {
+            diceEmojiEl.style.opacity = '0';
+            setTimeout(() => {
+                currentEmojiIndex = (currentEmojiIndex + 1) % diceEmojis.length;
+                diceEmojiEl.textContent = diceEmojis[currentEmojiIndex];
+                diceEmojiEl.style.opacity = '1';
+            }, 300);
+        }
+    }
+
+    // Cycle emoji every 5 seconds
+    setInterval(cycleDiceEmoji, 5000);
 
     // Initialize schema viz with empty state
     renderSchemaViz({});

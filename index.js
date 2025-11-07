@@ -29,16 +29,13 @@ import { makeMirror } from './lib/generators/mirror.js';
 import { makeGroupProfile, makeProfile } from './lib/generators/profiles.js';
 
 // Utilities
-import { generateLineChart } from './lib/utils/chart.js';
 
 // External dependencies
 import dayjs from "dayjs";
 import utc from "dayjs/plugin/utc.js";
 import functions from '@google-cloud/functions-framework';
 import { timer, sLog } from 'ak-tools';
-import fs, { existsSync } from 'fs';
-import path from 'path';
-import { fileURLToPath } from 'url';
+import { existsSync } from 'fs';
 
 // Initialize dayjs and time constants
 dayjs.extend(utc);
@@ -66,7 +63,6 @@ function displayConfigurationSummary(config) {
 	if (config.hasAnonIds) features.push('anonymous IDs');
 	if (config.hasSessionIds) features.push('session IDs');
 	if (config.alsoInferFunnels) features.push('funnel inference');
-	if (config.makeChart) features.push('chart generation');
 	if (config.writeToDisk) features.push('disk output');
 	
 	if (features.length > 0) {
@@ -192,17 +188,12 @@ async function main(config) {
 
 		// ! DATA GENERATION ENDS HERE
 
-		// Step 10: Generate charts (if enabled)
-		if (validatedConfig.makeChart) {
-			await generateCharts(context);
-		}
-
-		// Step 11a:  flush lookup tables to disk (always as CSVs)
+		// Step 10:  flush lookup tables to disk (always as CSVs)
 		if (validatedConfig.writeToDisk) {
 			await flushLookupTablesToDisk(storage, validatedConfig);
 		}
 
-		// Step 11b: Flush other storage containers to disk (if writeToDisk enabled)
+		// Step 11: Flush other storage containers to disk (if writeToDisk enabled)
 		if (validatedConfig.writeToDisk) {
 			await flushStorageToDisk(storage, validatedConfig);
 		}
@@ -418,28 +409,6 @@ async function generateGroupSCDs(context) {
 
 	if (context.isCLI() || config.verbose) {
 		console.log('✅ Group SCDs generated successfully');
-	}
-}
-
-/**
- * Generate charts for data visualization
- * @param {Context} context - Context object
- */
-async function generateCharts(context) {
-	const { config, storage } = context;
-
-	if (config.makeChart && storage.eventData?.length > 0) {
-		const chartPath = typeof config.makeChart === 'string'
-			? config.makeChart
-			: `./${config.name}-timeline`;
-
-		await generateLineChart(storage.eventData, undefined, chartPath);
-
-		if (context.isCLI() || config.verbose) {
-			console.log(`📊 Chart generated: ${chartPath}`);
-		} else {
-			sLog("Chart generated", { path: chartPath });
-		}
 	}
 }
 

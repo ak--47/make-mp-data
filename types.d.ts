@@ -48,7 +48,6 @@ export interface Dungeon {
     hasAnonIds?: boolean;
     hasSessionIds?: boolean;
     alsoInferFunnels?: boolean;
-    makeChart?: boolean | string;
     singleCountry?: string;
 
     //models

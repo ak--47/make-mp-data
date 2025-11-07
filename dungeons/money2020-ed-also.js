@@ -5,11 +5,11 @@ import utc from "dayjs/plugin/utc.js";
 import "dotenv/config";
 import { weighNumRange, range, date, initChance, exhaust, choose, integer, decimal } from "../lib/utils/utils.js";
 
-const SEED = "thfdgdfgdfgank sup hello 2020 money!!!";
+const SEED = "thfdgdsdfsdfdffgdfgank sup hello 2020 money!!!";
 dayjs.extend(utc);
 const chance = initChance(SEED);
-const num_users = 4_200;
-const days = 35;
+const num_users = 2_000;
+const days = 60;
 
 /** @typedef  {import("../types.js").Dungeon} Dungeon */
 
@@ -34,114 +34,24 @@ const dungeon = {
 	hasAdSpend: false,
 	percentUsersBornInDataset: 40,
 	hasAvatar: true,
+	
 
 	batchSize: 1_500_000,
 	concurrency: 1,
 	writeToDisk: false,
 	superProps: {
-		version: "2"
+		version: "3"
 	},
 	// AI-generated schema content:
-	funnels: [
-		{
-			"name": "User Onboarding",
-			"sequence": [
-				"App Opened",
-				"View Balance",
-				"Add Contact"
-			],
-			"weight": 10,
-			"isFirstFunnel": true,
-			"conversionRate": 80,
-			"timeToConvert": 0.1,
-			"order": "sequential"
-		},
-		{
-			"name": "Standard Money Transfer",
-			"sequence": [
-				"App Opened",
-				"View Balance",
-				"Initiate Transfer",
-				"Send Money"
-			],
-			
-			"weight": 20,
-			"conversionRate": 65,
-			"timeToConvert": 0.2,
-			"order": "first-and-last-fixed",
-			"experiment": true,
-			"conditions": {
-				"account_tier": [
-					"Basic",
-					"Plus"
-				]
-			}
-		},
-		{
-			"name": "Premium Money Transfer",
-			"sequence": [
-				"App Opened",
-				"View Balance",
-				"Initiate Transfer",
-				"Send Money"
-			],
-			experiment: true,
-			"weight": 15,
-			"conversionRate": 90,
-			"timeToConvert": 0.1,
-			"order": "sequential",
-			"conditions": {
-				"account_tier": "Premium"
-			},
-			"props": {
-				"is_priority_transfer": true
-			}
-		},
-		{
-			"name": "Get Financial Advice",
-			"sequence": [
-				"App Opened",
-				"Prompt AI Chatbot"
-			],
-			"weight": 8,
-			"conversionRate": 95,
-			"timeToConvert": 0.1,
-			"order": "sequential"
-		},
-		{
-			"name": "Review and Save Transaction",
-			"sequence": [
-				"App Opened",
-				"View Transaction History",
-				"Print Receipt"
-			],
-			"weight": 12,
-			"conversionRate": 50,
-			"timeToConvert": 0.5,
-			"order": "random"
-		},
-
-		{
-			name: "Sign Up",
-			sequence: [
-				"Page View",
-				"Sign Up"
-			],
-			isFirstFunnel: true,
-			conversionRate: 20,
-			timeToConvert: 10,
-			order: "sequential"
-		},
+	funnels: [		
 		{
 			name: "AI Interaction",
 			sequence: [
-				"Launch AI",
-				"AI Prompt Sent",
-				"AI Response Sent",
-				"User Feedback",
-				"AI Dismissed"
-			],
-			experiment: true,
+				"AI: Launch",
+				"AI: Prompt Sent",
+				"AI: Response Sent",
+				"AI: Dismissed"
+			],			
 			isFirstFunnel: false,
 			conversionRate: 38,
 			timeToConvert: 5,
@@ -152,12 +62,11 @@ const dungeon = {
 		{
 			name: "AI Interaction Errors",
 			sequence: [
-				"Launch AI",
-				"AI Prompt Sent",
-				"AI Response Sent",
-				"API Error",
-				"User Feedback",
-				"AI Dismissed"
+				"AI: Launch",
+				"AI: Prompt Sent",
+				"AI: Response Sent",
+				"AI: API Error",
+				"AI: Dismissed"
 			],
 			isFirstFunnel: false,
 			conversionRate: 27,
@@ -167,211 +76,9 @@ const dungeon = {
 			props: { "AI Model": ["5-turbo", "5-flash", "5-flagship", "homegrown"] }
 		}
 	],
-	events: [
+	events: [	
 		{
-			"event": "Page View",
-			"weight": 15,
-			"isFirstEvent": true,
-			"properties": {
-				"page_url": [
-					"/",
-					"/features",
-					"/pricing",
-					"/about",
-					"/contact"
-				]
-			}
-		},
-		{
-			"event": "App Opened",
-			"weight": 10,
-			"isFirstEvent": true,
-			"properties": {
-				"platform": [
-					"iOS",
-					"Android",
-					"Web"
-				],
-				"app_version": [
-					"2.1.0",
-					"2.1.1",
-					"2.2.0",
-					"2.0.5"
-				]
-			}
-		},
-		{
-			"event": "View Balance",
-			"weight": 8,
-			"properties": {
-				"account_type": [
-					"Checking",
-					"Savings",
-					"Credit"
-				],
-				"currency": [
-					"USD",
-					"EUR",
-					"GBP",
-					"JPY"
-				]
-			}
-		},
-		{
-			"event": "Initiate Transfer",
-			"weight": 6,
-			"properties": {
-				"transfer_method": [
-					"Bank Transfer",
-					"Peer-to-Peer",
-					"Card Payment"
-				],
-				"is_international": [
-					true,
-					false,
-					false
-				]
-			}
-		},
-		{
-			"event": "Send Money",
-			"weight": 5,
-			"properties": {
-				"amount": weighNumRange(10, 5000, 0.3),
-				"currency": [
-					"USD",
-					"EUR",
-					"GBP",
-					"JPY",
-					"CAD"
-				],
-				"fee_amount": weighNumRange(0, 50, 0.1),
-				"transfer_speed": [
-					"Instant",
-					"Standard",
-					"Economy"
-				]
-			}
-		},
-		{
-			"event": "Add Contact",
-			"weight": 3,
-			"properties": {
-				"contact_method": [
-					"Phone Number",
-					"Email",
-					"Username"
-				],
-				"is_verified_user": [
-					true,
-					true,
-					false
-				]
-			}
-		},
-		{
-			"event": "Print Receipt",
-			"weight": 2,
-			"properties": {
-				"transaction_id": chance.guid.bind(chance),
-				"format": [
-					"PDF",
-					"Image",
-					"Text"
-				]
-			}
-		},
-		{
-			"event": "Prompt AI Chatbot",
-			"weight": 4,
-			"properties": {
-				"prompt_topic": [
-					"Budgeting",
-					"Investment Advice",
-					"Savings Goals",
-					"Credit Score",
-					"Fraud Prevention"
-				],
-				"prompt_length": weighNumRange(10, 200),
-				"response_quality_rating": weighNumRange(1, 5)
-			}
-		},
-		{
-			"event": "View Transaction History",
-			"weight": 7,
-			"properties": {
-				"time_range": [
-					"Last 7 Days",
-					"Last 30 Days",
-					"Last 90 Days",
-					"All Time"
-				],
-				"filter_by": [
-					"Sent",
-					"Received",
-					"Failed",
-					"None"
-				]
-			}
-		},
-		{
-			"event": "Request Money",
-			"weight": 3,
-			"properties": {
-				"amount": weighNumRange(5, 1000, 0.4),
-				"currency": [
-					"USD",
-					"EUR",
-					"GBP"
-				],
-				"request_status": [
-					"Pending",
-					"Accepted",
-					"Declined"
-				]
-			}
-		},
-		{
-			"event": "Account Deactivated",
-			"weight": 1,
-			"isChurnEvent": true,
-			"properties": {
-				"reason": [
-					"Switched to competitor",
-					"Security concerns",
-					"Poor user experience",
-					"No longer needed"
-				]
-			}
-		},
-
-		{
-			event: "Sign Up",
-			isFirstEvent: true,
-			weight: 0,
-			properties: {
-				signup_method: [
-					"email",
-					"google",
-					"github"
-				]
-			}
-		},
-		{
-			event: "Purchase",
-			weight: 40,
-			properties: {
-				amount: weighNumRange(20, 500, 0.3),
-				currency: [
-					"USD",
-					"EUR",
-					"GBP"
-				],
-				item_count: weighNumRange(1, 10)
-			}
-		},
-		{
-			event: "Launch AI",
+			event: "AI: Launch",
 			weight: 2,
 			properties: {
 				entry_point: [
@@ -382,7 +89,7 @@ const dungeon = {
 			}
 		},
 		{
-			event: "AI Prompt Sent",
+			event: "AI: Prompt Sent",
 			weight: 10,
 			properties: {
 				prompt: [
@@ -396,32 +103,16 @@ const dungeon = {
 			}
 		},
 		{
-			event: "AI Response Sent",
+			event: "AI: Response Sent",
 			weight: 10,
 			properties: {
 				cost: weighNumRange(1, 10, 0.2),
 				tokens: weighNumRange(100, 1000, 0.4),
 				time_to_generate_ms: weighNumRange(1000, 10000, 0.2)
 			}
-		},
+		},	
 		{
-			event: "User Feedback",
-			weight: 4,
-			properties: {
-				feedback: [
-					"I love it!",
-					"meh...",
-					"This sucks",
-					"Fine"
-				],
-				sentiment: [
-					"thumbs up",
-					"thumbs down"
-				]
-			}
-		},
-		{
-			event: "AI Dismissed",
+			event: "AI: Dismissed",
 			weight: 2,
 			properties: {
 				reason: [
@@ -433,7 +124,7 @@ const dungeon = {
 			}
 		},
 		{
-			event: "API Error",
+			event: "AI: API Error",
 			weight: 2,
 			properties: {
 				error_code: [
@@ -478,8 +169,11 @@ const dungeon = {
 
 	hook: function (record, type, meta) {
 		const NOW = dayjs();
-		const DATE_HOMEGROWN_LAUNCH = NOW.subtract(25, 'day');
-		const DATE_HOMEGROWN_IMPROVEMENT = NOW.subtract(10, 'day');
+		const FLASH_LAUNCH = NOW.subtract(50, 'day');
+		const TURBO_LAUNCH = NOW.subtract(20, 'day');
+		const HOMEGROWN_LAUNCH = NOW.subtract(10, 'day');
+		const DATE_HOMEGROWN_LAUNCH = NOW.subtract(10, 'day');
+		const DATE_HOMEGROWN_IMPROVEMENT = NOW.subtract(5, 'day');
 		const OVER_THINGS_GET_BETTER = NOW.subtract(30, 'day');
 
 		if (type === "event") {
@@ -491,8 +185,12 @@ const dungeon = {
 			}
 			// models: "5-turbo", "5-flash", "5-flagship", "homegrown"
 			if (record?.["AI Model"]) {
-				const allModels = ["5-turbo", "5-flash", "5-flash", "5-flagship", "5-flagship", "5-flagship", "homegrown"];
-				const chosenModel = chance.pickone(allModels);
+				let modelPool = ["5-flagship"];
+				if (EVENT_TIME.isAfter(FLASH_LAUNCH)) modelPool.push("5-flash");
+				if (EVENT_TIME.isAfter(TURBO_LAUNCH)) modelPool.push("5-turbo");
+				if (EVENT_TIME.isAfter(HOMEGROWN_LAUNCH)) modelPool.push("homegrown");
+				
+				const chosenModel = chance.pickone(modelPool);
 				record["AI Model"] = chosenModel;
 
 				// choose which model based on date + weights

@@ -34,7 +34,6 @@ const dungeon = {
     hasAdSpend: true,
     
     hasAvatar: true,
-    makeChart: false,
 
     batchSize: 1_500_000,
     concurrency: 50,

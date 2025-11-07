@@ -346,7 +346,6 @@ const dungeon = {
 	hasAdSpend: false,
 
 	hasAvatar: false,
-	makeChart: false,
 
 	batchSize: 1_500_000,
 	concurrency: 50,

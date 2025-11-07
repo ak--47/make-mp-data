@@ -10,9 +10,23 @@
     <div class="container">
         <!-- HEADER -->
         <header>
-            <h1><span class="dice-emoji" id="diceEmoji" title="Click to re-roll colors!">🎲</span> Dungeon Master 4</h1>
-            <p class="subtitle">AI-Powered Mixpanel Data Schema Generator</p>
+            <div class="header-left">
+                <div class="header-artifact-links">
+                    <a href="https://www.notion.so/mxpnl/mixpanel-import-24be0ba9256280dfbd9fecaf040d3c2a" target="_blank" rel="noopener" title="Documentation">📚 docs</a>
+                    <a href="https://storage.cloud.google.com/mp-customer-upload/RickRoll.mp4" target="_blank" rel="noopener" title="Demo Video">🎥 demo</a>
+                    <a href="https://github.com/ak--47/make-mp-data" target="_blank" rel="noopener" title="Source Code">💻 code</a>
+                    <a href="https://mixpanel.com/p/QJuv9bcK8Re7rq4vu5rfv1" target="_blank" rel="noopener" title="Metrics Dashboard">📊 metrics</a>
+                    <a href="https://cloudlogging.app.goo.gl/m9GRzZxyhSSUAmxr6" target="_blank" rel="noopener" title="Logs">📋 logs</a>
+                </div>
+            </div>
+            <div class="header-center">
+                <h1><span class="dice-emoji" id="diceEmoji" title="Click to re-roll colors!">🎲</span> Dungeon Master 4</h1>
+                <p class="subtitle">AI-Powered Mixpanel Data Schema Generator</p>
+            </div>
             <div class="header-actions">
+                <button id="collapseAllBtn" class="secondary-btn" title="Collapse/Expand All Sections">
+                    <span class="icon">📁</span> <span id="collapseText">Collapse All</span>
+                </button>
                 <button id="loadBtn" class="secondary-btn">
                     <span class="icon">📂</span> Load
                 </button>
@@ -57,15 +71,15 @@
                                 <label for="numUsers">
                                     Users: <span id="numUsersDisplay">1,000</span>
                                 </label>
-                                <input type="range" id="numUsers" min="10" max="100000" value="1000" step="10">
-                                <input type="number" id="numUsersInput" value="1000" min="10" max="1000000">
+                                <input type="range" id="numUsers" min="100" max="20000" value="1000" step="100">
+                                <input type="number" id="numUsersInput" value="1000" min="100" max="20000">
                             </div>
                             <div class="config-item">
                                 <label for="numEvents">
                                     Events: <span id="numEventsDisplay">100,000</span>
                                 </label>
-                                <input type="range" id="numEvents" min="100" max="10000000" value="100000" step="1000">
-                                <input type="number" id="numEventsInput" value="100000" min="100" max="10000000">
+                                <input type="range" id="numEvents" min="20000" max="2000000" value="100000" step="10000">
+                                <input type="number" id="numEventsInput" value="100000" min="20000" max="2000000">
                             </div>
                             <div class="config-item">
                                 <label for="numDays">
@@ -143,13 +157,6 @@
                     <div class="config-group">
                         <h3>Performance</h3>
                         <div class="config-grid">
-                            <div class="config-item">
-                                <label for="batchSize">
-                                    Batch Size: <span id="batchSizeDisplay">1,500,000</span>
-                                </label>
-                                <input type="range" id="batchSize" min="1000" max="10000000" value="1500000" step="10000">
-                                <input type="number" id="batchSizeInput" value="1500000" min="1000" max="10000000">
-                            </div>
                             <div class="config-item">
                                 <label for="concurrency">
                                     Concurrency: <span id="concurrencyDisplay">50</span>
@@ -268,6 +275,9 @@
                             </button>
                             <button id="downloadBtn" class="secondary-btn">
                                 <span class="icon">💾</span> Download
+                            </button>
+                            <button id="runBtn" class="primary-btn run-btn">
+                                <span class="icon">⚡</span> Run Simulation
                             </button>
                         </div>
                         <span class="toggle-icon">▼</span>
