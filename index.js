@@ -188,20 +188,21 @@ async function main(config) {
 
 		// ! DATA GENERATION ENDS HERE
 
-		// Step 10:  flush lookup tables to disk (always as CSVs)
+		// Step 10: Send to Mixpanel (if token provided)
+		// IMPORTANT: Must happen BEFORE flushing to disk, because flush() clears the arrays
+		let importResults;
+		if (validatedConfig.token) {
+			importResults = await sendToMixpanel(context);
+		}
+
+		// Step 11: Flush lookup tables to disk (always as CSVs)
 		if (validatedConfig.writeToDisk) {
 			await flushLookupTablesToDisk(storage, validatedConfig);
 		}
 
-		// Step 11: Flush other storage containers to disk (if writeToDisk enabled)
+		// Step 12: Flush other storage containers to disk (if writeToDisk enabled)
 		if (validatedConfig.writeToDisk) {
 			await flushStorageToDisk(storage, validatedConfig);
-		}
-
-		// Step 12: Send to Mixpanel (if token provided)
-		let importResults;
-		if (validatedConfig.token) {
-			importResults = await sendToMixpanel(context);
 		}
 
 		// Step 13: Compile results
