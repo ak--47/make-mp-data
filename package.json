@@ -1,6 +1,6 @@
 {
 	"name": "make-mp-data",
-	"version": "2.1.1",
+	"version": "2.1.11",
 	"description": "builds all mixpanel primitives for a given project",
 	"type": "module",
 	"main": "index.js",
@@ -63,7 +63,7 @@
 		"@google-cloud/functions-framework": "^3.4.2",
 		"@google-cloud/storage": "^7.14.0",
 		"ak-fetch": "^2.0.12",
-		"ak-gemini": "^1.0.59",
+		"ak-gemini": "^1.0.12",
 		"ak-tools": "^1.1.12",
 		"chance": "^1.1.11",
 		"dayjs": "^1.11.11",
