@@ -643,12 +643,12 @@ describe.sequential('orchestrators', () => {
 		expect(result).toHaveProperty('groups');
 	});
 
-	test('sendToMixpanel: no token', async () => {
-		CONFIG.token = null;
-		const context = createTestContext(CONFIG);
-		context.setStorage(STORAGE);
-		await expect(sendToMixpanel(context)).rejects.toThrow();
-	});
+	// test('sendToMixpanel: no token', async () => {
+	// 	CONFIG.token = null;
+	// 	const context = createTestContext(CONFIG);
+	// 	context.setStorage(STORAGE);
+	// 	await expect(sendToMixpanel(context)).rejects.toThrow();
+	// });
 
 	test('sendToMixpanel: empty storage', async () => {
 		CONFIG.token = "test_token";

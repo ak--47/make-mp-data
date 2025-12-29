@@ -1,6 +1,6 @@
 {
 	"name": "make-mp-data",
-	"version": "2.1.11",
+	"version": "2.1.2",
 	"description": "builds all mixpanel primitives for a given project",
 	"type": "module",
 	"main": "index.js",
@@ -70,7 +70,7 @@
 		"dotenv": "^16.4.5",
 		"google-auth-library": "^9.15.0",
 		"hyparquet-writer": "^0.6.1",
-		"mixpanel-import": "^3.0.0",
+		"mixpanel-import": "^3.1.43",
 		"p-limit": "^3.1.0",
 		"seedrandom": "^3.0.5",
 		"sentiment": "^5.0.2",
