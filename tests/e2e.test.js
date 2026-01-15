@@ -55,12 +55,13 @@ describe.sequential('module', () => {
 	test('works as module (simple)', async () => {
 		console.log('MODULE TEST: SIMPLE');
 		const results = await generate({ ...simple, verbose: false, writeToDisk: false, numEvents: 1100, numUsers: 100, seed: "deal with it" });
-		const { eventData, groupProfilesData, lookupTableData, scdTableData, userProfilesData } = results;
+		const { eventData, groupProfilesData, lookupTableData, scdTableData, userProfilesData, adSpendData } = results;
 		expect(eventData.length).toBeGreaterThan(980);
 		expect(groupProfilesData.length).toBe(0);
 		expect(lookupTableData.length).toBe(0);
 		expect(scdTableData.length).toBe(0);
 		expect(userProfilesData.length).toBeGreaterThan(90);
+		expect(adSpendData.length).toBeGreaterThan(1000);
 
 	}, timeout);
 
