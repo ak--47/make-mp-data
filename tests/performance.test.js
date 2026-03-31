@@ -64,11 +64,11 @@ describe('Performance Optimizations', () => {
             const validatedConfig = validateDungeonConfig(config);
             const context = createContext(validatedConfig);
             
-            // Should be close to 2 days worth of seconds (172800 seconds)
-            const twoDaysInSeconds = 2 * 24 * 60 * 60; // 172800
+            // Should be close to 1 day worth of seconds (86400 seconds)
+            const oneDayInSeconds = 1 * 24 * 60 * 60; // 86400
             const tolerance = 60; // 1 minute tolerance
-            
-            expect(Math.abs(context.TIME_SHIFT_SECONDS - twoDaysInSeconds)).toBeLessThan(tolerance);
+
+            expect(Math.abs(context.TIME_SHIFT_SECONDS - oneDayInSeconds)).toBeLessThan(tolerance);
         });
     });
 

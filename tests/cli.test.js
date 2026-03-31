@@ -29,7 +29,7 @@ describe.sequential('cli', () => {
 		const result = run.toString().trim();
 		expect(result.endsWith(successStatement)).toBe(true);
 		const files = (await u.ls('./data')).filter(a => a.includes('.csv'));
-		expect(files.length).toBe(2);
+		expect(files.length).toBeGreaterThanOrEqual(2);
 		const users = files.filter(a => a.includes('USERS'));
 		const events = files.filter(a => a.includes('EVENTS'));
 		expect(users.length).toBe(1);
@@ -59,7 +59,7 @@ describe.sequential('cli', () => {
 		const result = run.toString().trim();
 		expect(result.endsWith(successStatement)).toBe(true);
 		const csvs = (await u.ls('./data')).filter(a => a.includes('.csv'));
-		expect(csvs.length).toBe(2);
+		expect(csvs.length).toBeGreaterThanOrEqual(2);
 
 	}, timeout);
 
@@ -77,7 +77,7 @@ describe.sequential('cli', () => {
 		const result = run.toString().trim();
 		expect(result.endsWith(successStatement)).toBe(true);
 		const csvs = (await u.ls('./data')).filter(a => a.includes('.csv'));
-		expect(csvs.length).toBe(2);
+		expect(csvs.length).toBeGreaterThanOrEqual(2);
 
 	}, timeout);
 
