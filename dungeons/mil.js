@@ -4,7 +4,7 @@ import dayjs from 'dayjs';
 import utc from 'dayjs/plugin/utc.js';
 dayjs.extend(utc);
 import 'dotenv/config';
-import * as u from '../lib/utils/utils.js';
+import * as u from "../lib/utils/utils.js";
 import * as v from 'ak-tools';
 const chance = u.initChance(SEED);
 const num_users = 10_000;
@@ -25,7 +25,7 @@ const channelIds = genIds(100);
 
 /** @type {Config} */
 const config = {
-	token: "",
+	token: process.env.MASTER_PROJECT_TOKEN || "",
 	seed: `LFG!`, //,
 	numDays: days,
 	numEvents: num_users * 62,
@@ -44,8 +44,9 @@ const config = {
 	hasAdSpend: false,
 
 	hasAvatar: false,
+	makeChart: false,
 
-	batchSize: 1_500_000,
+	batchSize: 2_500_000,
 	concurrency: 10,
 	writeToDisk: true,
 

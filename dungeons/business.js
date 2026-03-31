@@ -22,7 +22,7 @@ const USERS = EVENTS / 100
 
 /** @type {import('../types.js').Dungeon} */
 const config = {
-	token: "",	
+	token: process.env.MASTER_PROJECT_TOKEN || "",
 	seed: "it's business time...",
 	numDays: 90, //how many days worth of data
 	numEvents: EVENTS, //how many events
@@ -41,6 +41,7 @@ const config = {
 	hasAdSpend: true,
 
 	hasAvatar: false,
+	makeChart: true,
 
 	batchSize: 500_000,
 	concurrency: 500,

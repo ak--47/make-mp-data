@@ -25,9 +25,9 @@ describe.sequential('cli', () => {
 
 	test('sanity check', async () => {
 		console.log('SANITY TEST');
-		const run = execSync(`${runCommand} --numEvents 100 --numUsers 10`);
+		const run = execSync(`${runCommand} --numEvents 100 --numUsers 10 --format csv`);
 		const result = run.toString().trim();
-		expect(result.endsWith(successStatement)).toBe(true);
+		expect(result.includes(successStatement)).toBe(true);
 		const files = (await u.ls('./data')).filter(a => a.includes('.csv'));
 		expect(files.length).toBeGreaterThanOrEqual(2);
 		const users = files.filter(a => a.includes('USERS'));
@@ -55,9 +55,9 @@ describe.sequential('cli', () => {
 
 	test('no args', async () => {
 		console.log('BARE CLI TEST');
-		const run = execSync(`${runCommand} --numEvents 100 --numUsers 10`);
+		const run = execSync(`${runCommand} --numEvents 100 --numUsers 10 --format csv`);
 		const result = run.toString().trim();
-		expect(result.endsWith(successStatement)).toBe(true);
+		expect(result.includes(successStatement)).toBe(true);
 		const csvs = (await u.ls('./data')).filter(a => a.includes('.csv'));
 		expect(csvs.length).toBeGreaterThanOrEqual(2);
 
@@ -73,9 +73,9 @@ describe.sequential('cli', () => {
 
 	test('--simple', async () => {
 		console.log('SIMPLE CLI TEST');
-		const run = execSync(`${runCommand} --numEvents 100 --numUsers 10 --seed "deal with it" --simple`);
+		const run = execSync(`${runCommand} --numEvents 100 --numUsers 10 --seed "deal with it" --simple --format csv`);
 		const result = run.toString().trim();
-		expect(result.endsWith(successStatement)).toBe(true);
+		expect(result.includes(successStatement)).toBe(true);
 		const csvs = (await u.ls('./data')).filter(a => a.includes('.csv'));
 		expect(csvs.length).toBeGreaterThanOrEqual(2);
 

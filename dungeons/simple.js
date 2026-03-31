@@ -14,7 +14,7 @@ import dayjs from "dayjs";
 import utc from "dayjs/plugin/utc.js";
 dayjs.extend(utc);
 import { uid, comma } from 'ak-tools';
-import { pickAWinner, weighNumRange, date, integer, weighChoices } from '../lib/utils/utils.js';
+import { pickAWinner, weighNumRange, date, integer, weighChoices } from "../lib/utils/utils.js";
 
 const itemCategories = ["Books", "Movies", "Music", "Games", "Electronics", "Computers", "Smart Home", "Home", "Garden", "Pet", "Beauty", "Health", "Toys", "Kids", "Baby", "Handmade", "Sports", "Outdoors", "Automotive", "Industrial", "Entertainment", "Art", "Food", "Appliances", "Office", "Wedding", "Software"];
 
@@ -22,29 +22,44 @@ const videoCategories = ["funny", "educational", "inspirational", "music", "news
 
 /** @type {import('../types').Dungeon} */
 const config = {
-	token: "",
-	seed: "simple is best!",
+	token: process.env.MASTER_PROJECT_TOKEN || "",
+	seed: "simple is best",
 	numDays: 100, //how many days worth1 of data
-	numEvents: 250_000, //how many events
-	numUsers: 1_000, //how many users
-	format: 'csv', //csv or json
+	numEvents: 1_000_000, //how many events
+	numUsers: 10_000, //how many users
+	format: 'json', //csv or json
 	region: "US",
-	hasAnonIds: false, //if true, anonymousIds are created for each user
-	hasSessionIds: false, //if true, hasSessionIds are created for each user
+	hasAnonIds: true, //if true, anonymousIds are created for each user
+	hasSessionIds: true, //if true, hasSessionIds are created for each user
 	hasAdSpend: true,
+	makeChart: false,
 	hasLocation: true,
-	hasAndroidDevices: false,
-	hasIOSDevices: false,
-	hasDesktopDevices: false,
-	hasBrowser: false,
+	hasAndroidDevices: true,
+	hasIOSDevices: true,
+	hasDesktopDevices: true,
+	hasBrowser: true,
 	hasCampaigns: true,
 	isAnonymous: false,
 	alsoInferFunnels: true,
-	concurrency: 1,
+	concurrency: 10,
 	batchSize: 2_500_000,
 
 
 	events: [
+		{
+			event: "ad impression",
+			weight: 15,
+			properties: {
+				partner: pickAWinner(["google", "facebook", "twitter", "linkedin", "bing", "taboola", "outbrain", "quora", "pinterest"]),
+			}
+		},
+		{
+			event: "ad click",
+			weight: 10,
+			properties: {
+				partner: pickAWinner(["google", "facebook", "twitter", "linkedin", "bing", "taboola", "outbrain", "quora", "pinterest"]),
+			}
+		},
 		{
 			event: "checkout",
 			weight: 2,
@@ -184,7 +199,7 @@ const config = {
 
 		if (type === "everything") {
 
-			//custom themers purchase more:
+			//custom themes purchase more:
 			const numCustomMode = record.filter(a => a.theme === 'custom').length;
 			const numLightMode = record.filter(a => a.theme === 'light').length;
 			const numDarkMode = record.filter(a => a.theme === 'dark').length;

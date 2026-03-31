@@ -8,12 +8,12 @@
 
 import Chance from 'chance';
 const chance = new Chance();
-import { weighNumRange, date, integer } from '../lib/utils/utils.js';
+import { weighNumRange, date, integer } from "../lib/utils/utils.js";
 import * as u from 'ak-tools';
 
 /** @type {import('../types.js').Dungeon} */
 const config = {
-	token: "",
+	token: process.env.MASTER_PROJECT_TOKEN || "",
 	seed: "quite complexus",
 	numDays: 30, //how many days worth of data
 	numEvents: 100_000, //how many events
@@ -33,6 +33,7 @@ const config = {
 	hasAdSpend: true,
 
 	hasAvatar: true,
+	makeChart: false,
 
 	batchSize: 500_000,
 	concurrency: 10,

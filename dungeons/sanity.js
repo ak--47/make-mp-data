@@ -13,12 +13,12 @@ const chance = new Chance();
 import dayjs from 'dayjs';
 import utc from 'dayjs/plugin/utc.js';
 dayjs.extend(utc);
-import { weighNumRange, integer } from '../lib/utils/utils.js';
+import { weighNumRange, integer } from "../lib/utils/utils.js";
 
 
 /** @type {import('../types.js').Dungeon} */
 const config = {
-	token: "",
+	token: process.env.MASTER_PROJECT_TOKEN || "",
 	seed: "foo bar",
 	numDays: 90, //how many days worth of data
 	numEvents: 50_000, //how many events
@@ -28,6 +28,7 @@ const config = {
 	hasAnonIds: false, //if true, anonymousIds are created for each user
 	hasSessionIds: false, //if true, hasSessionIds are created for each user
 	alsoInferFunnels: true, //if true, infer funnels from events
+	makeChart: true,
 	writeToDisk: true,
 	concurrency: 25,
 	funnels: [

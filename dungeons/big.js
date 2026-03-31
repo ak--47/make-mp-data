@@ -1,34 +1,35 @@
 import Chance from 'chance';
 import dayjs from 'dayjs';
-import utc from 'dayjs/plugin/utc';
+import utc from 'dayjs/plugin/utc.js';
 import { uid, comma, makeName } from 'ak-tools';
-import { pickAWinner, weighNumRange, integer, date, choose } from '../lib/utils/utils.js';
+import { pickAWinner, weighNumRange, integer, date, choose } from "../lib/utils/utils.js";
 
 const seed = "lets go big";
 const chance = new Chance();
 dayjs.extend(utc);
 
 
-const eventsPerQuarter = 5_000_000_000 // ~5 billion
-const numQuarters = 8; // 24 months
-const parallelism = 5000; 
-const totalEvents = Math.floor((eventsPerQuarter * numQuarters) / parallelism);
+const eventsPerQuarter = 10_000_000 // 50M
+const numQuarters = 4; // 12 months
+// const parallelism = 5000; 
+const totalEvents = Math.floor((eventsPerQuarter * numQuarters));
 const eventPerUser = 500;
 const totalUsers = Math.floor(totalEvents / eventPerUser);
 const totalDays = (numQuarters * 90) + 10;
 
 /** @type {import('../types').Dungeon} */
 const config = {
-	token: "",
+	// token: process.env.MASTER_PROJECT_TOKEN || "",
 	seed: seed,
 	numDays: totalDays,
 	numEvents: totalEvents,
 	numUsers: totalUsers,
+	strictEventCount: true,
 	format: 'json', //csv or json
 	region: "US",
 	hasAnonIds: false, //if true, anonymousIds are created for each user
 	hasSessionIds: false, //if true, hasSessionIds are created for each user
-	hasLocation: true,
+	hasLocation: false,
 	hasAndroidDevices: false,
 	alsoInferFunnels: false,
 	batchSize: 2_000_000,
