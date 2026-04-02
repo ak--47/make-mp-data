@@ -15,7 +15,7 @@ const days = 100;
 
 /** @type {Config} */
 const config = {
-	token: "",
+	token: process.env.MASTER_PROJECT_TOKEN || "",
 	seed: SEED,
 	numDays: days,
 	numEvents: num_users * 100,
@@ -34,8 +34,9 @@ const config = {
 	hasAdSpend: true,
 
 	hasAvatar: true,
+	makeChart: false,
 
-	batchSize: 1_500_000,
+	batchSize: 2_500_000,
 	concurrency: 1,
 	writeToDisk: false,
 

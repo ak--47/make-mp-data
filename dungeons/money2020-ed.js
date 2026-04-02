@@ -5,17 +5,17 @@ import utc from "dayjs/plugin/utc.js";
 import "dotenv/config";
 import { weighNumRange, range, date, initChance, exhaust, choose, integer, decimal } from "../lib/utils/utils.js";
 
-const SEED = "thfdgdfgdfgank sup hello 2020 money!!!";
+const SEED = "thank sup hello 2020 money!!!";
 dayjs.extend(utc);
 const chance = initChance(SEED);
-const num_users = 4_200;
-const days = 35;
+const num_users = 10;
+const days = 100;
 
 /** @typedef  {import("../types.js").Dungeon} Dungeon */
 
 /** @type {Dungeon} */
 const dungeon = {
-	token: "",
+	token: process.env.MASTER_PROJECT_TOKEN || "",
 	seed: SEED,
 	numDays: days,
 	numEvents: num_users * 120,
@@ -31,11 +31,12 @@ const dungeon = {
 	hasBrowser: true,
 	hasCampaigns: true,
 	isAnonymous: false,
-	hasAdSpend: false,
-	percentUsersBornInDataset: 40,
-	hasAvatar: true,
+	hasAdSpend: true,
 
-	batchSize: 1_500_000,
+	hasAvatar: true,
+	makeChart: false,
+
+	batchSize: 2_500_000,
 	concurrency: 1,
 	writeToDisk: false,
 	superProps: {

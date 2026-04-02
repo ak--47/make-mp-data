@@ -14,11 +14,11 @@ import dayjs from "dayjs";
 import utc from "dayjs/plugin/utc.js";
 dayjs.extend(utc);
 import { uid, comma } from 'ak-tools';
-import { pickAWinner, weighNumRange, date, integer } from '../lib/utils/utils.js';
+import { pickAWinner, weighNumRange, date, integer } from "../lib/utils/utils.js";
 
 /** @type {import('../types').Dungeon} */
 const config = {
-	token: "",
+	token: process.env.MASTER_PROJECT_TOKEN || "",
 	seed: "foo bar",
 	numDays: 365, //how many days worth of data
 	numEvents: 10000000, //how many events

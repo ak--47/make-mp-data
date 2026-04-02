@@ -1,8 +1,8 @@
-import { createGenerator, generateBatch } from "../generators/text.js";
+import { createTextGenerator, generateBatch } from "../lib/generators/text.js";
 
 function main() {
 	// Enterprise support ticket generator with keywords and high authenticity
-	const enterpriseSupportGen = createGenerator({
+	const enterpriseSupportGen = createTextGenerator({
 		style: "support",
 		tone: "neg",
 		intensity: "high",
@@ -28,7 +28,7 @@ function main() {
 	const twentyEnterpriseSupport = enterpriseSupportGen.generateBatch({ n: 20 });
 
 	// Casual review generator with typos and mixed sentiment
-	const casualReviewGen = createGenerator({
+	const casualReviewGen = createTextGenerator({
 		style: "review",
 		tone: "pos",
 		intensity: "medium",
@@ -51,7 +51,7 @@ function main() {
 	const twentyCasualReviews = casualReviewGen.generateBatch({ n: 20 });
 
 	// Technical forum posts with advanced features
-	const technicalForumGen = createGenerator({
+	const technicalForumGen = createTextGenerator({
 		style: "forum",
 		tone: "neu",
 		formality: "technical",
@@ -72,7 +72,7 @@ function main() {
 	const twentyTechForms = technicalForumGen.generateBatch({ n: 20 });
 
 	// Search queries with realistic typos
-	const searchQueryGen = createGenerator({
+	const searchQueryGen = createTextGenerator({
 		style: "search",
 		tone: "neu",
 		formality: "casual",
@@ -90,7 +90,7 @@ function main() {
 	const twentySearch = searchQueryGen.generateBatch({ n: 20 });
 
 	// Business feedback with professional tone
-	const businessFeedbackGen = createGenerator({
+	const businessFeedbackGen = createTextGenerator({
 		style: "feedback",
 		tone: "neu",
 		formality: "business",
@@ -108,7 +108,7 @@ function main() {
 	const twentyFeedback = businessFeedbackGen.generateBatch({ n: 20 });
 
 	// Chat messages with high authenticity and typos
-	const chatMessageGen = createGenerator({
+	const chatMessageGen = createTextGenerator({
 		style: "chat",
 		tone: "neu",
 		formality: "casual",
@@ -129,7 +129,7 @@ function main() {
 	const twentyChatMsg = chatMessageGen.generateBatch({ n: 20 });
 
 	// Email communication generator
-	const emailGen = createGenerator({
+	const emailGen = createTextGenerator({
 		style: "email",
 		tone: "neu",
 		formality: "business",

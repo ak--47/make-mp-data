@@ -48,7 +48,10 @@ export interface Dungeon {
     hasAnonIds?: boolean;
     hasSessionIds?: boolean;
     alsoInferFunnels?: boolean;
+    makeChart?: boolean | string;
     singleCountry?: string;
+    strictEventCount?: boolean;
+    isUIJob?: boolean;
 
     //models
     events?: EventConfig[]; //| string[]; //can also be a array of strings
@@ -69,13 +72,15 @@ export interface Dungeon {
 
     //probabilities
     percentUsersBornInDataset?: number;
+    /** Bias toward recent birth dates for users born in dataset (0 = uniform, 1 = heavily recent). Default: 0.3 */
+    bornRecentBias?: number;
 }
 
 export type SCDProp = {
     type?: string | "user" | "company_id" | "team_id" | "department_id";
-    frequency: "day" | "week" | "month" | "year";
+    frequency?: "day" | "week" | "month" | "year";
     values: ValueValid;
-    timing: "fixed" | "fuzzy";
+    timing?: "fixed" | "fuzzy";
     max?: number;
 };
 
@@ -164,7 +169,6 @@ export interface RuntimeState {
     userCount: number;
     isBatchMode: boolean;
     verbose: boolean;
-    isCLI: boolean;
 }
 
 /**
@@ -209,7 +213,6 @@ export interface Context {
     incrementUserCount(): void;
     incrementEventCount(): void;
     isBatchMode(): boolean;
-    isCLI(): boolean;
 
     // Time helper methods
     getTimeShift(): number;
@@ -227,6 +230,7 @@ export interface EventConfig {
     isChurnEvent?: boolean;
     isSessionStartEvent?: boolean;
     relativeTimeMs?: number;
+	isStrictEvent?: boolean;
 }
 
 export interface GroupEventConfig extends EventConfig {
@@ -322,6 +326,10 @@ export interface Funnel {
 	 *
 	 */
 	experiment?: boolean;
+	/**
+	 * optional: if set, in sequential funnels, this will determine WHEN the property is bound to the rest of the events in the funnel
+	 */
+	bindPropsIndex?: number;
 }
 
 /**
@@ -424,6 +432,8 @@ export type Result = {
     operations?: number;
     eventCount?: number;
     userCount?: number;
+    groupCount?: number;
+    avgEPS?: number;
 };
 
 /**
@@ -698,7 +708,7 @@ export interface TextGenerator {
  * @param config - Configuration options for the generator
  * @returns Text generator instance
  */
-export declare function createGenerator(config?: TextGeneratorConfig): TextGenerator;
+export declare function createTextGenerator(config?: TextGeneratorConfig): TextGenerator;
 
 /**
  * Generate a batch of text items directly (standalone function)

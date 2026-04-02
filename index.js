@@ -21,8 +21,6 @@ import { StorageManager } from './lib/core/storage.js';
 // Orchestrators  
 import { userLoop } from './lib/orchestrators/user-loop.js';
 import { sendToMixpanel } from './lib/orchestrators/mixpanel-sender.js';
-import { handleCloudFunctionEntry } from './lib/orchestrators/worker-manager.js';
-
 // Generators
 import { makeAdSpend } from './lib/generators/adspend.js';
 import { makeMirror } from './lib/generators/mirror.js';
@@ -33,9 +31,9 @@ import { makeGroupProfile, makeProfile } from './lib/generators/profiles.js';
 // External dependencies
 import dayjs from "dayjs";
 import utc from "dayjs/plugin/utc.js";
-import functions from '@google-cloud/functions-framework';
-import { timer, sLog } from 'ak-tools';
+import { timer } from 'ak-tools';
 import { existsSync } from 'fs';
+import { dataLogger as logger } from './lib/utils/logger.js';
 
 // Initialize dayjs and time constants
 dayjs.extend(utc);
@@ -134,19 +132,23 @@ async function main(config) {
 
 	}
 
-	if (config.verbose) console.log(`\n🔧 Configuring dungeon with seed: ${config.seed}`);
+	if (config.verbose) logger.info({ seed: config.seed }, 'Configuring dungeon');
 	let validatedConfig;
 	try {
 		// Step 1: Validate and enrich configuration
 		validatedConfig = validateDungeonConfig(config);
-		
+
+		// Update FIXED_BEGIN based on configured numDays
+		const configNumDays = validatedConfig.numDays || 30;
+		global.FIXED_BEGIN = dayjs.unix(FIXED_NOW).subtract(configNumDays, 'd').unix();
+
 		// Step 1.5: Display configuration summary (CLI mode only)
 		if (isCLI && validatedConfig.verbose) {
 			displayConfigurationSummary(validatedConfig);
 		}
 
 		// Step 2: Create context with validated config
-		const context = createContext(validatedConfig, null, isCLI);
+		const context = createContext(validatedConfig);
 
 		// Step 3: Initialize storage containers
 		const storageManager = new StorageManager(context);
@@ -160,7 +162,7 @@ async function main(config) {
 			await generateAdSpendData(context);
 		}
 
-		if (context.config.verbose) console.log(`\n🔄 Starting user and event generation...\n`);
+		if (context.config.verbose) logger.info('Starting user and event generation...');
 		// Step 5: Main user and event generation
 		await userLoop(context);
 
@@ -184,25 +186,25 @@ async function main(config) {
 			await makeMirror(context);
 		}
 
-		if (context.config.verbose) console.log(`\n✅ Data generation completed successfully!\n`);
+		if (context.config.verbose) logger.info('Data generation completed successfully');
 
 		// ! DATA GENERATION ENDS HERE
 
-		// Step 10: Send to Mixpanel (if token provided)
-		// IMPORTANT: Must happen BEFORE flushing to disk, because flush() clears the arrays
-		let importResults;
-		if (validatedConfig.token) {
-			importResults = await sendToMixpanel(context);
-		}
-
-		// Step 11: Flush lookup tables to disk (always as CSVs)
+		// Step 10: Flush lookup tables to disk (always as CSVs)
 		if (validatedConfig.writeToDisk) {
 			await flushLookupTablesToDisk(storage, validatedConfig);
 		}
 
-		// Step 12: Flush other storage containers to disk (if writeToDisk enabled)
+		// Step 11: Flush other storage containers to disk (if writeToDisk enabled)
 		if (validatedConfig.writeToDisk) {
 			await flushStorageToDisk(storage, validatedConfig);
+		}
+
+		// Step 12: Send to Mixpanel (if token provided)
+		// Now happens AFTER disk flush so batch files are available for import
+		let importResults;
+		if (validatedConfig.token) {
+			importResults = await sendToMixpanel(context);
 		}
 
 		// Step 13: Compile results
@@ -222,12 +224,7 @@ async function main(config) {
 		};
 
 	} catch (error) {
-		if (validatedConfig?.verbose) {
-			console.error(`\n❌ Error: ${error.message}\n`);
-			console.error(error.stack);
-		} else {
-			sLog("Main execution error", { error: error.message, stack: error.stack }, "ERROR");
-		}
+		logger.error({ err: error }, `Error: ${error.message}`);
 		throw error;
 	}
 }
@@ -260,8 +257,8 @@ async function generateGroupProfiles(context) {
 	const { config, storage } = context;
 	const { groupKeys, groupProps = {} } = config;
 
-	if (context.isCLI() || config.verbose) {
-		console.log('\n👥 Generating group profiles...');
+	if (config.verbose) {
+		logger.info('Generating group profiles...');
 	}
 
 	for (let i = 0; i < groupKeys.length; i++) {
@@ -273,8 +270,8 @@ async function generateGroupProfiles(context) {
 			continue;
 		}
 
-		if (context.isCLI() || config.verbose) {
-			console.log(`   Creating ${groupCount.toLocaleString()} ${groupKey} profiles...`);
+		if (config.verbose) {
+			logger.info({ groupKey, groupCount }, `Creating ${groupCount.toLocaleString()} ${groupKey} profiles...`);
 		}
 
 		// Get group-specific props if available
@@ -282,15 +279,15 @@ async function generateGroupProfiles(context) {
 
 		for (let j = 0; j < groupCount; j++) {
 			const groupProfile = await makeGroupProfile(context, groupKey, specificGroupProps, {
-				[groupKey]: `${groupKey}_${j + 1}`
+				[groupKey]: String(j + 1)
 			});
 
 			await groupContainer.hookPush(groupProfile);
 		}
 	}
 
-	if (context.isCLI() || config.verbose) {
-		console.log('✅ Group profiles generated successfully');
+	if (config.verbose) {
+		logger.info('Group profiles generated successfully');
 	}
 }
 
@@ -302,8 +299,8 @@ async function generateLookupTables(context) {
 	const { config, storage } = context;
 	const { lookupTables } = config;
 
-	if (context.isCLI() || config.verbose) {
-		console.log('\n🔍 Generating lookup tables...');
+	if (config.verbose) {
+		logger.info('Generating lookup tables...');
 	}
 
 	for (let i = 0; i < lookupTables.length; i++) {
@@ -316,8 +313,8 @@ async function generateLookupTables(context) {
 			continue;
 		}
 
-		if (context.isCLI() || config.verbose) {
-			console.log(`   Creating ${entries.toLocaleString()} ${key} lookup entries...`);
+		if (config.verbose) {
+			logger.info({ key, entries }, `Creating ${entries.toLocaleString()} ${key} lookup entries...`);
 		}
 
 		for (let j = 0; j < entries; j++) {
@@ -330,8 +327,8 @@ async function generateLookupTables(context) {
 		}
 	}
 
-	if (context.isCLI() || config.verbose) {
-		console.log('✅ Lookup tables generated successfully');
+	if (config.verbose) {
+		logger.info('Lookup tables generated successfully');
 	}
 }
 
@@ -343,8 +340,8 @@ async function generateGroupSCDs(context) {
 	const { config, storage } = context;
 	const { scdProps, groupKeys } = config;
 
-	if (context.isCLI() || config.verbose) {
-		console.log('\n📊 Generating group SCDs...');
+	if (config.verbose) {
+		logger.info('Generating group SCDs...');
 	}
 
 	// Import utilities and generators
@@ -366,13 +363,13 @@ async function generateGroupSCDs(context) {
 			continue; // No SCDs for this group type
 		}
 
-		if (context.isCLI() || config.verbose) {
-			console.log(`   Generating SCDs for ${groupCount.toLocaleString()} ${groupKey} entities...`);
+		if (config.verbose) {
+			logger.info({ groupKey, groupCount }, `Generating SCDs for ${groupCount.toLocaleString()} ${groupKey} entities...`);
 		}
 
 		// Generate SCDs for each group entity
 		for (let i = 0; i < groupCount; i++) {
-			const groupId = `${groupKey}_${i + 1}`;
+			const groupId = String(i + 1);
 
 			// Generate SCDs for this group entity
 			for (const [scdKey, scdConfig] of Object.entries(groupSpecificSCDs)) {
@@ -408,8 +405,8 @@ async function generateGroupSCDs(context) {
 		}
 	}
 
-	if (context.isCLI() || config.verbose) {
-		console.log('✅ Group SCDs generated successfully');
+	if (config.verbose) {
+		logger.info('Group SCDs generated successfully');
 	}
 }
 
@@ -566,16 +563,6 @@ function extractStorageData(storage) {
 	};
 }
 
-// Cloud Functions setup
-functions.http('entry', async (req, res) => {
-	await handleCloudFunctionEntry(req, res, main);
-});
-
 // ES Module export
 export default main;
-
-// CommonJS compatibility
-if (typeof module !== 'undefined' && module.exports) {
-	module.exports = main;
-}
 

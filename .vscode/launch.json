@@ -1,93 +1,52 @@
 {
-	// Use IntelliSense to learn about possible attributes.
-	// Hover to view descriptions of existing attributes.
-	// For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
 	"version": "0.2.0",
 	"configurations": [
 		{
-			"command": "npm run new:dungeon",
-			"name": "🏰 new dungeon",
+			"type": "node",
 			"request": "launch",
-			"type": "node-terminal"
-		},
-		{
-            "type": "node",
-            "request": "launch",
-            "name": "🚀 run dungeon",
-            "runtimeExecutable": "nodemon",            
-            "program": "${workspaceFolder}/entry.js",
+			"name": "🚀 run dungeon",
+			"program": "${workspaceFolder}/scripts/run-dungeon.mjs",
 			"args": ["${file}"],
-            "restart": true,
-            "console": "integratedTerminal",
-            "internalConsoleOptions": "neverOpen",
-            "skipFiles": ["<node_internals>/**"],
-			"preLaunchTask": "npm: prune",
-			"runtimeArgs": [
-				"--ignore",
-				"./data"
-			]
-			
-        },
-		{
-			"command": "npm run dev",
-			"name": "✏️ scratch",
-			"request": "launch",
-			"type": "node-terminal"
+			"console": "integratedTerminal",
+			"internalConsoleOptions": "neverOpen",
+			"skipFiles": ["<node_internals>/**"],
+			"preLaunchTask": "npm: prune"
 		},
-		{
-			"command": "npm run test:quick",
-			"name": "⚡ quick",
-			"request": "launch",
-			"type": "node-terminal"
-		},
-		
 		{
 			"type": "node",
 			"request": "launch",
 			"name": "📄 current file",
-			"runtimeExecutable": "nodemon",
 			"program": "${file}",
-			"restart": true,
 			"console": "integratedTerminal",
 			"internalConsoleOptions": "neverOpen",
-			"env": {
-				"NODE_ENV": "dev"
-			},
-			"runtimeArgs": ["--ignore", "./data"],
+			"env": { "NODE_ENV": "dev" },
+			"skipFiles": ["<node_internals>/**"]
 		},
 		{
-			"command": "npm run func:local",
-			"name": "☁️ cloud local",
+			"command": "npm test",
+			"name": "🧪 test",
 			"request": "launch",
-			"type": "node-terminal",
-			"env": {
-				"NODE_ENV": "dev"
-			}
+			"type": "node-terminal"
 		},
 		{
-            "type": "node",
-            "request": "launch",
-            "name": "🧪 sanity",
-            "runtimeExecutable": "nodemon",
-            "runtimeArgs": ["--inspect"],
-            "program": "${workspaceFolder}/entry.js",
-			"args": ["--ignore", "./data/*", "./dungeons/sanity.js"],
-            "restart": true,
-            "console": "integratedTerminal",
-            "internalConsoleOptions": "neverOpen",
-            "skipFiles": ["<node_internals>/**"],
-        },
+			"type": "node",
+			"request": "launch",
+			"name": "📦 dungeon → json",
+			"program": "${workspaceFolder}/scripts/dungeon-to-json.mjs",
+			"args": ["${file}"],
+			"console": "integratedTerminal",
+			"internalConsoleOptions": "neverOpen",
+			"skipFiles": ["<node_internals>/**"]
+		},
 		{
-            "type": "node-terminal",
-            "request": "launch",
-            "name": "🌱 simple",
-            "command": "node ${workspaceFolder}/entry.js --simple"
-        },
-		{
-            "type": "node-terminal",
-            "request": "launch",
-            "name": "🎯 complex",
-            "command": "node ${workspaceFolder}/entry.js --complex"
-        }
+			"type": "node",
+			"request": "launch",
+			"name": "📥 json → dungeon",
+			"program": "${workspaceFolder}/scripts/json-to-dungeon.mjs",
+			"args": ["${file}"],
+			"console": "integratedTerminal",
+			"internalConsoleOptions": "neverOpen",
+			"skipFiles": ["<node_internals>/**"]
+		}
 	]
 }

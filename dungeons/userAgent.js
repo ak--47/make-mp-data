@@ -1,10 +1,10 @@
 
 const SEED = "my-seed";
 import dayjs from 'dayjs';
-import utc from 'dayjs/plugin/utc';
+import utc from 'dayjs/plugin/utc.js';
 dayjs.extend(utc);
 import 'dotenv/config';
-import * as u from '../lib/utils/utils.js';
+import * as u from "../lib/utils/utils.js";
 import * as v from 'ak-tools';
 const chance = u.initChance(SEED);
 const num_users = 1000;
@@ -14,7 +14,7 @@ const days = 30;
 
 /** @type {Config} */
 const config = {
-	token: "",
+	token: process.env.MASTER_PROJECT_TOKEN || "",
 	seed: SEED,
 	numDays: days,
 	numEvents: num_users * 100,
@@ -33,6 +33,7 @@ const config = {
 	hasAdSpend: true,
 
 	hasAvatar: true,
+	makeChart: false,
 
 	batchSize: 500_000,
 	concurrency: 500,

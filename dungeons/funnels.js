@@ -14,7 +14,7 @@ import dayjs from "dayjs";
 import utc from "dayjs/plugin/utc.js";
 dayjs.extend(utc);
 import { uid, comma } from 'ak-tools';
-import { pickAWinner, weighNumRange, date, integer } from '../lib/utils/utils.js';
+import { pickAWinner, weighNumRange, date, integer } from "../lib/utils/utils.js";
 
 const itemCategories = ["Books", "Movies", "Music", "Games", "Electronics", "Computers", "Smart Home", "Home", "Garden", "Pet", "Beauty", "Health", "Toys", "Kids", "Baby", "Handmade", "Sports", "Outdoors", "Automotive", "Industrial", "Entertainment", "Art", "Food", "Appliances", "Office", "Wedding", "Software"];
 
@@ -22,7 +22,7 @@ const videoCategories = ["funny", "educational", "inspirational", "music", "news
 
 /** @type {import('../types').Dungeon} */
 const config = {
-	token: "",
+	token: process.env.MASTER_PROJECT_TOKEN || "",
 	seed: "simple is best",
 	numDays: 30, //how many days worth of data
 	numEvents: 50000, //how many events
