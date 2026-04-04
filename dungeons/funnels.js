@@ -263,6 +263,43 @@ const config = {
 	},
 	lookupTables: [],
 	hook: function (record, type, meta) {
+		// user hook: classify users as creators vs viewers based on upload count
+		if (type === "user") {
+			record.user_type = record.upload_count >= 5 ? "creator" : "viewer";
+		}
+
+		// event hook: premium users get higher quality video and longer watch times
+		if (type === "event") {
+			if (record.event === "watch video") {
+				const day = dayjs(record.time).day();
+				// weekend binge: 2x watch time on weekends
+				if (day === 0 || day === 6) {
+					record["watch time"] = Math.round((record["watch time"] || 10) * 2);
+					record.is_weekend = true;
+				}
+			}
+			// failed logins get a security_flag
+			if (record.event === "account login" && record.success === false) {
+				record.security_flag = true;
+			}
+		}
+
+		// everything hook: binge-watchers (>30 watch events) get a "binge session" bonus event
+		if (type === "everything") {
+			const watchEvents = record.filter(e => e.event === "watch video");
+			if (watchEvents.length > 30) {
+				const lastWatch = watchEvents[watchEvents.length - 1];
+				record.push({
+					event: "binge session",
+					time: lastWatch.time,
+					user_id: lastWatch.user_id,
+					videos_watched: watchEvents.length,
+					total_watch_time: watchEvents.reduce((sum, e) => sum + (e["watch time"] || 0), 0),
+				});
+			}
+			return record;
+		}
+
 		return record;
 	}
 };

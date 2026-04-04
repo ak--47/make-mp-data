@@ -95,6 +95,30 @@ const config = {
 	groupProps: {},
 	lookupTables: [],
 	hook: function (record, type, meta) {
+		// user hook: assign engagement tier based on lucky number
+		if (type === "user") {
+			record.engagement_tier = record.luckyNumber > 250 ? "high" : "low";
+		}
+
+		// event hook: weight-1 events ("yak") are treated as error/rare signals
+		if (type === "event") {
+			if (record.event === "yak") {
+				record.is_error = true;
+			}
+			if (record.event === "foo") {
+				record.priority = "high";
+			}
+		}
+
+		// everything hook: low-activity anonymous users churn — keep only first 60% of events
+		if (type === "everything") {
+			if (record.length < 8) {
+				const cutoff = Math.ceil(record.length * 0.6);
+				return record.slice(0, cutoff);
+			}
+			return record;
+		}
+
 		return record;
 	}
 };

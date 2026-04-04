@@ -165,6 +165,26 @@ const config = {
 
 		if (type === "event") {
 			const EVENT_TIME = dayjs(record.time);
+			// Pattern 1: Mobile user agents have higher error rates
+			const ua = record.user_agent || "";
+			if (ua.includes("iPhone") || ua.includes("Android") || ua.includes("Mobile")) {
+				record.is_mobile = true;
+				if (Math.random() < 0.15) {
+					record.had_error = true;
+					record.error_type = chance.pickone(["timeout", "network_fail", "crash"]);
+				}
+			} else {
+				record.is_mobile = false;
+			}
+
+			// Pattern 2: Bot user agents get flagged and have no session duration
+			if (ua.includes("bot") || ua.includes("Slurp") || ua.includes("Googlebot")) {
+				record.is_bot = true;
+				record.session_duration_sec = 0;
+			} else {
+				record.is_bot = false;
+				record.session_duration_sec = chance.integer({ min: 5, max: 600 });
+			}
 		}
 
 		if (type === "user") {

@@ -87,6 +87,40 @@ const config = {
 	groupProps: {},
 	lookupTables: [],
 	hook: function (record, type, meta) {
+		// user hook: segment users into tiers based on their lucky number
+		if (type === "user") {
+			if (record.luckyNumber > 300) {
+				record.tier = "gold";
+			} else if (record.luckyNumber > 150) {
+				record.tier = "silver";
+			} else {
+				record.tier = "bronze";
+			}
+		}
+
+		// event hook: gold tier users get a "premium" color override 20% of the time
+		if (type === "event") {
+			if (record.color === "violet" || record.color === "indigo") {
+				record.is_rare_color = true;
+				record.number = (record.number || 0) * 2;
+			}
+		}
+
+		// everything hook: users with many events get a bonus "milestone" event
+		if (type === "everything") {
+			if (record.length > 50) {
+				const lastEvent = record[record.length - 1];
+				record.push({
+					event: "milestone reached",
+					time: lastEvent.time,
+					user_id: lastEvent.user_id,
+					milestone: record.length,
+					color: "gold",
+				});
+			}
+			return record;
+		}
+
 		return record;
 	}
 };

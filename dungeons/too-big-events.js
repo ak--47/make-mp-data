@@ -4,6 +4,10 @@
  * Generates events with absurd numbers of properties and oversized array-of-object columns
  */
 
+import dayjs from "dayjs";
+import utc from "dayjs/plugin/utc.js";
+dayjs.extend(utc);
+
 function integer(min = 1, max = 100) {
 	if (min === max) return min;
 	if (min > max) [min, max] = [max, min];
@@ -159,6 +163,39 @@ const config = {
 	groupProps: {},
 
 	hook: function (record, type, meta) {
+		// --- event hook: tag events with estimated row size category ---
+		if (type === "event") {
+			const propCount = Object.keys(record).length;
+			if (propCount > 300) {
+				record.size_class = "mega";
+			} else if (propCount > 100) {
+				record.size_class = "large";
+			} else {
+				record.size_class = "normal";
+			}
+			return record;
+		}
+
+		// --- everything hook: append a summary event tallying the user's event types ---
+		if (type === "everything" && record.length > 0) {
+			const counts = {};
+			for (const e of record) {
+				counts[e.event] = (counts[e.event] || 0) + 1;
+			}
+			const lastEvent = record[record.length - 1];
+			record.push({
+				event: "user_event_summary",
+				time: dayjs(lastEvent.time).add(1, "second").toISOString(),
+				user_id: lastEvent.user_id,
+				mega_row_count: counts["mega_row"] || 0,
+				array_bomb_count: counts["array_bomb"] || 0,
+				chonky_boi_count: counts["chonky_boi"] || 0,
+				smol_event_count: counts["smol_event"] || 0,
+				total_events: record.length
+			});
+			return record;
+		}
+
 		return record;
 	}
 };

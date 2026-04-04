@@ -196,6 +196,51 @@ const config = {
 		}
 	},
 	hook: function (record, type, meta) {
+		// --- user hook: classify users into spending tiers ---
+		if (type === "user") {
+			record.spendTier = record.luckyNumber > 250 ? "high_spender" : "budget";
+			return record;
+		}
+
+		// --- event hook: coupon users get discounted checkout amounts ---
+		if (type === "event") {
+			if (record.event === "checkout" && record.coupon && record.coupon !== "none") {
+				const discountPct = parseInt(record.coupon) || 10;
+				record.amount = Math.round(record.amount * (1 - discountPct / 100));
+				record.discount_applied = true;
+			}
+			// weekend watchers get longer watch times
+			if (record.event === "watch video" && record.time) {
+				const day = dayjs(record.time).day();
+				if (day === 0 || day === 6) {
+					record.watchTimeSec = Math.round((record.watchTimeSec || 60) * 1.5);
+					record.is_weekend = true;
+				}
+			}
+			return record;
+		}
+
+		// --- everything hook: simulate cart abandonment ---
+		if (type === "everything") {
+			const hasAddToCart = record.some(e => e.event === "add to cart");
+			const hasCheckout = record.some(e => e.event === "checkout");
+			// users who added to cart but never checked out: remove checkout events (if any slipped through)
+			// and mark them as abandoned
+			if (hasAddToCart && !hasCheckout && record.length > 2) {
+				const lastAdd = record.filter(e => e.event === "add to cart").pop();
+				if (lastAdd) {
+					record.push({
+						event: "cart_abandoned",
+						time: dayjs(lastAdd.time).add(30, "minute").toISOString(),
+						user_id: lastAdd.user_id,
+						platform: lastAdd.platform,
+						amount: lastAdd.amount
+					});
+				}
+			}
+			return record;
+		}
+
 		return record;
 	}
 };

@@ -112,17 +112,37 @@ const config = {
 
 		const NOW = dayjs();
 
-
 		if (type === "event") {
-			
+			// Pattern 1: Checkouts with coupons get a discount_applied flag and adjusted total
+			if (record.event === "checkout" && record.coupon && record.coupon !== "none") {
+				record.discount_applied = true;
+				const pctMatch = record.coupon.match(/(\d+)%/);
+				if (pctMatch) {
+					record.discount_percent = parseInt(pctMatch[1]);
+				}
+			}
+
+			// Pattern 2: "save item" events on weekends are tagged as wishlist behavior
+			if (record.event === "save item") {
+				const dow = dayjs(record.time).day();
+				if (dow === 0 || dow === 6) {
+					record.save_context = "weekend_browse";
+				} else {
+					record.save_context = "weekday_intent";
+				}
+			}
 		}
 
 		if (type === "everything") {
-			
-
+			// Pattern 3: Users who view 5+ items but never checkout are tagged as window shoppers
+			const views = record.filter(e => e.event === "view item").length;
+			const checkouts = record.filter(e => e.event === "checkout").length;
+			if (views >= 5 && checkouts === 0) {
+				for (const e of record) {
+					e.user_segment = "window_shopper";
+				}
+			}
 		}
-
-
 
 		return record;
 	}

@@ -232,6 +232,38 @@ const config = {
 	},
 
 	hook: function (record, type, meta) {
+		// event hook: high-weight events get a "hot" flag, low-weight get "cold"
+		if (type === "event") {
+			const hotEvents = ["foo", "bar", "baz"];
+			const coldEvents = ["crumn", "yak"];
+			if (hotEvents.includes(record.event)) {
+				record.temperature = "hot";
+			} else if (coldEvents.includes(record.event)) {
+				record.temperature = "cold";
+			} else {
+				record.temperature = "warm";
+			}
+		}
+
+		// everything hook: hash-based cohort — 10% of users (by distinct_id) get doubled events
+		if (type === "everything") {
+			if (record.length > 0) {
+				const userId = record[0].user_id || record[0].distinct_id || "";
+				if (userId && userId.charCodeAt(0) % 10 === 0) {
+					// power user: duplicate each event with a slight time offset
+					const extras = record.slice(0, 3).map(e => ({
+						...e,
+						event: e.event,
+						user_id: e.user_id,
+						time: e.time,
+						is_duplicate: true,
+					}));
+					return record.concat(extras);
+				}
+			}
+			return record;
+		}
+
 		return record;
 	}
 };

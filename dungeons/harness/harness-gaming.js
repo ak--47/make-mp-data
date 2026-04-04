@@ -585,8 +585,8 @@ const config = {
 				const eventTime = dayjs(event.time);
 				const daysSinceStart = firstEventTime ? eventTime.diff(firstEventTime, 'days', true) : 0;
 
-				// Hook #8: Capture subscription tier from first event
-				if (idx === 0 && event.subscription_tier) {
+				// Hook #8: Capture subscription tier from any event that has it
+				if (event.subscription_tier) {
 					subscriptionTier = event.subscription_tier;
 				}
 

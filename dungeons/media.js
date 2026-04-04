@@ -306,13 +306,13 @@ const config = {
 				}
 
 				if (chance.bool({ likelihood: 18 })) {
-					return {};
+					record._drop = true;
 				}
 			}
 
 			if (EVENT_TIME.isBefore(TIME_WE_EXPERIMENTED)) {
 				if (record.event === "$experiment_started") {
-					return {};
+					record._drop = true;
 				}
 			}
 		}
@@ -320,6 +320,8 @@ const config = {
 
 
 		if (type === "everything") {
+			// Filter out events tagged for dropping by the event hook
+			record = record.filter(e => !e._drop);
 
 			const hadFeatureEnabled = record.some(event =>
 				event.event === "$experiment_started" &&

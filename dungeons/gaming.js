@@ -316,14 +316,34 @@ const config = {
 		"subscription MRR": u.weighNumRange(0, 250, 1, 200)
 	},
 	hook: function (record, type, meta) {
-		// const NOW = dayjs();
 
 		if (type === "event") {
-			// const EVENT_TIME = dayjs(record.time);
+			// Pattern 1: Higher-level players earn more gold and defeat more enemies
+			if (record.event === "complete quest") {
+				const level = record["level at end"] || 1;
+				record["quest reward (gold)"] = Math.round((record["quest reward (gold)"] || 50) * (1 + level * 0.1));
+			}
+
+			// Pattern 2: In-game purchases are bigger for "free trial" experiment users
+			if (record.event === "in-game purchase") {
+				// We don't have profile here, so use a hash-based approach
+				const uid = record.user_id || record.distinct_id || "";
+				if (uid.charCodeAt(0) % 3 === 0) {
+					record["purchase amount"] = Math.round((record["purchase amount"] || 10) * 1.8);
+					record.is_whale = true;
+				}
+			}
 		}
 
 		if (type === "user") {
-
+			// Pattern 3: Chaotic Evil players get a "villain" tag; Lawful Good get "hero"
+			if (record.alignment === "Chaotic Evil" || record.alignment === "Neutral Evil") {
+				record.archetype = "villain";
+			} else if (record.alignment === "Lawful Good" || record.alignment === "Neutral Good") {
+				record.archetype = "hero";
+			} else {
+				record.archetype = "neutral";
+			}
 		}
 
 		if (type === "funnel-post") {

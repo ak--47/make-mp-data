@@ -457,7 +457,7 @@ const config = {
 		}
 
 		// ═══════════════════════════════════════════════════════════════════
-		// Hook #6: SEMESTER-END SPIKE
+		// Hook #6: SEMESTER-END SPIKE (tag in event hook, duplicate in everything hook)
 		// ═══════════════════════════════════════════════════════════════════
 		if (type === "event") {
 			if (record.time) {
@@ -468,14 +468,6 @@ const config = {
 				if (spikableEvents.includes(record.event)) {
 					if (dayInDataset >= 75 && dayInDataset <= 85) {
 						record.semester_end_rush = true;
-
-						// 50% chance to duplicate
-						if (chance.bool({ likelihood: 50 })) {
-							const duplicate = JSON.parse(JSON.stringify(record));
-							duplicate.time = eventTime.add(chance.integer({ min: 5, max: 120 }), 'minutes').toISOString();
-							duplicate.semester_end_rush = true;
-							return [record, duplicate];
-						}
 					} else {
 						record.semester_end_rush = false;
 					}
@@ -627,6 +619,31 @@ const config = {
 						}
 					}
 				});
+			}
+
+			// Hook #6: SEMESTER-END SPIKE - duplicate assessment events in the spike window
+			const duplicates = [];
+			userEvents.forEach((event) => {
+				if (event.semester_end_rush === true && chance.bool({ likelihood: 50 })) {
+					const dup = JSON.parse(JSON.stringify(event));
+					dup.time = dayjs(event.time).add(chance.integer({ min: 5, max: 120 }), 'minutes').toISOString();
+					dup.semester_end_rush = true;
+					duplicates.push(dup);
+				}
+			});
+			if (duplicates.length > 0) {
+				userEvents.push(...duplicates);
+			}
+
+			// Hook #7: FREE VS PAID - reinforce the subscription effect on certificates
+			const subStatus = userEvents.length > 0 ? userEvents[0].subscription_status : "free";
+			if (subStatus === "free") {
+				// Free users lose 40% of their certificates (simulating lower completion)
+				for (let i = userEvents.length - 1; i >= 0; i--) {
+					if (userEvents[i].event === "certificate earned" && chance.bool({ likelihood: 40 })) {
+						userEvents.splice(i, 1);
+					}
+				}
 			}
 		}
 

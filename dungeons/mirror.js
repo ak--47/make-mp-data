@@ -120,6 +120,38 @@ const config = {
 	groupProps: {},
 	lookupTables: [],
 	hook: function (record, type, meta) {
+		// --- user hook: segment users by spirit animal ---
+		if (type === "user") {
+			const aquatic = ["whale", "dolphin", "shark", "octopus", "squid", "jellyfish", "seahorse", "crab", "lobster", "shrimp"];
+			record.segment = aquatic.includes(record.spiritAnimal) ? "aquatic" : "terrestrial";
+			return record;
+		}
+
+		// --- event hook: color-based property boost ---
+		if (type === "event") {
+			// warm-colored events get a higher updateMe value
+			const warmColors = ["red", "orange", "yellow"];
+			if (warmColors.includes(record.color)) {
+				record.updateMe = (record.updateMe || 5) + 10;
+			}
+			return record;
+		}
+
+		// --- everything hook: inject a "milestone" event for users with 8+ events ---
+		if (type === "everything") {
+			if (record.length >= 8) {
+				const lastEvent = record[record.length - 1];
+				record.push({
+					event: "milestone_reached",
+					time: lastEvent.time,
+					user_id: lastEvent.user_id,
+					color: lastEvent.color,
+					milestone: record.length
+				});
+			}
+			return record;
+		}
+
 		return record;
 	}
 };

@@ -21,3 +21,5 @@ PHASE1-IMPROVEMENTS.md
 dungeons/*ai-dungeon*
 ignore*
 *scratch*
+research/*
+!research/.gitkeep

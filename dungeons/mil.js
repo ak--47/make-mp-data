@@ -290,6 +290,33 @@ const config = {
 	groupProps: {},
 	lookupTables: [],
 	hook: function (record, type, meta) {
+		// event hook: tag events by frequency tier and enrich booleans
+		if (type === "event") {
+			const highFreq = ["foo", "bar", "baz"];
+			const lowFreq = ["crumn", "yak"];
+			if (highFreq.includes(record.event)) {
+				record.frequency_tier = "high";
+			} else if (lowFreq.includes(record.event)) {
+				record.frequency_tier = "low";
+			} else {
+				record.frequency_tier = "medium";
+			}
+			// boolean super prop drives a derived field
+			if (record.boolean === true) {
+				record.flag_status = "active";
+			}
+		}
+
+		// everything hook: users with very few events are marked as churned
+		if (type === "everything") {
+			if (record.length <= 3) {
+				for (const e of record) {
+					e.is_churned_user = true;
+				}
+			}
+			return record;
+		}
+
 		return record;
 	}
 };

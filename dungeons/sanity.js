@@ -104,6 +104,35 @@ const config = {
 		spiritAnimal: ["duck", "dog", "otter", "penguin", "cat", "elephant", "lion", "cheetah", "giraffe", "zebra", "rhino", "hippo", "whale", "dolphin", "shark", "octopus", "squid", "jellyfish", "starfish", "seahorse", "crab", "lobster", "shrimp", "clam", "snail", "slug", "butterfly", "moth", "bee", "wasp", "ant", "beetle", "ladybug", "caterpillar", "centipede", "millipede", "scorpion", "spider", "tarantula", "tick", "mite", "mosquito", "fly", "dragonfly", "damselfly", "grasshopper", "cricket", "locust", "mantis", "cockroach", "termite", "praying mantis", "walking stick", "stick bug", "leaf insect", "lacewing", "aphid", "cicada", "thrips", "psyllid", "scale insect", "whitefly", "mealybug", "planthopper", "leafhopper", "treehopper", "flea", "louse", "bedbug", "flea beetle", "weevil", "longhorn beetle", "leaf beetle", "tiger beetle", "ground beetle", "lady beetle", "firefly", "click beetle", "rove beetle", "scarab beetle", "dung beetle", "stag beetle", "rhinoceros beetle", "hercules beetle", "goliath beetle", "jewel beetle", "tortoise beetle"]
 	},
 	hook: function (record, type, meta) {
+		// --- user hook: tag power users based on luckyNumber ---
+		if (type === "user") {
+			record.userTier = record.luckyNumber > 300 ? "power" : "regular";
+			return record;
+		}
+
+		// --- event hook: add an engagement score based on event type ---
+		if (type === "event") {
+			const highEngagement = ["fonk", "crumn", "yak"];
+			const midEngagement = ["garply", "durtle", "linny"];
+			if (highEngagement.includes(record.event)) {
+				record.engagement_score = chance.integer({ min: 70, max: 100 });
+			} else if (midEngagement.includes(record.event)) {
+				record.engagement_score = chance.integer({ min: 30, max: 69 });
+			} else {
+				record.engagement_score = chance.integer({ min: 1, max: 29 });
+			}
+			return record;
+		}
+
+		// --- everything hook: low-activity users lose their last few events (churn simulation) ---
+		if (type === "everything") {
+			if (record.length > 3 && record.length < 8) {
+				// users with few events lose the tail end — simulates churn
+				return record.slice(0, Math.ceil(record.length * 0.6));
+			}
+			return record;
+		}
+
 		return record;
 	}
 };

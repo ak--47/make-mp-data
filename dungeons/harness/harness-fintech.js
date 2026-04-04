@@ -405,7 +405,7 @@ const config = {
 			// Payday: 1st and 15th
 			if (record.event === "transaction completed" && record.transaction_type === "direct_deposit") {
 				if (dayOfMonth === 1 || dayOfMonth === 15) {
-					record.amount = Math.floor((record.amount || 50) * 2);
+					record.amount = Math.floor((record.amount || 50) * 3);
 					record.payday = true;
 				} else {
 					record.payday = false;
@@ -415,8 +415,8 @@ const config = {
 			// Post-payday spending: days 1-3 and 15-17
 			if (record.event === "transfer sent") {
 				const isPaydayWindow = (dayOfMonth >= 1 && dayOfMonth <= 3) || (dayOfMonth >= 15 && dayOfMonth <= 17);
-				if (isPaydayWindow && chance.bool({ likelihood: 40 })) {
-					record.amount = Math.floor((record.amount || 200) * 1.5);
+				if (isPaydayWindow && chance.bool({ likelihood: 60 })) {
+					record.amount = Math.floor((record.amount || 200) * 2.0);
 					record.post_payday_spending = true;
 				} else {
 					record.post_payday_spending = false;
@@ -579,7 +579,7 @@ const config = {
 			// -----------------------------------------------------------
 			let lowBalanceChecks = 0;
 			userEvents.forEach((event) => {
-				if (event.event === "balance checked" && (event.account_balance || 0) < 500) {
+				if (event.event === "balance checked" && (event.account_balance || 0) < 3000) {
 					lowBalanceChecks++;
 				}
 			});

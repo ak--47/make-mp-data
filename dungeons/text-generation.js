@@ -698,6 +698,43 @@ const dungeon = {
 	],
 
 	hook: function (record, type, meta) {
+		// --- user hook: classify users by engagement and tier ---
+		if (type === "user") {
+			record.is_power_user = record.engagement_score > 70;
+			record.risk_level = record.last_active_days_ago > 20 ? "high_churn" : "healthy";
+			return record;
+		}
+
+		// --- event hook: enterprise support tickets get auto-escalated if critical ---
+		if (type === "event") {
+			if (record.event === "enterprise_support_ticket" && record.priority === "critical") {
+				record.escalation_level = Math.min((record.escalation_level || 1) + 1, 3);
+				record.auto_escalated = true;
+			}
+			// bug reports with critical severity get flagged for immediate review
+			if (record.event === "bug_report_submitted" && record.severity === "critical" && record.is_reproducible === true) {
+				record.requires_immediate_review = true;
+				record.estimated_fix_hours = chance.integer({ min: 1, max: 8 });
+			}
+			return record;
+		}
+
+		// --- everything hook: enterprise users get a satisfaction survey event ---
+		if (type === "everything" && meta && meta.profile) {
+			if (meta.profile.user_tier === "enterprise" && record.length > 5) {
+				const lastEvent = record[record.length - 1];
+				record.push({
+					event: "satisfaction_survey_triggered",
+					time: lastEvent.time,
+					user_id: lastEvent.user_id,
+					product_tier: "enterprise",
+					survey_type: "quarterly_nps",
+					score: chance.integer({ min: 1, max: 10 })
+				});
+			}
+			return record;
+		}
+
 		return record;
 	}
 };

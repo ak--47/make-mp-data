@@ -8,6 +8,9 @@
 
 import Chance from 'chance';
 const chance = new Chance();
+import dayjs from "dayjs";
+import utc from "dayjs/plugin/utc.js";
+dayjs.extend(utc);
 import { weighNumRange, date, integer } from "../lib/utils/utils.js";
 import * as u from 'ak-tools';
 
@@ -281,6 +284,36 @@ const config = {
 	],
 
 	hook: function (record, type, meta) {
+		// event hook: weekend watch time boost — videos watched on weekends get 1.5x duration
+		if (type === "event") {
+			if (record.event === "watch video" && record.time) {
+				const day = dayjs(record.time).day();
+				if (day === 0 || day === 6) {
+					record.watchTimeSec = Math.round((record.watchTimeSec || 60) * 1.5);
+					record.is_weekend = true;
+				}
+			}
+			// support tickets on high-severity get escalated flag
+			if (record.event === "support ticket" && record.severity === "high") {
+				record.escalated = true;
+			}
+		}
+
+		// everything hook: simulate cart abandonment — users who "add to cart" but never "checkout" lose their last add-to-cart
+		if (type === "everything") {
+			const hasCheckout = record.some(e => e.event === "checkout");
+			const hasAddToCart = record.some(e => e.event === "add to cart");
+			if (hasAddToCart && !hasCheckout) {
+				// mark all their add-to-cart events as abandoned
+				for (const e of record) {
+					if (e.event === "add to cart") {
+						e.abandoned = true;
+					}
+				}
+			}
+			return record;
+		}
+
 		return record;
 	}
 };

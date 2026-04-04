@@ -440,7 +440,9 @@ const config = {
 				record.data_completeness_tier = "low";
 			}
 
-			const tier = record.subscription_tier;
+			// Derive tier from distinct_id hash since subscription_tier is a superProp (not on profile)
+			const tierHash = record.distinct_id ? record.distinct_id.charCodeAt(0) % 3 : 0;
+			const tier = tierHash === 0 ? "enterprise" : tierHash === 1 ? "growth" : "starter";
 			if (tier === "enterprise") {
 				record.user_segment = chance.pickone(["champion", "champion", "champion", "power_user", "standard"]);
 			} else if (tier === "growth") {

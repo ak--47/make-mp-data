@@ -130,14 +130,14 @@ lookupTables: [],
 
 ### Hook Types and When They Fire
 
-| Type | `record` is | Return `{}` to | Fires in |
-|------|-------------|----------------|----------|
-| `"event"` | Single event object (flat props) | Drop the event | `events.js` per event |
-| `"user"` | User profile object | Drop the profile | `user-loop.js` per user |
-| `"funnel-pre"` | Funnel config `{sequence, conversionRate, timeToConvert, props}` | Skip funnel | `funnels.js` before generation |
-| `"funnel-post"` | Array of generated funnel events | Drop funnel events | `funnels.js` after generation |
-| `"scd-pre"` | Array of SCD entries | — | `user-loop.js` before SCD write |
-| `"everything"` | Array of ALL events for one user | — | `user-loop.js` after all events generated |
+| Type | `record` is | Return behavior | Fires in |
+|------|-------------|-----------------|----------|
+| `"event"` | Single event object (flat props) | Return value replaces event (must be single object) | `events.js` per event |
+| `"user"` | User profile object | Ignored — mutate in-place | `user-loop.js` per user |
+| `"funnel-pre"` | Funnel config `{sequence, conversionRate, timeToConvert, props}` | Ignored — mutate in-place | `funnels.js` before generation |
+| `"funnel-post"` | Array of generated funnel events | Ignored — mutate in-place | `funnels.js` after generation |
+| `"scd-pre"` | Array of SCD entries | Ignored — mutate in-place | `user-loop.js` before SCD write |
+| `"everything"` | Array of ALL events for one user | Return array to replace event list | `user-loop.js` after all events generated |
 
 ### Critical Hook Rules
 
@@ -145,7 +145,13 @@ lookupTables: [],
 2. When splicing events in `everything`, new events need: `event`, `time` (ISO string), `user_id` (copied from source event's `event.user_id`), plus flat properties. The pipeline uses `user_id` NOT `distinct_id`.
 3. Use `dayjs` for all time operations inside hooks
 4. Use the seeded `chance` instance (from module scope) for randomness in hooks
-5. Return `record` to keep/modify. Do NOT use `return {}` to drop events — it creates broken events. Instead, rename the event (`record.event = "new name"`) or tag it and filter in the `everything` hook.
+5. Return `record` to keep/modify from `event` hooks (single object only — do NOT return arrays).
+6. **To drop/filter events** (for churn, drop-off, or trend patterns): you CANNOT drop events from the `event` hook — there is no way to suppress an event from within `type === "event"`. Instead, use ONE of these patterns:
+   - **Tag-and-filter**: In the `event` hook, tag events to drop with a property (e.g., `record._drop = true`). Then in the `everything` hook, filter them out: `return record.filter(e => !e._drop)`
+   - **Direct filter in `everything`**: Skip the tagging and just filter directly in the `everything` hook based on conditions: `return record.filter(e => !shouldDrop(e))`
+   - **Splice removal**: In the `everything` hook, iterate backwards and `splice(i, 1)` to remove events
+   
+   This is critical for architecting churn, drop-off, seasonal dips, and other "absence of data" patterns. The `everything` hook is the ONLY place where events can be removed.
 
 ### Hook Technique Catalog
 
@@ -183,7 +189,7 @@ The `"everything"` hook is the most powerful because it sees ALL events for one 
 
 - **Two-pass processing**: First pass scans for conditions (has purchase? joined guild early?), second pass modifies ALL events based on findings
 - **Cross-table correlation**: Use `meta.profile.tier` to set properties on every event → creates discoverable segment differences across both user and event tables
-- **Event filtering (churn)**: `return record.filter(e => ...)` — remove 60-70% of events after a date to simulate disengagement
+- **Event filtering/dropping (churn, drop-off, seasonal dips)**: `return record.filter(e => ...)` — the ONLY way to remove events. Remove 60-70% of events after a date to simulate disengagement, filter by tag to create volume dips, or remove events matching conditions to architect absence-of-data patterns. This is essential for modeling churn, seasonal drop-off, and degraded experience periods.
 - **Event injection**: Append synthetic milestone/churn-risk events to the stream
 - **Event duplication**: Clone events with 1-3 hour time offsets (viral cascades, weekend surges)
 - **Compound conditions**: Require multiple behaviors before applying effect (Slack AND PagerDuty → faster resolution)

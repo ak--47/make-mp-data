@@ -96,6 +96,12 @@ const config = {
 
 		if (type === "event") {
 			const EVENT_TIME = dayjs(record.time);
+			// Pattern 1: "variant 1" users spend more money (winning variant)
+			if (record.event === "money event" && record["Variant name"] === "variant 1") {
+				record.amount = Math.round((record.amount || 50) * 1.5);
+			}
+			// Pattern 2: "control" users see fewer rare events (simulating lower engagement)
+			// handled in "everything" below
 		}
 
 		if (type === "user") {
@@ -115,7 +121,14 @@ const config = {
 		}
 
 		if (type === "everything") {
-
+			// Pattern 3: Control variant users have 30% of their "rare event" events removed
+			// to simulate lower engagement in control group
+			return record.filter(e => {
+				if (e.event === "rare event" && e["Variant name"] === "control" && Math.random() < 0.3) {
+					return false;
+				}
+				return true;
+			});
 		}
 
 		return record;

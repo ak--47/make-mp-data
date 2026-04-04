@@ -1,20 +1,21 @@
 /**
- * This is the default configuration file for the data generator in COMPLEX mode
- * notice how the config object is structured, and see it's type definition in ./types.d.ts
- * feel free to modify this file to customize the data you generate
- * see helper functions in utils.js for more ways to generate data
+ * Video platform dungeon (business/complex mode)
  */
 
+import Chance from 'chance';
+import dayjs from 'dayjs';
+import utc from 'dayjs/plugin/utc.js';
+dayjs.extend(utc);
+import { weighNumRange, pickAWinner, exhaust } from '../lib/utils/utils.js';
+import * as v from 'ak-tools';
 
-const Chance = require('chance');
 const chance = new Chance();
-const { weighNumRange, date, integer, pickAWinner, exhaust } = require('../lib/utils/utils.js');
-const u = require('ak-tools');
+const integer = (min, max) => chance.integer({ min, max });
 
 const channel_ids = [...Array(1234).keys()].map(i => i + 1).map(n => `channel_id_${n}`);
-const channel_names = chance.n(u.makeName, 1234);
+const channel_names = chance.n(v.makeName, 1234);
 const video_ids = [...Array(50000).keys()].map(i => i + 1).map(n => n.toString());
-const video_names = chance.n(u.makeName, 50000);
+const video_names = chance.n(v.makeName, 50000);
 
 const EVENTS = 50_000
 const USERS = EVENTS / 100
@@ -22,7 +23,7 @@ const USERS = EVENTS / 100
 
 /** @type {import('../types.js').Dungeon} */
 const config = {
-	token: process.env.MASTER_PROJECT_TOKEN || "",
+	token: "",
 	seed: "it's business time...",
 	numDays: 90, //how many days worth of data
 	numEvents: EVENTS, //how many events
@@ -258,6 +259,52 @@ const config = {
 	],
 
 	hook: function (record, type, meta) {
+		// --- user hook: tag users by their experiment variant ---
+		if (type === "user") {
+			const exp = record.experiment;
+			if (exp && Array.isArray(exp) && exp[0]) {
+				record.experimentGroup = exp[0].variant || "unknown";
+			}
+			return record;
+		}
+
+		// --- event hook: weekend watch time boost + premium quality bias ---
+		if (type === "event") {
+			if (record.event === "watch video" && record.time) {
+				const day = dayjs(record.time).day();
+				if (day === 0 || day === 6) {
+					record["watch time (sec)"] = Math.round((record["watch time (sec)"] || 60) * 1.8);
+					record.is_weekend_session = true;
+				}
+			}
+			// app errors on weekends are more severe (skeleton crew)
+			if (record.event === "app error" && record.time) {
+				const day = dayjs(record.time).day();
+				if (day === 0 || day === 6) {
+					record.weekend_incident = true;
+				}
+			}
+			return record;
+		}
+
+		// --- everything hook: binge watchers (5+ watch events) get a "binge_session" event ---
+		if (type === "everything") {
+			const watches = record.filter(e => e.event === "watch video");
+			if (watches.length >= 5) {
+				const totalWatchTime = watches.reduce((sum, e) => sum + (e["watch time (sec)"] || 0), 0);
+				const lastWatch = watches[watches.length - 1];
+				record.push({
+					event: "binge_session",
+					time: dayjs(lastWatch.time).add(1, "minute").toISOString(),
+					user_id: lastWatch.user_id,
+					videos_watched: watches.length,
+					total_watch_time_sec: totalWatchTime,
+					avg_watch_time_sec: Math.round(totalWatchTime / watches.length)
+				});
+			}
+			return record;
+		}
+
 		return record;
 	}
 };
@@ -267,7 +314,7 @@ const config = {
 function makeHashTags() {
 	const possibleHashtags = [];
 	for (let i = 0; i < 20; i++) {
-		possibleHashtags.push('#' + u.makeName(2, ''));
+		possibleHashtags.push('#' + v.makeName(2, ''));
 	}
 
 	const numHashtags = integer(integer(1, 5), integer(5, 10));
@@ -342,4 +389,4 @@ function designExperiment() {
 
 
 
-module.exports = config;
+export default config;

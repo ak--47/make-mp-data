@@ -397,17 +397,30 @@ const config = {
 
 		if (type === "event") {
 			const EVENT_TIME = dayjs(record.time);
+			// Pattern 1: Late submissions get lower scores
+			if (record.event === "student: submit assignment" && record.is_late === true) {
+				record.late_penalty_percent = chance.integer({ min: 5, max: 25 });
+			}
 		}
 
 		if (type === "user") {
-
-		}
-
-		if (type === "funnel-post") {
-
+			// Pattern 2: Teachers get a department assignment
+			if (record.role === "teacher") {
+				record.department = chance.pickone(["Math", "Science", "English", "History", "Art", "PE"]);
+				record.years_experience = chance.integer({ min: 1, max: 30 });
+			}
 		}
 
 		if (type === "funnel-pre") {
+			// Pattern 3: Students on chromebooks have lower test completion rates
+			if (meta && meta.profile && meta.profile.device_type === "chromebook") {
+				if (record.name === "Student Takes Test") {
+					record.conversionRate = Math.max(50, record.conversionRate * 0.7);
+				}
+			}
+		}
+
+		if (type === "funnel-post") {
 
 		}
 

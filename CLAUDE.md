@@ -222,8 +222,8 @@ These are the proven techniques used across harness dungeons:
 4. **Use `dayjs` for time operations** inside hooks
 5. **Use the seeded `chance` instance** from module scope for randomness
 6. **`everything` is the most powerful hook** — it sees all events for one user, can correlate across event types, and access `meta.profile` to drive behavior based on user properties
-7. **Return `record`** from `event` hooks. For `everything`, return the (possibly modified) array
-8. **Don't return `{}`** to drop events — it creates broken events. Instead rename the event or filter in `everything`
+7. **Return `record`** from `event` hooks (single object only — do NOT return arrays). For `everything`, return the (possibly modified) array
+8. **To drop/filter events (churn, drop-off, seasonal dips)**: you cannot drop events from the `event` hook. Use the `everything` hook: `return record.filter(e => !shouldDrop(e))`. For tag-and-filter: set `record._drop = true` in the `event` hook, then `return record.filter(e => !e._drop)` in `everything`. Do NOT use `return {}` — it creates broken events with no event name
 
 ## Dependencies
 

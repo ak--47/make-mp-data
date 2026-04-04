@@ -447,7 +447,10 @@ const config = {
 				record.sequence[0] === "checkout started" &&
 				record.sequence[1] === "order placed") {
 				record.props = record.props || {};
-				if (meta && meta.userIsBornInDataset) {
+				// Use hash to deterministically assign ~50% of users as "new"
+				const userId = meta && meta.user && (meta.user.distinct_id || String(meta.user));
+				const isNewUser = userId && userId.charCodeAt(0) % 2 === 0;
+				if (isNewUser) {
 					record.conversionRate = 0.90;
 					record.props.first_order_bonus = true;
 				} else {

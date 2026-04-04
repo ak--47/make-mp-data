@@ -246,14 +246,39 @@ const dungeon = {
 
         if (type === "event") {
             const EVENT_TIME = dayjs(record.time);
+            // Pattern 1: Enterprise users get faster AI responses and lower costs
+            if (record.event === "AI Response Sent") {
+                const uid = record.user_id || record.distinct_id || "";
+                if (uid.charCodeAt(0) % 5 === 0) {
+                    record.time_to_generate_ms = Math.round((record.time_to_generate_ms || 5000) * 0.4);
+                    record.cost = Math.round((record.cost || 5) * 0.6 * 100) / 100;
+                    record.priority = "high";
+                }
+            }
+
+            // Pattern 2: API errors cluster on weekends (simulating reduced ops coverage)
+            if (record.event === "API Error") {
+                const dow = EVENT_TIME.day();
+                if (dow === 0 || dow === 6) {
+                    record.severity = "critical";
+                    record.resolution_time_min = chance.integer({ min: 30, max: 240 });
+                } else {
+                    record.severity = "warning";
+                    record.resolution_time_min = chance.integer({ min: 5, max: 30 });
+                }
+            }
         }
 
         if (type === "user") {
-
+            // Pattern 3: Free plan users get a usage_limit flag
+            if (record.plan_type === "free") {
+                record.ai_queries_remaining = chance.integer({ min: 0, max: 10 });
+                record.is_rate_limited = record.ai_queries_remaining === 0;
+            }
         }
 
         if (type === "funnel-post") {
-            
+
         }
 
         if (type === "funnel-pre") {
@@ -265,7 +290,7 @@ const dungeon = {
         }
 
         if (type === "everything") {
-        
+
         }
 
         return record;
