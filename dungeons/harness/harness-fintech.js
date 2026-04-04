@@ -192,7 +192,7 @@ const config = {
 			event: "balance checked",
 			weight: 15,
 			properties: {
-				"account_balance": u.weighNumRange(0, 50000, 0.3, 2500),
+				"account_balance": u.weighNumRange(0, 50000, 0.8, 2500),
 				"account_type": u.pickAWinner(["checking", "savings", "investment"]),
 			}
 		},

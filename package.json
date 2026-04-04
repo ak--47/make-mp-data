@@ -16,6 +16,7 @@
 		"README.md"
 	],
 	"scripts": {
+		"post": "npm publish",
 		"test": "NODE_ENV=test vitest run",
 		"typecheck": "tsc --noEmit",
 		"dev": "nodemon scratch.mjs --ignore ./data/*",

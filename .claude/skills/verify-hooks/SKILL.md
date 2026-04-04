@@ -1,16 +1,25 @@
 ---
 name: verify-hooks
 description: Run a dungeon with constrained parameters and use DuckDB to verify that hook-created data patterns actually appear in the output. Produces a hook-results.md diagnostic report.
-argument-hint: [path to dungeon file, e.g. dungeons/harness/harness-gaming.js]
+argument-hint: [dungeon path(s), e.g. dungeons/harness/harness-gaming.js or "dungeons/harness/harness-*.js"]
 model: claude-opus-4-6
 effort: max
 ---
 
 # Verify Hooks
 
-Verify that the hooks in a dungeon config actually produce their intended data patterns. Run the dungeon at small scale, query the output with DuckDB, and produce a diagnostic `hook-results.md` report.
+Verify that the hooks in one or more dungeon configs actually produce their intended data patterns. Run each dungeon at small scale, query the output with DuckDB, and produce a single consolidated `hook-results.md` diagnostic report.
 
-**Dungeon file:** `$ARGUMENTS`
+**Dungeon file(s):** `$ARGUMENTS`
+
+## Batch Mode
+
+`$ARGUMENTS` can be:
+- A single dungeon path: `dungeons/harness/harness-fintech.js`
+- Multiple space-separated paths: `dungeons/harness/harness-fintech.js dungeons/harness/harness-gaming.js`
+- A glob pattern: `dungeons/harness/harness-*.js`
+
+When multiple dungeons are provided, process each one sequentially through Steps 1-3 (read, run, verify), then write a single consolidated report in Step 4. Use a unique `name` prefix per dungeon when running (e.g., `verify-hooks-fintech`, `verify-hooks-gaming`) so output files don't collide. Clean up each dungeon's output files after querying them, before running the next dungeon.
 
 ## Important: How Hooks Execute in the Pipeline
 
@@ -68,6 +77,7 @@ import generate from './index.js';
 import path from 'path';
 
 const dungeonPath = process.argv[2];
+const runName = process.argv[3] || 'verify-hooks';
 const absolutePath = path.isAbsolute(dungeonPath)
   ? dungeonPath
   : path.resolve(process.cwd(), dungeonPath);
@@ -82,7 +92,7 @@ const results = await generate({
   format: "json",
   gzip: false,
   writeToDisk: true,
-  name: "verify-hooks",
+  name: runName,
   concurrency: 1,
 });
 
@@ -94,18 +104,19 @@ console.log(JSON.stringify({
 }));
 ```
 
-Run it:
+Run it with a unique name per dungeon to avoid file collisions in batch mode:
 ```bash
-node verify-runner.mjs <absolute-path-to-dungeon>
+node verify-runner.mjs <absolute-path-to-dungeon> <run-name>
+# e.g.: node verify-runner.mjs dungeons/harness/harness-fintech.js verify-fintech
 ```
 
-After the run completes, delete `verify-runner.mjs`.
+**Expected output files** (in `./data/`, using `<run-name>` as prefix):
+- `<run-name>-EVENTS.json` — all events (JSONL format, one JSON object per line)
+- `<run-name>-USERS.json` — user profiles
+- `<run-name>-*-GROUPS.json` — group profiles (if dungeon has groups)
+- `<run-name>-*-SCD.json` — SCD data (if dungeon has SCDs)
 
-**Expected output files** (in `./data/`):
-- `verify-hooks-EVENTS.json` — all events (JSONL format, one JSON object per line)
-- `verify-hooks-USERS.json` — user profiles
-- `verify-hooks-*-GROUPS.json` — group profiles (if dungeon has groups)
-- `verify-hooks-*-SCD.json` — SCD data (if dungeon has SCDs)
+Update your DuckDB queries to use the correct file prefix (e.g., `./data/verify-fintech-EVENTS.json` instead of `./data/verify-hooks-EVENTS.json`).
 
 ## Step 3: Verify Each Hook with DuckDB
 
@@ -326,7 +337,18 @@ With ~1000 users and ~100K events:
 
 Write the diagnostic report to `./hook-results.md` in the project root.
 
-### Report Structure
+### Ordering: Failures First
+
+**Critical:** Within each dungeon section, order the detailed results by verdict severity:
+1. **FAIL** hooks first
+2. **WEAK** hooks second
+3. **PASS** hooks last
+
+The summary table should also be sorted this way (FAIL → WEAK → PASS). This ensures the actionable issues are immediately visible at the top.
+
+### Single Dungeon Report Structure
+
+When verifying a single dungeon, use this structure:
 
 ```markdown
 # Hook Verification Report
@@ -339,13 +361,88 @@ Write the diagnostic report to `./hook-results.md` in the project root.
 
 | # | Hook Name | Type | Expected Effect | Observed | Verdict |
 |---|-----------|------|-----------------|----------|---------|
-| 1 | ... | event | ... | ... | PASS |
-| 2 | ... | everything | ... | ... | WEAK |
 | 3 | ... | funnel-pre | ... | ... | FAIL |
+| 2 | ... | everything | ... | ... | WEAK |
+| 1 | ... | event | ... | ... | PASS |
 
 ## Detailed Results
 
-### Hook #1: <Name>
+<hooks ordered FAIL → WEAK → PASS>
+
+### Hook #3: <Name> (FAIL)
+...
+
+### Hook #2: <Name> (WEAK)
+...
+
+### Hook #1: <Name> (PASS)
+...
+
+## Recommendations
+<For any WEAK or FAIL hooks>
+```
+
+### Multi-Dungeon Report Structure
+
+When verifying multiple dungeons, use this consolidated structure. Each dungeon gets its own section with its own summary table and detailed results, all in one file:
+
+```markdown
+# Hook Verification Report
+
+**Run Date:** <date>
+**Dungeons verified:** <count>
+
+## Overall Summary
+
+| Dungeon | Hooks | PASS | WEAK | FAIL |
+|---------|-------|------|------|------|
+| `harness-fintech.js` | 8 | 6 | 1 | 1 |
+| `harness-gaming.js` | 10 | 9 | 1 | 0 |
+
+---
+
+## harness-fintech.js
+
+**Users:** <count> | **Events:** <count> | **Duration:** <time>
+
+### Summary
+
+| # | Hook Name | Type | Expected Effect | Observed | Verdict |
+|---|-----------|------|-----------------|----------|---------|
+| 4 | Low Balance Churn | everything | ... | ... | FAIL |
+| 2 | Payday Patterns | event | ... | ... | WEAK |
+| 1 | Personal vs Business | user | ... | ... | PASS |
+| ... | ... | ... | ... | ... | ... |
+
+### Detailed Results
+
+<hooks ordered FAIL → WEAK → PASS>
+
+### Recommendations
+
+<for this dungeon's WEAK/FAIL hooks>
+
+---
+
+## harness-gaming.js
+
+<same structure, repeated per dungeon>
+
+---
+```
+
+**Key rules for multi-dungeon reports:**
+- The overall summary table at the top shows pass/weak/fail counts per dungeon, sorted with most failures first
+- Each dungeon section is self-contained with its own summary, details, and recommendations
+- Dungeon sections are ordered by failure count descending (most problems first)
+- Use the dungeon filename (without path) as the section header for clarity
+
+### Per-Hook Detail Block
+
+Each hook's detailed section follows this template (same for single and multi-dungeon):
+
+```markdown
+### Hook #N: <Name> (<VERDICT>)
 
 **Intent:** <what the hook is supposed to do>
 **Type:** `<hook type>`
@@ -362,15 +459,6 @@ Write the diagnostic report to `./hook-results.md` in the project root.
 **Analysis:** <interpret the numbers — does the ratio/difference match expectations?>
 
 **Verdict:** PASS / WEAK / FAIL
-
----
-<repeat for each hook>
-
-## Recommendations
-
-<For any WEAK or FAIL hooks, provide specific, actionable suggestions>
-<Include what the hook code should change to produce the intended effect>
-<Reference specific line numbers in the hook function>
 ```
 
 ### Verdict Criteria
@@ -384,17 +472,17 @@ Write the diagnostic report to `./hook-results.md` in the project root.
 After writing the report:
 
 ```bash
-rm -f ./data/verify-hooks-*
+rm -f ./data/verify-*
 rm -f ./verify-runner.mjs
 ```
 
-Remove ALL files matching the `verify-hooks-*` pattern in `./data/`. These are throwaway diagnostic files.
+Remove ALL files matching the `verify-*` pattern in `./data/` (covers all per-dungeon prefixes like `verify-fintech-*`, `verify-gaming-*`, etc.). Also remove the temporary runner script.
 
 ## Final Output
 
 After cleanup, tell the user:
 1. Where the report is: `./hook-results.md`
-2. How many hooks passed, were weak, or failed
+2. How many hooks passed, were weak, or failed (per dungeon if batch mode)
 3. A one-line summary of the most interesting finding
 
 If hooks failed, note that `hook-results.md` can be used as context for fixing the hooks (e.g., "read hook-results.md and fix the failing hooks in <dungeon-file>").
