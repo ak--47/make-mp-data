@@ -87,6 +87,37 @@ Here's a breakdown of the CLI options you can use with `make-mp-data`:
 - `--complex`: create a complex set models including groups, SCD, and lookup tables.
 - `--simple`: create a simple dataset including events, and users
 
+## 🎯 Hooks — Engineering Trends in Data
+
+Hooks let you engineer deliberate, discoverable patterns into your generated data — things like "premium users convert 2x better" or "there was a service outage during days 40-47." A hook is a single transform function on your dungeon config:
+
+```javascript
+const config = {
+  // ...events, funnels, etc.
+  hook: function(record, type, meta) {
+    // Modify events based on type
+    if (type === "event" && record.event === "purchase") {
+      record.amount = record.amount * 2; // boost purchase amounts
+    }
+    
+    // Use "everything" to correlate across a user's full event stream
+    if (type === "everything") {
+      const hasPurchase = record.some(e => e.event === "purchase");
+      for (const event of record) {
+        event.is_buyer = hasPurchase; // tag all events for this user
+      }
+      return record;
+    }
+    
+    return record;
+  }
+};
+```
+
+Hook types: `event`, `user`, `everything`, `funnel-pre`, `funnel-post`, `scd-pre`, `ad-spend`, `group`, `mirror`, `lookup`.
+
+See `dungeons/harness/` for comprehensive examples with 8 hooks each across gaming, fintech, education, food delivery, media, social, and SaaS verticals.
+
 ## 📄 Examples
 
 Check out the examples directory for sample data models:

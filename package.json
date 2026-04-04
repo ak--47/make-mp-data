@@ -1,13 +1,13 @@
 {
 	"name": "make-mp-data",
-	"version": "3.0.0",
+	"version": "3.0.1",
 	"description": "builds all mixpanel primitives for a given project",
 	"type": "module",
 	"main": "index.js",
 	"types": "types.d.ts",
 	"files": [
 		"index.js",
-		"cli.js",
+		"entry.js",
 		"types.d.ts",
 		"lib/",
 		"dungeons/",

@@ -12,14 +12,10 @@ dungeons/customers/*
 !dungeons/customers/.gitkeep
 tests/coverage/*
 !tests/coverage/.gitkeep
-cloud/*
-!cloud/.gitkeep
-!cloud/package.json
 env.yml
 dungeons/customers/*.js
 !dungeons/customers/.gitkeep
 log.json
-CLAUDE.md
 vscode-profile-*
 PHASE1-IMPROVEMENTS.md
 dungeons/*ai-dungeon*

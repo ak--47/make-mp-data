@@ -1,0 +1,220 @@
+{
+  "events": [
+    {
+      "event": "account created",
+      "weight": 0,
+      "isFirstEvent": true,
+      "properties": {
+        "signup_source": ["organic", "referral", "demo_request", "product_hunt", "g2_review"],
+        "initial_plan": ["free_trial", "free_trial", "free_trial", "growth", "enterprise"]
+      }
+    },
+    {
+      "event": "agent deployed",
+      "weight": 3,
+      "properties": {
+        "agent_type": ["pre_call_researcher", "meeting_assistant", "follow_up_writer", "crm_updater", "pipeline_monitor", "outreach_agent"],
+        "configuration_time_min": {"$range": [2, 45]}
+      }
+    },
+    {
+      "event": "meeting joined",
+      "weight": 5,
+      "properties": {
+        "meeting_platform": ["zoom", "zoom", "google_meet", "google_meet", "teams", "webex"],
+        "meeting_type": ["discovery", "demo", "negotiation", "check_in", "onboarding", "qbr"],
+        "participants": {"$range": [2, 12]},
+        "duration_min": {"$range": [10, 90]}
+      }
+    },
+    {
+      "event": "meeting summary generated",
+      "weight": 5,
+      "properties": {
+        "summary_length_words": {"$range": [100, 800]},
+        "action_items_count": {"$range": [0, 8]},
+        "quality_score": {"$range": [50, 95]}
+      }
+    },
+    {
+      "event": "crm auto-updated",
+      "weight": 8,
+      "properties": {
+        "crm_platform": ["hubspot", "hubspot", "salesforce", "salesforce", "pipedrive"],
+        "fields_updated": {"$range": [1, 6]},
+        "update_type": ["contact_info", "deal_stage", "activity_log", "meeting_notes", "next_steps"]
+      }
+    },
+    {
+      "event": "follow-up drafted",
+      "weight": 4,
+      "properties": {
+        "personalization_score": {"$range": [30, 98]},
+        "template_used": ["post_meeting", "deal_nudge", "re_engagement", "intro", "proposal"],
+        "word_count": {"$range": [50, 400]}
+      }
+    },
+    {
+      "event": "follow-up sent",
+      "weight": 3,
+      "properties": {
+        "channel": ["email", "email", "email", "linkedin", "slack"],
+        "personalization_score": {"$range": [30, 98]},
+        "time_to_send_hr": {"$range": [0, 48]},
+        "email_outcome": ["pending", "pending", "pending", "opened", "opened", "clicked", "bounced", "replied"]
+      }
+    },
+    {
+      "event": "pipeline alert received",
+      "weight": 4,
+      "properties": {
+        "alert_type": ["deal_stalling", "champion_left", "competitor_mentioned", "no_activity", "budget_risk"],
+        "severity": ["low", "medium", "high", "critical"],
+        "deal_value": {"$range": [5000, 500000]}
+      }
+    },
+    {
+      "event": "deal stage changed",
+      "weight": 5,
+      "properties": {
+        "from_stage": ["lead", "qualified", "proposal", "negotiation", "verbal_commit"],
+        "to_stage": ["qualified", "proposal", "negotiation", "verbal_commit", "closed_won", "closed_lost"],
+        "days_in_previous_stage": {"$range": [1, 60]}
+      }
+    },
+    {
+      "event": "insight generated",
+      "weight": 6,
+      "properties": {
+        "insight_type": ["deal_risk", "buyer_intent", "competitive_intel", "engagement_trend", "revenue_forecast", "coaching_opportunity"],
+        "confidence_score": {"$range": [55, 98]},
+        "data_sources_used": {"$range": [1, 5]}
+      }
+    },
+    {
+      "event": "agent feedback",
+      "weight": 4,
+      "properties": {
+        "rating": [1, 2, 3, 3, 4, 4, 4, 5, 5, 5],
+        "feedback_type": ["accuracy", "relevance", "timeliness", "completeness", "tone"],
+        "agent_type": ["meeting_assistant", "follow_up_writer", "crm_updater", "pre_call_researcher"]
+      }
+    },
+    {
+      "event": "dashboard viewed",
+      "weight": 7,
+      "properties": {
+        "dashboard_type": ["pipeline_overview", "team_performance", "ai_agent_stats", "revenue_forecast", "activity_feed"],
+        "time_spent_sec": {"$range": [10, 300]}
+      }
+    },
+    {
+      "event": "integration connected",
+      "weight": 1,
+      "properties": {
+        "integration_name": ["hubspot", "salesforce", "slack", "google_calendar", "zoom", "linkedin", "gmail", "outlook"],
+        "setup_time_min": {"$range": [2, 30]}
+      }
+    },
+    {
+      "event": "search performed",
+      "weight": 3,
+      "properties": {
+        "search_type": ["deals", "contacts", "meetings", "insights", "activities"],
+        "results_count": {"$range": [0, 50]},
+        "clicked_result": [true, true, true, false]
+      }
+    },
+    {
+      "event": "workflow created",
+      "weight": 2,
+      "properties": {
+        "workflow_type": ["meeting_prep", "post_meeting", "deal_update", "weekly_digest", "pipeline_review"],
+        "steps_count": {"$range": [2, 8]},
+        "trigger_type": ["time_based", "event_based", "manual"]
+      }
+    },
+    {
+      "event": "contact enriched",
+      "weight": 5,
+      "properties": {
+        "enrichment_source": ["linkedin", "company_website", "crm_history", "email_threads", "meeting_notes"],
+        "fields_enriched": {"$range": [2, 12]},
+        "confidence_level": ["high", "high", "medium", "medium", "low"]
+      }
+    },
+    {
+      "event": "deal created",
+      "weight": 2,
+      "properties": {
+        "deal_source": ["inbound", "outbound", "referral", "upsell", "expansion"],
+        "estimated_value": {"$range": [5000, 250000]},
+        "close_date_days": {"$range": [14, 120]}
+      }
+    },
+    {
+      "event": "coaching tip viewed",
+      "weight": 3,
+      "properties": {
+        "tip_category": ["objection_handling", "discovery_questions", "closing_techniques", "rapport_building", "negotiation"],
+        "tip_relevance_score": {"$range": [40, 98]},
+        "applied": [true, false, false, false]
+      }
+    }
+  ],
+  "superProps": {
+    "subscription_tier": ["starter", "growth", "growth", "enterprise"],
+    "team_role": ["sales_rep", "sales_rep", "sales_rep", "sales_manager", "rev_ops", "marketing"],
+    "ai_agent_version": ["v1.0", "v1.0", "v1.5", "v1.5", "v1.5", "v2.0", "v2.0", "v2.0"]
+  },
+  "userProps": {
+    "company_size": ["SMB", "mid_market", "enterprise"],
+    "industry": ["SaaS", "fintech", "healthcare", "e_commerce", "consulting", "manufacturing"],
+    "deals_in_pipeline": {"$range": [2, 50]},
+    "onboarding_cohort": ["Q1_2025", "Q2_2025", "Q3_2025", "Q4_2025"],
+    "integrations_connected": {"$range": [1, 8]}
+  },
+  "funnels": [
+    {
+      "name": "Onboarding",
+      "sequence": ["account created", "integration connected", "agent deployed", "meeting joined"],
+      "isFirstFunnel": true,
+      "conversionRate": 65,
+      "timeToConvert": 48,
+      "order": "sequential",
+      "weight": 1
+    },
+    {
+      "name": "Meeting to Action",
+      "sequence": ["meeting joined", "meeting summary generated", "follow-up drafted", "follow-up sent"],
+      "conversionRate": 70,
+      "timeToConvert": 4,
+      "order": "sequential",
+      "weight": 8
+    },
+    {
+      "name": "Pipeline Management",
+      "sequence": ["pipeline alert received", "dashboard viewed", "deal stage changed"],
+      "conversionRate": 45,
+      "timeToConvert": 24,
+      "order": "sequential",
+      "weight": 5
+    },
+    {
+      "name": "AI Adoption",
+      "sequence": ["agent deployed", "insight generated", "agent feedback"],
+      "conversionRate": 55,
+      "timeToConvert": 72,
+      "order": "sequential",
+      "weight": 4
+    },
+    {
+      "name": "Value Realization",
+      "sequence": ["dashboard viewed", "workflow created", "agent deployed"],
+      "conversionRate": 40,
+      "timeToConvert": 96,
+      "order": "sequential",
+      "weight": 3
+    }
+  ]
+}
