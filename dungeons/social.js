@@ -1,7 +1,7 @@
 import dayjs from "dayjs";
 import utc from "dayjs/plugin/utc.js";
 import "dotenv/config";
-import * as u from "../../lib/utils/utils.js";
+import * as u from "../lib/utils/utils.js";
 import * as v from "ak-tools";
 
 const SEED = "harness-social";
@@ -98,7 +98,7 @@ const postIds = v.range(1, 1001).map(n => `post_${v.uid(8)}`);
 
 /** @type {Config} */
 const config = {
-	token: "5ad61e3f75003dfe4faad0e9e5f41030",
+	token: "",
 	seed: SEED,
 	numDays: days,
 	numEvents: num_users * 120,

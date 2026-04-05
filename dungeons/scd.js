@@ -22,7 +22,7 @@ const videoCategories = ["funny", "educational", "inspirational", "music", "news
 
 /** @type {import('../types').Dungeon} */
 const config = {
-	token: process.env.MASTER_PROJECT_TOKEN || "",
+	token: "",
 	seed: "simple is best",
 	numDays: 30, //how many days worth1 of data
 	numEvents: 50000, //how many events

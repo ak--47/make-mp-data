@@ -1,7 +1,7 @@
 import dayjs from "dayjs";
 import utc from "dayjs/plugin/utc.js";
 import "dotenv/config";
-import * as u from "../../lib/utils/utils.js";
+import * as u from "../lib/utils/utils.js";
 import * as v from "ak-tools";
 
 const SEED = "harness-education";
@@ -95,7 +95,7 @@ const problemIds = v.range(1, 601).map(n => `problem_${v.uid(6)}`);
 
 /** @type {Config} */
 const config = {
-	token: "10a2fd5d566edd19e803036b276fe91b",
+	token: "",
 	seed: SEED,
 	numDays: days,
 	numEvents: num_users * 120,
@@ -961,7 +961,7 @@ export default config;
  *   import config from './dungeons/harness-education.js';
  *   const results = await generate(config);
  *
- * OUTPUT FILES (with writeToDisk: true, format: "json", gzip: true):
+ * OUTPUT FILES (with writeToDisk: false, format: "json", gzip: true):
  *
  *   - needle-haystack-education__events.json.gz - All event data
  *   - needle-haystack-education__user_profiles.json.gz - User profiles

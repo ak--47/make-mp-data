@@ -1,7 +1,7 @@
 import dayjs from "dayjs";
 import utc from "dayjs/plugin/utc.js";
 import "dotenv/config";
-import * as u from "../../lib/utils/utils.js";
+import * as u from "../lib/utils/utils.js";
 import * as v from "ak-tools";
 
 const SEED = "harness-food";
@@ -77,7 +77,7 @@ const couponCodes = v.range(1, 51).map(n => `QUICK${v.uid(5).toUpperCase()}`);
 
 /** @type {Config} */
 const config = {
-	token: "9ffdb0649ebbea4ff7a742725166b06f",
+	token: "",
 	seed: SEED,
 	numDays: days,
 	numEvents: num_users * 120,
@@ -944,7 +944,7 @@ export default config;
  *   import config from './dungeons/harness-food.js';
  *   const results = await generate(config);
  *
- * OUTPUT FILES (with writeToDisk: true, format: "json", gzip: true):
+ * OUTPUT FILES (with writeToDisk: false, format: "json", gzip: true):
  *
  *   - needle-haystack-food__events.json.gz - All event data
  *   - needle-haystack-food__user_profiles.json.gz - User profiles

@@ -25,14 +25,14 @@ const channelIds = genIds(100);
 
 /** @type {Config} */
 const config = {
-	token: "",
+	// token: "",
 	seed: `LFG!`, //,
 	numDays: days,
-	numEvents: num_users * 62,
+	numEvents: num_users * 63,
 	numUsers: num_users,
 	hasAnonIds: false,
 	hasSessionIds: false,
-	format: "parquet",
+	format: "csv",
 	alsoInferFunnels: false,
 	hasLocation: false,
 	hasAndroidDevices: true,
@@ -290,31 +290,80 @@ const config = {
 	groupProps: {},
 	lookupTables: [],
 	hook: function (record, type, meta) {
-		// event hook: tag events by frequency tier and enrich booleans
+		const NOW = dayjs();
+		const TIME_WHEN_SEARCH_GOT_BAD = NOW.subtract(21, 'days');
+		const TIME_WE_EXPERIMENTED = NOW.subtract(14, 'days');
+
 		if (type === "event") {
-			const highFreq = ["foo", "bar", "baz"];
-			const lowFreq = ["crumn", "yak"];
-			if (highFreq.includes(record.event)) {
-				record.frequency_tier = "high";
-			} else if (lowFreq.includes(record.event)) {
-				record.frequency_tier = "low";
-			} else {
-				record.frequency_tier = "medium";
+			const EVENT_TIME = dayjs(record.time);
+			//when search got bad, people started searching less
+			//and got fewer results
+			if (EVENT_TIME.isAfter(TIME_WHEN_SEARCH_GOT_BAD)) {
+				if (chance.bool({ likelihood: 50 })) {
+					if (record.event === "search") {
+						record["results count"] = 0;
+					}
+				}
+
+				if (chance.bool({ likelihood: 18 })) {
+					record._drop = true;
+				}
 			}
-			// boolean super prop drives a derived field
-			if (record.boolean === true) {
-				record.flag_status = "active";
+
+			if (EVENT_TIME.isBefore(TIME_WE_EXPERIMENTED)) {
+				if (record.event === "$experiment_started") {
+					record._drop = true;
+				}
 			}
 		}
 
-		// everything hook: users with very few events are marked as churned
+
+
 		if (type === "everything") {
-			if (record.length <= 3) {
-				for (const e of record) {
-					e.is_churned_user = true;
+			// Filter out events tagged for dropping by the event hook
+			record = record.filter(e => !e._drop);
+
+			const hadFeatureEnabled = record.some(event =>
+				event.event === "$experiment_started" &&
+				event["Variant name"] === "feature enabled"
+			);
+
+			const hadFeatureDisabled = record.some(event =>
+				event.event === "$experiment_started" &&
+				event["Variant name"] === "feature disabled"
+			);
+
+			record.forEach((event, idx) => {
+				const EVENT_TIME = dayjs(event.time);
+
+				if (EVENT_TIME.isAfter(TIME_WE_EXPERIMENTED)) {
+					if (hadFeatureEnabled) {
+						// Users with feature enabled variant have a higher likelihood of subscribing.
+						// Add an extra subscribe event 50% of the time immediately after watching a video.
+						if (event.event === "watch video" && chance.bool({ likelihood: 75 })) {
+							// watch time goes up 
+							event["watch time"] = v.round(event["watch time"] * 1.7);
+							const subscribeEvent = {
+								event: "subscribe",
+								time: dayjs(event.time).add(1, 'minute').toISOString(),	
+								user_id: event.user_id,						
+							};
+							record.splice(idx + 1, 0, subscribeEvent);
+						}
+					} else if (hadFeatureDisabled) {
+						// Users with feature disabled variant have lower likelihood of subscribing.
+						// Drop subscribe events 50% of the time.						
+						if (event.event === "subscribe" && chance.bool({ likelihood: 75 })) {
+							record.splice(idx, 1);
+						}
+
+						// watch time goes down
+						if (event.event === "watch video") {
+							event["watch time"] = v.round(event["watch time"] * 0.5);
+						}
+					}
 				}
-			}
-			return record;
+			});
 		}
 
 		return record;

@@ -16,7 +16,7 @@ import * as u from 'ak-tools';
 
 /** @type {import('../types.js').Dungeon} */
 const config = {
-	token: process.env.MASTER_PROJECT_TOKEN || "",
+	token: "",
 	seed: "quite complexus",
 	numDays: 30, //how many days worth of data
 	numEvents: 100_000, //how many events

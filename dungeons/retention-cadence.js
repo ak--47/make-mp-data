@@ -67,7 +67,7 @@ function generateCadencedEvents(behaviorName, cadence, startTime, endTime, churn
 
 /** @type {Config} */
 const config = {
-	token: "ed63e7c6227b1990d2b1b847d7d8e0d9",
+	token: "",
 	seed: "lets go",
 	numDays: days,
 	numEvents: num_users * 50,

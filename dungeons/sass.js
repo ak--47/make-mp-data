@@ -1,7 +1,7 @@
 import dayjs from "dayjs";
 import utc from "dayjs/plugin/utc.js";
 import "dotenv/config";
-import * as u from "../../lib/utils/utils.js";
+import * as u from "../lib/utils/utils.js";
 import * as v from "ak-tools";
 
 const SEED = "harness-sass";
@@ -78,7 +78,7 @@ const failedDeployUsers = new Map();
 
 /** @type {Config} */
 const config = {
-	token: "495b9a9bbfc06c0e65b98827e07a4b87",
+	token: "",
 	seed: SEED,
 	numDays: days,
 	numEvents: num_users * 120,

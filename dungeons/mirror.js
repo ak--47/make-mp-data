@@ -19,7 +19,7 @@ import { pickAWinner, weighNumRange, date, integer } from "../lib/utils/utils.js
 
 /** @type {import('../types').Dungeon} */
 const config = {
-	token: process.env.MASTER_PROJECT_TOKEN || "",
+	token: "",
 	seed: "mirror me",
 	numDays: 30, //how many days worth of data
 	numEvents: 10000, //how many events

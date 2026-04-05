@@ -1,7 +1,7 @@
 import dayjs from "dayjs";
 import utc from "dayjs/plugin/utc.js";
 import "dotenv/config";
-import * as u from "../../lib/utils/utils.js";
+import * as u from "../lib/utils/utils.js";
 import * as v from "ak-tools";
 
 const SEED = "harness-gaming";
@@ -110,7 +110,7 @@ const itemIds = v.range(1, 301).map(n => `item_${v.uid(7)}`);
 
 /** @type {Config} */
 const config = {
-	token: "7958c5407b34dbbeef4db2c9d1f032d4",
+	token: "",
 	seed: SEED,
 	numDays: days,
 	numEvents: num_users * 120,
@@ -1133,7 +1133,7 @@ export default config;
  *   import config from './dungeons/harness-gaming.js';
  *   const results = await generate(config);
  *
- * OUTPUT FILES (with writeToDisk: true, format: "parquet", gzip: true):
+ * OUTPUT FILES (with writeToDisk: false, format: "parquet", gzip: true):
  *
  *   - needle-in-haystack__events.parquet.gz - All event data
  *   - needle-in-haystack__user_profiles.parquet.gz - User profiles

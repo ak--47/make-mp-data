@@ -19,7 +19,7 @@ const totalDays = (numQuarters * 90) + 10;
 
 /** @type {import('../types').Dungeon} */
 const config = {
-	// token: process.env.MASTER_PROJECT_TOKEN || "",
+	// token: "",
 	seed: seed,
 	numDays: totalDays,
 	numEvents: totalEvents,
@@ -39,7 +39,7 @@ const config = {
 	hasCampaigns: false,
 	hasDesktopDevices: false,
 	hasIOSDevices: false,
-	writeToDisk: "gs://dungeon_master_4/big_data",
+	writeToDisk: false,
 	funnels: [
 		{
 			"sequence": ["foo", "bar", "baz", "qux", "garply", "durtle", "linny", "fonk", "crumn", "yak"],

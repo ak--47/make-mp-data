@@ -145,8 +145,8 @@ lookupTables: [],
 2. When splicing events in `everything`, new events need: `event`, `time` (ISO string), `user_id` (copied from source event's `event.user_id`), plus flat properties. The pipeline uses `user_id` NOT `distinct_id`.
 3. Use `dayjs` for all time operations inside hooks
 4. Use the seeded `chance` instance (from module scope) for randomness in hooks
-5. Return `record` to keep/modify from `event` hooks (single object only — do NOT return arrays).
-6. **To drop/filter events** (for churn, drop-off, or trend patterns): you CANNOT drop events from the `event` hook — there is no way to suppress an event from within `type === "event"`. Instead, use ONE of these patterns:
+5. **Always return `record`** at the very end of the hook function. Every code path must reach `return record`. If you want to suppress an event from the `event` hook, assign it to an empty object (`record = {}`) and let it fall through to `return record` — do NOT use `return {}` as an early return or `return null`.
+6. **To drop/filter events** (for churn, drop-off, or trend patterns): you CANNOT truly drop events from the `event` hook — assigning `record = {}` creates a broken empty record. Instead, use ONE of these patterns in the `everything` hook:
    - **Tag-and-filter**: In the `event` hook, tag events to drop with a property (e.g., `record._drop = true`). Then in the `everything` hook, filter them out: `return record.filter(e => !e._drop)`
    - **Direct filter in `everything`**: Skip the tagging and just filter directly in the `everything` hook based on conditions: `return record.filter(e => !shouldDrop(e))`
    - **Splice removal**: In the `everything` hook, iterate backwards and `splice(i, 1)` to remove events
@@ -215,10 +215,382 @@ const OUTAGE_END = NOW.subtract(3, 'days');
 ```
 
 ### Aim for this distribution across your 8 hooks:
-- 2-4 `event` hooks (property modification, temporal windows, day-of-week)
-- 1-2 `everything` hooks (two-pass processing, cross-table correlation, churn/retention)
+- 2-3 `event` hooks (property modification, temporal windows, day-of-week)
+- 3-4 `everything` hooks — this is the most powerful hook type; it sees the user's full event history AND `meta.profile`, enabling cross-table correlation, two-pass analysis, churn simulation, event injection, and behavioral segmentation. Lean heavily on this.
 - 1-2 of: `user`, `funnel-pre`, or `funnel-post`
 - 0-1 using module-level closure state (Maps)
+
+### Hook Reference Examples
+
+These are proven, production-tested implementations. Use them as templates.
+
+#### Example 1: Two-Pass Everything Hook (scan then modify)
+
+The most important pattern. First pass identifies behavioral signals across all events, second pass modifies events based on those signals. Always set schema defaults before conditional modification.
+
+```javascript
+if (type === "everything") {
+  const userEvents = record;
+  const firstEventTime = userEvents.length > 0 ? dayjs(userEvents[0].time) : null;
+
+  // ── FIRST PASS: Scan for user behavioral patterns ──
+  let usedPowerFeature = false;
+  let earlyAdopter = false;
+  let earlyFailures = 0;
+
+  userEvents.forEach((event) => {
+    const eventTime = dayjs(event.time);
+    const daysSinceStart = firstEventTime ? eventTime.diff(firstEventTime, 'days', true) : 0;
+
+    if (event.event === "use item" && event.item_type === "Ancient Compass") {
+      usedPowerFeature = true;
+    }
+    if (event.event === "guild joined" && daysSinceStart < 3) {
+      earlyAdopter = true;
+    }
+    if (event.event === "player death" && daysSinceStart < 7) {
+      earlyFailures++;
+    }
+  });
+
+  // ── SECOND PASS: Modify events based on patterns ──
+  userEvents.forEach((event, idx) => {
+    const eventTime = dayjs(event.time);
+
+    // Set schema defaults FIRST (ensures property exists on all events of this type)
+    if (event.event === "quest turned in") {
+      event.compass_user = false;
+    }
+
+    // Then conditionally override
+    if (usedPowerFeature && event.event === "quest turned in") {
+      event.reward_gold = Math.floor((event.reward_gold || 100) * 1.5);
+      event.compass_user = true;
+
+      // Inject extra events via splice
+      if (chance.bool({ likelihood: 40 })) {
+        userEvents.splice(idx + 1, 0, {
+          event: "quest turned in",
+          time: eventTime.add(chance.integer({ min: 10, max: 120 }), 'minutes').toISOString(),
+          user_id: event.user_id,  // MUST use user_id, not distinct_id
+          reward_gold: chance.integer({ min: 100, max: 500 }),
+          compass_user: true,
+        });
+      }
+    }
+  });
+
+  return record;  // Return the (possibly modified) array
+}
+```
+
+#### Example 2: Churn Simulation via Reverse Splice
+
+To drop events (simulate churn, disengagement, seasonal dips), iterate backwards and splice. Forward iteration corrupts indices when removing elements.
+
+```javascript
+if (type === "everything") {
+  const userEvents = record;
+  const firstEventTime = userEvents.length > 0 ? dayjs(userEvents[0].time) : null;
+
+  // Identify churn candidates (e.g., non-joiners with poor scores)
+  let joinedEarly = false;
+  let hasLowScore = false;
+  userEvents.forEach((event) => {
+    const days = firstEventTime ? dayjs(event.time).diff(firstEventTime, 'days', true) : 0;
+    if (event.event === "study group joined" && days <= 10) joinedEarly = true;
+    if (event.event === "quiz completed" && event.score_percent < 60) hasLowScore = true;
+  });
+
+  if (!joinedEarly && hasLowScore) {
+    // Remove 70% of events after day 14 (churn simulation)
+    const churnCutoff = firstEventTime ? firstEventTime.add(14, 'days') : null;
+    for (let i = userEvents.length - 1; i >= 0; i--) {  // BACKWARDS iteration
+      if (churnCutoff && dayjs(userEvents[i].time).isAfter(churnCutoff)) {
+        if (chance.bool({ likelihood: 70 })) {
+          userEvents.splice(i, 1);
+        }
+      }
+    }
+  } else if (joinedEarly) {
+    // Retained users get bonus engagement events
+    const lastEvent = userEvents[userEvents.length - 1];
+    if (lastEvent && chance.bool({ likelihood: 60 })) {
+      userEvents.push({
+        event: "discussion posted",
+        time: dayjs(lastEvent.time).add(chance.integer({ min: 1, max: 3 }), 'days').toISOString(),
+        user_id: lastEvent.user_id,
+        study_group_member: true,
+      });
+    }
+  }
+
+  return record;
+}
+```
+
+#### Example 3: Closure-Based State with Maps
+
+Module-level Maps enable cross-event causality: one event sets state, a later event reads and reacts to it. Define Maps outside the hook function.
+
+```javascript
+// ── Module scope (outside config object) ──
+const costOverrunUsers = new Map();
+const failedDeployUsers = new Map();
+
+// ── Inside hook function ──
+if (type === "event") {
+  // Cost overrun → forced scale-down on next infrastructure event
+  if (record.event === "cost report generated" && record.cost_change_percent > 25) {
+    record.budget_exceeded = true;
+    costOverrunUsers.set(record.user_id, true);       // SET state
+  }
+  if (record.event === "infrastructure scaled" && costOverrunUsers.has(record.user_id)) {
+    record.scale_direction = "down";                   // REACT to state
+    record.cost_reaction = true;
+    costOverrunUsers.delete(record.user_id);            // CLEAR state
+  }
+
+  // Failed deploy → recovery deploy takes 1.5x longer
+  if (record.event === "deployment pipeline run") {
+    if (record.status === "failed") {
+      failedDeployUsers.set(record.user_id, true);
+    } else if (record.status === "success" && failedDeployUsers.has(record.user_id)) {
+      record.duration_sec = Math.floor((record.duration_sec || 300) * 1.5);
+      record.recovery_deployment = true;
+      failedDeployUsers.delete(record.user_id);
+    }
+  }
+}
+```
+
+#### Example 4: Funnel-Post Event Injection
+
+Splice events between funnel steps (coupons, intermediate actions). Calculate midpoint time between adjacent events.
+
+```javascript
+if (type === "funnel-post") {
+  if (Array.isArray(record) && record.length >= 2) {
+    const firstEvent = record[0];
+    const isFreeUser = firstEvent && firstEvent.subscription_tier === "Free";
+
+    if (isFreeUser && chance.bool({ likelihood: 30 })) {
+      const insertIdx = chance.integer({ min: 1, max: record.length - 1 });
+      const prevEvent = record[insertIdx - 1];
+      const nextEvent = record[insertIdx];
+      // Calculate midpoint time between adjacent funnel steps
+      const midTime = dayjs(prevEvent.time).add(
+        dayjs(nextEvent.time).diff(dayjs(prevEvent.time)) / 2, 'milliseconds'
+      ).toISOString();
+
+      record.splice(insertIdx, 0, {
+        event: "coupon applied",
+        time: midTime,
+        user_id: firstEvent.user_id,
+        coupon_code: chance.pickone(["SAVE10", "WELCOME", "FLASH20"]),
+        discount_percent: chance.integer({ min: 10, max: 30 }),
+        coupon_injected: true,
+      });
+    }
+  }
+}
+```
+
+#### Example 5: User Profile Enrichment (Conditional Properties)
+
+Add computed properties to user profiles based on existing attributes. Different user segments get different property sets.
+
+```javascript
+if (type === "user") {
+  const companySize = record.company_size;
+
+  if (companySize === "enterprise") {
+    record.seat_count = chance.integer({ min: 50, max: 500 });
+    record.annual_contract_value = chance.integer({ min: 50000, max: 500000 });
+    record.customer_success_manager = true;
+  } else if (companySize === "startup") {
+    record.seat_count = chance.integer({ min: 1, max: 5 });
+    record.annual_contract_value = chance.integer({ min: 0, max: 3600 });
+    record.customer_success_manager = false;
+  }
+
+  // Universal properties (all users get these)
+  record.customer_health_score = chance.integer({ min: 1, max: 100 });
+}
+```
+
+#### Example 6: Event Property Modification + Day-of-Month Patterns
+
+Modify properties based on calendar patterns. Always set boolean tags for both true AND false cases so the property appears consistently in the schema.
+
+```javascript
+if (type === "event") {
+  const EVENT_TIME = dayjs(record.time);
+  const dayOfMonth = EVENT_TIME.date();
+
+  // Payday cycle: 1st and 15th see bigger deposits
+  if (record.event === "transaction completed" && record.transaction_type === "direct_deposit") {
+    if (dayOfMonth === 1 || dayOfMonth === 15) {
+      record.amount = Math.floor((record.amount || 50) * 3);
+      record.payday = true;
+    } else {
+      record.payday = false;   // ALWAYS set both cases
+    }
+  }
+
+  // Post-payday spending window (days 1-3 and 15-17)
+  if (record.event === "transfer sent") {
+    const isPaydayWindow = (dayOfMonth >= 1 && dayOfMonth <= 3) || (dayOfMonth >= 15 && dayOfMonth <= 17);
+    if (isPaydayWindow && chance.bool({ likelihood: 60 })) {
+      record.amount = Math.floor((record.amount || 200) * 2.0);
+      record.post_payday_spending = true;
+    } else {
+      record.post_payday_spending = false;
+    }
+  }
+}
+```
+
+#### Example 7: Mass Event Injection in Everything Hook
+
+For viral cascades, engagement bursts, or seasonal spikes — accumulate events in an array, then splice all at once.
+
+```javascript
+if (type === "everything") {
+  const userEvents = record;
+
+  // Identify viral creators (5% of users with 10+ posts)
+  let postCount = 0;
+  userEvents.forEach(e => { if (e.event === "post created") postCount++; });
+  const isViralCreator = postCount >= 10 && chance.bool({ likelihood: 5 });
+
+  if (isViralCreator) {
+    userEvents.forEach((event, idx) => {
+      if (event.event === "post created") {
+        const eventTime = dayjs(event.time);
+        const injected = [];
+
+        // Generate 10-20 engagement events per viral post
+        const viewCount = chance.integer({ min: 10, max: 20 });
+        for (let i = 0; i < viewCount; i++) {
+          injected.push({
+            event: "post viewed",
+            time: eventTime.add(chance.integer({ min: 1, max: 180 }), 'minutes').toISOString(),
+            user_id: event.user_id,
+            source: chance.pickone(["feed", "explore", "search"]),
+            viral_cascade: true,
+          });
+        }
+
+        // Single splice with spread for all injected events
+        userEvents.splice(idx + 1, 0, ...injected);
+      }
+    });
+  }
+
+  return record;
+}
+```
+
+#### Example 8: Cross-Table Correlation via Everything + meta.profile
+
+The `everything` hook receives `meta.profile` — the user's full profile object. This lets you drive event behavior based on user properties, creating discoverable correlations across both tables.
+
+```javascript
+if (type === "everything") {
+  const userEvents = record;
+  const profile = meta.profile;
+
+  // Use profile properties to segment and modify all events
+  const tier = profile.subscription_tier || "free";
+  const isEnterprise = profile.company_size === "enterprise";
+
+  userEvents.forEach((event) => {
+    // Stamp tier onto every event (creates cross-table join signal)
+    event.user_tier = tier;
+
+    // Enterprise users get faster response times
+    if (isEnterprise && event.event === "support ticket resolved") {
+      event.resolution_hours = Math.floor((event.resolution_hours || 24) * 0.4);
+      event.priority_support = true;
+    }
+
+    // Premium users get higher reward multipliers
+    if (tier === "premium" && event.event === "reward redeemed") {
+      event.value = Math.floor((event.value || 10) * 3);
+      event.premium_reward = true;
+    }
+  });
+
+  // Enterprise users also get a synthetic "account review" event monthly
+  if (isEnterprise && userEvents.length > 0) {
+    const lastEvent = userEvents[userEvents.length - 1];
+    userEvents.push({
+      event: "account review",
+      time: dayjs(lastEvent.time).add(1, 'day').toISOString(),
+      user_id: lastEvent.user_id,
+      user_tier: tier,
+      review_type: "quarterly_business_review",
+    });
+  }
+
+  return record;
+}
+```
+
+#### Example 9: Fraud/Anomaly Injection in Everything Hook
+
+Inject a realistic burst of anomalous events at the midpoint of a user's timeline. Perfect for fraud detection, outage simulation, or bot behavior patterns.
+
+```javascript
+if (type === "everything") {
+  const userEvents = record;
+
+  // 3% of users experience a fraud event sequence
+  if (chance.bool({ likelihood: 3 }) && userEvents.length >= 2) {
+    const midIdx = Math.floor(userEvents.length / 2);
+    const midEvent = userEvents[midIdx];
+    const midTime = dayjs(midEvent.time);
+    const userId = midEvent.user_id;
+
+    // Inject burst of 3-5 rapid high-value transactions within 1 hour
+    const burstCount = chance.integer({ min: 3, max: 5 });
+    const fraudEvents = [];
+
+    for (let i = 0; i < burstCount; i++) {
+      fraudEvents.push({
+        event: "transaction completed",
+        time: midTime.add(i * 10, "minutes").toISOString(),
+        user_id: userId,
+        amount: chance.integer({ min: 500, max: 3000 }),
+        payment_method: "credit",
+        fraud_sequence: true,
+      });
+    }
+
+    // Follow-up: card locked + dispute filed
+    fraudEvents.push({
+      event: "card locked",
+      time: midTime.add(burstCount * 10 + 5, "minutes").toISOString(),
+      user_id: userId,
+      reason: "suspicious_activity",
+      fraud_sequence: true,
+    });
+    fraudEvents.push({
+      event: "dispute filed",
+      time: midTime.add(burstCount * 10 + 30, "minutes").toISOString(),
+      user_id: userId,
+      dispute_amount: chance.integer({ min: 500, max: 3000 }),
+      fraud_sequence: true,
+    });
+
+    // Single splice to inject entire sequence
+    userEvents.splice(midIdx + 1, 0, ...fraudEvents);
+  }
+
+  return record;
+}
+```
 
 ## Common Pitfalls to Avoid
 

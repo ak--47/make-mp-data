@@ -90,7 +90,7 @@ const config = {
 	isAnonymous: true,
 	hasAndroidDevices: false,
 	hasDesktopDevices: false,
-	writeToDisk: true,
+	writeToDisk: false,
 	concurrency: 1,
 
 	events: [

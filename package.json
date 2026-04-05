@@ -1,6 +1,6 @@
 {
 	"name": "make-mp-data",
-	"version": "3.0.1",
+	"version": "3.0.2",
 	"description": "builds all mixpanel primitives for a given project",
 	"type": "module",
 	"main": "index.js",
@@ -22,7 +22,6 @@
 		"dev": "nodemon scratch.mjs --ignore ./data/*",
 		"prune": "rm -f ./data/* && rm -f ./tmp/* && rm -f vscode-profile-*",
 		"deps": "./scripts/update-deps.sh",
-		"dungeon:new": "node ./scripts/create-dungeon.mjs",
 		"dungeon:run": "node ./scripts/run-dungeon.mjs",
 		"dungeon:to-json": "node ./scripts/dungeon-to-json.mjs",
 		"dungeon:from-json": "node ./scripts/json-to-dungeon.mjs"
@@ -54,8 +53,6 @@
 	"homepage": "https://github.com/ak--47/make-mp-data#readme",
 	"dependencies": {
 		"@google-cloud/storage": "^7.14.0",
-		"ak-fetch": "^2.0.15",
-		"ak-gemini": "^1.1.13",
 		"ak-tools": "^1.1.12",
 		"chance": "^1.1.11",
 		"dayjs": "^1.11.11",

@@ -14,7 +14,7 @@ const days = 30;
 
 /** @type {Config} */
 const config = {
-	token: process.env.MASTER_PROJECT_TOKEN || "",
+	token: "",
 	seed: SEED,
 	numDays: days,
 	numEvents: num_users * 100,

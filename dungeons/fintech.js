@@ -1,7 +1,7 @@
 import dayjs from "dayjs";
 import utc from "dayjs/plugin/utc.js";
 import "dotenv/config";
-import * as u from "../../lib/utils/utils.js";
+import * as u from "../lib/utils/utils.js";
 
 const SEED = "harness-fintech";
 dayjs.extend(utc);
@@ -83,7 +83,7 @@ const days = 100;
 
 /** @type {Config} */
 const config = {
-	token: "048f954dddbfbd4bff34edd8b3d95c06",
+	token: "",
 	seed: SEED,
 	numDays: days,
 	numEvents: num_users * 120,
@@ -934,7 +934,7 @@ export default config;
  *   import config from './dungeons/harness-fintech.js';
  *   const results = await generate(config);
  *
- * OUTPUT FILES (with writeToDisk: true):
+ * OUTPUT FILES (with writeToDisk: false):
  *
  *   - needle-haystack-fintech__events.json.gz       - All event data
  *   - needle-haystack-fintech__user_profiles.json.gz - User profiles

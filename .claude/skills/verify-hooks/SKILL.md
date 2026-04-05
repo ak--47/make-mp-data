@@ -94,6 +94,7 @@ const results = await generate({
   writeToDisk: true,
   name: runName,
   concurrency: 1,
+  verbose: false,
 });
 
 console.log(JSON.stringify({
@@ -335,7 +336,7 @@ With ~1000 users and ~100K events:
 
 ## Step 4: Write hook-results.md
 
-Write the diagnostic report to `./hook-results.md` in the project root.
+Write the diagnostic report to `./research/hook-results.md` in the project root.
 
 ### Ordering: Failures First
 
@@ -481,7 +482,7 @@ Remove ALL files matching the `verify-*` pattern in `./data/` (covers all per-du
 ## Final Output
 
 After cleanup, tell the user:
-1. Where the report is: `./hook-results.md`
+1. Where the report is: `./research/hook-results.md`
 2. How many hooks passed, were weak, or failed (per dungeon if batch mode)
 3. A one-line summary of the most interesting finding
 

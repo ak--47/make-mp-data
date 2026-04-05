@@ -13,19 +13,20 @@ import getCliParams from './lib/cli/cli.js';
         const cliConfig = getCliParams();
 
         // Load dungeon config - default to simple mode if no mode specified
+        // CLI always writes to disk unless explicitly disabled
         let finalConfig = cliConfig;
         if (cliConfig.complex) {
             const complexConfig = await import('./dungeons/complex.js');
-            finalConfig = { ...complexConfig.default, ...cliConfig };
-        } 
+            finalConfig = { ...complexConfig.default, writeToDisk: true, ...cliConfig };
+        }
 		else if (cliConfig.sanity) {
 			const sanityConfig = await import('./dungeons/sanity.js');
-			finalConfig = { ...sanityConfig.default, ...cliConfig };
+			finalConfig = { ...sanityConfig.default, writeToDisk: true, ...cliConfig };
 		}
 		else if (cliConfig.simple || (!cliConfig.complex && !cliConfig.simple)) {
             // Default to simple mode when no flags or when --simple is explicitly set
             const simpleConfig = await import('./dungeons/simple.js');
-            finalConfig = { ...simpleConfig.default, ...cliConfig };
+            finalConfig = { ...simpleConfig.default, writeToDisk: true, ...cliConfig };
         }
 
 		

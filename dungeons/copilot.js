@@ -66,7 +66,7 @@ function makeProducts(maxItems = 5) {
 
 /** @type {import('../types').Dungeon} */
 const config = {
-	token: "a4152b30c5276306151de1146321997e",
+	token: "",
 	seed: "simple is best",
 	numDays: 108, //how many days worth1 of data
 	numEvents: 2_000_000, //how many events

@@ -15,7 +15,7 @@ const days = 180;
 
 /** @type {Config} */
 const config = {
-	token: process.env.MASTER_PROJECT_TOKEN || "",
+	token: "",
 	seed: "i am gamer face",
 	numDays: days,
 	numEvents: num_users * 90,
@@ -39,7 +39,7 @@ const config = {
 
 	batchSize: 2_500_000,
 	concurrency: 1,
-	writeToDisk: true,
+	writeToDisk: false,
 	funnels: [
 		{
 			"sequence": ["app install", "character creation", "join party"],

@@ -14,7 +14,7 @@ export default {
 	strictEventCount: true,
 
 	verbose: true,
-	writeToDisk: true,
+	writeToDisk: false,
 	format: 'json',
 
 	events: [

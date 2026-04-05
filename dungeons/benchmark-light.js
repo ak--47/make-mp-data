@@ -18,7 +18,7 @@ import { createTextGenerator } from '../lib/generators/text.js';
 
 /** @type {import('../types.js').Dungeon} */
 const config = {
-	// token: process.env.MASTER_PROJECT_TOKEN || "",
+	// token: "",
 	name: "5M-Events-Light",
 	format: 'json', //csv or json
 	seed: "one million events",
@@ -41,7 +41,7 @@ const config = {
 	isAnonymous: false,
 	alsoInferFunnels: true,
 	// concurrency automatically set to 1 when strictEventCount is enabled
-	writeToDisk: true,
+	writeToDisk: false,
 	batchSize: 12_500_000,
 
 	events: [

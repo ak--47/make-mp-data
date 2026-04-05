@@ -15,7 +15,7 @@ lib/
 ├── core/           # Context, config validation, HookedArray storage
 ├── generators/     # Event, funnel, profile, SCD, adspend, mirror, text, product generators
 ├── orchestrators/  # user-loop (main generation), mixpanel-sender (import)
-├── utils/          # utils, ai (Vertex AI), logger (Pino), mixpanel tracking, chart, project
+├── utils/          # utils, logger (Pino), mixpanel tracking, chart, project
 ├── cli/            # CLI argument parsing (yargs)
 └── templates/      # Default data, phrase banks, AI instruction templates, hook examples
 scripts/            # dungeon management (create, run, convert to/from JSON)
@@ -107,8 +107,7 @@ Uses **Vitest** (ESM-native). Test files:
 | File | Purpose |
 |------|---------|
 | `utils.js` | RNG (`initChance`/`getChance`), pickers (`pick`/`choose`/`weighArray`), `TimeSoup`, streaming (CSV/JSON/Parquet), `bytesHuman`, `formatDuration` |
-| `ai.js` | Vertex AI integration. 4 transformers (schema, hooks, refine, funnels) with pre-warming, self-healing validation, Mixpanel tracking. Uses `ak-gemini` with Application Default Credentials. |
-| `logger.js` | Pino structured logging. Silent in `NODE_ENV=test`, pretty in dev, JSON in production. Child loggers: `serverLogger`, `aiLogger`, `dataLogger`, `importLogger` |
+| `logger.js` | Pino structured logging. Silent in `NODE_ENV=test`, pretty in dev, JSON in production. Child loggers: `serverLogger`, `dataLogger`, `importLogger` |
 | `mixpanel.js` | Server-side Mixpanel tracking for AI observability (`trackAIJob`) |
 | `function-registry.js` | Registry of valid functions for JSON dungeon configs (validation) |
 | `json-evaluator.js` | Converts JSON function call objects to JavaScript code strings |
@@ -227,7 +226,7 @@ These are the proven techniques used across harness dungeons:
 
 ## Dependencies
 
-**Core**: `ak-tools`, `ak-gemini`, `chance`, `dayjs`, `yargs`, `mixpanel-import`, `p-limit`, `seedrandom`, `pino`, `pino-pretty`, `mixpanel`, `sentiment`, `tracery-grammar`, `hyparquet-writer`
+**Core**: `ak-tools`, `chance`, `dayjs`, `yargs`, `mixpanel-import`, `p-limit`, `seedrandom`, `pino`, `pino-pretty`, `mixpanel`, `sentiment`, `tracery-grammar`, `hyparquet-writer`
 
 **Cloud**: `@google-cloud/storage` (for `gs://` output paths)
 
@@ -238,7 +237,6 @@ These are the proven techniques used across harness dungeons:
 - **ESM only** — `"type": "module"` in package.json
 - **Time model**: Events are generated in a fixed historical window (`FIXED_NOW` = 2024-02-02), then shifted forward to present. `FIXED_BEGIN` is computed dynamically from `numDays`.
 - **Hook types**: See Hook System section above. Core types: `event`, `user`, `everything`, `funnel-pre`, `funnel-post`, `scd-pre`. Storage-only: `ad-spend`, `group`, `mirror`, `lookup`
-- **AI module** uses Vertex AI (Application Default Credentials), NOT Gemini API keys
 
 ---
 

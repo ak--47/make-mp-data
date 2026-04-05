@@ -107,7 +107,7 @@ const commentGenerator = createTextGenerator({
 
 /** @type {import('../types.js').Dungeon} */
 const config = {
-	// token: process.env.MASTER_PROJECT_TOKEN || "",
+	// token: "",
 	name: "300k-Events-Heavy",
 	format: 'json', //csv or json
 	seed: "one million events",
@@ -130,7 +130,7 @@ const config = {
 	isAnonymous: false,
 	alsoInferFunnels: true,
 	// concurrency automatically set to 1 when strictEventCount is enabled
-	writeToDisk: true,
+	writeToDisk: false,
 	batchSize: 2_500_000,
 
 	events: [

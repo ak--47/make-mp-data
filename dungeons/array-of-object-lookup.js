@@ -19,7 +19,7 @@ const spiritAnimals = ["duck", "dog", "otter", "penguin", "cat", "elephant", "li
 
 /** @type {import('../types.js').Dungeon} */
 const config = {
-	// token: "0a3e6aa01225ed03856dca545c2b5b3d",
+	// token: "",
 	seed: "test array of objects lookup",
 	name: "array-of-object-lookup",
 	numDays: 60, //how many days worth1 of data
@@ -41,7 +41,7 @@ const config = {
 	alsoInferFunnels: true,
 	concurrency: 1,
 	batchSize: 250_000,
-	writeToDisk: true,
+	writeToDisk: false,
 	events: [
 		{
 			event: "checkout",

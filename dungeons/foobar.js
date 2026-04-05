@@ -136,7 +136,7 @@ const seed = Math.random().toString()
 
 /** @type {import('../types').Dungeon} */
 const config = {
-	token: process.env.MASTER_PROJECT_TOKEN || "",
+	token: "",
 	seed: seed,
 	numDays: 30, //how many days worth of data
 	numEvents: numEvents, //how many events

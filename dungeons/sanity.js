@@ -18,7 +18,7 @@ import { weighNumRange, integer } from "../lib/utils/utils.js";
 
 /** @type {import('../types.js').Dungeon} */
 const config = {
-	token: process.env.MASTER_PROJECT_TOKEN || "",
+	token: "",
 	seed: "foo bar",
 	numDays: 90, //how many days worth of data
 	numEvents: 50_000, //how many events
@@ -29,7 +29,7 @@ const config = {
 	hasSessionIds: false, //if true, hasSessionIds are created for each user
 	alsoInferFunnels: true, //if true, infer funnels from events
 	makeChart: true,
-	writeToDisk: true,
+	writeToDisk: false,
 	concurrency: 25,
 	funnels: [
 		{
