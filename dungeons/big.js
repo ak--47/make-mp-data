@@ -107,7 +107,7 @@ const config = {
 	],
 	//? https://docs.mixpanel.com/docs/data-structure/property-reference/data-type
 	superProps: {		
-		"string": pickAWinner(["red", "orange", "yellow", "green", "blue", "indigo", "violet"]),
+		"string": ["red", "orange", "yellow", "green", "blue", "indigo", "violet"],
 		"number": integer,
 		"boolean": [true, true, false],
 		"date": () => date(90),
@@ -157,7 +157,7 @@ const config = {
 function buildObjectProp() {
 	return function () {
 		return {
-			"foo key": choose(pickAWinner(["red", "orange", "yellow", "green", "blue", "indigo", "violet"])()),
+			"foo key": choose(["red", "orange", "yellow", "green", "blue", "indigo", "violet"]()),
 			"bar key": integer(1, 100),
 			"baz key": choose(pickAWinner([true, true, false])()),
 		};

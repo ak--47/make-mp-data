@@ -167,8 +167,8 @@ const config = {
 			weight: 1,
 			isFirstEvent: true,
 			properties: {
-				company_size: u.pickAWinner(["startup", "smb", "mid_market", "enterprise"]),
-				industry: u.pickAWinner(["tech", "finance", "healthcare", "retail", "media"]),
+				company_size: ["startup", "smb", "mid_market", "enterprise"],
+				industry: ["tech", "finance", "healthcare", "retail", "media"],
 			}
 		},
 		{
@@ -176,17 +176,17 @@ const config = {
 			weight: 10,
 			properties: {
 				service_id: u.pickAWinner(serviceIds),
-				service_type: u.pickAWinner(["web_app", "api", "database", "cache", "queue", "ml_model"]),
-				environment: u.pickAWinner(["production", "staging", "dev"]),
-				cloud_provider: u.pickAWinner(["aws", "gcp", "azure"]),
+				service_type: ["web_app", "api", "database", "cache", "queue", "ml_model"],
+				environment: ["production", "staging", "dev"],
+				cloud_provider: ["aws", "gcp", "azure"],
 			}
 		},
 		{
 			event: "dashboard viewed",
 			weight: 20,
 			properties: {
-				dashboard_type: u.pickAWinner(["overview", "cost", "performance", "security", "custom"]),
-				time_range: u.pickAWinner(["1h", "6h", "24h", "7d", "30d"]),
+				dashboard_type: ["overview", "cost", "performance", "security", "custom"],
+				time_range: ["1h", "6h", "24h", "7d", "30d"],
 			}
 		},
 		{
@@ -194,8 +194,8 @@ const config = {
 			weight: 12,
 			properties: {
 				alert_id: u.pickAWinner(alertIds),
-				severity: u.pickAWinner(["info", "warning", "critical", "emergency"]),
-				alert_type: u.pickAWinner(["cpu", "memory", "latency", "error_rate", "disk", "network"]),
+				severity: ["info", "warning", "critical", "emergency"],
+				alert_type: ["cpu", "memory", "latency", "error_rate", "disk", "network"],
 				service_id: u.pickAWinner(serviceIds),
 			}
 		},
@@ -205,7 +205,7 @@ const config = {
 			properties: {
 				alert_id: u.pickAWinner(alertIds),
 				response_time_mins: u.weighNumRange(1, 120),
-				acknowledged_by_role: u.pickAWinner(["engineer", "sre", "manager", "oncall"]),
+				acknowledged_by_role: ["engineer", "sre", "manager", "oncall"],
 			}
 		},
 		{
@@ -214,7 +214,7 @@ const config = {
 			properties: {
 				alert_id: u.pickAWinner(alertIds),
 				resolution_time_mins: u.weighNumRange(5, 1440),
-				root_cause: u.pickAWinner(["config_change", "capacity", "bug", "dependency", "network"]),
+				root_cause: ["config_change", "capacity", "bug", "dependency", "network"],
 			}
 		},
 		{
@@ -222,7 +222,7 @@ const config = {
 			weight: 9,
 			properties: {
 				pipeline_id: u.pickAWinner(pipelineIds),
-				status: u.pickAWinner(["success", "failed", "cancelled"]),
+				status: ["success", "failed", "cancelled"],
 				duration_sec: u.weighNumRange(30, 1800),
 				commit_count: u.weighNumRange(1, 20),
 			}
@@ -242,7 +242,7 @@ const config = {
 			event: "cost report generated",
 			weight: 4,
 			properties: {
-				report_period: u.pickAWinner(["daily", "weekly", "monthly"]),
+				report_period: ["daily", "weekly", "monthly"],
 				total_cost: u.weighNumRange(100, 50000),
 				cost_change_percent: u.weighNumRange(-30, 50),
 			}
@@ -251,23 +251,23 @@ const config = {
 			event: "team member invited",
 			weight: 3,
 			properties: {
-				role: u.pickAWinner(["admin", "editor", "viewer", "billing"]),
-				invitation_method: u.pickAWinner(["email", "sso", "slack"]),
+				role: ["admin", "editor", "viewer", "billing"],
+				invitation_method: ["email", "sso", "slack"],
 			}
 		},
 		{
 			event: "integration configured",
 			weight: 4,
 			properties: {
-				integration_type: u.pickAWinner(["slack", "pagerduty", "jira", "github", "datadog", "terraform"]),
-				status: u.pickAWinner(["active", "paused", "error"]),
+				integration_type: ["slack", "pagerduty", "jira", "github", "datadog", "terraform"],
+				status: ["active", "paused", "error"],
 			}
 		},
 		{
 			event: "query executed",
 			weight: 15,
 			properties: {
-				query_type: u.pickAWinner(["metrics", "logs", "traces"]),
+				query_type: ["metrics", "logs", "traces"],
 				time_range_hours: u.weighNumRange(1, 720),
 				result_count: u.weighNumRange(0, 10000),
 			}
@@ -277,7 +277,7 @@ const config = {
 			weight: 3,
 			properties: {
 				runbook_id: u.pickAWinner(runbookIds),
-				trigger: u.pickAWinner(["manual", "automated", "alert_triggered"]),
+				trigger: ["manual", "automated", "alert_triggered"],
 				success: u.pickAWinner([true, false], 0.15),
 			}
 		},
@@ -285,7 +285,7 @@ const config = {
 			event: "billing event",
 			weight: 3,
 			properties: {
-				event_type: u.pickAWinner(["invoice_generated", "payment_received", "payment_failed", "plan_upgraded", "plan_downgraded"]),
+				event_type: ["invoice_generated", "payment_received", "payment_failed", "plan_upgraded", "plan_downgraded"],
 				amount: u.weighNumRange(99, 25000),
 			}
 		},
@@ -293,7 +293,7 @@ const config = {
 			event: "security scan",
 			weight: 6,
 			properties: {
-				scan_type: u.pickAWinner(["vulnerability", "compliance", "access_audit"]),
+				scan_type: ["vulnerability", "compliance", "access_audit"],
 				findings_count: u.weighNumRange(0, 50),
 				critical_findings: u.weighNumRange(0, 10),
 			}
@@ -302,8 +302,8 @@ const config = {
 			event: "api call",
 			weight: 16,
 			properties: {
-				endpoint: u.pickAWinner(["/deploy", "/status", "/metrics", "/alerts", "/config", "/billing"]),
-				method: u.pickAWinner(["GET", "POST", "PUT", "DELETE"]),
+				endpoint: ["/deploy", "/status", "/metrics", "/alerts", "/config", "/billing"],
+				method: ["GET", "POST", "PUT", "DELETE"],
 				response_time_ms: u.weighNumRange(10, 5000),
 				status_code: u.pickAWinner([200, 201, 400, 401, 403, 500, 503]),
 			}
@@ -312,7 +312,7 @@ const config = {
 			event: "documentation viewed",
 			weight: 7,
 			properties: {
-				doc_section: u.pickAWinner(["getting_started", "api_reference", "best_practices", "troubleshooting", "changelog"]),
+				doc_section: ["getting_started", "api_reference", "best_practices", "troubleshooting", "changelog"],
 				time_on_page_sec: u.weighNumRange(5, 600),
 			}
 		},
@@ -322,20 +322,20 @@ const config = {
 			properties: {
 				flag_name: () => `flag_${chance.word()}`,
 				new_state: u.pickAWinner(["enabled", "disabled"], 0.15),
-				environment: u.pickAWinner(["production", "staging", "dev"]),
+				environment: ["production", "staging", "dev"],
 			}
 		},
 	],
 
 	superProps: {
 		plan_tier: u.pickAWinner(["free", "free", "team", "team", "business", "enterprise"]),
-		cloud_provider: u.pickAWinner(["aws", "gcp", "azure", "multi_cloud"]),
+		cloud_provider: ["aws", "gcp", "azure", "multi_cloud"],
 	},
 
 	userProps: {
 		company_size: u.pickAWinner(["startup", "startup", "smb", "mid_market", "enterprise"]),
-		primary_role: u.pickAWinner(["engineer", "sre", "devops", "manager", "executive"]),
-		team_name: u.pickAWinner(["Platform", "Backend", "Frontend", "Data", "Security", "Infrastructure"]),
+		primary_role: ["engineer", "sre", "devops", "manager", "executive"],
+		team_name: ["Platform", "Backend", "Frontend", "Data", "Security", "Infrastructure"],
 	},
 
 	groupKeys: [
@@ -345,9 +345,9 @@ const config = {
 	groupProps: {
 		company_id: {
 			name: () => `${chance.word({ capitalize: true })} ${chance.pickone(["Systems", "Technologies", "Labs", "Cloud", "Digital", "Networks", "Solutions"])}`,
-			industry: u.pickAWinner(["tech", "finance", "healthcare", "retail", "media", "manufacturing", "logistics"]),
-			employee_count: u.pickAWinner(["1-10", "11-50", "51-200", "201-1000", "1001-5000", "5000+"]),
-			arr_bucket: u.pickAWinner(["<10k", "10k-50k", "50k-200k", "200k-1M", "1M+"]),
+			industry: ["tech", "finance", "healthcare", "retail", "media", "manufacturing", "logistics"],
+			employee_count: ["1-10", "11-50", "51-200", "201-1000", "1001-5000", "5000+"],
+			arr_bucket: ["<10k", "10k-50k", "50k-200k", "200k-1M", "1M+"],
 		}
 	},
 

@@ -53,7 +53,7 @@ const config = {
 			props: {
 				channel_id: pickAWinner(channel_ids),
 				video_id: weighNumRange(1, 50000, 1.4),
-				category: pickAWinner(["funny", "educational", "music", "news", "sports", "cooking", "DIY", "travel", "gaming"]),
+				category: ["funny", "educational", "music", "news", "sports", "cooking", "DIY", "travel", "gaming"],
 				isFeatured: () => { chance.bool({ likelihood: 25 }); },
 			}
 		},
@@ -64,7 +64,7 @@ const config = {
 			props: {
 				channel_id: pickAWinner(channel_ids),
 				video_id: weighNumRange(1, 50000, .67),
-				category: pickAWinner(["funny", "educational", "music", "news", "sports", "cooking", "DIY", "travel", "gaming"]),
+				category: ["funny", "educational", "music", "news", "sports", "cooking", "DIY", "travel", "gaming"],
 				isFeatured: () => { chance.bool({ likelihood: 25 }); },
 			}
 		},
@@ -76,7 +76,7 @@ const config = {
 			"properties": {
 				"#hashtags": makeHashTags,
 				"watch time (sec)": weighNumRange(10, 600, .25),
-				"quality": pickAWinner(["2160p", "1440p", "1080p", "720p", "480p", "360p", "240p"], 1)
+				"quality": ["2160p", "1440p", "1080p", "720p", "480p", "360p", "240p"]
 			}
 		},
 		{
@@ -97,7 +97,7 @@ const config = {
 			"event": "subscribe",
 			"weight": 10,
 			"properties": {
-				"UI": pickAWinner(["button", "link", "modal", "menu"]),
+				"UI": ["button", "link", "modal", "menu"],
 			}
 		},
 		{
@@ -106,7 +106,7 @@ const config = {
 			"properties": {
 				term: () => { return chance.word(); },
 				"# results": weighNumRange(1, 100, .25),
-				"UI": pickAWinner(["button", "link", "modal", "menu"]),
+				"UI": ["button", "link", "modal", "menu"],
 			}
 		},
 		{
@@ -125,7 +125,7 @@ const config = {
 			"weight": 17,
 			"properties": {
 				video_id: weighNumRange(1, 50000, 1.4),
-				UI: pickAWinner(["toolbar", "menu", "keyboard"])
+				UI: ["toolbar", "menu", "keyboard"]
 
 			}
 		},
@@ -134,8 +134,8 @@ const config = {
 			"weight": 5,
 			"properties": {
 				"# of videos": weighNumRange(1, 100, .25),
-				"UI": pickAWinner(["toolbar", "menu", "keyboard"]),
-				"visibility": pickAWinner(["public", "private", "unlisted"]),
+				"UI": ["toolbar", "menu", "keyboard"],
+				"visibility": ["public", "private", "unlisted"],
 			}
 		},
 		{
@@ -161,9 +161,9 @@ const config = {
 			"event": "app error",
 			"weight": 15,
 			"properties": {
-				code: pickAWinner(["404", "500", "403", "401", "400", "503", "504", "429"]),
+				code: ["404", "500", "403", "401", "400", "503", "504", "429"],
 				error: chance.sentence.bind(chance),
-				component: pickAWinner(["video player", "search", "comment", "profile", "settings", "billing", "support"]),
+				component: ["video player", "search", "comment", "profile", "settings", "billing", "support"],
 			}
 		},
 		{

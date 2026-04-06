@@ -49,14 +49,14 @@ const config = {
 			event: "ad impression",
 			weight: 15,
 			properties: {
-				partner: pickAWinner(["google", "facebook", "twitter", "linkedin", "bing", "taboola", "outbrain", "quora", "pinterest"]),
+				partner: ["google", "facebook", "twitter", "linkedin", "bing", "taboola", "outbrain", "quora", "pinterest"],
 			}
 		},
 		{
 			event: "ad click",
 			weight: 10,
 			properties: {
-				partner: pickAWinner(["google", "facebook", "twitter", "linkedin", "bing", "taboola", "outbrain", "quora", "pinterest"]),
+				partner: ["google", "facebook", "twitter", "linkedin", "bing", "taboola", "outbrain", "quora", "pinterest"],
 			}
 		},
 		{
@@ -64,7 +64,7 @@ const config = {
 			weight: 2,
 			properties: {
 				amount: weighNumRange(5, 500, .25),
-				currency: pickAWinner(["USD", "CAD", "EUR", "BTC", "ETH", "JPY"], 0),
+				currency: ["USD", "CAD", "EUR", "BTC", "ETH", "JPY"],
 				coupon: weighChoices(["none", "none", "none", "none", "10%OFF", "20%OFF", "10%OFF", "20%OFF", "30%OFF", "40%OFF", "50%OFF"]),
 				numItems: weighNumRange(1, 10),
 
@@ -126,7 +126,7 @@ const config = {
 			weight: 1,
 			isFirstEvent: true,
 			properties: {
-				signupMethod: pickAWinner(["email", "google", "facebook", "twitter", "linkedin", "github"]),
+				signupMethod: ["email", "google", "facebook", "twitter", "linkedin", "github"],
 				referral: weighChoices(["none", "none", "none", "friend", "ad", "ad", "ad", "friend", "friend", "friend", "friend"]),
 			}
 		},

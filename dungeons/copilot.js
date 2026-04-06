@@ -92,7 +92,7 @@ const config = {
 			event: "checkout",
 			weight: 2,
 			properties: {
-				currency: pickAWinner(["USD", "CAD", "EUR", "BTC", "ETH", "JPY"], 0),
+				currency: ["USD", "CAD", "EUR", "BTC", "ETH", "JPY"],
 				coupon: weighChoices(["none", "none", "none", "none", "10%OFF", "20%OFF", "10%OFF", "20%OFF", "30%OFF", "40%OFF", "50%OFF"]),
 				cart: makeProducts()
 			}
@@ -151,7 +151,7 @@ const config = {
 			weight: 1,
 			isFirstEvent: true,
 			properties: {
-				signupMethod: pickAWinner(["email", "google", "facebook", "twitter", "linkedin", "github"]),
+				signupMethod: ["email", "google", "facebook", "twitter", "linkedin", "github"],
 				referral: weighChoices(["none", "none", "none", "friend", "ad", "ad", "ad", "friend", "friend", "friend", "friend"]),
 			}
 		},

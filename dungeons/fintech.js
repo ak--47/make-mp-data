@@ -176,7 +176,7 @@ const config = {
 			isFirstEvent: true,
 			properties: {
 				"account_type": u.pickAWinner(["personal", "business", "personal"]),
-				"signup_channel": u.pickAWinner(["app", "web", "referral", "branch"]),
+				"signup_channel": ["app", "web", "referral", "branch"],
 			}
 		},
 		{
@@ -192,33 +192,33 @@ const config = {
 			weight: 15,
 			properties: {
 				"account_balance": u.weighNumRange(0, 50000, 0.8, 2500),
-				"account_type": u.pickAWinner(["checking", "savings", "investment"]),
+				"account_type": ["checking", "savings", "investment"],
 			}
 		},
 		{
 			event: "transaction completed",
 			weight: 18,
 			properties: {
-				"transaction_type": u.pickAWinner(["purchase", "atm", "direct_deposit", "refund"]),
+				"transaction_type": ["purchase", "atm", "direct_deposit", "refund"],
 				"amount": u.weighNumRange(1, 5000, 0.3, 50),
-				"merchant_category": u.pickAWinner(["grocery", "restaurant", "gas", "retail", "online", "subscription", "utilities"]),
-				"payment_method": u.pickAWinner(["debit", "credit", "contactless", "online"]),
+				"merchant_category": ["grocery", "restaurant", "gas", "retail", "online", "subscription", "utilities"],
+				"payment_method": ["debit", "credit", "contactless", "online"],
 			}
 		},
 		{
 			event: "transfer sent",
 			weight: 8,
 			properties: {
-				"transfer_type": u.pickAWinner(["internal", "external", "p2p", "wire"]),
+				"transfer_type": ["internal", "external", "p2p", "wire"],
 				"amount": u.weighNumRange(10, 10000, 0.3, 200),
-				"recipient_type": u.pickAWinner(["friend", "family", "business", "self"]),
+				"recipient_type": ["friend", "family", "business", "self"],
 			}
 		},
 		{
 			event: "bill paid",
 			weight: 6,
 			properties: {
-				"bill_type": u.pickAWinner(["rent", "utilities", "phone", "insurance", "subscription", "loan_payment"]),
+				"bill_type": ["rent", "utilities", "phone", "insurance", "subscription", "loan_payment"],
 				"amount": u.weighNumRange(20, 3000, 0.5, 150),
 				"auto_pay": u.pickAWinner([true, false], 0.4),
 			}
@@ -227,7 +227,7 @@ const config = {
 			event: "budget created",
 			weight: 3,
 			properties: {
-				"category": u.pickAWinner(["food", "transport", "entertainment", "shopping", "bills", "savings"]),
+				"category": ["food", "transport", "entertainment", "shopping", "bills", "savings"],
 				"monthly_limit": u.weighNumRange(50, 2000, 0.5, 300),
 			}
 		},
@@ -235,7 +235,7 @@ const config = {
 			event: "budget alert",
 			weight: 4,
 			properties: {
-				"alert_type": u.pickAWinner(["approaching_limit", "exceeded", "on_track"]),
+				"alert_type": ["approaching_limit", "exceeded", "on_track"],
 				"percent_used": u.weighNumRange(50, 150, 1, 90),
 			}
 		},
@@ -243,7 +243,7 @@ const config = {
 			event: "savings goal set",
 			weight: 3,
 			properties: {
-				"goal_type": u.pickAWinner(["emergency", "vacation", "car", "home", "education", "retirement"]),
+				"goal_type": ["emergency", "vacation", "car", "home", "education", "retirement"],
 				"target_amount": u.weighNumRange(500, 50000, 0.3, 5000),
 				"monthly_contribution": u.weighNumRange(25, 2000, 0.5, 200),
 			}
@@ -252,7 +252,7 @@ const config = {
 			event: "investment made",
 			weight: 4,
 			properties: {
-				"investment_type": u.pickAWinner(["stocks", "etf", "crypto", "bonds", "mutual_fund"]),
+				"investment_type": ["stocks", "etf", "crypto", "bonds", "mutual_fund"],
 				"amount": u.weighNumRange(10, 10000, 0.3, 250),
 				"action": u.pickAWinner(["buy", "sell", "buy"]),
 			}
@@ -261,7 +261,7 @@ const config = {
 			event: "card locked",
 			weight: 1,
 			properties: {
-				"reason": u.pickAWinner(["lost", "stolen", "suspicious_activity", "travel"]),
+				"reason": ["lost", "stolen", "suspicious_activity", "travel"],
 			}
 		},
 		{
@@ -269,14 +269,14 @@ const config = {
 			weight: 1,
 			properties: {
 				"dispute_amount": u.weighNumRange(10, 2000, 0.5, 100),
-				"reason": u.pickAWinner(["unauthorized", "duplicate", "not_received", "damaged", "wrong_amount"]),
+				"reason": ["unauthorized", "duplicate", "not_received", "damaged", "wrong_amount"],
 			}
 		},
 		{
 			event: "loan applied",
 			weight: 2,
 			properties: {
-				"loan_type": u.pickAWinner(["personal", "auto", "home", "student", "business"]),
+				"loan_type": ["personal", "auto", "home", "student", "business"],
 				"requested_amount": u.weighNumRange(1000, 100000, 0.3, 10000),
 			}
 		},
@@ -284,7 +284,7 @@ const config = {
 			event: "loan approved",
 			weight: 1,
 			properties: {
-				"loan_type": u.pickAWinner(["personal", "auto", "home", "student", "business"]),
+				"loan_type": ["personal", "auto", "home", "student", "business"],
 				"approved_amount": u.weighNumRange(1000, 100000, 0.3, 10000),
 				"interest_rate": u.weighNumRange(3, 25, 1, 8),
 			}
@@ -293,7 +293,7 @@ const config = {
 			event: "premium upgraded",
 			weight: 2,
 			properties: {
-				"old_tier": u.pickAWinner(["basic", "plus", "premium"]),
+				"old_tier": ["basic", "plus", "premium"],
 				"new_tier": u.pickAWinner(["plus", "premium", "premium"]),
 				"monthly_fee": u.pickAWinner([4.99, 9.99, 14.99]),
 			}
@@ -302,8 +302,8 @@ const config = {
 			event: "support contacted",
 			weight: 3,
 			properties: {
-				"channel": u.pickAWinner(["chat", "phone", "email", "in_app"]),
-				"issue_type": u.pickAWinner(["transaction", "account", "card", "transfer", "technical"]),
+				"channel": ["chat", "phone", "email", "in_app"],
+				"issue_type": ["transaction", "account", "card", "transfer", "technical"],
 				"resolved": u.pickAWinner([true, false], 0.8),
 			}
 		},
@@ -311,7 +311,7 @@ const config = {
 			event: "notification opened",
 			weight: 10,
 			properties: {
-				"notification_type": u.pickAWinner(["transaction", "low_balance", "bill_due", "reward", "security", "promo"]),
+				"notification_type": ["transaction", "low_balance", "bill_due", "reward", "security", "promo"],
 				"action_taken": u.pickAWinner([true, false], 0.6),
 			}
 		},
@@ -319,7 +319,7 @@ const config = {
 			event: "reward redeemed",
 			weight: 4,
 			properties: {
-				"reward_type": u.pickAWinner(["cashback", "points", "discount", "partner_offer"]),
+				"reward_type": ["cashback", "points", "discount", "partner_offer"],
 				"value": u.weighNumRange(1, 100, 0.5, 10),
 			}
 		}
@@ -327,12 +327,12 @@ const config = {
 
 	superProps: {
 		account_tier: u.pickAWinner(["basic", "basic", "basic", "plus", "plus", "premium"]),
-		platform: u.pickAWinner(["ios", "android", "web"]),
+		platform: ["ios", "android", "web"],
 	},
 
 	userProps: {
-		"credit_score_range": u.pickAWinner(["300-579", "580-669", "670-739", "740-799", "800-850"]),
-		"income_bracket": u.pickAWinner(["under_30k", "30k_50k", "50k_75k", "75k_100k", "100k_150k", "over_150k"]),
+		"credit_score_range": ["300-579", "580-669", "670-739", "740-799", "800-850"],
+		"income_bracket": ["under_30k", "30k_50k", "50k_75k", "75k_100k", "100k_150k", "over_150k"],
 		"account_age_months": u.weighNumRange(1, 60, 0.5, 12),
 		"total_balance": u.weighNumRange(0, 100000, 0.3, 5000),
 		"has_direct_deposit": u.pickAWinner([true, false], 0.6),

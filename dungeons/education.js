@@ -177,7 +177,7 @@ const config = {
 			isFirstEvent: true,
 			properties: {
 				"account_type": u.pickAWinner(["student", "instructor"], 0.15),
-				"signup_source": u.pickAWinner(["organic", "referral", "school_partnership", "social_ad"]),
+				"signup_source": ["organic", "referral", "school_partnership", "social_ad"],
 			}
 		},
 		{
@@ -185,8 +185,8 @@ const config = {
 			weight: 8,
 			properties: {
 				"course_id": u.pickAWinner(courseIds),
-				"course_category": u.pickAWinner(["CS", "Math", "Science", "Business", "Arts", "Languages"]),
-				"difficulty": u.pickAWinner(["beginner", "intermediate", "advanced"]),
+				"course_category": ["CS", "Math", "Science", "Business", "Arts", "Languages"],
+				"difficulty": ["beginner", "intermediate", "advanced"],
 				"is_free": u.pickAWinner([true, false], 0.4),
 			}
 		},
@@ -217,7 +217,7 @@ const config = {
 			properties: {
 				"course_id": u.pickAWinner(courseIds),
 				"quiz_id": u.pickAWinner(quizIds),
-				"quiz_type": u.pickAWinner(["practice", "graded", "final_exam"]),
+				"quiz_type": ["practice", "graded", "final_exam"],
 				"question_count": u.weighNumRange(5, 50, 0.7, 15),
 			}
 		},
@@ -238,7 +238,7 @@ const config = {
 			properties: {
 				"course_id": u.pickAWinner(courseIds),
 				"assignment_id": u.pickAWinner(assignmentIds),
-				"submission_type": u.pickAWinner(["text", "code", "file", "project"]),
+				"submission_type": ["text", "code", "file", "project"],
 				"word_count": u.weighNumRange(100, 5000, 0.6, 500),
 				"is_late": u.pickAWinner([true, false], 0.2),
 			}
@@ -249,9 +249,9 @@ const config = {
 			properties: {
 				"course_id": u.pickAWinner(courseIds),
 				"assignment_id": u.pickAWinner(assignmentIds),
-				"grade": u.pickAWinner(["A", "B", "C", "D", "F"]),
+				"grade": ["A", "B", "C", "D", "F"],
 				"feedback_length": u.weighNumRange(0, 500, 0.5, 100),
-				"grader": u.pickAWinner(["instructor", "peer", "auto"]),
+				"grader": ["instructor", "peer", "auto"],
 			}
 		},
 		{
@@ -259,7 +259,7 @@ const config = {
 			weight: 7,
 			properties: {
 				"course_id": u.pickAWinner(courseIds),
-				"post_type": u.pickAWinner(["question", "answer", "comment"]),
+				"post_type": ["question", "answer", "comment"],
 				"word_count": u.weighNumRange(10, 500, 0.6, 80),
 			}
 		},
@@ -278,14 +278,14 @@ const config = {
 			properties: {
 				"group_id": u.pickAWinner(groupIds),
 				"group_size": u.weighNumRange(3, 20, 0.7, 8),
-				"group_type": u.pickAWinner(["study_circle", "project_team", "tutoring"]),
+				"group_type": ["study_circle", "project_team", "tutoring"],
 			}
 		},
 		{
 			event: "resource downloaded",
 			weight: 9,
 			properties: {
-				"resource_type": u.pickAWinner(["pdf", "slides", "code_sample", "dataset", "cheat_sheet"]),
+				"resource_type": ["pdf", "slides", "code_sample", "dataset", "cheat_sheet"],
 				"course_id": u.pickAWinner(courseIds),
 			}
 		},
@@ -294,7 +294,7 @@ const config = {
 			weight: 3,
 			properties: {
 				"course_id": u.pickAWinner(courseIds),
-				"feedback_type": u.pickAWinner(["written", "video", "rubric"]),
+				"feedback_type": ["written", "video", "rubric"],
 				"response_time_hours": u.weighNumRange(1, 72, 0.5, 15),
 			}
 		},
@@ -312,7 +312,7 @@ const config = {
 			event: "subscription purchased",
 			weight: 2,
 			properties: {
-				"plan": u.pickAWinner(["monthly", "annual", "lifetime"]),
+				"plan": ["monthly", "annual", "lifetime"],
 				"price": u.pickAWinner([19.99, 149.99, 499.99]),
 			}
 		},
@@ -320,8 +320,8 @@ const config = {
 			event: "help requested",
 			weight: 4,
 			properties: {
-				"topic": u.pickAWinner(["technical", "content", "billing", "accessibility"]),
-				"channel": u.pickAWinner(["chat", "email", "forum"]),
+				"topic": ["technical", "content", "billing", "accessibility"],
+				"channel": ["chat", "email", "forum"],
 			}
 		},
 		{
@@ -330,7 +330,7 @@ const config = {
 			properties: {
 				"course_id": u.pickAWinner(courseIds),
 				"problem_id": u.pickAWinner(problemIds),
-				"difficulty": u.pickAWinner(["easy", "medium", "hard"]),
+				"difficulty": ["easy", "medium", "hard"],
 				"time_to_solve_sec": u.weighNumRange(10, 3600, 0.5, 300),
 				"hint_used": u.pickAWinner([true, false], 0.35),
 			}
@@ -338,7 +338,7 @@ const config = {
 	],
 
 	superProps: {
-		platform: u.pickAWinner(["Web", "iOS", "Android", "iPad"]),
+		platform: ["Web", "iOS", "Android", "iPad"],
 		subscription_status: u.pickAWinner(["free", "free", "free", "monthly", "annual"]),
 	},
 
@@ -346,9 +346,9 @@ const config = {
 
 	userProps: {
 		"account_type": u.pickAWinner(["student", "student", "student", "student", "student", "student", "student", "student", "instructor"]),
-		"learning_style": u.pickAWinner(["visual", "reading", "hands_on", "auditory"]),
-		"education_level": u.pickAWinner(["high_school", "bachelors", "masters", "phd", "self_taught"]),
-		"timezone": u.pickAWinner(["US_Eastern", "US_Pacific", "US_Central", "Europe", "Asia"]),
+		"learning_style": ["visual", "reading", "hands_on", "auditory"],
+		"education_level": ["high_school", "bachelors", "masters", "phd", "self_taught"],
+		"timezone": ["US_Eastern", "US_Pacific", "US_Central", "Europe", "Asia"],
 	},
 
 	groupKeys: [
@@ -366,7 +366,7 @@ const config = {
 		group_id: {
 			"name": () => `${chance.pickone(["Study", "Learning", "Focus", "Peer", "Cohort"])} ${chance.pickone(["Circle", "Squad", "Team", "Hub", "Group"])} ${chance.character({ alpha: true, casing: "upper" })}${chance.integer({ min: 1, max: 99 })}`,
 			"member_count": u.weighNumRange(3, 20, 0.7, 8),
-			"focus_area": u.pickAWinner(["CS", "Math", "Science", "Business", "Arts", "Languages"]),
+			"focus_area": ["CS", "Math", "Science", "Business", "Arts", "Languages"],
 		}
 	},
 

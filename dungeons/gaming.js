@@ -51,26 +51,26 @@ const config = {
 			conversionRate: 0.99,
 			timeToConvert: 1,
 			props: {
-				"quest type": u.pickAWinner([
+				"quest type": [
 					"Rescue",
 					"Retrieve",
 					"Explore",
 					"Destroy",
 					"Investigate",
-				]),
-				"quest difficulty": u.pickAWinner([
+				],
+				"quest difficulty": [
 					"Easy",
 					"Medium",
 					"Hard",
 					"Legendary",
-				]),
-				"quest location": u.pickAWinner([
+				],
+				"quest location": [
 					"Forest",
 					"Dungeon",
 					"Mountain",
 					"City",
 					"Desert",
-				])
+				]
 			}
 		},
 	],
@@ -80,7 +80,7 @@ const config = {
 			event: "character creation",
 			weight: 2,
 			properties: {
-				mode: u.pickAWinner(["fast", "slow", "template"]),
+				mode: ["fast", "slow", "template"],
 			},
 		},
 		{
@@ -88,7 +88,7 @@ const config = {
 			weight: 8,
 			properties: {
 				"party size": u.weighNumRange(1, 6),
-				"party leader": u.pickAWinner([
+				"party leader": [
 					"Bard",
 					"Cleric",
 					"Fighter",
@@ -98,33 +98,33 @@ const config = {
 					"Ranger",
 					"Sorcerer",
 					"Warlock",
-				]),
+				],
 			},
 		},
 		{
 			event: "start quest",
 			weight: 12,
 			properties: {
-				"quest type": u.pickAWinner([
+				"quest type": [
 					"Rescue",
 					"Retrieve",
 					"Explore",
 					"Destroy",
 					"Investigate",
-				]),
-				"quest difficulty": u.pickAWinner([
+				],
+				"quest difficulty": [
 					"Easy",
 					"Medium",
 					"Hard",
 					"Legendary",
-				]),
-				"quest location": u.pickAWinner([
+				],
+				"quest location": [
 					"Forest",
 					"Dungeon",
 					"Mountain",
 					"City",
 					"Desert",
-				]),
+				],
 				"party size": u.weighNumRange(1, 6),
 				"used hint": u.pickAWinner(["yes", "no"], 0.3),
 				"used boost": u.pickAWinner(["yes", "no"], 0.2),
@@ -159,7 +159,7 @@ const config = {
 			"event": "in-game purchase",
 			"weight": 2,
 			"properties": {
-				"purchase type": u.pickAWinner([
+				"purchase type": [
 					"Gold",
 					"Gems",
 					"Items: Weapons",
@@ -168,7 +168,7 @@ const config = {
 					"Items: Scrolls",
 					"Boosts",
 					"Currency",
-				]),
+				],
 				"purchase amount": u.weighNumRange(1, 50, 1, 20),
 			}
 		},
@@ -176,19 +176,19 @@ const config = {
 			event: "fight boss",
 			weight: 3,
 			properties: {
-				"boss type": u.pickAWinner([
+				"boss type": [
 					"Dragon",
 					"Demon",
 					"Lich",
 					"Vampire",
 					"Beholder",
-				]),
+				],
 				"boss level": u.weighNumRange(10, 20),
-				"boss difficulty": u.pickAWinner([
+				"boss difficulty": [
 					"Hard",
 					"Legendary",
 					"Impossible",
-				]),
+				],
 				"fight duration (mins)": u.weighNumRange(1, 60),
 				
 			},
@@ -197,42 +197,42 @@ const config = {
 			event: "level up",
 			weight: 1,
 			properties: {
-				"new abilities": u.pickAWinner([
+				"new abilities": [
 					"Attack",
 					"Spell",
 					"Feat",
 					"Skill",
-				]),
+				],
 			},
 		},
 		{
 			event: "attack",
 			weight: 5,
 			properties: {
-				generic_prop: u.pickAWinner(["foo", "bar", "baz", "qux"]),
+				generic_prop: ["foo", "bar", "baz", "qux"],
 			}
 		},
 		{
 			event: "defend",
 			weight: 3,
 			properties: {
-				generic_prop: u.pickAWinner(["foo", "bar", "baz", "qux"]),
+				generic_prop: ["foo", "bar", "baz", "qux"],
 			}
 		},
 	],
 	superProps: {
-		platform: u.pickAWinner([
+		platform: [
 			"Mobile",
 			"Xbox",
 			"Playstation",
 			"Switch",
 			"Web"
-		]),
+		],
 		"game mode": u.pickAWinner([
 			"Single Player",
 			"Multiplayer",
 		], 1),
-		language: u.pickAWinner([
+		language: [
 			"English",
 			"Spanish",
 			"French",
@@ -240,7 +240,7 @@ const config = {
 			"Japanese",
 			"Korean",
 			"Chinese",
-		], 0),
+		],
 
 	},
 	scdProps: {
@@ -253,14 +253,14 @@ const config = {
 		// }
 	},
 	userProps: {
-		experiment: u.pickAWinner([
+		experiment: [
 			"fast leveling",
 			"tension economy",
 			"free trial",
-		]),
+		],
 		variant: ["A", "B", "C", "Control"],
 
-		race: u.pickAWinner([
+		race: [
 			"Human",
 			"Elf",
 			"Dwarf",
@@ -270,8 +270,8 @@ const config = {
 			"Half-Elf",
 			"Half-Orc",
 			"Tiefling",
-		]),
-		class: u.pickAWinner([
+		],
+		class: [
 			"Barbarian",
 			"Bard",
 			"Cleric",
@@ -284,8 +284,8 @@ const config = {
 			"Sorcerer",
 			"Warlock",
 			"Wizard",
-		]),
-		alignment: u.pickAWinner([
+		],
+		alignment: [
 			"Lawful Good",
 			"Neutral Good",
 			"Chaotic Good",
@@ -295,9 +295,9 @@ const config = {
 			"Lawful Evil",
 			"Neutral Evil",
 			"Chaotic Evil",
-		]),
+		],
 		level: u.weighNumRange(1, 20),
-		background: u.pickAWinner([
+		background: [
 			"Acolyte",
 			"Charlatan",
 			"Criminal",
@@ -311,7 +311,7 @@ const config = {
 			"Sailor",
 			"Soldier",
 			"Urchin",
-		]),
+		],
 		"subscription MRR": u.weighNumRange(0, 250, 1, 200)
 	},
 	hook: function (record, type, meta) {

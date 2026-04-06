@@ -13,7 +13,7 @@ import dayjs from "dayjs";
 import utc from "dayjs/plugin/utc.js";
 dayjs.extend(utc);
 import { uid, comma } from 'ak-tools';
-import { pickAWinner, weighNumRange, date, integer, weighChoices } from "../lib/utils/utils.js";
+import { weighNumRange, date, integer, weighChoices } from "../lib/utils/utils.js";
 import { createTextGenerator } from '../lib/generators/text.js';
 
 /** @type {import('../types.js').Dungeon} */
@@ -46,50 +46,37 @@ const config = {
 	events: [
 		{
 			event: "Page View",
-			weight: 50,
-
-		},
+			weight: 50 },
 		{
 			event: "Product View",
-			weight: 30,
-		},
+			weight: 30 },
 		{
 			event: "Add to Cart",
-			weight: 10,
-		},
+			weight: 10 },
 		{
 			event: "Checkout Started",
-			weight: 5,
-		},
+			weight: 5 },
 		{
 			event: "Purchase",
-			weight: 1,
-		},
+			weight: 1 },
 		{
 			event: "Product Review",
-			weight: 3,
-		},
+			weight: 3 },
 		{
 			event: "Search",
-			weight: 17,
-		},
+			weight: 17 },
 		{
 			event: "Browse",
-			weight: 25,
-
-		},
+			weight: 25 },
 		{
 			event: "Save for Later",
-			weight: 4,
-		},
+			weight: 4 },
 		{
 			event: "Remove from Cart",
-			weight: 2,
-		},
+			weight: 2 },
 		{
 			event: "Empty Cart",
-			weight: 4,
-		}
+			weight: 4 }
 	],
 	funnels: [
 		{
@@ -107,8 +94,7 @@ const config = {
 			"weight": 1,
 			"isFirstFunnel": false,
 			"timeToConvert": 5,
-			"experiment": true,
-		}
+			"experiment": true }
 	],
 	superProps: {
 	},

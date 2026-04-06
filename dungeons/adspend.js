@@ -14,7 +14,7 @@ import dayjs from "dayjs";
 import utc from "dayjs/plugin/utc.js";
 dayjs.extend(utc);
 import { uid, comma } from 'ak-tools';
-import { pickAWinner, weighNumRange, date, integer } from "../lib/utils/utils.js";
+import { weighNumRange, date, integer } from "../lib/utils/utils.js";
 
 /** @type {import('../types').Dungeon} */
 const config = {
@@ -31,50 +31,38 @@ const config = {
 	events: [
 		{
 			event: "foo",
-			weight: 10,
-		},
+			weight: 10 },
 		{
 			event: "bar",
-			weight: 9,
-		},
+			weight: 9 },
 		{
 			event: "baz",
-			weight: 8,
-		},
+			weight: 8 },
 		{
 			event: "qux",
-			weight: 7,
-		},
+			weight: 7 },
 		{
 			event: "garply",
-			weight: 6,
-		},
+			weight: 6 },
 		{
 			event: "durtle",
-			weight: 5,
-		},
+			weight: 5 },
 		{
 			event: "linny",
-			weight: 4,
-		},
+			weight: 4 },
 		{
 			event: "fonk",
-			weight: 3,
-		},
+			weight: 3 },
 		{
 			event: "crumn",
-			weight: 2,
-		},
+			weight: 2 },
 		{
 			event: "yak",
-			weight: 1,
-		}
+			weight: 1 }
 	],
 	superProps: {
 		color: ["red", "orange", "yellow", "green", "blue", "indigo", "violet"],
-		number: integer,
-
-	},
+		number: integer },
 	userProps: {
 		title: chance.profession.bind(chance),
 		luckyNumber: weighNumRange(42, 420),
@@ -115,8 +103,7 @@ const config = {
 					time: lastEvent.time,
 					user_id: lastEvent.user_id,
 					milestone: record.length,
-					color: "gold",
-				});
+					color: "gold" });
 			}
 			return record;
 		}

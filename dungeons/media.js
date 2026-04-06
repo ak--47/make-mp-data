@@ -166,24 +166,24 @@ const config = {
 			weight: 1,
 			isFirstEvent: true,
 			properties: {
-				"signup_source": u.pickAWinner(["organic", "referral", "trial_offer", "ad"]),
-				"plan_selected": u.pickAWinner(["free", "standard", "premium"]),
+				"signup_source": ["organic", "referral", "trial_offer", "ad"],
+				"plan_selected": ["free", "standard", "premium"],
 			}
 		},
 		{
 			event: "content browsed",
 			weight: 20,
 			properties: {
-				"browse_section": u.pickAWinner(["home", "trending", "new_releases", "genre", "continue_watching"]),
-				"genre": u.pickAWinner(["action", "comedy", "drama", "documentary", "horror", "sci_fi", "animation", "thriller", "romance"]),
+				"browse_section": ["home", "trending", "new_releases", "genre", "continue_watching"],
+				"genre": ["action", "comedy", "drama", "documentary", "horror", "sci_fi", "animation", "thriller", "romance"],
 			}
 		},
 		{
 			event: "content selected",
 			weight: 15,
 			properties: {
-				"content_type": u.pickAWinner(["movie", "series", "documentary", "special"]),
-				"genre": u.pickAWinner(["action", "comedy", "drama", "documentary", "horror", "sci_fi", "animation", "thriller", "romance"]),
+				"content_type": ["movie", "series", "documentary", "special"],
+				"genre": ["action", "comedy", "drama", "documentary", "horror", "sci_fi", "animation", "thriller", "romance"],
 				"content_id": u.pickAWinner(contentIds),
 			}
 		},
@@ -192,9 +192,9 @@ const config = {
 			weight: 18,
 			properties: {
 				"content_id": u.pickAWinner(contentIds),
-				"content_type": u.pickAWinner(["movie", "series", "documentary", "special"]),
-				"playback_quality": u.pickAWinner(["480p", "720p", "1080p", "4k"]),
-				"subtitle_language": u.pickAWinner(["none", "english", "spanish", "french", "japanese", "korean"], 0),
+				"content_type": ["movie", "series", "documentary", "special"],
+				"playback_quality": ["480p", "720p", "1080p", "4k"],
+				"subtitle_language": ["none", "english", "spanish", "french", "japanese", "korean"],
 				"playback_speed": u.pickAWinner(["0.5x", "1x", "1x", "1x", "1.25x", "1.5x", "2x"]),
 			}
 		},
@@ -203,7 +203,7 @@ const config = {
 			weight: 12,
 			properties: {
 				"content_id": u.pickAWinner(contentIds),
-				"content_type": u.pickAWinner(["movie", "series", "documentary", "special"]),
+				"content_type": ["movie", "series", "documentary", "special"],
 				"watch_duration_min": u.weighNumRange(5, 180, 0.5, 45),
 				"completion_percent": u.weighNumRange(10, 100, 1.5, 85),
 			}
@@ -213,7 +213,7 @@ const config = {
 			weight: 10,
 			properties: {
 				"content_id": u.pickAWinner(contentIds),
-				"pause_reason": u.pickAWinner(["manual", "ad_break", "buffering", "notification"]),
+				"pause_reason": ["manual", "ad_break", "buffering", "notification"],
 			}
 		},
 		{
@@ -230,8 +230,8 @@ const config = {
 			weight: 8,
 			properties: {
 				"content_id": u.pickAWinner(contentIds),
-				"content_type": u.pickAWinner(["movie", "series", "documentary", "special"]),
-				"genre": u.pickAWinner(["action", "comedy", "drama", "documentary", "horror", "sci_fi", "animation", "thriller", "romance"]),
+				"content_type": ["movie", "series", "documentary", "special"],
+				"genre": ["action", "comedy", "drama", "documentary", "horror", "sci_fi", "animation", "thriller", "romance"],
 			}
 		},
 		{
@@ -239,7 +239,7 @@ const config = {
 			weight: 3,
 			properties: {
 				"content_id": u.pickAWinner(contentIds),
-				"reason": u.pickAWinner(["watched", "not_interested", "expired"]),
+				"reason": ["watched", "not_interested", "expired"],
 			}
 		},
 		{
@@ -248,14 +248,14 @@ const config = {
 			properties: {
 				"search_term": () => chance.word(),
 				"results_count": u.weighNumRange(0, 50, 0.5, 15),
-				"search_type": u.pickAWinner(["title", "actor", "director", "genre"]),
+				"search_type": ["title", "actor", "director", "genre"],
 			}
 		},
 		{
 			event: "recommendation clicked",
 			weight: 9,
 			properties: {
-				"algorithm": u.pickAWinner(["collaborative_filtering", "content_based", "trending", "editorial"]),
+				"algorithm": ["collaborative_filtering", "content_based", "trending", "editorial"],
 				"position": u.weighNumRange(1, 20),
 			}
 		},
@@ -263,14 +263,14 @@ const config = {
 			event: "profile switched",
 			weight: 4,
 			properties: {
-				"profile_type": u.pickAWinner(["main", "kids", "partner", "guest"]),
+				"profile_type": ["main", "kids", "partner", "guest"],
 			}
 		},
 		{
 			event: "ad impression",
 			weight: 8,
 			properties: {
-				"ad_type": u.pickAWinner(["pre_roll", "mid_roll", "banner", "interstitial"]),
+				"ad_type": ["pre_roll", "mid_roll", "banner", "interstitial"],
 				"ad_duration_sec": u.weighNumRange(5, 30),
 				"skipped": u.pickAWinner([true, false], 0.4),
 			}
@@ -279,9 +279,9 @@ const config = {
 			event: "subscription changed",
 			weight: 2,
 			properties: {
-				"old_plan": u.pickAWinner(["free", "standard", "premium"]),
-				"new_plan": u.pickAWinner(["free", "standard", "premium"]),
-				"change_reason": u.pickAWinner(["upgrade", "downgrade", "cancel", "resubscribe"]),
+				"old_plan": ["free", "standard", "premium"],
+				"new_plan": ["free", "standard", "premium"],
+				"change_reason": ["upgrade", "downgrade", "cancel", "resubscribe"],
 			}
 		},
 		{
@@ -289,37 +289,37 @@ const config = {
 			weight: 5,
 			properties: {
 				"content_id": u.pickAWinner(contentIds),
-				"content_type": u.pickAWinner(["movie", "series", "documentary", "special"]),
-				"download_quality": u.pickAWinner(["720p", "1080p", "4k"]),
+				"content_type": ["movie", "series", "documentary", "special"],
+				"download_quality": ["720p", "1080p", "4k"],
 			}
 		},
 		{
 			event: "share content",
 			weight: 3,
 			properties: {
-				"share_method": u.pickAWinner(["link", "social", "dm", "email"]),
-				"content_type": u.pickAWinner(["movie", "series", "documentary", "special"]),
+				"share_method": ["link", "social", "dm", "email"],
+				"content_type": ["movie", "series", "documentary", "special"],
 			}
 		},
 		{
 			event: "subtitle toggled",
 			weight: 4,
 			properties: {
-				"subtitle_language": u.pickAWinner(["none", "english", "spanish", "french", "japanese", "korean"], 0),
-				"action": u.pickAWinner(["enabled", "disabled", "changed"]),
+				"subtitle_language": ["none", "english", "spanish", "french", "japanese", "korean"],
+				"action": ["enabled", "disabled", "changed"],
 			}
 		},
 	],
 
 	superProps: {
 		subscription_plan: u.pickAWinner(["free", "free", "standard", "standard", "standard", "premium"]),
-		device_type: u.pickAWinner(["smart_tv", "mobile", "tablet", "laptop", "desktop"]),
+		device_type: ["smart_tv", "mobile", "tablet", "laptop", "desktop"],
 	},
 
 	scdProps: {},
 
 	userProps: {
-		"preferred_genre": u.pickAWinner(["action", "comedy", "drama", "documentary", "horror", "sci_fi", "animation"]),
+		"preferred_genre": ["action", "comedy", "drama", "documentary", "horror", "sci_fi", "animation"],
 		"avg_session_duration_min": u.weighNumRange(10, 180, 0.5, 45),
 		"total_watch_hours": u.weighNumRange(0, 500, 0.8, 50),
 		"profiles_count": u.weighNumRange(1, 5),

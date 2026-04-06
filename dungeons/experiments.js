@@ -56,21 +56,21 @@ const config = {
 			event: "super common event",
 			weight: 50,
 			properties: {
-				"foo": u.pickAWinner(["bar", "baz", "qux"], 0),
+				"foo": ["bar", "baz", "qux"],
 			}
 		},
 		{
 			event: "less common event",
 			weight: 20,
 			properties: {
-				"hello": u.pickAWinner(["world", "universe", "galaxy"], 0),
+				"hello": ["world", "universe", "galaxy"],
 			}
 		},
 		{
 			event: "rare event",
 			weight: 5,
 			properties: {
-				"goodbye": u.pickAWinner(["cruel world", "universe", "galaxy"], 0),
+				"goodbye": ["cruel world", "universe", "galaxy"],
 			}
 		},
 		{
@@ -78,7 +78,7 @@ const config = {
 			weight: 10,
 			properties: {
 				"amount": u.weighNumRange(5, 500, .25),
-				"currency": u.pickAWinner(["USD", "CAD", "EUR", "BTC", "ETH", "JPY"], 0),				
+				"currency": ["USD", "CAD", "EUR", "BTC", "ETH", "JPY"],				
 				"numItems": u.weighNumRange(1, 10),
 			}
 		}

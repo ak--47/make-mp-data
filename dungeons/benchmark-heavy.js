@@ -27,12 +27,12 @@ function buildListOfFeatures() {
 // object use case
 function buildLocalConfig() {
 	const allPossibleConfigs = {
-		"theme": pickAWinner(["light", "dark", "custom"]),
-		"notifications": pickAWinner(["all", "mentions", "none"]),
+		"theme": ["light", "dark", "custom"],
+		"notifications": ["all", "mentions", "none"],
 		"itemsPerPage": pickAWinner([10, 25, 50, 100]),
-		"language": pickAWinner(["en", "es", "fr", "de", "zh", "jp", "ru"]),
-		"timezone": pickAWinner(["UTC", "PST", "EST", "CST", "MST", "GMT", "CET", "IST", "JST", "AEST"]),
-		"privacyLevel": pickAWinner(["public", "friends only", "private"]),
+		"language": ["en", "es", "fr", "de", "zh", "jp", "ru"],
+		"timezone": ["UTC", "PST", "EST", "CST", "MST", "GMT", "CET", "IST", "JST", "AEST"],
+		"privacyLevel": ["public", "friends only", "private"],
 		"dataSharing": [true, false],
 		"autoSave": [true, false],
 		"fontSize": ["small", "medium", "large"],

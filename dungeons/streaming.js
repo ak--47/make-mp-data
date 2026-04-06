@@ -65,7 +65,7 @@ const config = {
 				]),
 				"watch time": u.weighNumRange(1, 65, .89, 100),
 
-				"category": u.pickAWinner([
+				"category": [
 					"comedy",
 					"educational",
 					"music",
@@ -73,15 +73,15 @@ const config = {
 					"news",
 					"gaming",
 					"travel",
-				]),
-				quality: u.pickAWinner([
+				],
+				quality: [
 					"240p",
 					"360p",
 					"480p",
 					"720p",
 					"1080p",
 					"4k",
-				], 4),
+				],
 				autoplay: [
 					true,
 					false,
@@ -120,13 +120,13 @@ const config = {
 			weight: 3,
 			properties: {
 				video_id: u.pickAWinner(videoIds),
-				"share network": u.pickAWinner([
+				"share network": [
 					"facebook",
 					"twitter",
 					"reddit",
 					"email",
 					"whatsapp",
-				]),
+				],
 			},
 		},
 		{
@@ -174,18 +174,18 @@ const config = {
 			event: "create playlist",
 			weight: 4,
 			properties: {
-				"play list name": u.pickAWinner([
+				"play list name": [
 					"favorites",
 					"watch later",
 					"my music",
 					"funny videos",
 					"educational",
-				]),
-				privacy: u.pickAWinner([
+				],
+				privacy: [
 					"public",
 					"private",
 					"unlisted",
-				]),
+				],
 			},
 		},
 		{
@@ -204,11 +204,11 @@ const config = {
 			event: "account login",
 			weight: 9,
 			properties: {
-				"log in method": u.pickAWinner([
+				"log in method": [
 					"email",
 					"google",
 					"facebook",
-				]),
+				],
 				success: [
 					true,
 					false,
@@ -232,11 +232,11 @@ const config = {
 		}
 	],
 	superProps: {
-		platform: u.pickAWinner([
+		platform: [
 			"web",
 			"ios",
 			"android",
-		]),
+		],
 		network_type: [
 			"wifi",
 			"cellular",
@@ -256,13 +256,13 @@ const config = {
 			"45-54",
 			"55+",
 		],
-		preferred_genre: u.pickAWinner([
+		preferred_genre: [
 			"comedy",
 			"action",
 			"drama",
 			"sci-fi",
 			"horror",
-		]),
+		],
 		upload_count: [
 			0,
 			1,

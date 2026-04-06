@@ -168,7 +168,7 @@ const config = {
 			weight: 1,
 			isFirstEvent: true,
 			properties: {
-				"signup_method": u.pickAWinner(["email", "google", "apple", "facebook"]),
+				"signup_method": ["email", "google", "apple", "facebook"],
 				"referral_code": u.pickAWinner([true, false], 0.3),
 			}
 		},
@@ -176,7 +176,7 @@ const config = {
 			event: "restaurant browsed",
 			weight: 18,
 			properties: {
-				"cuisine_type": u.pickAWinner([
+				"cuisine_type": [
 					"American",
 					"Italian",
 					"Chinese",
@@ -185,8 +185,8 @@ const config = {
 					"Indian",
 					"Thai",
 					"Mediterranean"
-				]),
-				"sort_by": u.pickAWinner(["recommended", "distance", "rating", "price"]),
+				],
+				"sort_by": ["recommended", "distance", "rating", "price"],
 				"filter_applied": u.pickAWinner([true, false], 0.4),
 			}
 		},
@@ -195,7 +195,7 @@ const config = {
 			weight: 15,
 			properties: {
 				"restaurant_id": u.pickAWinner(restaurantIds),
-				"cuisine_type": u.pickAWinner([
+				"cuisine_type": [
 					"American",
 					"Italian",
 					"Chinese",
@@ -204,10 +204,10 @@ const config = {
 					"Indian",
 					"Thai",
 					"Mediterranean"
-				]),
+				],
 				"avg_rating": u.weighNumRange(1, 5, 0.8, 30),
 				"delivery_time_est_mins": u.weighNumRange(15, 90, 1.2, 40),
-				"price_tier": u.pickAWinner(["$", "$$", "$$$", "$$$$"]),
+				"price_tier": ["$", "$$", "$$$", "$$$$"],
 			}
 		},
 		{
@@ -215,7 +215,7 @@ const config = {
 			weight: 14,
 			properties: {
 				"item_id": u.pickAWinner(itemIds),
-				"item_category": u.pickAWinner(["entree", "appetizer", "drink", "dessert", "side"]),
+				"item_category": ["entree", "appetizer", "drink", "dessert", "side"],
 				"item_price": u.weighNumRange(3, 65, 1.0, 40),
 				"customization_count": u.weighNumRange(0, 5, 1.5, 20),
 			}
@@ -225,7 +225,7 @@ const config = {
 			weight: 5,
 			properties: {
 				"item_id": u.pickAWinner(itemIds),
-				"removal_reason": u.pickAWinner(["changed_mind", "too_expensive", "substitution"]),
+				"removal_reason": ["changed_mind", "too_expensive", "substitution"],
 			}
 		},
 		{
@@ -233,7 +233,7 @@ const config = {
 			weight: 4,
 			properties: {
 				"coupon_code": u.pickAWinner(couponCodes),
-				"discount_type": u.pickAWinner(["percent", "flat", "free_delivery"]),
+				"discount_type": ["percent", "flat", "free_delivery"],
 				"discount_value": u.weighNumRange(5, 50, 1.2, 20),
 			}
 		},
@@ -251,7 +251,7 @@ const config = {
 			weight: 10,
 			properties: {
 				"order_id": u.pickAWinner(orderIds),
-				"payment_method": u.pickAWinner(["credit_card", "apple_pay", "google_pay", "paypal", "cash"]),
+				"payment_method": ["credit_card", "apple_pay", "google_pay", "paypal", "cash"],
 				"order_total": u.weighNumRange(10, 200, 0.8, 40),
 				"tip_amount": u.weighNumRange(0, 30, 1.5, 20),
 				"delivery_fee": u.weighNumRange(0, 12, 1.0, 20),
@@ -262,7 +262,7 @@ const config = {
 			weight: 13,
 			properties: {
 				"order_id": u.pickAWinner(orderIds),
-				"order_status": u.pickAWinner(["confirmed", "preparing", "picked_up", "en_route", "delivered"]),
+				"order_status": ["confirmed", "preparing", "picked_up", "en_route", "delivered"],
 				"eta_mins": u.weighNumRange(5, 60, 1.0, 30),
 			}
 		},
@@ -295,7 +295,7 @@ const config = {
 					"wings", "curry", "pho", "burritos", "steak"
 				]),
 				"results_count": u.weighNumRange(0, 50, 0.8, 30),
-				"search_type": u.pickAWinner(["restaurant", "cuisine", "dish"]),
+				"search_type": ["restaurant", "cuisine", "dish"],
 			}
 		},
 		{
@@ -303,8 +303,8 @@ const config = {
 			weight: 8,
 			properties: {
 				"promo_id": () => `promo_${v.uid(5)}`,
-				"promo_type": u.pickAWinner(["banner", "push", "in_feed"]),
-				"promo_value": u.pickAWinner(["10%", "15%", "20%", "25%", "30%", "40%", "50%"]),
+				"promo_type": ["banner", "push", "in_feed"],
+				"promo_value": ["10%", "15%", "20%", "25%", "30%", "40%", "50%"],
 			}
 		},
 		{
@@ -320,7 +320,7 @@ const config = {
 			event: "subscription cancelled",
 			weight: 1,
 			properties: {
-				"reason": u.pickAWinner(["too_expensive", "not_ordering_enough", "found_alternative", "bad_experience"]),
+				"reason": ["too_expensive", "not_ordering_enough", "found_alternative", "bad_experience"],
 				"months_subscribed": u.weighNumRange(1, 24, 1.5, 15),
 			}
 		},
@@ -328,7 +328,7 @@ const config = {
 			event: "support ticket",
 			weight: 3,
 			properties: {
-				"issue_type": u.pickAWinner(["missing_item", "wrong_order", "late_delivery", "quality_issue", "refund_request"]),
+				"issue_type": ["missing_item", "wrong_order", "late_delivery", "quality_issue", "refund_request"],
 				"order_id": u.pickAWinner(orderIds),
 			}
 		},
@@ -343,13 +343,13 @@ const config = {
 	],
 
 	superProps: {
-		platform: u.pickAWinner(["iOS", "Android", "Web"]),
+		platform: ["iOS", "Android", "Web"],
 		subscription_tier: u.pickAWinner(["Free", "Free", "Free", "Free", "QuickBite+"]),
-		city: u.pickAWinner(["New York", "Los Angeles", "Chicago", "Houston", "Phoenix", "San Francisco"]),
+		city: ["New York", "Los Angeles", "Chicago", "Houston", "Phoenix", "San Francisco"],
 	},
 
 	userProps: {
-		"preferred_cuisine": u.pickAWinner([
+		"preferred_cuisine": [
 			"American",
 			"Italian",
 			"Chinese",
@@ -358,7 +358,7 @@ const config = {
 			"Indian",
 			"Thai",
 			"Mediterranean"
-		]),
+		],
 		"avg_order_value": u.weighNumRange(15, 80, 0.8, 40),
 		"orders_per_month": u.weighNumRange(1, 20, 1.5, 10),
 		"favorite_restaurant_count": u.weighNumRange(1, 10),
@@ -371,7 +371,7 @@ const config = {
 	groupProps: {
 		restaurant_id: {
 			"name": () => `${chance.pickone(["The", "Big", "Lucky", "Golden", "Fresh", "Urban"])} ${chance.pickone(["Kitchen", "Grill", "Bowl", "Wok", "Bistro", "Plate", "Table", "Fork"])}`,
-			"cuisine": u.pickAWinner([
+			"cuisine": [
 				"American",
 				"Italian",
 				"Chinese",
@@ -380,7 +380,7 @@ const config = {
 				"Indian",
 				"Thai",
 				"Mediterranean"
-			]),
+			],
 			"avg_rating": u.weighNumRange(1, 5, 0.8, 30),
 			"delivery_radius_mi": u.weighNumRange(1, 15, 1.0, 10),
 		}

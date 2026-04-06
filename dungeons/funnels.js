@@ -246,13 +246,13 @@ const config = {
 		company_id: {
 			name: () => { return chance.company(); },
 			email: () => { return `CSM: ${chance.pickone(["AK", "Jessica", "Michelle", "Dana", "Brian", "Dave"])}`; },
-			industry: pickAWinner(["tech", "finance", "healthcare", "education", "government", "non-profit"]),
+			industry: ["tech", "finance", "healthcare", "education", "government", "non-profit"],
 			segment: ["enterprise", "SMB", "mid-market"],
 			"# active users": chance.integer({ min: 2, max: 20 })
 		},
 		team_id: {
 			name: () => { return `Team ${chance.word({ capitalize: true })}`; },
-			department: pickAWinner(["Engineering", "Sales", "Marketing", "Support", "HR"]),
+			department: ["Engineering", "Sales", "Marketing", "Support", "HR"],
 			size: integer(3, 50)
 		},
 		department_id: {

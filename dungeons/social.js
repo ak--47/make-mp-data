@@ -187,15 +187,15 @@ const config = {
 			weight: 1,
 			isFirstEvent: true,
 			properties: {
-				"signup_method": u.pickAWinner(["email", "google", "apple", "sso"]),
-				"referred_by": u.pickAWinner(["organic", "friend", "ad", "influencer"]),
+				"signup_method": ["email", "google", "apple", "sso"],
+				"referred_by": ["organic", "friend", "ad", "influencer"],
 			}
 		},
 		{
 			event: "post created",
 			weight: 12,
 			properties: {
-				"post_type": u.pickAWinner(["text", "image", "video", "poll", "link"]),
+				"post_type": ["text", "image", "video", "poll", "link"],
 				"character_count": u.weighNumRange(1, 280),
 				"has_media": u.pickAWinner([true, false], 0.4),
 				"hashtag_count": u.weighNumRange(0, 10, 0.5),
@@ -205,23 +205,23 @@ const config = {
 			event: "post viewed",
 			weight: 30,
 			properties: {
-				"post_type": u.pickAWinner(["text", "image", "video", "poll", "link"]),
+				"post_type": ["text", "image", "video", "poll", "link"],
 				"view_duration_sec": u.weighNumRange(1, 120, 0.3, 5),
-				"source": u.pickAWinner(["feed", "explore", "search", "profile", "notification"]),
+				"source": ["feed", "explore", "search", "profile", "notification"],
 			}
 		},
 		{
 			event: "post liked",
 			weight: 18,
 			properties: {
-				"post_type": u.pickAWinner(["text", "image", "video", "poll", "link"]),
+				"post_type": ["text", "image", "video", "poll", "link"],
 			}
 		},
 		{
 			event: "post shared",
 			weight: 6,
 			properties: {
-				"share_destination": u.pickAWinner(["repost", "dm", "external", "copy_link"]),
+				"share_destination": ["repost", "dm", "external", "copy_link"],
 			}
 		},
 		{
@@ -236,21 +236,21 @@ const config = {
 			event: "user followed",
 			weight: 8,
 			properties: {
-				"discovery_source": u.pickAWinner(["suggested", "search", "post", "profile", "mutual"]),
+				"discovery_source": ["suggested", "search", "post", "profile", "mutual"],
 			}
 		},
 		{
 			event: "user unfollowed",
 			weight: 2,
 			properties: {
-				"reason": u.pickAWinner(["content_quality", "too_frequent", "lost_interest", "offensive"]),
+				"reason": ["content_quality", "too_frequent", "lost_interest", "offensive"],
 			}
 		},
 		{
 			event: "story viewed",
 			weight: 15,
 			properties: {
-				"story_type": u.pickAWinner(["photo", "video", "text"]),
+				"story_type": ["photo", "video", "text"],
 				"view_duration_sec": u.weighNumRange(1, 30, 0.5, 5),
 				"completed": u.pickAWinner([true, false], 0.6),
 			}
@@ -259,7 +259,7 @@ const config = {
 			event: "story created",
 			weight: 5,
 			properties: {
-				"story_type": u.pickAWinner(["photo", "video", "text"]),
+				"story_type": ["photo", "video", "text"],
 				"has_filter": u.pickAWinner([true, false], 0.5),
 				"has_sticker": u.pickAWinner([true, false], 0.3),
 			}
@@ -268,7 +268,7 @@ const config = {
 			event: "search performed",
 			weight: 7,
 			properties: {
-				"search_type": u.pickAWinner(["users", "hashtags", "posts"]),
+				"search_type": ["users", "hashtags", "posts"],
 				"results_count": u.weighNumRange(0, 50, 0.5, 10),
 			}
 		},
@@ -276,7 +276,7 @@ const config = {
 			event: "notification received",
 			weight: 12,
 			properties: {
-				"notification_type": u.pickAWinner(["like", "follow", "comment", "mention", "trending"]),
+				"notification_type": ["like", "follow", "comment", "mention", "trending"],
 				"clicked": u.pickAWinner([true, false], 0.4),
 			}
 		},
@@ -284,7 +284,7 @@ const config = {
 			event: "dm sent",
 			weight: 8,
 			properties: {
-				"message_type": u.pickAWinner(["text", "image", "voice", "link"]),
+				"message_type": ["text", "image", "voice", "link"],
 				"conversation_length": u.weighNumRange(1, 100),
 			}
 		},
@@ -292,8 +292,8 @@ const config = {
 			event: "ad viewed",
 			weight: 10,
 			properties: {
-				"ad_format": u.pickAWinner(["feed_native", "story", "banner", "video"]),
-				"ad_category": u.pickAWinner(["retail", "tech", "food", "finance", "entertainment"]),
+				"ad_format": ["feed_native", "story", "banner", "video"],
+				"ad_category": ["retail", "tech", "food", "finance", "entertainment"],
 				"view_duration_sec": u.weighNumRange(1, 30, 0.3),
 			}
 		},
@@ -301,38 +301,38 @@ const config = {
 			event: "ad clicked",
 			weight: 2,
 			properties: {
-				"ad_format": u.pickAWinner(["feed_native", "story", "banner", "video"]),
-				"ad_category": u.pickAWinner(["retail", "tech", "food", "finance", "entertainment"]),
+				"ad_format": ["feed_native", "story", "banner", "video"],
+				"ad_category": ["retail", "tech", "food", "finance", "entertainment"],
 			}
 		},
 		{
 			event: "report submitted",
 			weight: 1,
 			properties: {
-				"report_type": u.pickAWinner(["spam", "harassment", "misinformation", "hate_speech", "other"]),
-				"content_type": u.pickAWinner(["post", "comment", "user", "dm"]),
+				"report_type": ["spam", "harassment", "misinformation", "hate_speech", "other"],
+				"content_type": ["post", "comment", "user", "dm"],
 			}
 		},
 		{
 			event: "profile updated",
 			weight: 3,
 			properties: {
-				"field_updated": u.pickAWinner(["bio", "avatar", "display_name", "privacy_settings", "interests"]),
+				"field_updated": ["bio", "avatar", "display_name", "privacy_settings", "interests"],
 			}
 		},
 		{
 			event: "creator subscription started",
 			weight: 2,
 			properties: {
-				"tier": u.pickAWinner(["basic", "premium", "vip"]),
+				"tier": ["basic", "premium", "vip"],
 				"price_usd": u.pickAWinner([4.99, 9.99, 19.99]),
 			}
 		},
 	],
 
 	superProps: {
-		app_version: u.pickAWinner(["4.0", "4.1", "4.2", "4.3", "5.0"]),
-		account_type: u.pickAWinner(["personal", "creator", "business"]),
+		app_version: ["4.0", "4.1", "4.2", "4.3", "5.0"],
+		account_type: ["personal", "creator", "business"],
 	},
 
 	userProps: {
@@ -340,7 +340,7 @@ const config = {
 		"following_count": u.weighNumRange(0, 5000, 0.3, 100),
 		"bio_length": u.weighNumRange(0, 160),
 		"verified": u.pickAWinner([true, false], 0.05),
-		"content_niche": u.pickAWinner(["lifestyle", "tech", "food", "fitness", "travel", "comedy", "news", "art"]),
+		"content_niche": ["lifestyle", "tech", "food", "fitness", "travel", "comedy", "news", "art"],
 	},
 
 	groupKeys: [
@@ -351,7 +351,7 @@ const config = {
 		community_id: {
 			"name": () => `${chance.word()} ${chance.pickone(["Hub", "Circle", "Squad", "Zone", "Space"])}`,
 			"member_count": u.weighNumRange(50, 5000, 0.3, 200),
-			"category": u.pickAWinner(["technology", "entertainment", "sports", "politics", "art", "science"]),
+			"category": ["technology", "entertainment", "sports", "politics", "art", "science"],
 			"is_moderated": u.pickAWinner([true, false], 0.7),
 		}
 	},

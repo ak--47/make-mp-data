@@ -158,7 +158,7 @@ const config = {
 			weight: 4,
 			props: {
 				"dungeon_id": u.pickAWinner(dungeonIds),
-				"difficulty": u.pickAWinner(["Easy", "Medium", "Hard", "Deadly"]),
+				"difficulty": ["Easy", "Medium", "Hard", "Deadly"],
 			}
 		},
 		{
@@ -198,21 +198,21 @@ const config = {
 			weight: 1,
 			isFirstEvent: true,
 			properties: {
-				"character_class": u.pickAWinner([
+				"character_class": [
 					"Warrior",
 					"Mage",
 					"Rogue",
 					"Cleric",
 					"Ranger",
 					"Paladin"
-				]),
-				"starting_race": u.pickAWinner([
+				],
+				"starting_race": [
 					"Human",
 					"Elf",
 					"Dwarf",
 					"Halfling",
 					"Orc"
-				]),
+				],
 			}
 		},
 		{
@@ -228,13 +228,13 @@ const config = {
 			weight: 15,
 			properties: {
 				"quest_id": u.pickAWinner(questIds),
-				"quest_type": u.pickAWinner([
+				"quest_type": [
 					"Main Story",
 					"Side Quest",
 					"Bounty",
 					"Exploration",
 					"Escort"
-				]),
+				],
 				"recommended_level": u.weighNumRange(1, 50),
 			}
 		},
@@ -260,7 +260,7 @@ const config = {
 			weight: 18,
 			properties: {
 				"dungeon_id": u.pickAWinner(dungeonIds),
-				"difficulty": u.pickAWinner(["Easy", "Medium", "Hard", "Deadly"]),
+				"difficulty": ["Easy", "Medium", "Hard", "Deadly"],
 				"party_size": u.weighNumRange(1, 5),
 			}
 		},
@@ -270,21 +270,21 @@ const config = {
 			properties: {
 				"dungeon_id": u.pickAWinner(dungeonIds),
 				"time_spent_mins": u.weighNumRange(5, 120, 0.6, 30),
-				"completion_status": u.pickAWinner(["completed", "abandoned", "died"]),
+				"completion_status": ["completed", "abandoned", "died"],
 			}
 		},
 		{
 			event: "find treasure",
 			weight: 16,
 			properties: {
-				"treasure_type": u.pickAWinner([
+				"treasure_type": [
 					"Gold",
 					"Weapon",
 					"Armor",
 					"Potion",
 					"Scroll",
 					"Rare Artifact"
-				]),
+				],
 				"treasure_value": u.weighNumRange(5, 1000, 1.2, 50),
 			}
 		},
@@ -292,13 +292,13 @@ const config = {
 			event: "player death",
 			weight: 8,
 			properties: {
-				"cause_of_death": u.pickAWinner([
+				"cause_of_death": [
 					"Monster",
 					"Trap",
 					"Fall Damage",
 					"Poison",
 					"Friendly Fire"
-				]),
+				],
 				"player_level": u.weighNumRange(1, 50),
 				"resurrection_used": u.pickAWinner([true, false], 0.25),
 			}
@@ -316,16 +316,16 @@ const config = {
 			weight: 11,
 			properties: {
 				"item_id": u.pickAWinner(itemIds),
-				"item_type": u.pickAWinner([
+				"item_type": [
 					"Weapon",
 					"Armor",
 					"Potion",
 					"Scroll",
 					"Mount",
 					"Cosmetic"
-				]),
+				],
 				"price_gold": u.weighNumRange(10, 500, 0.8, 100),
-				"vendor_type": u.pickAWinner(["Town", "Dungeon", "Special Event"]),
+				"vendor_type": ["Town", "Dungeon", "Special Event"],
 			}
 		},
 		{
@@ -333,13 +333,13 @@ const config = {
 			weight: 7,
 			properties: {
 				"item_id": u.pickAWinner(itemIds),
-				"item_type": u.pickAWinner([
+				"item_type": [
 					"Weapon",
 					"Armor",
 					"Potion",
 					"Scroll",
 					"Junk"
-				]),
+				],
 				"sell_price": u.weighNumRange(5, 250, 0.5, 50),
 			}
 		},
@@ -347,16 +347,16 @@ const config = {
 			event: "real money purchase",
 			weight: 3,
 			properties: {
-				"product": u.pickAWinner([
+				"product": [
 					"Premium Currency (1000)",
 					"Premium Currency (5000)",
 					"Lucky Charm Pack",
 					"Legendary Weapon Chest",
 					"Cosmetic Bundle",
 					"Season Pass"
-				]),
+				],
 				"price_usd": u.pickAWinner([4.99, 9.99, 19.99, 49.99, 99.99]),
-				"payment_method": u.pickAWinner(["Credit Card", "PayPal", "Apple Pay", "Google Pay"]),
+				"payment_method": ["Credit Card", "PayPal", "Apple Pay", "Google Pay"],
 			}
 		},
 		{
@@ -371,38 +371,38 @@ const config = {
 			event: "guild left",
 			weight: 1,
 			properties: {
-				"reason": u.pickAWinner([
+				"reason": [
 					"Inactive",
 					"Found Better Guild",
 					"Conflict",
 					"Disbanded"
-				]),
+				],
 			}
 		},
 		{
 			event: "inspect",
 			weight: 9,
 			properties: {
-				"inspect_target": u.pickAWinner([
+				"inspect_target": [
 					"NPC",
 					"Monster",
 					"Treasure Chest",
 					"Door",
 					"Statue",
 					"Bookshelf"
-				]),
+				],
 			}
 		},
 		{
 			event: "search for clues",
 			weight: 8,
 			properties: {
-				"location_type": u.pickAWinner([
+				"location_type": [
 					"Dungeon Entrance",
 					"Hidden Room",
 					"Quest Location",
 					"Town Square"
-				]),
+				],
 				"clue_found": u.pickAWinner([true, false], 0.6),
 			}
 		},
@@ -411,29 +411,29 @@ const config = {
 			weight: 14,
 			properties: {
 				"item_id": u.pickAWinner(itemIds),
-				"item_type": u.pickAWinner([
+				"item_type": [
 					"Health Potion",
 					"Mana Potion",
 					"Buff Scroll",
 					"Ancient Compass",
 					"Lucky Charm",
 					"Resurrection Stone"
-				]),
-				"context": u.pickAWinner(["Combat", "Exploration", "Boss Fight", "Casual"]),
+				],
+				"context": ["Combat", "Exploration", "Boss Fight", "Casual"],
 			}
 		},
 		{
 			event: "combat initiated",
 			weight: 20,
 			properties: {
-				"enemy_type": u.pickAWinner([
+				"enemy_type": [
 					"Goblin",
 					"Skeleton",
 					"Dragon",
 					"Demon",
 					"Undead",
 					"Beast"
-				]),
+				],
 				"enemy_level": u.weighNumRange(1, 50),
 				"combat_duration_sec": u.weighNumRange(10, 300, 0.7, 60),
 			}
@@ -442,49 +442,49 @@ const config = {
 			event: "combat completed",
 			weight: 18,
 			properties: {
-				"outcome": u.pickAWinner(["Victory", "Defeat", "Fled"]),
+				"outcome": ["Victory", "Defeat", "Fled"],
 				"loot_gained": u.pickAWinner([true, false], 0.7),
 			}
 		}
 	],
 
 	superProps: {
-		platform: u.pickAWinner([
+		platform: [
 			"PC",
 			"Mac",
 			"PlayStation",
 			"Xbox",
 			"Switch"
-		]),
-		graphics_quality: u.pickAWinner([
+		],
+		graphics_quality: [
 			"Low",
 			"Medium",
 			"High",
 			"Ultra"
-		]),
+		],
 		subscription_tier: u.pickAWinner(["Free", "Free", "Free", "Premium", "Elite"]),
 	},
 
 	scdProps: {},
 
 	userProps: {
-		"preferred_playstyle": u.pickAWinner([
+		"preferred_playstyle": [
 			"Solo Explorer",
 			"Group Raider",
 			"PvP Fighter",
 			"Quest Completionist",
 			"Treasure Hunter"
-		]),
+		],
 		"total_playtime_hours": u.weighNumRange(1, 500, 1.5, 50),
 		"achievement_points": u.weighNumRange(0, 5000, 0.8, 500),
-		"favorite_class": u.pickAWinner([
+		"favorite_class": [
 			"Warrior",
 			"Mage",
 			"Rogue",
 			"Cleric",
 			"Ranger",
 			"Paladin"
-		]),
+		],
 	},
 
 	groupKeys: [

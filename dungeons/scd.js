@@ -47,7 +47,7 @@ const config = {
 			weight: 2,
 			properties: {
 				amount: weighNumRange(5, 500, .25),
-				currency: pickAWinner(["USD", "CAD", "EUR", "BTC", "ETH", "JPY"], 0),
+				currency: ["USD", "CAD", "EUR", "BTC", "ETH", "JPY"],
 				coupon: weighChoices(["none", "none", "none", "none", "10%OFF", "20%OFF", "10%OFF", "20%OFF", "30%OFF", "40%OFF", "50%OFF"]),
 				numItems: weighNumRange(1, 10),
 
@@ -172,7 +172,7 @@ const config = {
 		company_id: {
 			name: () => { return chance.name(); },
 			email: () => { return `CSM: ${chance.pickone(["AK", "Neha", "Rajiv", "Deepak", "Justin", "Hans", "Katie", "Somya", "Tony", "Kaan"])}`; },
-			industry: pickAWinner([
+			industry: [
 				"technology",
 				"education",
 				"finance",
@@ -189,7 +189,7 @@ const config = {
 				"utilities",
 				"agriculture",
 				"other",
-			]),
+			],
 			segment: ["SMB", "SMB", "SMB", "Mid Market", "Mid Market", "Enterprise"],
 			"# active users": chance.integer({ min: 2, max: 20 })
 		}

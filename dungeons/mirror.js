@@ -14,7 +14,7 @@ import dayjs from "dayjs";
 import utc from "dayjs/plugin/utc.js";
 dayjs.extend(utc);
 import { uid, comma } from 'ak-tools';
-import { pickAWinner, weighNumRange, date, integer } from "../lib/utils/utils.js";
+import { weighNumRange, date, integer } from "../lib/utils/utils.js";
 
 
 /** @type {import('../types').Dungeon} */
@@ -114,8 +114,7 @@ const config = {
 			events: "*",
 			strategy: "update",
 			values: weighNumRange(11, 20)
-		},
-	},
+		} },
 	groupKeys: [],
 	groupProps: {},
 	lookupTables: [],
