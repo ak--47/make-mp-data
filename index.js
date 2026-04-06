@@ -276,7 +276,7 @@ async function generateGroupProfiles(context) {
 		const groupContainer = storage.groupProfilesData[i];
 
 		if (!groupContainer) {
-			console.warn(`Warning: No storage container found for group key: ${groupKey}`);
+			if (config.verbose) console.warn(`Warning: No storage container found for group key: ${groupKey}`);
 			continue;
 		}
 
@@ -319,7 +319,7 @@ async function generateLookupTables(context) {
 		const lookupContainer = storage.lookupTableData[i];
 
 		if (!lookupContainer) {
-			console.warn(`Warning: No storage container found for lookup table: ${key}`);
+			if (config.verbose) console.warn(`Warning: No storage container found for lookup table: ${key}`);
 			continue;
 		}
 
@@ -551,7 +551,6 @@ async function extractFileInfo(storage, config) {
 			}
 		} catch (error) {
 			// If scanning fails, just return empty array
-			console.warn('Warning: Could not scan data directory for files:', error.message);
 		}
 	}
 

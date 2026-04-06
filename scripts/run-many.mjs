@@ -29,6 +29,7 @@ if (process.env.__SIM_CHILD) {
 			const mod = await import(path.resolve(dungeonPath));
 			const spec = mod.default;
 			spec.name = path.basename(dungeonPath, '.js');
+			spec.verbose = false;
 			const result = await main(spec);
 			const summary = { eventCount: result.eventCount, userCount: result.userCount, time: result.time };
 			if (process.send) process.send({ name: spec.name, success: true, summary }, undefined, undefined, () => process.exit(0));

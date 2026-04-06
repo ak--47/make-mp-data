@@ -35,7 +35,8 @@ try {
 		process.exit(1);
 	}
 
-	// Run the dungeon
+	// Run the dungeon (always verbose when run locally)
+	config.verbose = true;
 	const results = await generate(config);
 
 	// Display results
