@@ -26,7 +26,6 @@ const spec = {
 	// batchSize: 1_000,	
 	// writeToDisk: "gs://dungeon_master_4/scratch",
 	verbose: true,
-	makeChart: false,
 	hasAnonIds: true,
 	hasSessionIds: true
 	// format: "csv",

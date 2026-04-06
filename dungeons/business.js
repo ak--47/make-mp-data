@@ -42,10 +42,9 @@ const config = {
 	hasAdSpend: true,
 
 	hasAvatar: false,
-	makeChart: true,
 
 	batchSize: 500_000,
-	concurrency: 500,
+	concurrency: 1,
 
 	funnels: [
 		{

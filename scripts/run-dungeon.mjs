@@ -18,6 +18,12 @@ const absolutePath = path.isAbsolute(dungeonPath)
 	? dungeonPath
 	: path.resolve(process.cwd(), dungeonPath);
 
+// Handle Ctrl+C gracefully — let user-loop finish current user, then exit
+process.on('SIGINT', () => {
+	// Second Ctrl+C forces immediate exit
+	process.on('SIGINT', () => process.exit(1));
+});
+
 console.log(`\n🎲 Running dungeon: ${path.basename(absolutePath)}\n`);
 
 try {
@@ -58,7 +64,7 @@ try {
 
 	console.log('═'.repeat(50) + '\n');
 
-	if (NODE_ENV === 'dev') debugger;
+	// if (NODE_ENV === 'dev') debugger;
 
 
 

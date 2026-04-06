@@ -111,7 +111,6 @@ Uses **Vitest** (ESM-native). Test files:
 | `mixpanel.js` | Server-side Mixpanel tracking for AI observability (`trackAIJob`) |
 | `function-registry.js` | Registry of valid functions for JSON dungeon configs (validation) |
 | `json-evaluator.js` | Converts JSON function call objects to JavaScript code strings |
-| `chart.js` | Data visualization |
 | `project.js` | Mixpanel project setup utilities |
 
 ### Orchestrators (`lib/orchestrators/`)

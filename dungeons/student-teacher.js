@@ -34,7 +34,6 @@ const config = {
 	hasAdSpend: true,
 
 	hasAvatar: true,
-	makeChart: false,
 
 	batchSize: 2_500_000,
 	concurrency: 1,

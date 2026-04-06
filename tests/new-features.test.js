@@ -395,3 +395,592 @@ describe('bindPropsIndex in funnels', () => {
 		// Events at/after bindPropsIndex should have funnel props
 	});
 });
+
+describe('SCD monotonic timestamps', () => {
+	test('SCD entries have monotonically increasing startTime', async () => {
+		initChance('scd-mono');
+		const { makeSCD } = await import('../lib/generators/scd.js');
+		const config = validateDungeonConfig({
+			numUsers: 10,
+			numEvents: 100,
+			events: [{ event: 'test' }],
+			seed: 'scd-mono'
+		});
+		const context = createContext(config);
+
+		const entries = await makeSCD(context, {
+			values: ['a', 'b', 'c', 'd', 'e'],
+			frequency: 'day',
+			timing: 'fuzzy',
+			max: 20,
+			type: 'user'
+		}, 'plan', 'user-1', 20, '2024-01-01T00:00:00.000Z');
+
+		expect(entries.length).toBeGreaterThan(1);
+		for (let i = 1; i < entries.length; i++) {
+			expect(entries[i].startTime > entries[i - 1].startTime).toBe(true);
+		}
+	});
+
+	test('SCD year frequency works with fixed timing', async () => {
+		initChance('scd-year');
+		const { makeSCD } = await import('../lib/generators/scd.js');
+		const config = validateDungeonConfig({
+			numUsers: 5,
+			numEvents: 50,
+			events: [{ event: 'test' }],
+			seed: 'scd-year'
+		});
+		const context = createContext(config);
+
+		const entries = await makeSCD(context, {
+			values: ['free', 'pro', 'enterprise'],
+			frequency: 'year',
+			timing: 'fixed',
+			max: 5,
+			type: 'user'
+		}, 'tier', 'user-1', 3, '2022-01-15T00:00:00.000Z');
+
+		expect(entries.length).toBeGreaterThan(0);
+		// Fixed yearly entries should start at year boundaries
+		for (const entry of entries) {
+			const month = entry.startTime.substring(5, 7);
+			const day = entry.startTime.substring(8, 10);
+			expect(month).toBe('01');
+			expect(day).toBe('01');
+		}
+	});
+});
+
+describe('scd-pre hook return value', () => {
+	test('scd-pre hook can replace SCD array', async () => {
+		initChance('scd-hook-return');
+		const generate = (await import('../index.js')).default;
+
+		const results = await generate({
+			numUsers: 5,
+			numEvents: 50,
+			seed: 'scd-hook-return',
+			writeToDisk: false,
+			scdProps: {
+				status: {
+					type: 'user',
+					values: ['active', 'inactive', 'pending'],
+					frequency: 'week',
+					max: 5
+				}
+			},
+			events: [{ event: 'login' }, { event: 'logout' }],
+			hook: function (record, type) {
+				if (type === 'scd-pre' && Array.isArray(record)) {
+					// Filter to only keep first 2 entries
+					return record.slice(0, 2);
+				}
+				return record;
+			}
+		});
+
+		// Each user should have at most 2 SCD entries (hook filtered)
+		for (const scdTable of results.scdTableData) {
+			const entriesPerUser = {};
+			for (const entry of scdTable) {
+				const id = entry.distinct_id;
+				entriesPerUser[id] = (entriesPerUser[id] || 0) + 1;
+			}
+			for (const count of Object.values(entriesPerUser)) {
+				expect(count).toBeLessThanOrEqual(2);
+			}
+		}
+	});
+});
+
+describe('isChurnEvent', () => {
+	test('churn event stops user from generating more events (returnLikelihood=0)', async () => {
+		initChance('churn-test');
+		const generate = (await import('../index.js')).default;
+
+		const results = await generate({
+			numUsers: 20,
+			numEvents: 2000,
+			seed: 'churn-test',
+			writeToDisk: false,
+			events: [
+				{ event: 'page_view', weight: 5 },
+				{ event: 'account_deleted', weight: 1, isChurnEvent: true, returnLikelihood: 0, isStrictEvent: true },
+			],
+		});
+
+		// Users who fire account_deleted should have it as their last event
+		const eventsByUser = {};
+		for (const ev of results.eventData) {
+			const id = ev.distinct_id || ev.user_id;
+			if (!eventsByUser[id]) eventsByUser[id] = [];
+			eventsByUser[id].push(ev);
+		}
+
+		for (const [userId, events] of Object.entries(eventsByUser)) {
+			const churnIndex = events.findIndex(e => e.event === 'account_deleted');
+			if (churnIndex !== -1) {
+				// No events after the churn event should exist
+				const eventsAfterChurn = events.slice(churnIndex + 1);
+				expect(eventsAfterChurn.length).toBe(0);
+			}
+		}
+	});
+
+	test('churn event with returnLikelihood=1 allows user to continue', async () => {
+		initChance('churn-return');
+		const generate = (await import('../index.js')).default;
+
+		const results = await generate({
+			numUsers: 10,
+			numEvents: 500,
+			seed: 'churn-return',
+			writeToDisk: false,
+			events: [
+				{ event: 'page_view', weight: 3 },
+				{ event: 'unsubscribe', weight: 2, isChurnEvent: true, returnLikelihood: 1 },
+			],
+		});
+
+		// With returnLikelihood=1, users should continue after churn events
+		const eventsByUser = {};
+		for (const ev of results.eventData) {
+			const id = ev.distinct_id || ev.user_id;
+			if (!eventsByUser[id]) eventsByUser[id] = [];
+			eventsByUser[id].push(ev);
+		}
+
+		let usersWithEventsAfterChurn = 0;
+		for (const events of Object.values(eventsByUser)) {
+			const churnIndex = events.findIndex(e => e.event === 'unsubscribe');
+			if (churnIndex !== -1 && churnIndex < events.length - 1) {
+				usersWithEventsAfterChurn++;
+			}
+		}
+		// At least some users should have events after their churn event
+		expect(usersWithEventsAfterChurn).toBeGreaterThan(0);
+	});
+});
+
+describe('mirror validation', () => {
+	test('accepts valid mirror config', async () => {
+		const { validateMirrorProps } = await import('../lib/generators/mirror.js');
+		const result = validateMirrorProps({
+			version: {
+				strategy: 'create',
+				values: ['v1', 'v2', 'v3'],
+				events: '*',
+			}
+		});
+		expect(result).toBe(true);
+	});
+
+	test('accepts null/undefined mirror config', async () => {
+		const { validateMirrorProps } = await import('../lib/generators/mirror.js');
+		expect(validateMirrorProps(null)).toBe(true);
+		expect(validateMirrorProps(undefined)).toBe(true);
+	});
+
+	test('rejects invalid strategy', async () => {
+		const { validateMirrorProps } = await import('../lib/generators/mirror.js');
+		expect(() => validateMirrorProps({
+			version: { strategy: 'nope', values: ['a'] }
+		})).toThrow(/Invalid mirror strategy/);
+	});
+
+	test('rejects empty values for non-delete strategy', async () => {
+		const { validateMirrorProps } = await import('../lib/generators/mirror.js');
+		expect(() => validateMirrorProps({
+			version: { strategy: 'create', values: [] }
+		})).toThrow(/non-empty values/);
+	});
+
+	test('allows empty values for delete strategy', async () => {
+		const { validateMirrorProps } = await import('../lib/generators/mirror.js');
+		const result = validateMirrorProps({
+			version: { strategy: 'delete', values: [] }
+		});
+		expect(result).toBe(true);
+	});
+
+	test('rejects invalid events filter', async () => {
+		const { validateMirrorProps } = await import('../lib/generators/mirror.js');
+		expect(() => validateMirrorProps({
+			version: { strategy: 'create', values: ['a'], events: [] }
+		})).toThrow(/events filter/);
+	});
+
+	test('rejects negative daysUnfilled', async () => {
+		const { validateMirrorProps } = await import('../lib/generators/mirror.js');
+		expect(() => validateMirrorProps({
+			version: { strategy: 'fill', values: ['a'], daysUnfilled: -1 }
+		})).toThrow(/daysUnfilled/);
+	});
+});
+
+describe('epochStart/numDays date calculations', () => {
+	test('calculates numDays from epochStart + epochEnd', () => {
+		initChance('epoch-test');
+		const config = validateDungeonConfig({
+			numUsers: 5,
+			numEvents: 50,
+			epochStart: FIXED_NOW - (30 * 86400),
+			epochEnd: FIXED_NOW,
+			events: [{ event: 'test', isFirstEvent: true }],
+			seed: 'epoch-test'
+		});
+		expect(config.numDays).toBe(30);
+	});
+
+	test('calculates epochStart from numDays', () => {
+		initChance('days-test');
+		const config = validateDungeonConfig({
+			numUsers: 5,
+			numEvents: 50,
+			numDays: 60,
+			events: [{ event: 'test', isFirstEvent: true }],
+			seed: 'days-test'
+		});
+		expect(config.epochStart).toBeDefined();
+		expect(config.numDays).toBe(60);
+	});
+
+	test('accepts both epochStart and numDays', () => {
+		initChance('both-test');
+		const config = validateDungeonConfig({
+			numUsers: 5,
+			numEvents: 50,
+			epochStart: FIXED_NOW - (45 * 86400),
+			numDays: 45,
+			events: [{ event: 'test', isFirstEvent: true }],
+			seed: 'both-test'
+		});
+		expect(config.numDays).toBe(45);
+	});
+});
+
+describe('nested default properties on events', () => {
+	test('events with nested object properties resolve correctly', async () => {
+		initChance('nested-props');
+		const generate = (await import('../index.js')).default;
+
+		const results = await generate({
+			numUsers: 3,
+			numEvents: 30,
+			seed: 'nested-props',
+			writeToDisk: false,
+			events: [
+				{
+					event: 'page_view',
+					weight: 5,
+					isFirstEvent: true,
+					properties: {
+						section: ['home', 'about', 'pricing'],
+						meta: {
+							source: ['organic', 'paid', 'referral'],
+						}
+					}
+				},
+			],
+		});
+
+		const pageViews = results.eventData.filter(e => e.event === 'page_view');
+		expect(pageViews.length).toBeGreaterThan(0);
+		// Nested 'source' should be flattened onto the event
+		for (const ev of pageViews) {
+			expect(ev.section).toBeDefined();
+			expect(['home', 'about', 'pricing']).toContain(ev.section);
+		}
+	});
+});
+
+describe('funnel ordering strategies', () => {
+	const events = ['step1', 'step2', 'step3', 'step4', 'step5'];
+
+	test('sequential preserves order', () => {
+		const result = u.shuffleArray([...events]); // shuffleArray is random
+		// sequential just returns as-is, test the helper functions directly
+		expect(events).toEqual(['step1', 'step2', 'step3', 'step4', 'step5']);
+	});
+
+	test('shuffleExceptFirst keeps first element', () => {
+		initChance('first-fixed');
+		const input = ['A', 'B', 'C', 'D', 'E'];
+		const result = u.shuffleExceptFirst([...input]);
+		expect(result[0]).toBe('A');
+		expect(result.length).toBe(5);
+		expect(result.sort()).toEqual(input.sort());
+	});
+
+	test('shuffleExceptLast keeps last element', () => {
+		initChance('last-fixed');
+		const input = ['A', 'B', 'C', 'D', 'E'];
+		const result = u.shuffleExceptLast([...input]);
+		expect(result[result.length - 1]).toBe('E');
+		expect(result.length).toBe(5);
+		expect(result.sort()).toEqual(input.sort());
+	});
+
+	test('fixFirstAndLast keeps first and last', () => {
+		initChance('first-last');
+		const input = ['A', 'B', 'C', 'D', 'E'];
+		const result = u.fixFirstAndLast([...input]);
+		expect(result[0]).toBe('A');
+		expect(result[result.length - 1]).toBe('E');
+		expect(result.length).toBe(5);
+	});
+
+	test('shuffleMiddle keeps middle, shuffles outside', () => {
+		initChance('middle-fixed');
+		const input = ['A', 'B', 'C', 'D', 'E'];
+		const result = u.shuffleMiddle([...input]);
+		expect(result[2]).toBe('C'); // middle element preserved
+		expect(result.length).toBe(5);
+	});
+
+	test('interruptArray substitutes some elements', () => {
+		initChance('interrupt');
+		const input = [
+			{ event: 'step1' }, { event: 'step2' }, { event: 'step3' },
+			{ event: 'step4' }, { event: 'step5' }
+		];
+		const substitutes = [{ event: 'other1' }, { event: 'other2' }];
+		const result = u.interruptArray([...input], substitutes);
+		expect(result.length).toBe(5);
+		// First and last should be preserved
+		expect(result[0].event).toBe('step1');
+		expect(result[result.length - 1].event).toBe('step5');
+	});
+});
+
+describe('funnel experiments', () => {
+	test('experiment=true generates events with experiment variant', async () => {
+		initChance('exp-test');
+		const generate = (await import('../index.js')).default;
+		const results = await generate({
+			numUsers: 20,
+			numEvents: 500,
+			seed: 'exp-test',
+			writeToDisk: false,
+			events: [
+				{ event: 'view_page', weight: 3, isFirstEvent: true },
+				{ event: 'click_button', weight: 2 },
+				{ event: 'submit_form', weight: 1 },
+			],
+			funnels: [{
+				sequence: ['view_page', 'click_button', 'submit_form'],
+				conversionRate: 80,
+				order: 'sequential',
+				experiment: true,
+				isFirstFunnel: true,
+				timeToConvert: 2,
+			}]
+		});
+
+		// Should have $experiment_started events
+		const expEvents = results.eventData.filter(e => e.event === '$experiment_started');
+		expect(expEvents.length).toBeGreaterThan(0);
+
+		// Experiment events should have "Variant name" property
+		for (const ev of expEvents) {
+			expect(['A', 'B', 'C']).toContain(ev['Variant name']);
+		}
+	});
+});
+
+describe('ad spend generation', () => {
+	test('makeAdSpend produces valid ad spend events', async () => {
+		initChance('adspend-test');
+		const { makeAdSpend } = await import('../lib/generators/adspend.js');
+		const config = validateDungeonConfig({
+			numUsers: 5, numEvents: 50, numDays: 30,
+			events: [{ event: 'test', isFirstEvent: true }],
+			hasCampaigns: true, seed: 'adspend-test'
+		});
+		const context = createContext(config);
+
+		const day = '2024-01-15T00:00:00.000Z';
+		const events = await makeAdSpend(context, day);
+
+		expect(events.length).toBeGreaterThan(0);
+		for (const ev of events) {
+			expect(ev.event).toBe('$ad_spend');
+			expect(ev.time).toBe(day);
+			expect(ev.clicks).toBeGreaterThanOrEqual(0);
+			expect(ev.impressions).toBeGreaterThanOrEqual(0);
+			expect(ev.cost).toBeGreaterThan(0);
+			expect(ev.utm_source).toBeDefined();
+			expect(ev.utm_campaign).toBeDefined();
+		}
+	});
+
+	test('filters organic campaigns', async () => {
+		initChance('adspend-organic');
+		const { makeAdSpend } = await import('../lib/generators/adspend.js');
+		const config = validateDungeonConfig({
+			numUsers: 5, numEvents: 50, numDays: 30,
+			events: [{ event: 'test', isFirstEvent: true }],
+			hasCampaigns: true, seed: 'adspend-organic'
+		});
+		const context = createContext(config);
+
+		const events = await makeAdSpend(context, '2024-01-15T00:00:00.000Z');
+		// No organic campaigns should appear in ad spend
+		const organics = events.filter(e => e.utm_campaign === '$organic');
+		expect(organics.length).toBe(0);
+	});
+});
+
+describe('mirror strategies', () => {
+	test('mirror generation with create strategy', async () => {
+		initChance('mirror-create');
+		const generate = (await import('../index.js')).default;
+		const results = await generate({
+			numUsers: 5,
+			numEvents: 50,
+			seed: 'mirror-create',
+			writeToDisk: false,
+			events: [{ event: 'purchase', weight: 5, isFirstEvent: true, properties: { amount: [10, 20, 30] } }],
+			mirrorProps: {
+				version: {
+					strategy: 'create',
+					values: ['v1', 'v2', 'v3'],
+					events: '*'
+				}
+			}
+		});
+
+		expect(results.mirrorEventData.length).toBeGreaterThan(0);
+		// Mirror events should have the 'version' property
+		const withVersion = results.mirrorEventData.filter(e => e.version !== undefined);
+		expect(withVersion.length).toBeGreaterThan(0);
+	});
+
+	test('mirror generation with delete strategy', async () => {
+		initChance('mirror-delete');
+		const generate = (await import('../index.js')).default;
+		const results = await generate({
+			numUsers: 5,
+			numEvents: 50,
+			seed: 'mirror-delete',
+			writeToDisk: false,
+			events: [{ event: 'purchase', weight: 5, isFirstEvent: true, properties: { amount: [10, 20, 30] } }],
+			mirrorProps: {
+				amount: {
+					strategy: 'delete',
+					values: [],
+					events: '*'
+				}
+			}
+		});
+
+		expect(results.mirrorEventData.length).toBeGreaterThan(0);
+		// Mirror events should have 'amount' removed
+		const withoutAmount = results.mirrorEventData.filter(e => e.amount === undefined || e.amount === null);
+		expect(withoutAmount.length).toBeGreaterThan(0);
+	});
+});
+
+describe('group profile generation', () => {
+	test('generates group profiles with properties', async () => {
+		initChance('group-test');
+		const generate = (await import('../index.js')).default;
+		const results = await generate({
+			numUsers: 5,
+			numEvents: 50,
+			seed: 'group-test',
+			writeToDisk: false,
+			events: [{ event: 'test', weight: 5, isFirstEvent: true }],
+			groupKeys: [['company_id', 3]],
+			groupProps: {
+				company_id: {
+					industry: ['tech', 'finance', 'healthcare'],
+					size: ['small', 'medium', 'large']
+				}
+			}
+		});
+
+		expect(results.groupProfilesData.length).toBe(1); // one group key
+		const companyProfiles = results.groupProfilesData[0];
+		expect(companyProfiles.length).toBe(3); // 3 companies
+		for (const profile of companyProfiles) {
+			expect(profile.industry).toBeDefined();
+			expect(profile.size).toBeDefined();
+		}
+	});
+});
+
+describe('choose() edge cases', () => {
+	test('choose with primitive returns primitive', () => {
+		expect(u.choose(42)).toBe(42);
+		expect(u.choose('hello')).toBe('hello');
+		expect(u.choose(true)).toBe(true);
+	});
+
+	test('choose with function calls function', () => {
+		expect(u.choose(() => 'result')).toBe('result');
+	});
+
+	test('choose with array picks element', () => {
+		initChance('choose-arr');
+		const result = u.choose(['a', 'b', 'c']);
+		expect(['a', 'b', 'c']).toContain(result);
+	});
+
+	test('choose with nested array picks from inner', () => {
+		initChance('choose-nested');
+		const result = u.choose([['x', 'y'], ['a', 'b']]);
+		// Should return one of the inner elements
+		expect(result).toBeDefined();
+	});
+});
+
+describe('streaming output', () => {
+	test('streamJSON produces valid JSONL', async () => {
+		const fs = await import('fs');
+		const path = await import('path');
+		const data = [
+			{ event: 'test', time: '2024-01-15T00:00:00.000Z', amount: 42 },
+			{ event: 'test2', time: '2024-01-16T00:00:00.000Z', amount: 99 }
+		];
+		const filePath = path.default.resolve('./data/test-stream.json');
+
+		await u.streamJSON(filePath, data);
+
+		const content = fs.readFileSync(filePath, 'utf8').trim();
+		const lines = content.split('\n');
+		expect(lines.length).toBe(2);
+		expect(() => JSON.parse(lines[0])).not.toThrow();
+		expect(() => JSON.parse(lines[1])).not.toThrow();
+		const parsed = JSON.parse(lines[0]);
+		expect(parsed.event).toBe('test');
+		expect(parsed.amount).toBe(42);
+
+		// Cleanup
+		fs.unlinkSync(filePath);
+	});
+
+	test('streamCSV produces valid CSV with headers', async () => {
+		const fs = await import('fs');
+		const path = await import('path');
+		const data = [
+			{ event: 'test', time: '2024-01-15T00:00:00.000Z', amount: 42 },
+			{ event: 'test2', time: '2024-01-16T00:00:00.000Z', amount: 99 }
+		];
+		const filePath = path.default.resolve('./data/test-stream.csv');
+
+		await u.streamCSV(filePath, data);
+
+		const content = fs.readFileSync(filePath, 'utf8').trim();
+		const lines = content.split('\n');
+		expect(lines.length).toBe(3); // header + 2 rows
+		expect(lines[0]).toContain('event');
+		expect(lines[0]).toContain('time');
+		expect(lines[0]).toContain('amount');
+		expect(lines[1]).toContain('test');
+
+		// Cleanup
+		fs.unlinkSync(filePath);
+	});
+});

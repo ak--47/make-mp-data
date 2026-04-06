@@ -30,7 +30,6 @@ const config = {
 	hasAnonIds: true, //if true, anonymousIds are created for each user
 	hasSessionIds: true, //if true, hasSessionIds are created for each user
 	hasAdSpend: false,
-	makeChart: false,
 	hasLocation: true,
 	hasAndroidDevices: false,
 	hasIOSDevices: false,

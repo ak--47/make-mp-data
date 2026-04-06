@@ -131,10 +131,9 @@ const config = {
 	percentUsersBornInDataset: 50,
 
 	hasAvatar: true,
-	makeChart: false,
 
 	batchSize: 2_500_000,
-	concurrency: 10,
+	concurrency: 1,
 	writeToDisk: false,
 
 	funnels: [

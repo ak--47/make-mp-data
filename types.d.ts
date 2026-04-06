@@ -12,75 +12,123 @@ export type ValueValid = Primitives | ValueValid[] | (() => ValueValid);
  * main config object for the entire data generation
  */
 export interface Dungeon {
-    // constants
+    // ── Core Parameters ──
+    /** Mixpanel project token. If provided, data will be imported to Mixpanel after generation. */
     token?: string;
+    /** RNG seed for reproducible output. Same seed + concurrency=1 = identical data. */
     seed?: string;
+    /** Number of days the dataset spans (from "now" looking backward). Default: 30 */
     numDays?: number;
+    /** Explicit start of dataset window (unix seconds). Alternative to numDays. */
     epochStart?: number;
+    /** Explicit end of dataset window (unix seconds). Defaults to FIXED_NOW. */
     epochEnd?: number;
+    /** Target total number of events to generate across all users. */
     numEvents?: number;
+    /** Number of unique users to generate. */
     numUsers?: number;
+    /** Output format for files written to disk. */
     format?: "csv" | "json" | "parquet" | string;
+    /** Mixpanel data residency region. */
     region?: "US" | "EU";
+    /** User generation concurrency. Default: 1. Values > 1 break seed reproducibility and provide no performance benefit (CPU-bound). */
     concurrency?: number;
+    /** Number of records before auto-flushing to disk. Prevents OOM for large datasets. Default: 1,000,000 */
     batchSize?: number;
 
+    // ── Mixpanel Import Credentials (for SCD import) ──
     serviceAccount?: string;
     serviceSecret?: string;
     projectId?: string;
 
-    // ids
+    // ── Identifiers ──
+    /** Dataset name prefix for output files. Auto-generated if not set. */
     name?: string;
 
-    //switches
+    // ── Feature Switches ──
+    /** If true, users have no distinct_id (anonymous-only tracking). */
     isAnonymous?: boolean;
+    /** If true, user profiles include avatar URLs. */
     hasAvatar?: boolean;
+    /** If true, events include geo properties (city, region, country, lat/lng). */
     hasLocation?: boolean;
+    /** If true, events include UTM campaign properties. */
     hasCampaigns?: boolean;
+    /** If true, generates ad spend data (impressions, clicks, cost). */
     hasAdSpend?: boolean;
+    /** If true, device pool includes iOS devices. */
     hasIOSDevices?: boolean;
+    /** If true, device pool includes Android devices. */
     hasAndroidDevices?: boolean;
+    /** If true, device pool includes desktop devices. */
     hasDesktopDevices?: boolean;
+    /** If true, events include browser properties. */
     hasBrowser?: boolean;
+    /** If true (default), writes output files to ./data/. Can also be a directory path string. */
     writeToDisk?: boolean | string;
+    /** If true, gzip-compresses output files. */
     gzip?: boolean;
+    /** If true, prints progress to stdout during generation. */
     verbose?: boolean;
+    /** If true, users get anonymous device IDs in addition to distinct_id. */
     hasAnonIds?: boolean;
+    /** If true, users get session IDs attached to events. */
     hasSessionIds?: boolean;
+    /** If true, auto-generates funnels from the events array in addition to any explicit funnels. */
     alsoInferFunnels?: boolean;
-    makeChart?: boolean | string;
+    /** Restrict all location data to a single country (e.g., "US", "GB"). */
     singleCountry?: string;
+    /** If true, stops generation at exactly numEvents (forces concurrency=1). Without this, event count is approximate. */
     strictEventCount?: boolean;
+    /** Internal flag for UI-triggered jobs (affects SCD credential handling). */
     isUIJob?: boolean;
 
-    //models
-    events?: EventConfig[]; //| string[]; //can also be a array of strings
+    // ── Data Models ──
+    /** Event definitions: names, weights, properties, and behavioral flags. */
+    events?: EventConfig[];
+    /** Properties that appear on EVERY event (e.g., platform, app_version). */
     superProps?: Record<string, ValueValid>;
+    /** Funnel definitions: conversion sequences, rates, ordering strategies. */
     funnels?: Funnel[];
+    /** User profile properties set once per user. */
     userProps?: Record<string, ValueValid>;
+    /** Slowly Changing Dimension properties: time-series mutations of user/group attributes. */
     scdProps?: Record<string, SCDProp>;
+    /** Mirror dataset definitions: create transformed copies of event data. */
     mirrorProps?: Record<string, MirrorProps>;
-    groupKeys?: [string, number][] | [string, number, string[]][]; // [key, numGroups, [events]]
+    /** Group analytics keys. Format: [key, numGroups] or [key, numGroups, [associatedEvents]]. */
+    groupKeys?: [string, number][] | [string, number, string[]][];
+    /** Properties for each group key's entities. */
     groupProps?: Record<string, Record<string, ValueValid>>;
+    /** Group-level events (stub — not yet implemented). */
     groupEvents?: GroupEventConfig[];
+    /** Lookup table definitions for dimension tables. */
     lookupTables?: LookupTableSchema[];
+    /** TimeSoup configuration: controls the temporal distribution of events (peaks, deviation, mean). */
     soup?: soup;
+    /** Hook function called on every data point. The primary mechanism for engineering deliberate trends and patterns. */
     hook?: Hook<any>;
 
-    //allow anything to be on the config
+    /** Allow arbitrary additional properties on the config. */
     [key: string]: any;
 
-    //probabilities
+    // ── Distribution Controls ──
+    /** Percentage of users whose account creation falls within the dataset window (vs. pre-existing). Default: 15 */
     percentUsersBornInDataset?: number;
     /** Bias toward recent birth dates for users born in dataset (0 = uniform, 1 = heavily recent). Default: 0.3 */
     bornRecentBias?: number;
 }
 
 export type SCDProp = {
+    /** Entity type this SCD applies to. "user" for user profiles; use a group key (e.g., "company_id") for group SCDs. Default: "user" */
     type?: string | "user" | "company_id" | "team_id" | "department_id";
+    /** How often the property mutates. Default: "day" */
     frequency?: "day" | "week" | "month" | "year";
+    /** Array of possible values, or a function that returns values. */
     values: ValueValid;
+    /** "fixed" = mutations at clean boundaries (start of day/week/month/year). "fuzzy" = mutations at any time. Default: "fuzzy" */
     timing?: "fixed" | "fuzzy";
+    /** Maximum number of mutations per entity. Default: 10 */
     max?: number;
 };
 
@@ -88,13 +136,25 @@ export type SCDProp = {
  * the soup is a set of parameters that determine the distribution of events over time
  */
 type soup = {
+    /** Controls clustering tightness. Higher = tighter peaks. Default: 2 */
     deviation?: number;
+    /** Number of time clusters to distribute events across. Default: dynamic (numDays/7, minimum 5) */
     peaks?: number;
+    /** Offset for the normal distribution center within each peak. Default: 0 */
     mean?: number;
 };
 
 /**
- * the types of hooks that can be used
+ * Hook types and when they fire (in order per user):
+ * - "user"        — user profile object (mutate in-place, return ignored)
+ * - "scd-pre"     — array of SCD entries (mutate in-place OR return new array to replace)
+ * - "funnel-pre"  — funnel config object (mutate conversionRate, timeToConvert, etc. in-place)
+ * - "event"       — single event with FLAT properties (return value replaces event)
+ * - "funnel-post" — array of generated funnel events (mutate in-place, splice to inject)
+ * - "everything"  — array of ALL events for one user (return array to replace; meta.profile available)
+ *
+ * Storage-only hooks (fire during hookPush, not in generators):
+ * - "ad-spend", "group", "mirror", "lookup"
  */
 export type hookTypes =
     | "event"
@@ -113,7 +173,10 @@ export type hookTypes =
     | "";
 
 /**
- * a hook is a function that can be called before each entity is created, and can be used to modify attributes
+ * A hook function that receives every piece of data as it flows through the pipeline.
+ * @param record - The data being processed (event, profile, array of events, etc.)
+ * @param type - Which hook type is firing
+ * @param meta - Contextual metadata (varies by type; "everything" includes meta.profile and meta.scd)
  */
 export type Hook<T> = (record: any, type: hookTypes, meta: any) => T;
 
@@ -199,6 +262,7 @@ export interface Context {
     FIXED_NOW: number;
     FIXED_BEGIN?: number;
     TIME_SHIFT_SECONDS: number;
+    MAX_TIME: number;
 
     // State update methods
     incrementOperations(): void;
@@ -223,14 +287,24 @@ export interface Context {
  * how we define events and their properties
  */
 export interface EventConfig {
+    /** The event name (e.g., "page viewed", "purchase completed"). */
     event?: string;
+    /** Relative frequency weight (1-10). Higher = more likely to be selected. Used for both standalone event selection and funnel sequence building. Default: 1 */
     weight?: number;
+    /** Properties to attach to this event type. Values can be arrays (random pick), functions, or primitives. */
     properties?: Record<string, ValueValid>;
+    /** If true, this is the user's first-ever event (e.g., "sign up"). Used to create onboarding funnels. */
     isFirstEvent?: boolean;
+    /** If true, generating this event signals the user has churned. The user stops producing further events unless returnLikelihood allows them to come back. */
     isChurnEvent?: boolean;
+    /** Probability (0-1) that a churned user returns and continues generating events. 0 = permanent churn, 1 = always returns. Only used when isChurnEvent is true. Default: 0 */
+    returnLikelihood?: number;
+    /** If true, this event is automatically prepended 15 seconds before each funnel sequence (e.g., "$session_started"). */
     isSessionStartEvent?: boolean;
+    /** Internal: timing offset in milliseconds (set by funnel system, not user-configured). */
     relativeTimeMs?: number;
-	isStrictEvent?: boolean;
+    /** If true, this event is excluded from auto-generated funnels (inferFunnels and catch-all). Use for system events that shouldn't appear in conversion sequences. */
+    isStrictEvent?: boolean;
 }
 
 export interface GroupEventConfig extends EventConfig {
@@ -297,13 +371,6 @@ export interface Funnel {
         | "interrupted"
         | string;
 
-    /**
-     * todo: implement this
-     * if set, the funnel might be the last thing the user does
-     * ^ the numerical value is the likelihood that the user will churn
-     * todo: allow for users to be resurrected
-     */
-    isChurnFunnel?: void | number;
     /**
      * the likelihood that a user will convert (0-100%)
      */

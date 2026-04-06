@@ -47,6 +47,12 @@
 			"console": "integratedTerminal",
 			"internalConsoleOptions": "neverOpen",
 			"skipFiles": ["<node_internals>/**"]
+		},
+		{
+			"command": "npm run typecheck",
+			"name": "🔍 typecheck",
+			"request": "launch",
+			"type": "node-terminal"
 		}
 	]
 }

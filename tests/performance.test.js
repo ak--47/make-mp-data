@@ -14,8 +14,8 @@ import dayjs from 'dayjs';
 /** @typedef {import('../types').Dungeon} Config */
 
 beforeAll(() => {
-    // Initialize global variables for consistent testing
-    global.FIXED_NOW = Math.floor(Date.now() / 1000);
+    // Use production FIXED_NOW (2024-02-02) for consistent testing
+    global.FIXED_NOW = 1706832000;
     global.FIXED_BEGIN = global.FIXED_NOW - (30 * 24 * 60 * 60);
     initChance('test-performance-seed');
 });
@@ -54,21 +54,25 @@ describe('Performance Optimizations', () => {
             expect(context1.TIME_SHIFT_SECONDS).toBe(context2.TIME_SHIFT_SECONDS);
         });
 
-        test('TIME_SHIFT_SECONDS should represent 2 days in seconds', () => {
+        test('TIME_SHIFT_SECONDS should shift from FIXED_NOW to ~1 hour ago', () => {
             const config = {
                 numUsers: 10,
                 numEvents: 50,
                 seed: 'test-seed'
             };
-            
+
             const validatedConfig = validateDungeonConfig(config);
             const context = createContext(validatedConfig);
-            
-            // Should be close to 1 day worth of seconds (86400 seconds)
-            const oneDayInSeconds = 1 * 24 * 60 * 60; // 86400
-            const tolerance = 60; // 1 minute tolerance
 
-            expect(Math.abs(context.TIME_SHIFT_SECONDS - oneDayInSeconds)).toBeLessThan(tolerance);
+            // Shift should be positive and large (FIXED_NOW is far in the past)
+            expect(context.TIME_SHIFT_SECONDS).toBeGreaterThan(0);
+            // Events at FIXED_NOW should land ~1 hour before actual now
+            const shiftedFixedNow = global.FIXED_NOW + context.TIME_SHIFT_SECONDS;
+            const actualNow = Math.floor(Date.now() / 1000);
+            const diffFromNow = actualNow - shiftedFixedNow;
+            // Should be about 1 hour (3600s) before now, with some tolerance
+            expect(diffFromNow).toBeGreaterThan(3000);
+            expect(diffFromNow).toBeLessThan(4200);
         });
     });
 
@@ -131,31 +135,25 @@ describe('Performance Optimizations', () => {
     });
 
     describe('TimeSoup Performance Characteristics', () => {
-        test('TimeSoup should return ISO string format', () => {
+        test('TimeSoup should return unix seconds', () => {
             const earliestTime = global.FIXED_BEGIN;
             const latestTime = global.FIXED_NOW;
-            
+
             const result = TimeSoup(earliestTime, latestTime);
-            
-            // Should return ISO string (not numeric timestamp)
-            expect(typeof result).toBe('string');
-            expect(result).toMatch(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/);
-            expect(dayjs(result).isValid()).toBe(true);
+
+            expect(typeof result).toBe('number');
+            expect(result).toBeGreaterThanOrEqual(earliestTime);
+            expect(result).toBeLessThanOrEqual(latestTime);
         });
 
         test('TimeSoup should produce valid timestamps within range', () => {
             const earliestTime = global.FIXED_BEGIN;
             const latestTime = global.FIXED_NOW;
-            
+
             const result = TimeSoup(earliestTime, latestTime, 5, 2, 0);
-            
-            // Should produce valid timestamps within the range
-            const resultTime = dayjs(result);
-            const earliestDay = dayjs.unix(earliestTime);
-            const latestDay = dayjs.unix(latestTime);
-            
-            expect(resultTime.isAfter(earliestDay)).toBe(true);
-            expect(resultTime.isBefore(latestDay)).toBe(true);
+
+            expect(result).toBeGreaterThanOrEqual(earliestTime);
+            expect(result).toBeLessThanOrEqual(latestTime);
         });
     });
 

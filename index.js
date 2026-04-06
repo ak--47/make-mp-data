@@ -27,6 +27,7 @@ import { makeMirror } from './lib/generators/mirror.js';
 import { makeGroupProfile, makeProfile } from './lib/generators/profiles.js';
 
 // Utilities
+import { initChance } from './lib/utils/utils.js';
 
 // External dependencies
 import dayjs from "dayjs";
@@ -138,6 +139,12 @@ async function main(config) {
 		// Step 1: Validate and enrich configuration
 		validatedConfig = validateDungeonConfig(config);
 
+		// Ensure seeded RNG is initialized (dungeons do this at module scope,
+		// but npm-module consumers pass seed via config object)
+		if (validatedConfig.seed) {
+			initChance(validatedConfig.seed);
+		}
+
 		// Update FIXED_BEGIN based on configured numDays
 		const configNumDays = validatedConfig.numDays || 30;
 		global.FIXED_BEGIN = dayjs.unix(FIXED_NOW).subtract(configNumDays, 'd').unix();
@@ -237,8 +244,11 @@ async function generateAdSpendData(context) {
 	const { config, storage } = context;
 	const { numDays } = config;
 
+	const timeShift = context.TIME_SHIFT_SECONDS;
 	for (let day = 0; day < numDays; day++) {
-		const targetDay = dayjs.unix(global.FIXED_BEGIN).add(day, 'day').toISOString();
+		const fixedDay = dayjs.unix(global.FIXED_BEGIN).add(day, 'day').unix();
+		const shiftedDay = Math.min(fixedDay + timeShift, context.MAX_TIME);
+		const targetDay = dayjs.unix(shiftedDay).toISOString();
 		const adSpendEvents = await makeAdSpend(context, targetDay);
 
 		if (adSpendEvents.length > 0) {
@@ -378,16 +388,19 @@ async function generateGroupSCDs(context) {
 
 				// Use a base time for the group entity (similar to user creation time)
 				const baseTime = context.FIXED_BEGIN || context.FIXED_NOW;
-				const changes = await makeSCD(context, scdConfig, scdKey, groupId, mutations, baseTime);
+				let changes = await makeSCD(context, scdConfig, scdKey, groupId, mutations, baseTime);
 
 				// Apply hook if configured
 				if (config.hook) {
-					await config.hook(changes, "scd-pre", {
+					const hookResult = await config.hook(changes, "scd-pre", {
 						type: 'group',
 						groupKey,
 						scd: { [scdKey]: scdConfig },
 						config
 					});
+					if (Array.isArray(hookResult)) {
+						changes = hookResult;
+					}
 				}
 
 				// Store SCDs in the appropriate SCD table

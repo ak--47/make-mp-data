@@ -76,7 +76,6 @@ const config = {
 	hasAnonIds: false, //if true, anonymousIds are created for each user
 	hasSessionIds: false, //if true, hasSessionIds are created for each user
 	hasAdSpend: false,
-	makeChart: false,
 	hasLocation: true,
 	hasAndroidDevices: true,
 	hasIOSDevices: true,
@@ -241,9 +240,9 @@ const config = {
 			if (record.event === 'sign up') {
 				record.signup_flow = "v1";
 				if (eventTime.isBefore(DAY_SIGNUPS_IMPROVED)) {
-					// 50% of the time kill the signup
+					// tag 50% for removal (filtered in "everything" hook)
 					if (chance.bool({ likelihood: 50 })) {
-						return null;
+						record._drop = true;
 					}
 				}
 				if (eventTime.isAfter(DAY_SIGNUPS_IMPROVED)) {
@@ -369,7 +368,10 @@ const config = {
 
 		}
 
-
+		// Filter out events tagged for removal in the event hook
+		if (type === "everything") {
+			record = record.filter(e => !e._drop);
+		}
 
 		return record;
 	}

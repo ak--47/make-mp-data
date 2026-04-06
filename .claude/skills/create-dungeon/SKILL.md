@@ -15,11 +15,12 @@ Design and build a complete DM4 dungeon for: **$ARGUMENTS**
 Create a single `.js` file in `dungeons/` that defines a complete, realistic data schema for the described app/vertical. The dungeon must include deliberately architected analytics "hooks" — hidden trends and patterns that simulate real-world product insights buried in large datasets.
 
 Before writing any code, read these reference files to understand patterns and conventions:
-- `brain/utils/utils.js` — search for `pickAWinner`, `weighNumRange`, `initChance`, `exhaust`, `takeSome` to understand available utilities
-- `brain/generators/events.js` — search for `hook` to see how `type === "event"` hooks are called (properties are FLAT on record)
-- `brain/generators/funnels.js` — search for `hook` to see `funnel-pre` and `funnel-post` invocation
-- `brain/orchestrators/user-loop.js` — search for `hook` to see `user`, `scd-pre`, and `everything` invocation
-- `brain/core/config-validator.js` — understand validation rules (especially funnel event name matching)
+- `types.d.ts` — **the complete API reference** for all config options, event flags, hook types, SCD props, funnel options, and type definitions. Every feature is documented with JSDoc comments.
+- `lib/utils/utils.js` — search for `pickAWinner`, `weighNumRange`, `initChance`, `exhaust`, `takeSome` to understand available utilities
+- `lib/generators/events.js` — search for `hook` to see how `type === "event"` hooks are called (properties are FLAT on record)
+- `lib/generators/funnels.js` — search for `hook` to see `funnel-pre` and `funnel-post` invocation
+- `lib/orchestrators/user-loop.js` — search for `hook` to see `user`, `scd-pre`, and `everything` invocation
+- `lib/core/config-validator.js` — understand validation rules (especially funnel event name matching)
 
 If you wish, you can view how existing ./dungeons are structured for reference and how ./customers dungeons are for specific customers. Try to provide a realistic event/prop/user schema with the context you have from the prompt.
 
@@ -29,7 +30,7 @@ If you wish, you can view how existing ./dungeons are structured for reference a
 import dayjs from "dayjs";
 import utc from "dayjs/plugin/utc.js";
 import "dotenv/config";
-import * as u from "../brain/utils/utils.js";
+import * as u from "../lib/utils/utils.js";
 import * as v from "ak-tools";
 
 const SEED = "needle-haystack-VERTICAL";
@@ -38,7 +39,7 @@ const chance = u.initChance(SEED);
 const num_users = 5_000;
 const days = 100;
 
-/** @typedef  {import("../types.js").Dungeon} Config */
+/** @typedef  {import("../types").Dungeon} Config */
 
 /**
  * APP DESIGN DOCUMENTATION
@@ -88,13 +89,12 @@ isAnonymous: false,
 hasAdSpend: false,
 percentUsersBornInDataset: 35,
 hasAvatar: true,
-makeChart: false,
 batchSize: 2_500_000,
 concurrency: 1,
 writeToDisk: false,
 scdProps: {},
 mirrorProps: {},
-lookupTables: [],
+lookupTables: [],  // NEVER add lookup tables — they require manual import and are not automated
 ```
 
 ## Required Components
@@ -104,7 +104,13 @@ lookupTables: [],
 - Use `u.pickAWinner(array)` for categorical distributions (power-law weighted)
 - Use `u.weighNumRange(min, max, skew?, center?)` for numeric ranges (Box-Muller)
 - Use plain arrays `[val1, val2, val3]` for uniform random selection
-- Each event needs `event` (name), `weight` (relative frequency), `properties` (object)
+- Each event needs `event` (name), `weight` (relative frequency 1-10), `properties` (object)
+
+#### Event Flags (see `types.d.ts` EventConfig for full reference)
+- `isFirstEvent: true` — marks the signup/onboarding event (used for first funnels)
+- `isChurnEvent: true` — when generated, signals the user has churned and stops further event generation. Pair with `returnLikelihood` (0-1) to control whether users can come back (0 = permanent churn, 1 = always returns). Mark churn events with `isStrictEvent: true` so they don't end up in auto-generated funnels.
+- `isSessionStartEvent: true` — automatically prepended 15 seconds before each funnel (e.g., `$session_started`). Use for session tracking events.
+- `isStrictEvent: true` — excluded from auto-generated funnels (both `inferFunnels` and the catch-all). Use for system events, churn events, or events that shouldn't appear in conversion sequences.
 
 ### 2. Funnels (3)
 - Mark one with `isFirstFunnel: true` (onboarding funnel)
@@ -136,7 +142,7 @@ lookupTables: [],
 | `"user"` | User profile object | Ignored — mutate in-place | `user-loop.js` per user |
 | `"funnel-pre"` | Funnel config `{sequence, conversionRate, timeToConvert, props}` | Ignored — mutate in-place | `funnels.js` before generation |
 | `"funnel-post"` | Array of generated funnel events | Ignored — mutate in-place | `funnels.js` after generation |
-| `"scd-pre"` | Array of SCD entries | Ignored — mutate in-place | `user-loop.js` before SCD write |
+| `"scd-pre"` | Array of SCD entries | Return array to replace, or mutate in-place | `user-loop.js` before SCD write |
 | `"everything"` | Array of ALL events for one user | Return array to replace event list | `user-loop.js` after all events generated |
 
 ### Critical Hook Rules
@@ -598,8 +604,9 @@ if (type === "everything") {
 2. **Funnel event name mismatch**: If your funnel has `"first quest accepted"` but events array has `"quest accepted"`, validation fails. Names must match exactly.
 3. **Using `record.properties.X` in hooks**: Properties are flat. Use `record.X` directly.
 4. **Using `distinct_id` on spliced events**: The pipeline uses `user_id`, NOT `distinct_id`. Always copy `user_id: event.user_id` from the source event when creating new events in hooks.
-5. **Using `scdProps`**: Leave as `{}` — SCD import requires service credentials we don't have.
-6. **Using `lookupTables`**: Always set to `[]` — events should carry all their attributes directly as properties, no separate dimension tables.
+5. **Using `scdProps`**: SCDs generate locally without credentials. Only Mixpanel *import* needs service credentials. You can use `scdProps` freely for local generation with `writeToDisk: true`.
+6. **NEVER use `lookupTables`**: Always set to `[]`. Lookup tables require a separate manual import step that is not automated. Events should carry all their attributes directly as flat properties.
+7. **Churn events in funnels**: Always mark `isChurnEvent` events with `isStrictEvent: true` so they aren't included in auto-generated funnels (otherwise the churn event can fire mid-funnel, which is wrong).
 
 ## JSON Schema Output (Required)
 
@@ -651,7 +658,7 @@ Include `isFirstEvent`, `isFirstFunnel`, `name`, `weight`, `order`, and other no
 
 ## After Writing the Files
 
-1. Validate the JS dungeon with: `node -e "import { validateDungeonConfig } from './brain/core/config-validator.js'; import c from './dungeons/FILENAME.js'; validateDungeonConfig(c); console.log('valid');"`
+1. Validate the JS dungeon with: `node -e "import { validateDungeonConfig } from './lib/core/config-validator.js'; import c from './dungeons/FILENAME.js'; validateDungeonConfig(c); console.log('valid');"`
 2. If validation fails, fix the issue (usually funnel event names or pickAWinner crashes)
 3. Verify the hook function loads without errors
 4. Verify the JSON schema file is valid JSON: `node -e "import fs from 'fs'; JSON.parse(fs.readFileSync('./dungeons/FILENAME-schema.json', 'utf8')); console.log('valid json');"`

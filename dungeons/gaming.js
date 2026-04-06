@@ -35,7 +35,6 @@ const config = {
 	percentUsersBornInDataset: 25,
 
 	hasAvatar: true,
-	makeChart: false,
 
 	batchSize: 2_500_000,
 	concurrency: 1,

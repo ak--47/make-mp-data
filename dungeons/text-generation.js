@@ -344,7 +344,6 @@ const dungeon = {
 	isAnonymous: false,
 	hasAdSpend: false,	
 	hasAvatar: false,
-	makeChart: false,
 
 	batchSize: 2_500_000,
 	concurrency: 1,

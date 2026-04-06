@@ -85,9 +85,8 @@ const config = {
 	isAnonymous: false,
 	hasAdSpend: false,
 	hasAvatar: false,
-	makeChart: false,
 	batchSize: 5_500_000,
-	concurrency: 10,
+	concurrency: 1,
 	writeToDisk: false,
 	percentUsersBornInDataset: 100,
 

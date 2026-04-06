@@ -156,7 +156,7 @@ const config = {
 	hasAndroidDevices: false,
 	hasDesktopDevices: false,
 	writeToDisk: false,
-	concurrency: 500,
+	concurrency: 1,
 
 	events: [
 		{

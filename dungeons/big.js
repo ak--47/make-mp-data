@@ -39,7 +39,7 @@ const config = {
 	hasCampaigns: false,
 	hasDesktopDevices: false,
 	hasIOSDevices: false,
-	writeToDisk: false,
+	writeToDisk: true,
 	funnels: [
 		{
 			"sequence": ["foo", "bar", "baz", "qux", "garply", "durtle", "linny", "fonk", "crumn", "yak"],

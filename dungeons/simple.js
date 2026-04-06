@@ -22,17 +22,16 @@ const videoCategories = ["funny", "educational", "inspirational", "music", "news
 
 /** @type {import('../types').Dungeon} */
 const config = {
-	token: "",
+	token: "c63e5bca7d459fad276354ea9ddbaaeb",
 	seed: "simple is best",
 	numDays: 100, //how many days worth1 of data
-	numEvents: 1_000_000, //how many events
-	numUsers: 10_000, //how many users
+	numEvents: 500_000, //how many events
+	numUsers: 5_000, //how many users
 	format: 'json', //csv or json
 	region: "US",
 	hasAnonIds: true, //if true, anonymousIds are created for each user
 	hasSessionIds: true, //if true, hasSessionIds are created for each user
-	hasAdSpend: true,
-	makeChart: false,
+	hasAdSpend: false,
 	hasLocation: true,
 	hasAndroidDevices: true,
 	hasIOSDevices: true,
@@ -41,7 +40,7 @@ const config = {
 	hasCampaigns: true,
 	isAnonymous: false,
 	alsoInferFunnels: true,
-	concurrency: 10,
+	concurrency: 1,
 	batchSize: 2_500_000,
 
 
@@ -192,8 +191,8 @@ const config = {
 			}
 
 			if (EVENT_TIME.isBefore(OVER_THINGS_GET_BETTER)) {
-				// kill 33% of all volume
-				if (chance.bool({ likelihood: 33 })) return null;
+				// tag 33% for removal (filtered in "everything" hook)
+				if (chance.bool({ likelihood: 33 })) record._drop = true;
 			}
 		}
 
@@ -233,9 +232,9 @@ const config = {
 				}
 			}
 
+			// Filter out events tagged for removal in the event hook
+			record = record.filter(e => !e._drop);
 		}
-
-
 
 		return record;
 	}

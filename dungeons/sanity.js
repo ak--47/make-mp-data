@@ -28,9 +28,8 @@ const config = {
 	hasAnonIds: false, //if true, anonymousIds are created for each user
 	hasSessionIds: false, //if true, hasSessionIds are created for each user
 	alsoInferFunnels: true, //if true, infer funnels from events
-	makeChart: true,
 	writeToDisk: false,
-	concurrency: 25,
+	concurrency: 1,
 	funnels: [
 		{
 			sequence: ["qux", "garply", "durtle", "linny", "fonk", "crumn", "yak"],			

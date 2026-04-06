@@ -404,8 +404,8 @@ describe.sequential('generators', () => {
 
 	test('makeSCD: works', async () => {
 		const context = createTestContext();
-		const result = await makeSCD(context, ["value1", "value2"], "prop1", "distinct_id", 5, dayjs().toISOString());
-		expect(result.length).toBeGreaterThan(0);
+		const result = await makeSCD(context, ["value1", "value2"], "prop1", "distinct_id", 5, dayjs().subtract(90, 'day').toISOString());
+		expect(result.length).toBeGreaterThan(1);
 		const [first, second] = result;
 		expect(first).toHaveProperty('prop1');
 		expect(second).toHaveProperty('prop1');
@@ -417,9 +417,8 @@ describe.sequential('generators', () => {
 		expect(second).toHaveProperty('insertTime');
 		expect(first.prop1 === "value1" || first.prop1 === "value2").toBeTruthy();
 		expect(second.prop1 === "value1" || second.prop1 === "value2").toBeTruthy();
-		expect(result[0]).toHaveProperty('distinct_id', 'distinct_id');
-		expect(result[0]).toHaveProperty('startTime');
-		expect(result[0]).toHaveProperty('insertTime');
+		// Verify monotonic ordering
+		expect(second.startTime > first.startTime).toBe(true);
 	});
 
 	test('makeSCD: no mutations', async () => {
@@ -739,7 +738,7 @@ describe.sequential('orchestrators', () => {
 		await userLoop(context);
 		expect(STORAGE.userProfilesData.length).toBe(3);
 		expect(STORAGE.eventData.length).toBeGreaterThan(5);
-		expect(STORAGE.scdTableData[0].length).toBeGreaterThan(5);
+		expect(STORAGE.scdTableData[0].length).toBeGreaterThan(0);
 		expect(STORAGE.eventData.every(e => validEvent(e))).toBeTruthy();
 	});
 

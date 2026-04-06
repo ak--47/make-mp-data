@@ -15,7 +15,8 @@ export default defineConfig({
     coverage: {
       provider: 'v8',
       reporter: ['text', 'json', 'html'],
-      reportsDirectory: './coverage'
+      reportsDirectory: './tests/coverage',
+      clean: true
     },
     
     // Test execution settings	
@@ -23,12 +24,12 @@ export default defineConfig({
     hookTimeout: 30000,
     teardownTimeout: 10000,
     
-    // Thread pool settings
-    pool: 'threads',
+    // Use forks for true process isolation (globals like chanceInitialized don't leak between test files)
+    pool: 'forks',
     poolOptions: {
-      threads: {
-        maxThreads: 4,
-        minThreads: 1
+      forks: {
+        maxForks: 4,
+        minForks: 1
       }
     },
     
@@ -40,10 +41,11 @@ export default defineConfig({
     // Don't watch in CI/test environments
     watch: false,
     
-    // Allow mixed concurrent/sequential execution
-    // CLI tests use describe.sequential() due to execSync collisions
+    // Tests within a file can run concurrently (describe.sequential overrides per-suite),
+    // but test FILES run sequentially to avoid ./data directory conflicts
     sequence: {
       concurrent: true
-    }
+    },
+    fileParallelism: false
   }
 });

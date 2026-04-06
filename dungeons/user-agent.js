@@ -33,10 +33,9 @@ const config = {
 	hasAdSpend: true,
 
 	hasAvatar: true,
-	makeChart: false,
 
 	batchSize: 500_000,
-	concurrency: 500,
+	concurrency: 1,
 	writeToDisk: false,
 
 	funnels: [],
