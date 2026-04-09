@@ -142,6 +142,10 @@ type soup = {
     peaks?: number;
     /** Offset for the normal distribution center within each peak. Default: 0 */
     mean?: number;
+    /** Day-of-week weights (7 elements, index 0=Sunday). Normalized max=1.0. Set null to disable. */
+    dayOfWeekWeights?: number[] | null;
+    /** Hour-of-day weights (24 elements, index 0=midnight UTC). Normalized max=1.0. Set null to disable. */
+    hourOfDayWeights?: number[] | null;
 };
 
 /**

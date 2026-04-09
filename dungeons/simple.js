@@ -22,7 +22,7 @@ const videoCategories = ["funny", "educational", "inspirational", "music", "news
 
 /** @type {import('../types').Dungeon} */
 const config = {
-	token: "c63e5bca7d459fad276354ea9ddbaaeb",
+	token: "",
 	seed: "simple is best",
 	numDays: 100, //how many days worth1 of data
 	numEvents: 500_000, //how many events
