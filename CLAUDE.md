@@ -141,7 +141,7 @@ interface Dungeon {
   strictEventCount: boolean     // Stop at exact numEvents (forces concurrency=1)
   bornRecentBias: number        // 0=uniform, 1=heavily recent user births (default 0.3)
   percentUsersBornInDataset     // Default 15
-  soup: { deviation, peaks, mean }  // Time distribution
+  soup: SoupPreset | SoupConfig     // Time distribution (see TimeSoup section below)
 
   // I/O
   writeToDisk, gzip, batchSize, concurrency, verbose
@@ -222,6 +222,55 @@ These are the proven techniques used across harness dungeons:
 6. **`everything` is the most powerful hook** — it sees all events for one user, can correlate across event types, and access `meta.profile` to drive behavior based on user properties
 7. **Return `record`** from `event` hooks (single object only — do NOT return arrays). For `everything`, return the (possibly modified) array
 8. **To drop/filter events (churn, drop-off, seasonal dips)**: you cannot drop events from the `event` hook. Use the `everything` hook: `return record.filter(e => !shouldDrop(e))`. For tag-and-filter: set `record._drop = true` in the `event` hook, then `return record.filter(e => !e._drop)` in `everything`. Do NOT use `return {}` — it creates broken events with no event name
+
+## TimeSoup — Time Distribution System
+
+TimeSoup controls how events are distributed across the time range. It uses Gaussian cluster sampling layered with day-of-week and hour-of-day accept/reject weighting derived from real Mixpanel data.
+
+### Soup Presets
+
+Set `soup` to a preset string for quick configuration:
+
+```javascript
+soup: "growth"     // default — gradual uptrend with weekly cycle
+soup: "steady"     // flat, mature SaaS pattern
+soup: "spiky"      // dramatic peaks and valleys
+soup: "seasonal"   // 3-4 major waves across the dataset
+soup: "global"     // flat DOW + flat HOD (no cyclical patterns)
+soup: "churny"     // flat distribution, all users pre-exist (pair with churn hooks)
+soup: "chaotic"    // wild variation, few tight peaks
+```
+
+Presets also suggest `bornRecentBias` and `percentUsersBornInDataset` values (applied only if not explicitly set in the dungeon config).
+
+### Custom Soup Config
+
+Override specific parameters or use a preset as a base:
+
+```javascript
+// Preset with overrides
+soup: { preset: "spiky", deviation: 5 }
+
+// Fully custom
+soup: {
+  peaks: 200,           // number of Gaussian clusters (default: numDays*2)
+  deviation: 2,         // peak tightness, higher = tighter (default: 2)
+  mean: 0,              // offset from chunk center (default: 0)
+  dayOfWeekWeights: [0.637, 1.0, 0.999, 0.998, 0.966, 0.802, 0.528],  // [Sun..Sat]
+  hourOfDayWeights: [/* 24 elements, 0=midnight UTC */],
+}
+
+// Disable cyclical patterns
+soup: { dayOfWeekWeights: null, hourOfDayWeights: null }
+```
+
+### Key Implementation Details
+
+- DOW uses accept/reject sampling (retry with new Gaussian sample if rejected)
+- HOD uses redistribution (directly sample a new hour from weight distribution)
+- Peaks default to `numDays * 2` to avoid chunk-boundary interference with 7-day week cycle
+- Default weights are derived from real Mixpanel data and produce realistic weekly "matterhorn hump" and daily curves
+- Presets are defined in `lib/templates/soup-presets.js` and resolved in `config-validator.js`
 
 ## Dependencies
 

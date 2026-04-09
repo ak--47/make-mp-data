@@ -671,10 +671,22 @@ export default config;
  * Each of their posts generates 10-20 extra post viewed, post liked, and post shared
  * events, all tagged with viral_cascade: true.
  *
- * HOW TO FIND IT:
- *   - Filter events where viral_cascade = true
- *   - Segment users by viral_cascade presence
- *   - Compare: engagement metrics (views, likes, shares) per post for viral vs. normal users
+ * HOW TO FIND IT IN MIXPANEL:
+ *
+ *   Report 1: Viral vs Normal Engagement Volume
+ *   • Report type: Insights
+ *   • Event: "post viewed"
+ *   • Measure: Total events
+ *   • Breakdown: "viral_cascade"
+ *   • Expected: viral_cascade=true accounts for a large share of total views
+ *     despite coming from only ~5% of prolific creators
+ *
+ *   Report 2: Engagement per Viral Creator
+ *   • Report type: Insights
+ *   • Event: "post liked"
+ *   • Measure: Total events per user
+ *   • Breakdown: "viral_cascade"
+ *   • Expected: viral_cascade=true users show 10-20x more likes per user
  *
  * EXPECTED INSIGHT: A small minority of users (roughly 250 out of 5,000) drive a
  * disproportionate share of total engagement. Viral creators generate 10-20x more
@@ -691,10 +703,21 @@ export default config;
  * content creators. 50% of their post created events get duplicated (with
  * follow_back_effect: true), and extra comment posted events are injected.
  *
- * HOW TO FIND IT:
- *   - Segment users by count of "user followed" events (5+ vs. fewer)
- *   - Compare: post creation frequency and comment frequency
- *   - Filter: follow_back_effect = true
+ * HOW TO FIND IT IN MIXPANEL:
+ *
+ *   Report 1: Post Creation by Follow-Back Effect
+ *   • Report type: Insights
+ *   • Event: "post created"
+ *   • Measure: Total events per user
+ *   • Breakdown: "follow_back_effect"
+ *   • Expected: follow_back_effect=true events show extra post creation volume
+ *
+ *   Report 2: Content Frequency for Popular Users
+ *   • Report type: Insights
+ *   • Event: "post created"
+ *   • Measure: Total events per user
+ *   • Filter: Users who did "user followed" >= 5 times (cohort)
+ *   • Expected: Users with 5+ follows create ~2x more posts than others
  *
  * EXPECTED INSIGHT: Users who gain a following create significantly more content.
  * The follow-back snowball creates a positive feedback loop: more followers ->
@@ -712,10 +735,24 @@ export default config;
  * Before day 45, 70% of post viewed events have source = "feed." After day 45,
  * 70% shift to source = "explore."
  *
- * HOW TO FIND IT:
- *   - Chart: post viewed events broken down by source over time
- *   - Look for the crossover point around day 45
- *   - Compare: engagement metrics before vs. after the algorithm change
+ * HOW TO FIND IT IN MIXPANEL:
+ *
+ *   Report 1: Source Distribution Over Time
+ *   • Report type: Insights (line chart)
+ *   • Event: "post viewed"
+ *   • Measure: Total events
+ *   • Breakdown: "source"
+ *   • Time: Daily or weekly trend
+ *   • Expected: "feed" dominates before day 45, "explore" dominates after.
+ *     Clear crossover point visible in the line chart around day 45.
+ *
+ *   Report 2: Before vs After Comparison
+ *   • Report type: Insights
+ *   • Event: "post viewed"
+ *   • Measure: Total events
+ *   • Breakdown: "source"
+ *   • Filter: Compare date range before day 45 vs after day 45
+ *   • Expected: Before: ~70% feed, ~15% explore. After: ~70% explore, ~15% feed.
  *
  * EXPECTED INSIGHT: A clear inflection point around day 45 where feed traffic
  * drops and explore traffic surges. This simulates a real algorithm deployment
@@ -733,10 +770,22 @@ export default config;
  * have very short view durations (1-5 seconds). These represent clickbait or
  * hashtag-stuffed content that attracts views but fails to hold attention.
  *
- * HOW TO FIND IT:
- *   - Filter: post viewed where engagement_bait = true
- *   - Compare: average view_duration_sec for engagement_bait vs. normal views
- *   - Correlate: engagement_bait with downstream actions (likes, comments, shares)
+ * HOW TO FIND IT IN MIXPANEL:
+ *
+ *   Report 1: View Duration by Engagement Bait
+ *   • Report type: Insights
+ *   • Event: "post viewed"
+ *   • Measure: Average of "view_duration_sec"
+ *   • Breakdown: "engagement_bait"
+ *   • Expected: engagement_bait=true ≈ 2-3 sec avg, false ≈ 15-30 sec avg
+ *     (5-10x shorter view duration for bait content)
+ *
+ *   Report 2: Bait Content Volume
+ *   • Report type: Insights
+ *   • Event: "post viewed"
+ *   • Measure: Total events
+ *   • Breakdown: "engagement_bait"
+ *   • Expected: ~20% of post viewed events have engagement_bait=true
  *
  * EXPECTED INSIGHT: Engagement bait posts get views but have 5-10x shorter view
  * durations. This creates a quality gap: high impression count but poor engagement
@@ -753,10 +802,24 @@ export default config;
  * to "notification" and are tagged with trending_reengagement: true. This simulates
  * the platform using trending notifications to re-engage lapsed users.
  *
- * HOW TO FIND IT:
- *   - Chart: post viewed by source over time, focusing on "notification" after day 30
- *   - Filter: trending_reengagement = true
- *   - Compare: notification-driven views vs. organic views in engagement quality
+ * HOW TO FIND IT IN MIXPANEL:
+ *
+ *   Report 1: Notification Source Over Time
+ *   • Report type: Insights (line chart)
+ *   • Event: "post viewed"
+ *   • Measure: Total events
+ *   • Breakdown: "source"
+ *   • Filter: "source" = "notification"
+ *   • Time: Daily trend
+ *   • Expected: Near-zero notification-driven views before day 30,
+ *     then a visible spike as ~30% of views come from notifications
+ *
+ *   Report 2: Re-engagement Tag Volume
+ *   • Report type: Insights
+ *   • Event: "post viewed"
+ *   • Measure: Total events
+ *   • Breakdown: "trending_reengagement"
+ *   • Expected: trending_reengagement=true events appear only after day 30
  *
  * EXPECTED INSIGHT: After day 30, notification-driven views spike as the platform
  * pushes trending content to re-engage users. This creates a visible shift in the
@@ -775,11 +838,23 @@ export default config;
  * are injected with monetized_creator: true. They also check their own content
  * more (extra post viewed events from "profile" source).
  *
- * HOW TO FIND IT:
- *   - Segment users by: has "creator subscription started" event
- *   - Compare: post creation and story creation frequency
- *   - Filter: monetized_creator = true
- *   - Compare: post viewed source = "profile" rate (analytics checking behavior)
+ * HOW TO FIND IT IN MIXPANEL:
+ *
+ *   Report 1: Content Creation by Monetization Status
+ *   • Report type: Insights
+ *   • Event: "post created"
+ *   • Measure: Total events per user
+ *   • Breakdown: "monetized_creator"
+ *   • Expected: monetized_creator=true users create ~3x more posts per user
+ *
+ *   Report 2: Creator Analytics Checking
+ *   • Report type: Insights
+ *   • Event: "post viewed"
+ *   • Measure: Total events
+ *   • Filter: "source" = "profile"
+ *   • Breakdown: "monetized_creator"
+ *   • Expected: monetized_creator=true shows elevated profile-source views
+ *     (creators checking their own content performance)
  *
  * EXPECTED INSIGHT: Monetized creators produce 3x more content and check their
  * own profiles more often. The subscription creates a financial incentive that
@@ -798,11 +873,23 @@ export default config;
  * users encountered enough bad content to file multiple reports, and many of them
  * churned as a result.
  *
- * HOW TO FIND IT:
- *   - Segment users by: count of "report submitted" events (3+ vs. fewer)
- *   - Compare: event volume before and after day 30
- *   - Filter: toxic_user = true
- *   - Compare: D30+ retention rates
+ * HOW TO FIND IT IN MIXPANEL:
+ *
+ *   Report 1: Retention by Report Count
+ *   • Report type: Retention
+ *   • Event A (start): Any event
+ *   • Event B (return): Any event
+ *   • Segment: Users who did "report submitted" >= 3 times vs < 3 times
+ *   • Expected: 3+ reporters show dramatically lower retention after day 30
+ *     (~40% vs ~80% for non-reporters)
+ *
+ *   Report 2: Activity Drop-off
+ *   • Report type: Insights (line chart)
+ *   • Event: Any event
+ *   • Measure: Total events per user
+ *   • Breakdown: "toxic_user"
+ *   • Time: Weekly trend
+ *   • Expected: toxic_user=true events decline sharply after day 30
  *
  * EXPECTED INSIGHT: Users who report 3+ pieces of content show a dramatic drop
  * in activity after day 30. This simulates the real pattern where users exposed
@@ -820,10 +907,22 @@ export default config;
  * are tagged with weekend_surge: true. 30% of these weekend events generate a
  * duplicate event 1-3 hours later (tagged weekend_duplicate: true).
  *
- * HOW TO FIND IT:
- *   - Chart: post created and story created events by day of week
- *   - Filter: weekend_surge = true or weekend_duplicate = true
- *   - Compare: weekday vs. weekend content creation volumes
+ * HOW TO FIND IT IN MIXPANEL:
+ *
+ *   Report 1: Content Creation by Day of Week
+ *   • Report type: Insights (bar chart)
+ *   • Event: "post created"
+ *   • Measure: Total events
+ *   • Breakdown: Day of Week (Mixpanel built-in time property)
+ *   • Expected: Saturday and Sunday bars ~30% taller than weekday bars
+ *
+ *   Report 2: Weekend Surge Volume
+ *   • Report type: Insights
+ *   • Event: "post created"
+ *   • Measure: Total events
+ *   • Breakdown: "weekend_surge"
+ *   • Expected: weekend_surge=true events represent all Sat/Sun content,
+ *     with weekend_duplicate=true showing the extra ~30% injection
  *
  * EXPECTED INSIGHT: Saturdays and Sundays show roughly 30% more content creation
  * than weekdays. The weekly pattern is clearly visible in a time-series chart,

@@ -486,14 +486,14 @@ const config = {
 
 		// ─────────────────────────────────────────────────────────────
 		// Hook #2: CHURNED ACCOUNT SILENCING (everything)
-		// ~10% of users go completely silent after day 30
+		// ~20% targeted (hash % 5), yielding ~10% visible after accounting for invisible churned users
 		// ─────────────────────────────────────────────────────────────
 		if (type === "everything") {
 			const userEvents = record;
 			if (userEvents && userEvents.length > 0) {
 				const firstEvent = userEvents[0];
 				const idHash = String(firstEvent.user_id || firstEvent.device_id).split("").reduce((acc, char) => acc + char.charCodeAt(0), 0);
-				const isChurnedAccount = (idHash % 10) === 0;
+				const isChurnedAccount = (idHash % 5) === 0;
 
 				if (isChurnedAccount) {
 					for (let i = userEvents.length - 1; i >= 0; i--) {
@@ -591,6 +591,10 @@ const config = {
 		// Company size determines seat count, ACV, and health score
 		// ─────────────────────────────────────────────────────────────
 		if (type === "user") {
+			// Hook #2 support: tag churned accounts on user profile for discoverability
+			const idHash = String(record.distinct_id || "").split("").reduce((acc, char) => acc + char.charCodeAt(0), 0);
+			record.churned_account = (idHash % 5) === 0;
+
 			const companySize = record.company_size;
 
 			if (companySize === "enterprise") {
@@ -659,11 +663,23 @@ export default config;
  * duplicated 50% of the time. All affected events are tagged with
  * quarter_end_push: true.
  *
- * HOW TO FIND IT:
- *   - Chart "billing event" by event_type, broken down by week
- *   - Chart "team member invited" count by day
- *   - Filter: quarter_end_push = true
- *   - Compare: last 10 days vs. rest of dataset
+ * HOW TO FIND IT IN MIXPANEL:
+ *
+ *   Report 1: Plan Upgrades Over Time
+ *   • Report type: Insights (line chart)
+ *   • Event: "billing event"
+ *   • Measure: Total events
+ *   • Filter: "event_type" = "plan_upgraded"
+ *   • Time: Daily trend
+ *   • Expected: Spike in plan upgrades during days 80-90 (4x normal volume)
+ *
+ *   Report 2: Team Expansion Surge
+ *   • Report type: Insights (line chart)
+ *   • Event: "team member invited"
+ *   • Measure: Total events
+ *   • Time: Daily trend
+ *   • Filter: "quarter_end_push" = true
+ *   • Expected: Clear volume spike in last 10 days with duplicate invites
  *
  * EXPECTED INSIGHT: Clear spike in plan_upgraded billing events and team
  * invitations in the final 10 days. Duplicate invitations create an
@@ -680,11 +696,24 @@ export default config;
  * silent after day 30. ALL of their events after month 1 are removed via
  * splice() - they simply vanish from the dataset.
  *
- * HOW TO FIND IT:
- *   - Chart: unique users per week
- *   - Retention analysis: D30 retention by cohort
- *   - Compare: users active in month 1 vs. month 2
- *   - Look for users with events ONLY in the first 30 days
+ * HOW TO FIND IT IN MIXPANEL:
+ *
+ *   Report 1: Churned Account Retention
+ *   • Report type: Retention
+ *   • Event A: Any event
+ *   • Event B: Any event
+ *   • Breakdown: User profile "churned_account"
+ *   • Expected: churned_account=true users show 0% retention after day 30
+ *     (complete silence), while others retain normally
+ *
+ *   Report 2: Churned Account Activity
+ *   • Report type: Insights (line chart)
+ *   • Event: Any event
+ *   • Measure: Total events per user
+ *   • Breakdown: User profile "churned_account"
+ *   • Time: Weekly trend
+ *   • Expected: churned_account=true flatlines after week 4,
+ *     ~10% of all users are tagged churned_account=true
  *
  * EXPECTED INSIGHT: A distinct cohort of ~300 users with activity exclusively
  * in the first month. No gradual decline - a hard cutoff at day 30.
@@ -701,11 +730,21 @@ export default config;
  * new event type: "incident created". This event type does NOT exist in the
  * events array - it only appears because of hooks.
  *
- * HOW TO FIND IT:
- *   - Look for "incident created" events in the dataset (surprise event type)
- *   - Correlate: incident created events have escalation_level (P1, P2),
- *     teams_paged, incident_id, and auto_escalated: true
- *   - Compare: ratio of critical/emergency alerts to incident creations
+ * HOW TO FIND IT IN MIXPANEL:
+ *
+ *   Report 1: Incident Created Discovery
+ *   • Report type: Insights
+ *   • Event: "incident created" (this event type is hook-generated only)
+ *   • Measure: Total events
+ *   • Breakdown: "escalation_level"
+ *   • Expected: P1 and P2 incidents appear, representing ~30% of
+ *     critical/emergency alerts that were escalated
+ *
+ *   Report 2: Alert vs Incident Ratio
+ *   • Report type: Insights
+ *   • Events: "alert triggered" AND "incident created"
+ *   • Measure: Total events (both)
+ *   • Expected: incident created count ≈ 30% of critical+emergency alerts
  *
  * EXPECTED INSIGHT: Approximately 30% of critical/emergency alerts escalate
  * into formal incidents. The "incident created" event is a hidden event type
@@ -724,11 +763,22 @@ export default config;
  *   - alert_resolved resolution_time_mins reduced by 50%
  *   - Affected events tagged with integrated_team: true
  *
- * HOW TO FIND IT:
- *   - Segment users by: has "integration configured" for both "slack" AND "pagerduty"
- *   - Compare: average response_time_mins on alert acknowledged
- *   - Compare: average resolution_time_mins on alert resolved
- *   - Filter: integrated_team = true
+ * HOW TO FIND IT IN MIXPANEL:
+ *
+ *   Report 1: Integration Impact on Response Time
+ *   • Report type: Insights
+ *   • Event: "alert acknowledged"
+ *   • Measure: Average of "response_time_mins"
+ *   • Breakdown: "integrated_team"
+ *   • Expected: integrated_team=true ≈ 60% lower response time
+ *     (e.g., ~20 min vs ~50 min)
+ *
+ *   Report 2: Integration Impact on Resolution
+ *   • Report type: Insights
+ *   • Event: "alert resolved"
+ *   • Measure: Average of "resolution_time_mins"
+ *   • Breakdown: "integrated_team"
+ *   • Expected: integrated_team=true ≈ 50% faster resolution
  *
  * EXPECTED INSIGHT: Users with both integrations have median response time
  * ~60% lower than baseline. This is a two-feature combination effect.
@@ -744,10 +794,23 @@ export default config;
  * 2-3 extra "service deployed" events with environment: "production" spliced
  * into their event stream. Tagged with docs_informed: true.
  *
- * HOW TO FIND IT:
- *   - Segment users by: count of "documentation viewed" where doc_section = "best_practices" >= 3
- *   - Compare: count of "service deployed" where environment = "production"
- *   - Filter: docs_informed = true
+ * HOW TO FIND IT IN MIXPANEL:
+ *
+ *   Report 1: Docs-Informed Deployments
+ *   • Report type: Insights
+ *   • Event: "service deployed"
+ *   • Measure: Total events per user
+ *   • Filter: "environment" = "production"
+ *   • Breakdown: "docs_informed"
+ *   • Expected: docs_informed=true shows extra production deployments
+ *
+ *   Report 2: Docs Readers vs Non-Readers
+ *   • Report type: Insights
+ *   • Event: "service deployed"
+ *   • Measure: Total events per user
+ *   • Filter: "environment" = "production"
+ *   • Segment: Users who did "documentation viewed" (doc_section = "best_practices") >= 3
+ *   • Expected: ~1.8x more production deploys per user for docs readers
  *
  * EXPECTED INSIGHT: Users who read best practices documentation 3+ times
  * deploy more services to production, suggesting docs drive confidence
@@ -766,10 +829,22 @@ export default config;
  * (cost-cutting reaction). Uses closure-based state tracking across separate
  * hook calls.
  *
- * HOW TO FIND IT:
- *   - Filter: cost_report_generated where budget_exceeded = true
- *   - Correlate: subsequent infrastructure_scaled where cost_reaction = true
- *   - Compare: scale_direction distribution for cost_reaction users vs. others
+ * HOW TO FIND IT IN MIXPANEL:
+ *
+ *   Report 1: Cost Overrun → Scale Down
+ *   • Report type: Insights
+ *   • Event: "infrastructure scaled"
+ *   • Measure: Total events
+ *   • Breakdown: "cost_reaction"
+ *   • Expected: cost_reaction=true events are 100% scale_direction="down"
+ *
+ *   Report 2: Budget Exceeded Users
+ *   • Report type: Insights
+ *   • Event: "cost report generated"
+ *   • Measure: Total events
+ *   • Breakdown: "budget_exceeded"
+ *   • Expected: budget_exceeded=true events represent users with
+ *     cost_change_percent > 25%, who then scale down infrastructure
  *
  * EXPECTED INSIGHT: Users who experience cost overruns (>25% increase)
  * consistently scale down their infrastructure afterward. The Map-based
@@ -787,10 +862,23 @@ export default config;
  * multiplied by 1.5x (recovery deploys are slower/more careful). Tagged
  * with recovery_deployment: true.
  *
- * HOW TO FIND IT:
- *   - Filter: deployment_pipeline_run where recovery_deployment = true
- *   - Compare: average duration_sec for recovery vs. normal deployments
- *   - Sequence: look for failed -> success pairs per user
+ * HOW TO FIND IT IN MIXPANEL:
+ *
+ *   Report 1: Recovery Deploy Duration
+ *   • Report type: Insights
+ *   • Event: "deployment pipeline run"
+ *   • Measure: Average of "duration_sec"
+ *   • Breakdown: "recovery_deployment"
+ *   • Expected: recovery_deployment=true ≈ 1.5x longer duration
+ *     (e.g., ~750 sec vs ~500 sec)
+ *
+ *   Report 2: Recovery Deploy Volume
+ *   • Report type: Insights
+ *   • Event: "deployment pipeline run"
+ *   • Measure: Total events
+ *   • Breakdown: "recovery_deployment"
+ *   • Filter: "status" = "success"
+ *   • Expected: recovery_deployment=true represents post-failure careful deploys
  *
  * EXPECTED INSIGHT: Recovery deployments after failures take 50% longer
  * than normal deployments, reflecting more cautious deployment practices.
@@ -809,11 +897,22 @@ export default config;
  *   - startup: seat_count (1-5), annual_contract_value (0-3.6K)
  *   - All users get customer_health_score (1-100)
  *
- * HOW TO FIND IT:
- *   - Segment users by: company_size
- *   - Compare: annual_contract_value distribution
- *   - Compare: seat_count ranges
- *   - Filter: customer_success_manager = true (enterprise only)
+ * HOW TO FIND IT IN MIXPANEL:
+ *
+ *   Report 1: ACV by Company Size
+ *   • Report type: Insights
+ *   • Event: Any event
+ *   • Measure: Unique users
+ *   • Breakdown: User profile "company_size"
+ *   • Expected: Four clear segments with distinct ACV ranges:
+ *     startup ($0-3.6K), smb ($3.6K-12K), mid_market ($12K-50K), enterprise ($50K-500K)
+ *
+ *   Report 2: Enterprise CSM Coverage
+ *   • Report type: Insights
+ *   • Event: Any event
+ *   • Measure: Unique users
+ *   • Breakdown: User profile "customer_success_manager"
+ *   • Expected: customer_success_manager=true only for enterprise users
  *
  * EXPECTED INSIGHT: Clear segmentation of user base by company size with
  * corresponding ACV and seat count distributions. Enterprise customers

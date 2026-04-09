@@ -361,7 +361,7 @@ const config = {
 	 * 1. PERSONAL VS BUSINESS: Business accounts get employee_count, revenue; personal get age_range, life_stage
 	 * 2. PAYDAY PATTERNS: Transactions spike on 1st/15th with bigger deposits and post-payday spending
 	 * 3. FRAUD DETECTION: 3% of users experience a fraud burst (rapid high-value txns -> card lock -> dispute -> support)
-	 * 4. LOW BALANCE CHURN: Users with chronic low balances (<$500) lose 50% of activity after day 30
+	 * 4. LOW BALANCE CHURN: Users with chronic low balances (<$15K) lose 50% of activity after day 30
 	 * 5. BUDGET DISCIPLINE: Budget creators save 2x more and invest 1.5x more
 	 * 6. AUTO-PAY LOYALTY: Auto-pay users never miss bills; manual payers miss 30%
 	 * 7. PREMIUM TIER VALUE: Premium users get 3x rewards; Plus users get 1.5x; Premium investors get 2x returns
@@ -572,13 +572,13 @@ const config = {
 
 			// -----------------------------------------------------------
 			// Hook #4: LOW BALANCE CHURN
-			// Users who have 3+ balance checks showing < $500 are
+			// Users who have 3+ balance checks showing < $15,000 are
 			// "struggling". After day 30, 50% of their events are removed
 			// and remaining events are tagged low_balance_churn: true.
 			// -----------------------------------------------------------
 			let lowBalanceChecks = 0;
 			userEvents.forEach((event) => {
-				if (event.event === "balance checked" && (event.account_balance || 0) < 3000) {
+				if (event.event === "balance checked" && (event.account_balance || 0) < 15000) {
 					lowBalanceChecks++;
 				}
 			});
@@ -686,10 +686,21 @@ export default config;
  * (5-500), annual_revenue ($100K-$10M), and industry. The other 80%
  * are personal accounts with age_range and life_stage.
  *
- * HOW TO FIND IT:
- *   - Segment users by: account_segment = "business" vs "personal"
- *   - Compare: Transaction volumes, average amounts, transfer patterns
- *   - Analyze: Industry distribution among business accounts
+ * HOW TO FIND IT IN MIXPANEL:
+ *
+ *   Report 1: Account Segment Distribution
+ *   • Report type: Insights
+ *   • Event: Any event
+ *   • Measure: Unique users
+ *   • Breakdown: User profile "account_segment"
+ *   • Expected: ~20% business, ~80% personal
+ *
+ *   Report 2: Business vs Personal Properties
+ *   • Report type: Insights
+ *   • Event: "transaction completed"
+ *   • Measure: Average of "amount"
+ *   • Breakdown: User profile "account_segment"
+ *   • Expected: Business accounts show higher avg transaction amounts
  *
  * EXPECTED INSIGHT: Business accounts have fundamentally different
  * usage patterns - higher transaction amounts, more wire transfers,
@@ -707,11 +718,22 @@ export default config;
  * 1-3 and 15-17, transfer amounts have a 40% chance of being 1.5x
  * larger, tagged with post_payday_spending: true.
  *
- * HOW TO FIND IT:
- *   - Chart: transaction completed count and amount by day of month
- *   - Filter: transaction_type = "direct_deposit"
- *   - Compare: Average transfer amount on days 1-3/15-17 vs other days
- *   - Look for: payday: true and post_payday_spending: true tags
+ * HOW TO FIND IT IN MIXPANEL:
+ *
+ *   Report 1: Payday Deposit Spike
+ *   • Report type: Insights
+ *   • Event: "transaction completed"
+ *   • Measure: Average of "amount"
+ *   • Filter: "transaction_type" = "direct_deposit"
+ *   • Breakdown: "payday"
+ *   • Expected: payday=true shows ~3x higher avg deposit amount
+ *
+ *   Report 2: Post-Payday Spending
+ *   • Report type: Insights
+ *   • Event: "transfer sent"
+ *   • Measure: Average of "amount"
+ *   • Breakdown: "post_payday_spending"
+ *   • Expected: post_payday_spending=true shows ~2x higher transfer amounts
  *
  * EXPECTED INSIGHT: Clear biweekly spikes in deposit amounts and
  * subsequent spending activity. The 2-3 days after payday show
@@ -731,11 +753,21 @@ export default config;
  * dispute filed (unauthorized), and support contacted (phone/card).
  * All injected events tagged with fraud_sequence: true.
  *
- * HOW TO FIND IT:
- *   - Filter events: fraud_sequence = true
- *   - Analyze: Time between fraud transactions (< 10 min gaps)
- *   - Funnel: transaction completed -> card locked -> dispute filed -> support contacted
- *   - Segment: Users with any fraud_sequence event
+ * HOW TO FIND IT IN MIXPANEL:
+ *
+ *   Report 1: Fraud Event Volume
+ *   • Report type: Insights
+ *   • Event: "transaction completed"
+ *   • Measure: Total events
+ *   • Filter: "fraud_sequence" = true
+ *   • Expected: ~150 users (3% of 5,000) with fraud-tagged transactions
+ *
+ *   Report 2: Fraud Resolution Funnel
+ *   • Report type: Funnels
+ *   • Steps: "card locked" → "dispute filed" → "support contacted"
+ *   • Filter: "fraud_sequence" = true
+ *   • Expected: Near 100% completion — fraud victims follow the full
+ *     lockdown → dispute → support sequence
  *
  * EXPECTED INSIGHT: ~150 users (3% of 5,000) show a distinctive burst
  * pattern of rapid high-value purchases followed by account lockdown.
@@ -748,16 +780,27 @@ export default config;
  * 4. LOW BALANCE CHURN (everything)
  * -------------------------------------------------------------------
  *
- * PATTERN: Users with 3+ balance checks showing < $500 are
+ * PATTERN: Users with 3+ balance checks showing < $15,000 are
  * "struggling" users. After day 30, 50% of their events are removed
  * (simulating reduced app usage) and surviving events are tagged
  * with low_balance_churn: true.
  *
- * HOW TO FIND IT:
- *   - Segment: Users where count of (balance checked, account_balance < 500) >= 3
- *   - Compare: Event counts before day 30 vs after day 30
- *   - Filter: low_balance_churn = true
- *   - Retention analysis: Compare D30+ retention for low vs healthy balance users
+ * HOW TO FIND IT IN MIXPANEL:
+ *
+ *   Report 1: Low Balance Churn Signal
+ *   • Report type: Retention
+ *   • Event A: Any event
+ *   • Event B: Any event
+ *   • Segment: Users with "low_balance_churn" = true vs others
+ *   • Expected: low_balance_churn users show ~50% activity drop after day 30
+ *
+ *   Report 2: Churn Tag Volume Over Time
+ *   • Report type: Insights (line chart)
+ *   • Event: Any event
+ *   • Measure: Total events
+ *   • Filter: "low_balance_churn" = true
+ *   • Time: Weekly trend
+ *   • Expected: low_balance_churn events appear only after day 30
  *
  * EXPECTED INSIGHT: Struggling users show a dramatic drop in activity
  * after the first month. Their engagement halves while healthy-balance
@@ -776,12 +819,21 @@ export default config;
  * events spliced into their timeline. All affected events tagged
  * with budget_discipline: true.
  *
- * HOW TO FIND IT:
- *   - Segment: Users who did "budget created" vs those who didn't
- *   - Compare: Average monthly_contribution on savings goal events
- *   - Compare: Average investment amount
- *   - Count: savings goal set events per user (budget users have more)
- *   - Filter: budget_discipline = true
+ * HOW TO FIND IT IN MIXPANEL:
+ *
+ *   Report 1: Budget Users Save More
+ *   • Report type: Insights
+ *   • Event: "savings goal set"
+ *   • Measure: Average of "monthly_contribution"
+ *   • Breakdown: "budget_discipline"
+ *   • Expected: budget_discipline=true shows ~2x higher monthly contributions
+ *
+ *   Report 2: Budget Users Invest More
+ *   • Report type: Insights
+ *   • Event: "investment made"
+ *   • Measure: Average of "amount"
+ *   • Breakdown: "budget_discipline"
+ *   • Expected: budget_discipline=true shows ~1.5x higher investment amounts
  *
  * EXPECTED INSIGHT: Budget creators save 2x more and invest 1.5x more
  * than non-budget users. They also set more savings goals, showing
@@ -800,11 +852,21 @@ export default config;
  * users never miss. Surviving manual payments are tagged with
  * manual_payment: true.
  *
- * HOW TO FIND IT:
- *   - Segment: bill paid events by auto_pay = true vs false
- *   - Compare: Total bill paid count per user in each segment
- *   - Calculate: Effective bill completion rate by segment
- *   - Filter: manual_payment = true for surviving manual payments
+ * HOW TO FIND IT IN MIXPANEL:
+ *
+ *   Report 1: Bill Payment Reliability
+ *   • Report type: Insights
+ *   • Events: "bill paid" AND "bill payment missed"
+ *   • Measure: Total events (both)
+ *   • Expected: "bill payment missed" events exist only for non-auto-pay users
+ *     (~30% of manual payments become missed payments)
+ *
+ *   Report 2: Auto-Pay vs Manual
+ *   • Report type: Insights
+ *   • Event: "bill paid"
+ *   • Measure: Total events
+ *   • Breakdown: "manual_payment"
+ *   • Expected: manual_payment=true is the surviving ~70% of manual payers
  *
  * EXPECTED INSIGHT: Auto-pay users have 100% bill completion while
  * manual payers show only ~70% completion. This creates a clear
@@ -822,12 +884,22 @@ export default config;
  * sell returns. Plus tier users get 1.5x rewards. Tagged with
  * premium_reward: true and premium_returns: true respectively.
  *
- * HOW TO FIND IT:
- *   - Segment: Events by account_tier (basic, plus, premium)
- *   - Compare: Average reward value on reward redeemed events
- *   - Compare: Average amount on investment made (action = sell)
- *   - Filter: premium_reward = true, premium_returns = true
- *   - Analyze: Total reward value per user by tier
+ * HOW TO FIND IT IN MIXPANEL:
+ *
+ *   Report 1: Reward Value by Tier
+ *   • Report type: Insights
+ *   • Event: "reward redeemed"
+ *   • Measure: Average of "value"
+ *   • Breakdown: "account_tier"
+ *   • Expected: premium ≈ $30, plus ≈ $15, basic ≈ $10 (3x/1.5x/1x)
+ *
+ *   Report 2: Premium Investment Returns
+ *   • Report type: Insights
+ *   • Event: "investment made"
+ *   • Measure: Average of "amount"
+ *   • Filter: "action" = "sell"
+ *   • Breakdown: "premium_returns"
+ *   • Expected: premium_returns=true shows ~2x higher sell amounts
  *
  * EXPECTED INSIGHT: Clear tier-based value curve. Premium users
  * earn 3x the rewards and 2x the investment returns of Basic users,
@@ -845,11 +917,21 @@ export default config;
  * are 40% longer and balance checks show 30% lower balances. Tagged
  * with month_end_anxiety: true and month_end_check: true.
  *
- * HOW TO FIND IT:
- *   - Chart: Average session_duration_sec by day of month
- *   - Chart: Average account_balance on balance checked by day of month
- *   - Filter: month_end_anxiety = true, month_end_check = true
- *   - Compare: Day 1-27 vs day 28-31 engagement metrics
+ * HOW TO FIND IT IN MIXPANEL:
+ *
+ *   Report 1: Session Duration by Month-End
+ *   • Report type: Insights
+ *   • Event: "app session"
+ *   • Measure: Average of "session_duration_sec"
+ *   • Breakdown: "month_end_anxiety"
+ *   • Expected: month_end_anxiety=true ≈ 84 sec avg vs false ≈ 60 sec (1.4x)
+ *
+ *   Report 2: Month-End Balance Drop
+ *   • Report type: Insights
+ *   • Event: "balance checked"
+ *   • Measure: Average of "account_balance"
+ *   • Breakdown: "month_end_check"
+ *   • Expected: month_end_check=true shows ~30% lower avg balance
  *
  * EXPECTED INSIGHT: Users spend 40% more time in the app at month-end,
  * checking lower balances. This reflects pre-bill-pay anxiety and

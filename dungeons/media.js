@@ -108,6 +108,9 @@ const config = {
 			conversionRate: 55,
 			timeToConvert: 2,
 			weight: 5,
+			props: {
+				genre: ["action", "comedy", "drama", "documentary", "horror", "sci_fi", "animation", "thriller", "romance"],
+			},
 		},
 		{
 			// Recommendation-driven viewing
@@ -336,7 +339,7 @@ const config = {
 	 * 1. GENRE FUNNEL CONVERSION: Comedy/Animation complete more; Documentary abandons more (funnel-pre)
 	 * 2. BINGE-WATCHING: Users with 3+ consecutive completions get extra episodes (everything)
 	 * 3. WEEKEND vs WEEKDAY: Weekend sessions 1.5x longer; weekday prime-time tagging (event)
-	 * 4. AD FATIGUE CHURN: Free-tier users with 20+ ads churn after day 45 (everything)
+	 * 4. AD FATIGUE CHURN: Free-tier users with 10+ ads churn after day 45 (everything)
 	 * 5. NEW RELEASE SPIKE: Blockbuster release on day 50 drives content selection (event)
 	 * 6. KIDS PROFILE SAFETY: Kids mode restricts genres and drops ads (event)
 	 * 7. RECOMMENDATION ENGINE IMPROVEMENT: Post-day-60 boost to engagement funnel (funnel-pre)
@@ -345,51 +348,56 @@ const config = {
 	hook: function (record, type, meta) {
 		const NOW = dayjs();
 		const DATASET_START = NOW.subtract(days, 'days');
+		// FIXED_START is the pre-shift time range start; needed because
+		// meta.firstEventTime in funnel-pre is in the FIXED (pre-shift) timeframe
+		const FIXED_START = dayjs.unix(global.FIXED_NOW).subtract(days, 'days');
 
 		// ─────────────────────────────────────────────────────────────
 		// Hook #1: GENRE FUNNEL CONVERSION (funnel-pre)
 		// Comedy/Animation funnels convert 1.3x better; Documentary 0.7x
 		// ─────────────────────────────────────────────────────────────
 		if (type === "funnel-pre") {
-			const props = record.props || {};
-			const genre = props.genre;
+			record.props = record.props || {};
+			const genre = record.props.genre;
 
 			if (genre === "comedy" || genre === "animation") {
 				record.conversionRate = record.conversionRate * 1.3;
-				record.genre_boost = true;
-				record.genre_penalty = false;
+				record.props.genre_boost = true;
+				record.props.genre_penalty = false;
 			} else if (genre === "documentary") {
 				record.conversionRate = record.conversionRate * 0.7;
-				record.genre_boost = false;
-				record.genre_penalty = true;
+				record.props.genre_boost = false;
+				record.props.genre_penalty = true;
 			} else if (!genre && chance.bool({ likelihood: 25 })) {
 				// Randomly apply genre effects when genre isn't in funnel props
 				if (chance.bool({ likelihood: 60 })) {
 					record.conversionRate = record.conversionRate * 1.3;
-					record.genre_boost = true;
-					record.genre_penalty = false;
+					record.props.genre_boost = true;
+					record.props.genre_penalty = false;
 				} else {
 					record.conversionRate = record.conversionRate * 0.7;
-					record.genre_boost = false;
-					record.genre_penalty = true;
+					record.props.genre_boost = false;
+					record.props.genre_penalty = true;
 				}
 			} else {
-				record.genre_boost = false;
-				record.genre_penalty = false;
+				record.props.genre_boost = false;
+				record.props.genre_penalty = false;
 			}
 
 			// ─────────────────────────────────────────────────────────────
 			// Hook #7: RECOMMENDATION ENGINE IMPROVEMENT (funnel-pre)
-			// After day 60 (proxied by 50% chance), engagement funnel gets 1.5x boost
+			// After day 60, engagement funnel gets 1.5x boost
 			// ─────────────────────────────────────────────────────────────
 			const seq = record.sequence || [];
 			const isEngagementFunnel = seq.includes("recommendation clicked");
+			const funnelTime = meta && meta.firstEventTime ? dayjs.unix(meta.firstEventTime) : null;
+			const isAfterImprovement = funnelTime && funnelTime.isAfter(FIXED_START.add(60, 'days'));
 
-			if (isEngagementFunnel && chance.bool({ likelihood: 50 })) {
+			if (isEngagementFunnel && isAfterImprovement) {
 				record.conversionRate = record.conversionRate * 1.5;
-				record.improved_recs = true;
+				record.props.improved_recs = true;
 			} else {
-				record.improved_recs = false;
+				record.props.improved_recs = false;
 			}
 
 			return record;
@@ -571,8 +579,8 @@ const config = {
 			}
 
 			// Hook #4: AD FATIGUE CHURN
-			// Free-tier users with 20+ ads lose 50% of events after day 45
-			if (isFreeTier && adImpressionCount >= 20) {
+			// Free-tier users with 10+ ads lose 50% of events after day 45
+			if (isFreeTier && adImpressionCount >= 10) {
 				const churnCutoff = firstEventTime.add(45, 'days');
 				for (let i = userEvents.length - 1; i >= 0; i--) {
 					const evt = userEvents[i];
@@ -669,10 +677,21 @@ export default config;
  * PATTERN: Comedy and Animation content has 1.3x higher funnel conversion rates,
  * while Documentary content has 0.7x conversion (users browse but abandon more).
  *
- * HOW TO FIND IT:
- *   - Break down funnels by genre property
- *   - Compare: conversion rate for Comedy/Animation vs Documentary vs other genres
- *   - Look for: genre_boost = true or genre_penalty = true tags
+ * HOW TO FIND IT IN MIXPANEL:
+ *
+ *   Report 1: Genre Funnel Conversion
+ *   • Report type: Funnels
+ *   • Steps: "content browsed" → "content selected" → "playback started" → "playback completed"
+ *   • Breakdown: "genre"
+ *   • Expected: Comedy/Animation convert at ~65% vs Documentary at ~35%
+ *     (1.3x boost vs 0.7x penalty on base 50% rate)
+ *
+ *   Report 2: Genre Boost Tags
+ *   • Report type: Insights
+ *   • Event: "content selected"
+ *   • Measure: Total events
+ *   • Breakdown: "genre_boost"
+ *   • Expected: genre_boost=true events show higher downstream completion
  *
  * EXPECTED INSIGHT: Comedy and Animation content converts browsers to completers
  * at 1.3x the baseline rate. Documentary has high browse rates but low completion,
@@ -692,11 +711,21 @@ export default config;
  *   - Pause events are reduced by 60% (they don't stop watching)
  *   - Events tagged with binge_session = true
  *
- * HOW TO FIND IT:
- *   - Segment users by: binge_session = true on any event
- *   - Compare: total playback completed count per user
- *   - Compare: average completion_percent for binge vs non-binge users
- *   - Compare: playback paused frequency
+ * HOW TO FIND IT IN MIXPANEL:
+ *
+ *   Report 1: Binge vs Normal Completion Volume
+ *   • Report type: Insights
+ *   • Event: "playback completed"
+ *   • Measure: Total events per user
+ *   • Breakdown: "binge_session"
+ *   • Expected: binge_session=true users have 40-60% more completions per user
+ *
+ *   Report 2: Binge Completion Quality
+ *   • Report type: Insights
+ *   • Event: "playback completed"
+ *   • Measure: Average of "completion_percent"
+ *   • Breakdown: "binge_session"
+ *   • Expected: binge_session=true shows 90-100% completion vs ~70% baseline
  *
  * EXPECTED INSIGHT: Binge-watchers consume 40-60% more content, with near-perfect
  * completion rates. They pause far less frequently. This cohort drives the majority
@@ -713,11 +742,21 @@ export default config;
  * PATTERN: Weekend viewing sessions are 1.5x longer than weekday sessions.
  * Weekday viewing concentrates in evening prime-time (6PM-11PM).
  *
- * HOW TO FIND IT:
- *   - Filter: playback completed events
- *   - Compare: average watch_duration_min by day of week
- *   - Filter: weekend_viewing = true vs prime_time = true
- *   - Chart: event volume by hour of day, split by weekend vs weekday
+ * HOW TO FIND IT IN MIXPANEL:
+ *
+ *   Report 1: Weekend vs Weekday Watch Duration
+ *   • Report type: Insights
+ *   • Event: "playback completed"
+ *   • Measure: Average of "watch_duration_min"
+ *   • Breakdown: "weekend_viewing"
+ *   • Expected: weekend_viewing=true ≈ 67 min avg vs false ≈ 45 min avg (1.5x)
+ *
+ *   Report 2: Prime-Time Concentration
+ *   • Report type: Insights
+ *   • Event: "playback completed"
+ *   • Measure: Total events
+ *   • Breakdown: "prime_time"
+ *   • Expected: prime_time=true accounts for 60-70% of weekday views
  *
  * EXPECTED INSIGHT: Weekend watch_duration_min averages ~67 mins vs ~45 mins
  * weekday. Weekday prime-time (6PM-11PM) accounts for 60-70% of weekday views.
@@ -730,15 +769,26 @@ export default config;
  * 4. AD FATIGUE CHURN (everything)
  * ───────────────────────────────────────────────────────────────────────────────
  *
- * PATTERN: Free-tier users who see 20+ ad impressions experience 50% churn
+ * PATTERN: Free-tier users who see 10+ ad impressions experience 50% churn
  * after day 45 of their lifecycle.
  *
- * HOW TO FIND IT:
- *   - Segment: subscription_plan = "free"
- *   - Count: ad impression events per user
- *   - Compare: users with 20+ ads vs <20 ads
- *   - Chart: event activity over time for high-ad-exposure free users
- *   - Look for: ad_fatigue = true tag on surviving events
+ * HOW TO FIND IT IN MIXPANEL:
+ *
+ *   Report 1: Ad Fatigue Churn Signal
+ *   • Report type: Retention
+ *   • Event A: Any event (filter: "subscription_plan" = "free")
+ *   • Event B: Any event
+ *   • Segment: Users who did "ad impression" >= 10 times vs < 10 times
+ *   • Expected: 10+ ad users show ~50% retention drop after day 45
+ *
+ *   Report 2: Ad Fatigue Tag Volume
+ *   • Report type: Insights (line chart)
+ *   • Event: Any event
+ *   • Measure: Total events
+ *   • Filter: "ad_fatigue" = true
+ *   • Time: Weekly trend
+ *   • Expected: ad_fatigue=true events appear only after day 45 for
+ *     free-tier users with heavy ad exposure
  *
  * EXPECTED INSIGHT: Free-tier users with heavy ad exposure show a sharp activity
  * cliff around day 45. Remaining events carry the ad_fatigue tag. This simulates
@@ -757,11 +807,23 @@ export default config;
  *   - Content rated events for the blockbuster skew to 4-5 star ratings
  *   - All affected events tagged with blockbuster_release = true
  *
- * HOW TO FIND IT:
- *   - Chart: content selected and playback started by day
- *   - Filter: blockbuster_release = true
- *   - Filter: content_id = blockbuster ID
- *   - Compare: ratings distribution before vs after day 50
+ * HOW TO FIND IT IN MIXPANEL:
+ *
+ *   Report 1: Blockbuster Content Spike
+ *   • Report type: Insights (line chart)
+ *   • Event: "content selected"
+ *   • Measure: Total events
+ *   • Filter: "blockbuster_release" = true
+ *   • Time: Daily trend
+ *   • Expected: Zero events before day 50, then ~20% of content selections
+ *     redirected to the blockbuster title
+ *
+ *   Report 2: Blockbuster Ratings
+ *   • Report type: Insights
+ *   • Event: "content rated"
+ *   • Measure: Average of "rating"
+ *   • Breakdown: "blockbuster_release"
+ *   • Expected: blockbuster_release=true shows 4-5 star avg vs ~3.5 baseline
  *
  * EXPECTED INSIGHT: Clear spike in content engagement after day 50, with a
  * single content_id dominating selections. Ratings for this title cluster at
@@ -781,11 +843,23 @@ export default config;
  *   - Ad impressions are dropped entirely (no ads for kids)
  *   - Events tagged with kids_profile = true
  *
- * HOW TO FIND IT:
- *   - Filter: kids_profile = true
- *   - Compare: genre distribution for kids vs non-kids events
- *   - Count: ad impression events for kids vs non-kids
- *   - Notice: zero ad impressions when kids_profile = true
+ * HOW TO FIND IT IN MIXPANEL:
+ *
+ *   Report 1: Kids Profile Genre Restriction
+ *   • Report type: Insights
+ *   • Event: "content selected"
+ *   • Measure: Total events
+ *   • Breakdown: "genre"
+ *   • Filter: "kids_profile" = true
+ *   • Expected: 100% animation and documentary genres only
+ *
+ *   Report 2: Kids Ad Blocking
+ *   • Report type: Insights
+ *   • Event: "ad impression"
+ *   • Measure: Total events
+ *   • Breakdown: "kids_profile"
+ *   • Expected: kids_profile=true should have ad_blocked=true on all
+ *     ad impressions, or dramatically reduced ad volume
  *
  * EXPECTED INSIGHT: Kids profile content is 100% animation/documentary. Zero ads
  * served to kids profiles. This shows proper content gating and ad-free kids
@@ -803,10 +877,22 @@ export default config;
  * (recommendation clicked -> playback started -> content rated) gets a 1.5x
  * conversion rate boost, simulating a recommendation engine improvement.
  *
- * HOW TO FIND IT:
- *   - Compare: engagement funnel conversion over time (first half vs second half)
- *   - Filter: improved_recs = true on funnel events
- *   - Chart: recommendation clicked -> playback started conversion by week
+ * HOW TO FIND IT IN MIXPANEL:
+ *
+ *   Report 1: Rec Engine Funnel Improvement
+ *   • Report type: Funnels
+ *   • Steps: "recommendation clicked" → "playback started" → "playback completed" → "content rated"
+ *   • Breakdown: "improved_recs"
+ *   • Expected: improved_recs=true shows ~1.5x higher conversion rate
+ *
+ *   Report 2: Recommendation Conversion Over Time
+ *   • Report type: Insights (line chart)
+ *   • Event: "recommendation clicked"
+ *   • Measure: Total events
+ *   • Filter: "improved_recs" = true
+ *   • Time: Weekly trend
+ *   • Expected: improved_recs=true events appear in ~50% of cases,
+ *     representing the "post-improvement" cohort
  *
  * EXPECTED INSIGHT: The engagement funnel conversion rate improves ~1.5x in the
  * latter half of the dataset. Events tagged with improved_recs = true show higher
@@ -827,11 +913,28 @@ export default config;
  *   - 20% more playback completed events (extra content consumption)
  *   - Events tagged with subtitle_user = true
  *
- * HOW TO FIND IT:
- *   - Create segment: users who did "subtitle toggled" where action = "enabled"
- *   - Compare: average completion_percent (subtitle users vs non-subtitle users)
- *   - Compare: average watch_duration_min
- *   - Compare: total playback completed count per user
+ * HOW TO FIND IT IN MIXPANEL:
+ *
+ *   Report 1: Subtitle User Completion Rate
+ *   • Report type: Insights
+ *   • Event: "playback completed"
+ *   • Measure: Average of "completion_percent"
+ *   • Breakdown: "subtitle_user"
+ *   • Expected: subtitle_user=true ≈ 85% completion vs false ≈ 68% (1.25x)
+ *
+ *   Report 2: Subtitle User Watch Duration
+ *   • Report type: Insights
+ *   • Event: "playback completed"
+ *   • Measure: Average of "watch_duration_min"
+ *   • Breakdown: "subtitle_user"
+ *   • Expected: subtitle_user=true shows ~15% longer avg watch duration
+ *
+ *   Report 3: Content Volume
+ *   • Report type: Insights
+ *   • Event: "playback completed"
+ *   • Measure: Total events per user
+ *   • Breakdown: "subtitle_user"
+ *   • Expected: subtitle_user=true users have ~20% more completions per user
  *
  * EXPECTED INSIGHT: Subtitle users complete content 25% more often and watch 15%
  * longer per session. They also consume 20% more titles overall. This suggests

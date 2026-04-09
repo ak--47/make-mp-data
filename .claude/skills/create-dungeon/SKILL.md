@@ -60,7 +60,7 @@ export default config;
 /**
  * COMPREHENSIVE DOCUMENTATION BLOCK
  * - Dataset overview
- * - All 8 hooks with: pattern, how to find it, expected insight, real-world analogue
+ * - All 8 hooks with: pattern, how to find it (with exact Mixpanel report instructions), expected insight, real-world analogue
  * - Expected metrics summary table
  * - Cross-hook analysis ideas
  */
@@ -95,6 +95,38 @@ writeToDisk: false,
 scdProps: {},
 mirrorProps: {},
 lookupTables: [],  // NEVER add lookup tables — they require manual import and are not automated
+```
+
+## TimeSoup — Time Distribution (usually omit this)
+
+**DEFAULT BEHAVIOR: Do NOT include `soup` in the config unless the user's prompt explicitly asks for a specific time distribution pattern** (e.g., "make it spiky", "seasonal pattern", "global users"). The default "growth" preset applies automatically and is correct for the vast majority of dungeons. Do not infer a preset from the vertical — a gaming dungeon does NOT automatically need "spiky", an e-commerce dungeon does NOT automatically need "seasonal". Only set `soup` when the user says so.
+
+If the user does request a specific time pattern, use one of these presets:
+
+```javascript
+soup: "steady"     // flat, mature SaaS (low variation)
+soup: "growth"     // gradual uptrend with realistic weekly cycle (this is the default if omitted)
+soup: "spiky"      // dramatic peaks and valleys
+soup: "seasonal"   // 3-4 major waves across the dataset
+soup: "global"     // flat DOW + flat HOD (no cyclical patterns)
+soup: "churny"     // flat distribution, no growth (pair with churn hooks for declining pattern)
+soup: "chaotic"    // wild variation, few tight peaks
+```
+
+For fine-grained custom control (only if the user specifically asks):
+
+```javascript
+// Preset + overrides
+soup: { preset: "spiky", deviation: 5 }
+
+// Fully custom — see lib/templates/soup-presets.js for weight arrays
+soup: {
+  peaks: 200,                    // Gaussian clusters (default: numDays*2)
+  deviation: 2,                  // peak tightness (higher = tighter)
+  mean: 0,                       // offset from chunk center
+  dayOfWeekWeights: [/* 7 values, Sun..Sat, max=1.0 */],
+  hourOfDayWeights: [/* 24 values, 0=midnight UTC, max=1.0 */],
+}
 ```
 
 ## Required Components
@@ -599,6 +631,93 @@ if (type === "everything") {
 }
 ```
 
+## Hook Documentation: Mixpanel Report Instructions (Required)
+
+Every hook's documentation block MUST include a **"Mixpanel Report"** section with step-by-step instructions for recreating the insight in Mixpanel's UI. These instructions should be specific enough that someone unfamiliar with the data can follow them exactly and see the pattern.
+
+### Report Types to Use
+
+| Mixpanel Report Type | When to Use |
+|---------------------|-------------|
+| **Insights** | Comparing metrics across segments, property distributions, time series |
+| **Funnels** | Conversion rate differences between segments |
+| **Retention** | Cohort-based retention differences |
+| **Flows** | Path analysis, event sequencing |
+
+### Required Fields Per Hook
+
+Each hook's "HOW TO FIND IT" section must include:
+
+1. **Report type** — Which Mixpanel report to create (Insights, Funnels, Retention)
+2. **Events** — Which event(s) to add to the report
+3. **Measure** — What metric to use (Total, Uniques, Avg, Median, etc.)
+4. **Breakdown** — Which property to break down by (if applicable)
+5. **Filter** — Any filters to apply (property = value)
+6. **Comparison** — What the user should compare (segment A vs B, before vs after, etc.)
+7. **Expected result** — What the numbers should look like (e.g., "Premium segment should show ~3x higher avg reward value than Basic")
+
+### Documentation Template Per Hook
+
+```
+───────────────────────────────────────────────────────────────────────────────
+N. HOOK NAME (hook type)
+───────────────────────────────────────────────────────────────────────────────
+
+PATTERN: <what the hook does to the data>
+
+HOW TO FIND IT IN MIXPANEL:
+
+  Report 1: <Title>
+  • Report type: Insights
+  • Event: "<event_name>"
+  • Measure: Average of <property_name>
+  • Breakdown: <segment_property>
+  • Filter: (optional) <property> = <value>
+  • Compare: <segment_a> vs <segment_b>
+  • Expected: <segment_a> should show ~Nx higher <metric> than <segment_b>
+
+  Report 2 (optional): <Title>
+  • Report type: Funnels
+  • Steps: "<step1>" → "<step2>" → "<step3>"
+  • Breakdown: <property>
+  • Expected: <segment> should convert at ~X% vs ~Y% baseline
+
+REAL-WORLD ANALOGUE: <why this pattern matters in production>
+```
+
+### Examples of Good Mixpanel Report Instructions
+
+**Good (specific, actionable):**
+```
+HOW TO FIND IT IN MIXPANEL:
+
+  Report 1: Premium Reward Value
+  • Report type: Insights
+  • Event: "reward redeemed"
+  • Measure: Average of "value"
+  • Breakdown: "account_tier"
+  • Expected: "premium" should show ~3x higher avg value than "basic"
+    (premium ≈ $30, plus ≈ $15, basic ≈ $10)
+
+  Report 2: Premium Investment Returns
+  • Report type: Insights
+  • Event: "investment made"
+  • Measure: Average of "amount"
+  • Filter: "action" = "sell"
+  • Breakdown: "account_tier"
+  • Expected: "premium" should show ~2x higher avg sell amount
+```
+
+**Bad (vague, not actionable):**
+```
+HOW TO FIND IT:
+  - Segment by account_tier
+  - Compare reward values
+  - Look for premium_reward = true
+```
+
+The bad example doesn't tell the user what report type to create, what metric to measure, or what numbers to expect. Always be specific.
+
 ## Common Pitfalls to Avoid
 
 1. **Don't wrap plain string arrays in `pickAWinner()`**: Arrays of 3+ unique strings like `["email", "google", "facebook"]` are automatically power-law weighted by the engine. Just use the plain array. Only use `pickAWinner()` explicitly when you need the second argument or have < 3 items. Note: `u.pickAWinner(["a","b"], 0)` with 2 elements and integer index CRASHES — use a float index or add a 3rd element.
@@ -671,7 +790,7 @@ Include `isFirstEvent`, `isFirstFunnel`, `name`, `weight`, `order`, and other no
 - [ ] 5 funnels with one marked `isFirstFunnel`
 - [ ] All funnel event names exist in events array
 - [ ] 8 hooks using varied techniques (not all `everything`)
-- [ ] Each hook has a clear "how to find it" in the documentation
+- [ ] Each hook has a clear "how to find it" with **specific Mixpanel report instructions** (report type, event, measure, breakdown, filter, expected result)
 - [ ] Each hook has a real-world analogue explained
 - [ ] Documentation block includes metrics summary table
 - [ ] No `pickAWinner` calls with exactly 2 items and integer index

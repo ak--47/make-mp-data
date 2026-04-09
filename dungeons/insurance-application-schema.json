@@ -1,0 +1,204 @@
+{
+  "events": [
+    {
+      "event": "account created",
+      "weight": 1,
+      "isFirstEvent": true,
+      "properties": {
+        "signup_source": ["web", "mobile", "agent_referral", "partner"],
+        "account_type": ["individual", "family", "business"]
+      }
+    },
+    {
+      "event": "page viewed",
+      "weight": 10,
+      "properties": {
+        "page_name": ["home", "quotes", "coverage_options", "claims", "faq", "profile", "payment", "documents"],
+        "referrer": ["direct", "google", "email", "social_media"]
+      }
+    },
+    {
+      "event": "quote requested",
+      "weight": 5,
+      "properties": {
+        "coverage_level": ["basic", "standard", "premium"],
+        "deductible": { "$range": [250, 5000] }
+      }
+    },
+    {
+      "event": "quote received",
+      "weight": 4,
+      "properties": {
+        "monthly_premium": { "$range": [30, 800] },
+        "coverage_amount": { "$range": [10000, 500000] },
+        "quote_comparison_count": { "$range": [1, 5] }
+      }
+    },
+    {
+      "event": "application started",
+      "weight": 4,
+      "properties": {
+        "coverage_level": ["basic", "standard", "premium"],
+        "estimated_premium": { "$range": [30, 800] }
+      }
+    },
+    {
+      "event": "application step completed",
+      "weight": 6,
+      "properties": {
+        "step_name": ["personal_info", "coverage_selection", "medical_history", "vehicle_info", "beneficiary", "review"],
+        "step_number": { "$range": [1, 6] },
+        "time_on_step_sec": { "$range": [15, 600] }
+      }
+    },
+    {
+      "event": "document uploaded",
+      "weight": 3,
+      "properties": {
+        "document_type": ["drivers_license", "proof_of_address", "vehicle_registration", "medical_records", "property_photos"],
+        "file_size_kb": { "$range": [50, 5000] }
+      }
+    },
+    {
+      "event": "application submitted",
+      "weight": 3,
+      "properties": {
+        "documents_attached": { "$range": [1, 5] },
+        "application_time_min": { "$range": [5, 60] }
+      }
+    },
+    {
+      "event": "application approved",
+      "weight": 2,
+      "properties": {
+        "approved_premium": { "$range": [30, 800] },
+        "approval_time_hours": { "$range": [1, 72] }
+      }
+    },
+    {
+      "event": "policy activated",
+      "weight": 2,
+      "properties": {
+        "policy_term_months": [6, 12, 12, 12, 24],
+        "effective_date_offset_days": { "$range": [0, 30] }
+      }
+    },
+    {
+      "event": "claim filed",
+      "weight": 2,
+      "properties": {
+        "claim_type": ["collision", "theft", "water_damage", "fire", "medical", "liability"],
+        "estimated_amount": { "$range": [100, 50000] }
+      }
+    },
+    {
+      "event": "claim status checked",
+      "weight": 4,
+      "properties": {
+        "claim_status": ["submitted", "under_review", "approved", "denied", "payment_pending"],
+        "days_since_filed": { "$range": [1, 60] }
+      }
+    },
+    {
+      "event": "payment made",
+      "weight": 5,
+      "properties": {
+        "payment_method": ["credit_card", "bank_transfer", "auto_pay", "check"],
+        "amount": { "$range": [30, 800] },
+        "payment_status": ["success", "success", "success", "success", "failed"]
+      }
+    },
+    {
+      "event": "support ticket created",
+      "weight": 4,
+      "properties": {
+        "issue_category": ["billing", "claims", "coverage", "technical", "policy_change"],
+        "priority": ["low", "medium", "medium", "high"],
+        "channel": ["chat", "phone", "email", "web_form"]
+      }
+    },
+    {
+      "event": "support ticket resolved",
+      "weight": 3,
+      "properties": {
+        "resolution_type": ["self_service", "agent_assisted", "escalated", "auto_resolved"],
+        "satisfaction_score": { "$range": [1, 5] },
+        "resolution_time_hours": { "$range": [1, 72] }
+      }
+    },
+    {
+      "event": "coverage reviewed",
+      "weight": 4,
+      "properties": {
+        "current_premium": { "$range": [30, 800] },
+        "coverage_adequate": [true, true, true, false]
+      }
+    },
+    {
+      "event": "profile updated",
+      "weight": 2,
+      "properties": {
+        "field_updated": ["address", "phone", "email", "beneficiary", "payment_method", "vehicle_info"]
+      }
+    },
+    {
+      "event": "renewal completed",
+      "weight": 2,
+      "properties": {
+        "renewal_premium": { "$range": [30, 800] },
+        "premium_change_pct": { "$range": [-15, 20] },
+        "auto_renewed": [true, true, false]
+      }
+    }
+  ],
+  "superProps": {
+    "platform": ["web", "ios", "android"],
+    "insurance_type": ["auto", "home", "life", "health", "renters"]
+  },
+  "userProps": {
+    "age_range": ["18-25", "26-35", "36-45", "46-55", "56-65", "65+"],
+    "risk_profile": ["low", "medium", "high"],
+    "policy_count": { "$range": [0, 5] },
+    "lifetime_premium": { "$range": [0, 50000] },
+    "preferred_contact": ["email", "phone", "app_notification"]
+  },
+  "funnels": [
+    {
+      "name": "Onboarding",
+      "sequence": ["account created", "page viewed", "quote requested"],
+      "isFirstFunnel": true,
+      "conversionRate": 85,
+      "timeToConvert": 0.5
+    },
+    {
+      "name": "Application Completion",
+      "sequence": ["application started", "application step completed", "document uploaded", "application submitted"],
+      "conversionRate": 60,
+      "timeToConvert": 48,
+      "weight": 4,
+      "order": "sequential"
+    },
+    {
+      "name": "Application Approval",
+      "sequence": ["application submitted", "application approved", "policy activated"],
+      "conversionRate": 70,
+      "timeToConvert": 72,
+      "weight": 3,
+      "order": "sequential"
+    },
+    {
+      "name": "Claims Process",
+      "sequence": ["claim filed", "claim status checked", "support ticket created"],
+      "conversionRate": 50,
+      "timeToConvert": 24,
+      "weight": 2
+    },
+    {
+      "name": "Policy Renewal",
+      "sequence": ["coverage reviewed", "payment made", "renewal completed"],
+      "conversionRate": 65,
+      "timeToConvert": 72,
+      "weight": 3
+    }
+  ]
+}

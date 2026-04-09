@@ -314,6 +314,82 @@ const config = {
 		],
 		"subscription MRR": u.weighNumRange(0, 250, 1, 200)
 	},
+	/**
+	 * ARCHITECTED ANALYTICS HOOKS
+	 *
+	 * This hook function creates 3 deliberate patterns in the data:
+	 *
+	 * 1. GOLD SCALING: Higher-level players earn more gold (multiplicative scaling)
+	 * 2. WHALE PURCHASES: ~33% of users are whales with 1.8x purchase amounts
+	 * 3. ALIGNMENT ARCHETYPE: User profiles enriched with hero/villain/neutral archetype
+	 *
+	 * ───────────────────────────────────────────────────────────────────────────────
+	 * 1. GOLD SCALING BY LEVEL (event hook)
+	 * ───────────────────────────────────────────────────────────────────────────────
+	 *
+	 * PATTERN: On "complete quest" events, the quest reward (gold) is multiplied by
+	 * (1 + level * 0.1), so a level-10 player earns 2x gold and a level-20 player
+	 * earns 3x gold compared to level-1.
+	 *
+	 * HOW TO FIND IT IN MIXPANEL:
+	 *
+	 *   Report 1: Gold Reward by Level
+	 *   • Report type: Insights
+	 *   • Event: "complete quest"
+	 *   • Measure: Average of "quest reward (gold)"
+	 *   • Breakdown: "level at end"
+	 *   • Expected: Linear increase — level 1 ≈ 55 gold, level 10 ≈ 110 gold,
+	 *     level 20 ≈ 165 gold. Clear positive correlation between level and reward.
+	 *
+	 * ───────────────────────────────────────────────────────────────────────────────
+	 * 2. WHALE PURCHASES (event hook)
+	 * ───────────────────────────────────────────────────────────────────────────────
+	 *
+	 * PATTERN: ~33% of users (determined by first character of user_id hash) are
+	 * "whales" who spend 1.8x on in-game purchases and are tagged is_whale: true.
+	 *
+	 * HOW TO FIND IT IN MIXPANEL:
+	 *
+	 *   Report 1: Whale vs Normal Purchase Amounts
+	 *   • Report type: Insights
+	 *   • Event: "in-game purchase"
+	 *   • Measure: Average of "purchase amount"
+	 *   • Breakdown: "is_whale"
+	 *   • Expected: is_whale=true shows ~1.8x higher avg purchase amount than
+	 *     is_whale=false (e.g., ~18 vs ~10)
+	 *
+	 *   Report 2: Revenue Concentration
+	 *   • Report type: Insights
+	 *   • Event: "in-game purchase"
+	 *   • Measure: Sum of "purchase amount"
+	 *   • Breakdown: "is_whale"
+	 *   • Expected: ~33% of users (whales) contribute disproportionate total revenue
+	 *
+	 * ───────────────────────────────────────────────────────────────────────────────
+	 * 3. ALIGNMENT ARCHETYPE (user hook)
+	 * ───────────────────────────────────────────────────────────────────────────────
+	 *
+	 * PATTERN: User profiles are enriched with an "archetype" property based on
+	 * alignment. Evil alignments → "villain", Good alignments → "hero", others → "neutral".
+	 *
+	 * HOW TO FIND IT IN MIXPANEL:
+	 *
+	 *   Report 1: Archetype Distribution
+	 *   • Report type: Insights
+	 *   • Event: Any event (e.g., "complete quest")
+	 *   • Measure: Total unique users
+	 *   • Breakdown: User profile "archetype"
+	 *   • Expected: Three segments — "hero" (~22%), "villain" (~22%), "neutral" (~56%)
+	 *     matching the 2/9, 2/9, 5/9 alignment split
+	 *
+	 *   Report 2: Archetype Behavior Comparison
+	 *   • Report type: Insights
+	 *   • Event: "fight boss"
+	 *   • Measure: Total events per user
+	 *   • Breakdown: User profile "archetype"
+	 *   • Expected: All three archetypes should show similar event volumes
+	 *     (archetype doesn't affect gameplay — just a profiling hook)
+	 */
 	hook: function (record, type, meta) {
 
 		if (type === "event") {

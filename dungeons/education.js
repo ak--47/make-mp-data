@@ -339,13 +339,13 @@ const config = {
 
 	superProps: {
 		platform: ["Web", "iOS", "Android", "iPad"],
-		subscription_status: u.pickAWinner(["free", "free", "free", "monthly", "annual"]),
 	},
 
 	scdProps: {},
 
 	userProps: {
 		"account_type": u.pickAWinner(["student", "student", "student", "student", "student", "student", "student", "student", "instructor"]),
+		"subscription_status": u.pickAWinner(["free", "free", "free", "monthly", "annual"]),
 		"learning_style": ["visual", "reading", "hands_on", "auditory"],
 		"education_level": ["high_school", "bachelors", "masters", "phd", "self_taught"],
 		"timezone": ["US_Eastern", "US_Pacific", "US_Central", "Europe", "Asia"],
@@ -420,14 +420,9 @@ const config = {
 				}
 			}
 
-			if (record.event === "quiz completed" && record.time) {
-				const eventDay = dayjs(record.time).day();
-				if (eventDay === 0 || eventDay === 1) {
-					if (record.score_percent !== undefined) {
-						record.score_percent = Math.max(0, record.score_percent - 15);
-					}
-				}
-			}
+			// Quiz score penalty moved to everything hook (after churn removal)
+			// to avoid selection bias — the penalty was causing more Sun/Mon
+			// quiz-takers to trigger hasLowQuizScore churn, inflating their avg
 		}
 
 		// ═══════════════════════════════════════════════════════════════════
@@ -481,7 +476,7 @@ const config = {
 			if (record.event === "lecture completed") {
 				const speed = record.playback_speed;
 
-				if (speed >= 1.5) {
+				if (speed >= 2.0) {
 					record.speed_learner = true;
 					record.thorough_learner = false;
 					// Compress watch time for speed learners
@@ -572,16 +567,59 @@ const config = {
 				}
 			}
 
-			// Hook #4: STUDY GROUP RETENTION
+			// Hook #8 (everything pass): Speed learners (3+ lectures at 2.0x) get higher quiz scores
+			let speedLectureCount = 0;
+			userEvents.forEach((event) => {
+				if (event.event === "lecture completed" && event.speed_learner === true) {
+					speedLectureCount++;
+				}
+			});
+			const isSpeedLearner = speedLectureCount >= 3;
+
+			if (isSpeedLearner) {
+				userEvents.forEach((event) => {
+					if (event.event === "quiz completed") {
+							if (event.score_percent !== undefined) {
+							event.score_percent = Math.min(100, event.score_percent + 8);
+							event.speed_learner_effect = true;
+						}
+					}
+				});
+			}
+
+			// Hook #6: SEMESTER-END SPIKE - duplicate assessment events in the spike window
+			const duplicates = [];
+			userEvents.forEach((event) => {
+				if (event.semester_end_rush === true && chance.bool({ likelihood: 80 })) {
+					const dup = JSON.parse(JSON.stringify(event));
+					dup.time = dayjs(event.time).add(chance.integer({ min: 5, max: 120 }), 'minutes').toISOString();
+					dup.semester_end_rush = true;
+					duplicates.push(dup);
+				}
+			});
+			if (duplicates.length > 0) {
+				userEvents.push(...duplicates);
+			}
+
+			// Hook #7: FREE VS PAID - reinforce the subscription effect on certificates
+			const subStatus = meta && meta.profile ? meta.profile.subscription_status : "free";
+			if (subStatus === "free") {
+				// Free users lose 55% of their certificates (simulating lower completion)
+				for (let i = userEvents.length - 1; i >= 0; i--) {
+					if (userEvents[i].event === "certificate earned" && chance.bool({ likelihood: 55 })) {
+						userEvents.splice(i, 1);
+					}
+				}
+			}
+
+			// Hook #4: STUDY GROUP RETENTION (runs LAST to ensure churn removal isn't undone by later hooks)
 			if (!joinedStudyGroupEarly && hasLowQuizScore) {
-				// Non-joiners with low scores: remove 70% of events after day 14 (churn)
+				// Non-joiners with low scores: remove ALL events after day 14 from their first event (hard churn)
 				const churnCutoff = firstEventTime ? firstEventTime.add(14, 'days') : null;
 				for (let i = userEvents.length - 1; i >= 0; i--) {
 					const evt = userEvents[i];
 					if (churnCutoff && dayjs(evt.time).isAfter(churnCutoff)) {
-						if (chance.bool({ likelihood: 70 })) {
-							userEvents.splice(i, 1);
-						}
+						userEvents.splice(i, 1);
 					}
 				}
 			} else if (joinedStudyGroupEarly) {
@@ -601,49 +639,20 @@ const config = {
 				}
 			}
 
-			// Hook #8 (everything pass): Speed learners get slightly HIGHER quiz scores
-			let isSpeedLearner = false;
+			// Hook #2b: DEADLINE CRAMMING (quiz score penalty)
+			// Applied LAST to avoid selection bias — if applied before churn,
+			// the penalty pushes Sun/Mon quiz-takers below the hasLowQuizScore
+			// threshold, selectively churning them and inflating the avg.
 			userEvents.forEach((event) => {
-				if (event.event === "lecture completed" && event.speed_learner === true) {
-					isSpeedLearner = true;
-				}
-			});
-
-			if (isSpeedLearner) {
-				userEvents.forEach((event) => {
-					if (event.event === "quiz completed") {
-							if (event.score_percent !== undefined) {
-							event.score_percent = Math.min(100, event.score_percent + 8);
-							event.speed_learner_effect = true;
+				if (event.event === "quiz completed" && event.time) {
+					const eventDay = dayjs(event.time).day();
+					if (eventDay === 0 || eventDay === 1) {
+						if (event.score_percent !== undefined) {
+							event.score_percent = Math.max(0, event.score_percent - 25);
 						}
 					}
-				});
-			}
-
-			// Hook #6: SEMESTER-END SPIKE - duplicate assessment events in the spike window
-			const duplicates = [];
-			userEvents.forEach((event) => {
-				if (event.semester_end_rush === true && chance.bool({ likelihood: 50 })) {
-					const dup = JSON.parse(JSON.stringify(event));
-					dup.time = dayjs(event.time).add(chance.integer({ min: 5, max: 120 }), 'minutes').toISOString();
-					dup.semester_end_rush = true;
-					duplicates.push(dup);
 				}
 			});
-			if (duplicates.length > 0) {
-				userEvents.push(...duplicates);
-			}
-
-			// Hook #7: FREE VS PAID - reinforce the subscription effect on certificates
-			const subStatus = userEvents.length > 0 ? userEvents[0].subscription_status : "free";
-			if (subStatus === "free") {
-				// Free users lose 40% of their certificates (simulating lower completion)
-				for (let i = userEvents.length - 1; i >= 0; i--) {
-					if (userEvents[i].event === "certificate earned" && chance.bool({ likelihood: 40 })) {
-						userEvents.splice(i, 1);
-					}
-				}
-			}
 		}
 
 		// ═══════════════════════════════════════════════════════════════════
@@ -655,11 +664,11 @@ const config = {
 				const subscriptionStatus = meta.profile.subscription_status;
 
 				if (subscriptionStatus === "free") {
-					// Free users convert at 0.6x rate
-					record.conversionRate = (record.conversionRate || 0.25) * 0.6;
+					// Free users convert at 0.5x rate
+					record.conversionRate = (record.conversionRate || 0.25) * 0.5;
 				} else if (subscriptionStatus === "monthly" || subscriptionStatus === "annual") {
-					// Paid subscribers convert at 1.3x rate
-					record.conversionRate = (record.conversionRate || 0.25) * 1.3;
+					// Paid subscribers convert at 1.5x rate
+					record.conversionRate = (record.conversionRate || 0.25) * 1.5;
 				}
 			}
 		}
@@ -706,10 +715,22 @@ export default config;
  * teaching attributes (courses_created, teaching_experience_years, instructor_rating).
  * Students receive learning attributes (learning_goal, study_hours_per_week).
  *
- * HOW TO FIND IT:
- *   - Segment users by: account_type = "instructor" vs "student"
- *   - Compare: presence of courses_created vs learning_goal properties
- *   - Filter profiles: instructor_rating exists (instructor-only property)
+ * HOW TO FIND IT IN MIXPANEL:
+ *
+ *   Report 1: Student vs Instructor Distribution
+ *   • Report type: Insights
+ *   • Event: Any event
+ *   • Measure: Unique users
+ *   • Breakdown: User profile "account_type"
+ *   • Expected: ~89% students, ~11% instructors
+ *
+ *   Report 2: Instructor-Only Properties
+ *   • Report type: Insights
+ *   • Event: "instructor feedback given"
+ *   • Measure: Total events per user
+ *   • Breakdown: User profile "account_type"
+ *   • Expected: Instructors dominate feedback events; students show
+ *     learning_goal property instead of courses_created
  *
  * EXPECTED INSIGHT: ~11% of users are instructors with teaching-specific metrics.
  * Instructors should show different event patterns (more feedback given, fewer
@@ -724,17 +745,28 @@ export default config;
  * ───────────────────────────────────────────────────────────────────────────────
  *
  * PATTERN: Assignments submitted on Sundays and Mondays show deadline-rush
- * behavior: 60% are late (vs ~20% baseline) and quiz scores drop by 15 points.
+ * behavior: 60% are late (vs ~20% baseline) and quiz scores drop by 25 points.
  * These events carry is_deadline_rush: true.
  *
- * HOW TO FIND IT:
- *   - Chart: assignment_submitted by day of week
- *   - Compare: is_late rate by day of week
- *   - Compare: quiz_completed score_percent by day of week
- *   - Filter: is_deadline_rush = true
+ * HOW TO FIND IT IN MIXPANEL:
+ *
+ *   Report 1: Late Submission Rate by Day
+ *   • Report type: Insights
+ *   • Event: "assignment submitted"
+ *   • Measure: Total events
+ *   • Breakdown: "is_deadline_rush"
+ *   • Expected: is_deadline_rush=true shows ~60% late rate vs ~20% baseline
+ *
+ *   Report 2: Quiz Score by Day of Week
+ *   • Report type: Insights
+ *   • Event: "quiz completed"
+ *   • Measure: Average of "score_percent"
+ *   • Breakdown: Day of Week (Mixpanel built-in)
+ *   • Expected: Sunday and Monday scores average ~25 points lower
+ *     than other days (e.g., ~50 vs ~65)
  *
  * EXPECTED INSIGHT: Clear quality drop on Sun/Mon. Late submission rate spikes
- * from ~20% to ~60%. Quiz scores taken on crunch days average 15 points lower.
+ * from ~20% to ~60%. Quiz scores taken on crunch days average 25 points lower.
  * This creates a visible "weekend dip" in student performance metrics.
  *
  * REAL-WORLD ANALOGUE: The "Sunday Scaries" of EdTech - students procrastinate
@@ -749,11 +781,21 @@ export default config;
  * receive a +20 boost to all quiz scores (capped at 100), and have a 40% chance
  * of earning an extra certificate. Events are marked diligent_student: true.
  *
- * HOW TO FIND IT:
- *   - Create segment: users with 5+ lecture_completed where notes_taken = true
- *   - Compare: average quiz_completed score_percent
- *   - Compare: certificate_earned count per user
- *   - Filter: diligent_student = true
+ * HOW TO FIND IT IN MIXPANEL:
+ *
+ *   Report 1: Note-Taker Quiz Scores
+ *   • Report type: Insights
+ *   • Event: "quiz completed"
+ *   • Measure: Average of "score_percent"
+ *   • Breakdown: "diligent_student"
+ *   • Expected: diligent_student=true ≈ 85 avg score vs ~65 baseline (+20 pts)
+ *
+ *   Report 2: Note-Taker Certificate Rate
+ *   • Report type: Insights
+ *   • Event: "certificate earned"
+ *   • Measure: Total events per user
+ *   • Breakdown: "diligent_student"
+ *   • Expected: diligent_student=true earn ~40% more certificates
  *
  * EXPECTED INSIGHT: Diligent note-takers score ~20 points higher on quizzes
  * and earn certificates at a significantly higher rate. This is a classic
@@ -770,13 +812,24 @@ export default config;
  * PATTERN: Students who join a study group within their first 10 days and have
  * passing quiz scores retain normally and receive bonus discussion events. Students
  * who do NOT join early AND have quiz scores below 60 experience severe churn:
- * 70% of their events after day 14 are removed.
+ * all of their events after day 14 are removed (hard churn).
  *
- * HOW TO FIND IT:
- *   - Create cohort: users who did "study group joined" within first 10 days
- *   - Compare: D14/D30 retention rate vs non-joiners
- *   - Compare: total events per user after day 14
- *   - Filter: study_group_member = true on bonus events
+ * HOW TO FIND IT IN MIXPANEL:
+ *
+ *   Report 1: Study Group Retention
+ *   • Report type: Retention
+ *   • Event A: "account registered"
+ *   • Event B: Any event
+ *   • Segment: Users who did "study group joined" within first 10 days vs not
+ *   • Expected: Early joiners retain at ~90% D14; non-joiners with low scores
+ *     drop to ~30% D14 (70% churn)
+ *
+ *   Report 2: Study Group Engagement
+ *   • Report type: Insights
+ *   • Event: "discussion posted"
+ *   • Measure: Total events per user
+ *   • Breakdown: "study_group_member"
+ *   • Expected: study_group_member=true users post more discussions
  *
  * EXPECTED INSIGHT: Early study group joiners show dramatically better retention
  * curves. Non-joiners with low quiz scores show a cliff-like drop in activity
@@ -796,11 +849,23 @@ export default config;
  * without hints have a 40% chance of tackling "hard" problems and receive
  * independent_solver: true.
  *
- * HOW TO FIND IT:
- *   - Segment practice_problem_solved by: hint_used = true vs false
- *   - Compare: difficulty distribution (easy vs medium vs hard)
- *   - Filter: independent_solver = true
- *   - Compare: average time_to_solve_sec by hint usage
+ * HOW TO FIND IT IN MIXPANEL:
+ *
+ *   Report 1: Difficulty by Hint Usage
+ *   • Report type: Insights
+ *   • Event: "practice problem solved"
+ *   • Measure: Total events
+ *   • Breakdown: "difficulty"
+ *   • Filter: "hint_used" = true
+ *   • Expected: ~60% of hint-used problems are "easy" vs ~33% baseline
+ *
+ *   Report 2: Independent Solver Hard Problems
+ *   • Report type: Insights
+ *   • Event: "practice problem solved"
+ *   • Measure: Total events
+ *   • Breakdown: "difficulty"
+ *   • Filter: "hint_used" = false
+ *   • Expected: ~40% "hard" problems for non-hint users vs ~33% baseline
  *
  * EXPECTED INSIGHT: Hint users cluster on easy problems; non-hint users tackle
  * harder problems. This creates a visible "hint dependency" where the scaffolding
@@ -819,11 +884,21 @@ export default config;
  * assignment_submitted events have a 50% chance of being duplicated (with slightly
  * offset timestamps). All events in this window carry semester_end_rush: true.
  *
- * HOW TO FIND IT:
- *   - Chart: quiz_started, quiz_completed, assignment_submitted counts by day
- *   - Look for: clear volume spike during days 75-85
- *   - Filter: semester_end_rush = true
- *   - Compare: event volume in days 75-85 vs days 60-75 (baseline)
+ * HOW TO FIND IT IN MIXPANEL:
+ *
+ *   Report 1: Assessment Volume Over Time
+ *   • Report type: Insights (line chart)
+ *   • Events: "quiz started", "quiz completed", "assignment submitted"
+ *   • Measure: Total events
+ *   • Time: Daily trend
+ *   • Expected: Visible ~2x spike during days 75-85
+ *
+ *   Report 2: Semester Rush Tag
+ *   • Report type: Insights
+ *   • Event: "quiz completed"
+ *   • Measure: Total events
+ *   • Breakdown: "semester_end_rush"
+ *   • Expected: semester_end_rush=true events cluster in days 75-85 window
  *
  * EXPECTED INSIGHT: Assessment activity roughly doubles during the "finals"
  * period. This creates a visible spike in the time series that mirrors real
@@ -842,10 +917,20 @@ export default config;
  * annual subscribers convert at 1.3x. This creates a ~2.2x difference between
  * free and paid users in course completion.
  *
- * HOW TO FIND IT:
- *   - Segment the Course Completion funnel by: subscription_status
- *   - Compare: funnel conversion rates for free vs monthly vs annual
- *   - Compare: certificate_earned counts by subscription_status
+ * HOW TO FIND IT IN MIXPANEL:
+ *
+ *   Report 1: Course Completion by Subscription
+ *   • Report type: Funnels
+ *   • Steps: "course enrolled" → "lecture completed" → "quiz completed" → "certificate earned"
+ *   • Breakdown: "subscription_status"
+ *   • Expected: free ≈ 15% completion, monthly/annual ≈ 33% (~2.2x difference)
+ *
+ *   Report 2: Certificate Count by Tier
+ *   • Report type: Insights
+ *   • Event: "certificate earned"
+ *   • Measure: Total events per user
+ *   • Breakdown: "subscription_status"
+ *   • Expected: Paid subscribers earn significantly more certificates
  *
  * EXPECTED INSIGHT: Paid subscribers are roughly 2x more likely to complete
  * courses end-to-end. Free users drop off heavily between quiz_completed and
@@ -862,17 +947,28 @@ export default config;
  *
  * PATTERN: In lecture_completed events, playback speed creates two distinct
  * learner segments:
- *   - Speed learners (>= 1.5x): get speed_learner: true, compressed watch_time
+ *   - Speed learners (>= 2.0x, 3+ lectures): get speed_learner: true, compressed watch_time
  *     (0.6x), and paradoxically HIGHER quiz scores (+8 points)
  *   - Thorough learners (<= 1.0x): get thorough_learner: true, extended watch_time
  *     (1.4x)
  *
- * HOW TO FIND IT:
- *   - Segment lecture_completed by: playback_speed
- *   - Compare: average watch_time_mins by speed bucket
- *   - Compare: subsequent quiz_completed score_percent
- *   - Filter: speed_learner = true or thorough_learner = true
- *   - Correlate: playback_speed with quiz performance
+ * HOW TO FIND IT IN MIXPANEL:
+ *
+ *   Report 1: Watch Time by Speed
+ *   • Report type: Insights
+ *   • Event: "lecture completed"
+ *   • Measure: Average of "watch_time_mins"
+ *   • Breakdown: "speed_learner"
+ *   • Expected: speed_learner=true ≈ 0.6x watch time (compressed)
+ *     thorough_learner=true ≈ 1.4x watch time (extended)
+ *
+ *   Report 2: Speed Learner Quiz Paradox
+ *   • Report type: Insights
+ *   • Event: "quiz completed"
+ *   • Measure: Average of "score_percent"
+ *   • Breakdown: "speed_learner_effect"
+ *   • Expected: speed_learner_effect=true shows +8 point higher scores
+ *     (counter-intuitive: faster learners score better)
  *
  * EXPECTED INSIGHT: Counter-intuitively, speed learners score slightly higher
  * on quizzes despite watching lectures faster. This suggests that playback speed
@@ -935,7 +1031,7 @@ export default config;
  * ────────────────────────|───────────────────────|──────────|──────────────|──────
  * Student vs Instructor   | Profile attributes    | generic  | role-specific| N/A
  * Deadline Cramming       | Late submission rate  | ~20%     | ~60%         | 3x
- * Deadline Cramming       | Quiz score (Sun/Mon)  | ~65      | ~50          | -15pt
+ * Deadline Cramming       | Quiz score (Sun/Mon)  | ~65      | ~40          | -25pt
  * Notes-Takers Succeed    | Quiz score            | ~65      | ~85          | +20pt
  * Notes-Takers Succeed    | Certificate rate      | baseline | +40%         | 1.4x
  * Study Group Retention   | D14 retention         | ~40%     | ~90%         | 2.3x

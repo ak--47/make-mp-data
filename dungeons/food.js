@@ -415,7 +415,7 @@ const config = {
 		// ═══════════════════════════════════════════════════════════════════
 		if (type === "funnel-pre") {
 			if (meta && meta.firstEventTime) {
-				const hour = dayjs(meta.firstEventTime).hour();
+				const hour = dayjs.unix(meta.firstEventTime).hour();
 
 				record.props = record.props || {};
 
@@ -450,7 +450,7 @@ const config = {
 				const userId = meta && meta.user && (meta.user.distinct_id || String(meta.user));
 				const isNewUser = userId && userId.charCodeAt(0) % 2 === 0;
 				if (isNewUser) {
-					record.conversionRate = 0.90;
+					record.conversionRate = Math.min(98, record.conversionRate * 1.4);
 					record.props.first_order_bonus = true;
 				} else {
 					record.props.first_order_bonus = false;
@@ -484,6 +484,9 @@ const config = {
 						event: "coupon applied",
 						time: midTime,
 						user_id: firstEvent.user_id,
+						subscription_tier: firstEvent.subscription_tier,
+						platform: firstEvent.platform,
+						city: firstEvent.city,
 						coupon_code: chance.pickone(couponCodes),
 						discount_type: chance.pickone(["percent", "flat", "free_delivery"]),
 						discount_value: chance.integer({ min: 10, max: 30 }),
@@ -535,23 +538,7 @@ const config = {
 				if (EVENT_TIME.isAfter(RAINY_WEEK_START) && EVENT_TIME.isBefore(RAINY_WEEK_END)) {
 					record.delivery_fee = (record.delivery_fee || 5) * 2;
 					record.surge_pricing = true;
-
-					// 40% chance to duplicate the event (more orders during rain)
-					if (chance.bool({ likelihood: 40 })) {
-						const duplicateEvent = {
-							event: "order placed",
-							time: EVENT_TIME.add(chance.integer({ min: 5, max: 60 }), 'minutes').toISOString(),
-							user_id: record.user_id,
-							order_id: chance.pickone(orderIds),
-							payment_method: chance.pickone(["credit_card", "apple_pay", "google_pay"]),
-							order_total: chance.integer({ min: 15, max: 120 }),
-							tip_amount: chance.integer({ min: 0, max: 20 }),
-							delivery_fee: chance.integer({ min: 6, max: 24 }),
-							surge_pricing: true,
-							rainy_week: true,
-						};
-						return [record, duplicateEvent];
-					}
+					record.rainy_week = true;
 				} else {
 					record.surge_pricing = false;
 				}
@@ -645,6 +632,24 @@ const config = {
 					}
 				}
 			}
+
+			// ═══════════════════════════════════════════════════════════════
+			// HOOK 4: RAINY WEEK SURGE - duplicate order events (everything)
+			// Events tagged surge_pricing=true in the event hook get a 40%
+			// chance of duplication here, creating visible demand spikes.
+			// ═══════════════════════════════════════════════════════════════
+			const rainyDuplicates = [];
+			userEvents.forEach((event) => {
+				if (event.surge_pricing === true && event.event === "order placed" && chance.bool({ likelihood: 40 })) {
+					const dup = JSON.parse(JSON.stringify(event));
+					dup.time = dayjs(event.time).add(chance.integer({ min: 5, max: 60 }), 'minutes').toISOString();
+					dup.rainy_week = true;
+					rainyDuplicates.push(dup);
+				}
+			});
+			if (rainyDuplicates.length > 0) {
+				userEvents.push(...rainyDuplicates);
+			}
 		}
 
 		// ═══════════════════════════════════════════════════════════════════
@@ -705,10 +710,19 @@ export default config;
  * Lunch (11AM-1PM) gets a 1.4x multiplier; dinner (5PM-8PM) gets 1.2x.
  * Events during these windows carry lunch_rush or dinner_rush properties.
  *
- * HOW TO FIND IT:
- *   - Break down funnel conversion by hour of day
- *   - Compare conversion rates during 11AM-1PM vs. off-peak hours
- *   - Filter events where lunch_rush = true or dinner_rush = true
+ * HOW TO FIND IT IN MIXPANEL:
+ *
+ *   Report 1: Funnel Conversion by Meal Time
+ *   • Report type: Funnels
+ *   • Steps: "checkout started" → "order placed" → "order delivered"
+ *   • Breakdown: "lunch_rush"
+ *   • Expected: lunch_rush=true funnels convert at ~84% vs ~60% baseline (1.4x)
+ *
+ *   Report 2: Dinner Rush Conversion
+ *   • Report type: Funnels
+ *   • Steps: "checkout started" → "order placed" → "order delivered"
+ *   • Breakdown: "dinner_rush"
+ *   • Expected: dinner_rush=true funnels convert at ~72% vs ~60% baseline (1.2x)
  *
  * EXPECTED INSIGHT: Lunch hour funnels convert ~40% better than baseline.
  * Dinner hour funnels convert ~20% better. Clear time-of-day pattern in
@@ -726,10 +740,21 @@ export default config;
  * funnel sequences 30% of the time. These injected coupons carry the
  * coupon_injected: true property to distinguish them from organic usage.
  *
- * HOW TO FIND IT:
- *   - Segment by subscription_tier = "Free"
- *   - Look for coupon_applied events with coupon_injected = true
- *   - Compare funnel completion rates for Free users with/without coupons
+ * HOW TO FIND IT IN MIXPANEL:
+ *
+ *   Report 1: Injected Coupon Volume
+ *   • Report type: Insights
+ *   • Event: "coupon applied"
+ *   • Measure: Total events
+ *   • Breakdown: "coupon_injected"
+ *   • Expected: coupon_injected=true events represent ~30% of Free-tier coupons
+ *
+ *   Report 2: Coupon Impact by Tier
+ *   • Report type: Insights
+ *   • Event: "coupon applied"
+ *   • Measure: Total events
+ *   • Breakdown: "subscription_tier"
+ *   • Expected: Free-tier users have more coupon events due to injection
  *
  * EXPECTED INSIGHT: ~30% of Free users receive promotional coupons mid-funnel.
  * These users should show different downstream conversion behavior, simulating
@@ -747,10 +772,23 @@ export default config;
  * 70% toward American (fast food) cuisine. Item prices are boosted by 1.3x.
  * Events carry late_night_order: true.
  *
- * HOW TO FIND IT:
- *   - Break down restaurant_viewed by hour of day and cuisine_type
- *   - Compare cuisine distribution at 10PM-2AM vs. daytime
- *   - Filter late_night_order = true and compare average item_price
+ * HOW TO FIND IT IN MIXPANEL:
+ *
+ *   Report 1: Late Night Cuisine Shift
+ *   • Report type: Insights
+ *   • Event: "restaurant viewed"
+ *   • Measure: Total events
+ *   • Breakdown: "cuisine_type"
+ *   • Filter: "late_night_order" = true
+ *   • Expected: ~70% of late-night views are "American" (fast food)
+ *     vs ~12% during daytime
+ *
+ *   Report 2: Late Night Price Premium
+ *   • Report type: Insights
+ *   • Event: "item added to cart"
+ *   • Measure: Average of "item_price"
+ *   • Breakdown: "late_night_order"
+ *   • Expected: late_night_order=true shows ~1.3x higher avg price
  *
  * EXPECTED INSIGHT: Late-night orders are overwhelmingly fast food with
  * higher average prices. The cuisine distribution at night is dramatically
@@ -769,10 +807,21 @@ export default config;
  *   - surge_pricing: true flag added
  *   - 40% chance of duplicate order events (demand surge)
  *
- * HOW TO FIND IT:
- *   - Chart order_placed event count by day
- *   - Filter days 20-27 and compare delivery_fee averages
- *   - Look for surge_pricing = true and rainy_week = true properties
+ * HOW TO FIND IT IN MIXPANEL:
+ *
+ *   Report 1: Order Volume Over Time
+ *   • Report type: Insights (line chart)
+ *   • Event: "order placed"
+ *   • Measure: Total events
+ *   • Time: Daily trend
+ *   • Expected: Visible spike in order volume during days 20-27
+ *
+ *   Report 2: Surge Pricing Impact
+ *   • Report type: Insights
+ *   • Event: "order placed"
+ *   • Measure: Average of "delivery_fee"
+ *   • Breakdown: "surge_pricing"
+ *   • Expected: surge_pricing=true shows ~2x higher avg delivery fee
  *
  * EXPECTED INSIGHT: Clear spike in order volume around days 20-27, with
  * doubled delivery fees and surge pricing markers. The demand surge is
@@ -791,10 +840,21 @@ export default config;
  *   - Have food_rating boosted to 4-5 (higher satisfaction)
  *   - Carry referral_user: true on affected events
  *
- * HOW TO FIND IT:
- *   - Segment users by: referral_code = true on account_created
- *   - Compare: reorder_initiated event count per user
- *   - Compare: average food_rating on order_rated events
+ * HOW TO FIND IT IN MIXPANEL:
+ *
+ *   Report 1: Referral User Reorder Rate
+ *   • Report type: Insights
+ *   • Event: "reorder initiated"
+ *   • Measure: Total events per user
+ *   • Breakdown: "referral_user"
+ *   • Expected: referral_user=true shows ~2x more reorders per user
+ *
+ *   Report 2: Referral User Satisfaction
+ *   • Report type: Insights
+ *   • Event: "order rated"
+ *   • Measure: Average of "food_rating"
+ *   • Breakdown: "referral_user"
+ *   • Expected: referral_user=true avg rating 4-5 stars vs ~3.5 baseline
  *
  * EXPECTED INSIGHT: Referred users reorder roughly 2x more often and rate
  * food 4-5 stars consistently. They represent a higher-LTV, more-satisfied
@@ -813,11 +873,22 @@ export default config;
  *   - If fewer than 3 orders: churned (60% of events after day 14 removed)
  *   - Retained users carry trial_retained: true
  *
- * HOW TO FIND IT:
- *   - Segment users by: subscription_started with trial = true
- *   - Count order_placed events within first 14 days per user
- *   - Compare: event volume after day 14 for 3+ orders vs. <3 orders
- *   - Look for trial_retained = true property
+ * HOW TO FIND IT IN MIXPANEL:
+ *
+ *   Report 1: Trial Retention Signal
+ *   • Report type: Insights
+ *   • Event: Any event
+ *   • Measure: Total events per user
+ *   • Breakdown: "trial_retained"
+ *   • Expected: trial_retained=true users have sustained activity;
+ *     trial_retained=false users show ~60% fewer events after day 14
+ *
+ *   Report 2: Trial Subscriber Retention
+ *   • Report type: Retention
+ *   • Event A: "subscription started" (filter: trial = true)
+ *   • Event B: "order placed"
+ *   • Expected: Users with 3+ early orders retain at high rate;
+ *     others drop off sharply after day 14
  *
  * EXPECTED INSIGHT: Trial users who place 3+ early orders show sustained
  * engagement. Those who don't show a dramatic drop-off after day 14, with
@@ -835,11 +906,21 @@ export default config;
  * churn_risk_score between 70-100. The remaining 85% get scores of 0-40.
  * This creates a binary segmentation opportunity for retention teams.
  *
- * HOW TO FIND IT:
- *   - Segment users by: is_high_risk = true
- *   - Compare: churn_risk_score distribution
- *   - Cross-reference: support_ticket event frequency for high-risk users
- *   - Compare: retention and ordering behavior by risk segment
+ * HOW TO FIND IT IN MIXPANEL:
+ *
+ *   Report 1: Churn Risk Distribution
+ *   • Report type: Insights
+ *   • Event: Any event
+ *   • Measure: Unique users
+ *   • Breakdown: User profile "is_high_risk"
+ *   • Expected: ~15% of users have is_high_risk=true
+ *
+ *   Report 2: Risk Score Histogram
+ *   • Report type: Insights
+ *   • Event: Any event
+ *   • Measure: Unique users
+ *   • Breakdown: User profile "churn_risk_score"
+ *   • Expected: Bimodal distribution — 85% cluster at 0-40, 15% cluster at 70-100
  *
  * EXPECTED INSIGHT: 15% of users have churn scores above 70, creating a
  * clear at-risk segment. These users likely correlate with higher support
@@ -855,15 +936,26 @@ export default config;
  *
  * PATTERN: For the Order Completion funnel (checkout started -> order placed
  * -> order delivered), new users (born in dataset) get their conversion rate
- * boosted to 90%. Events carry first_order_bonus: true.
+ * boosted by 1.4x (stacks with rush-hour boosts). Events carry first_order_bonus: true.
  *
- * HOW TO FIND IT:
- *   - Segment the Order Completion funnel by new vs. existing users
- *   - Compare: conversion rates for new users vs. returning users
- *   - Filter: first_order_bonus = true
+ * HOW TO FIND IT IN MIXPANEL:
  *
- * EXPECTED INSIGHT: New users convert at ~90% through the order funnel,
- * dramatically higher than the 60% baseline. This simulates first-order
+ *   Report 1: First Order Funnel Conversion
+ *   • Report type: Funnels
+ *   • Steps: "checkout started" → "order placed" → "order delivered"
+ *   • Breakdown: "first_order_bonus"
+ *   • Expected: first_order_bonus=true converts ~1.4x higher than baseline
+ *
+ *   Report 2: New User Order Completion
+ *   • Report type: Insights
+ *   • Event: "order placed"
+ *   • Measure: Total events
+ *   • Breakdown: "first_order_bonus"
+ *   • Expected: ~50% of checkout-to-order completions tagged with
+ *     first_order_bonus=true (hash-based ~50% of users)
+ *
+ * EXPECTED INSIGHT: New users convert at ~1.4x higher rate through the order funnel,
+ * stacking with rush-hour boosts for even higher peak conversion. This simulates first-order
  * promotions (free delivery, $10 off) that most food delivery apps offer.
  *
  * REAL-WORLD ANALOGUE: Every major food delivery app offers aggressive
@@ -927,7 +1019,7 @@ export default config;
  * Referral Power Users  | Reorder frequency    | 1x       | 2x          | 2.0x
  * Trial Conversion      | Post-trial retention | 100%     | 40%         | 0.4x
  * Support Ticket Churn  | High-risk users      | 0%       | 15%         | N/A
- * First Order Bonus     | New user conversion  | 60%      | 90%         | 1.5x
+ * First Order Bonus     | New user conversion  | 1x       | 1.4x        | 1.4x
  *
  * ═══════════════════════════════════════════════════════════════════════════════
  * HOW TO RUN THIS DUNGEON
