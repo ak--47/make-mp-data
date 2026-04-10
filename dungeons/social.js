@@ -10,12 +10,14 @@ const chance = u.initChance(SEED);
 const num_users = 5_000;
 const days = 100;
 
-/** @typedef  {import("../../types.js").Dungeon} Config */
+/** @typedef  {import("../types.js").Dungeon} Config */
 
-/**
- * NEEDLE IN A HAYSTACK - SOCIAL MEDIA APP DESIGN
+/*
+ * =====================================================================================
+ * DATASET OVERVIEW
+ * =====================================================================================
  *
- * Chirp - A Twitter+Instagram-style social media platform with algorithmic feed,
+ * Chirp — A Twitter+Instagram-style social media platform with algorithmic feed,
  * creator monetization, communities, and direct messaging.
  *
  * CORE LOOP:
@@ -24,73 +26,135 @@ const days = 100;
  * Power users become "creators" with subscriber tiers. Monetization through
  * native ads woven into feed and story placements.
  *
- * CONTENT CREATION (events: post created, story created):
- * - Five post types: text (classic tweet), image, video, poll, link
- * - Character count up to 280, optional media, hashtags for discoverability
- * - Stories are ephemeral (photo, video, text) with filters and stickers
- * - Creators post 3x more frequently once they start monetizing
+ * - 5,000 users over 100 days
+ * - 600,000 base events across 18 event types
+ * - 8 funnels (onboarding, engagement, discovery, creator journey, ads)
+ * - Group analytics (100 communities)
+ * - Account types: personal, creator, business
+ * =====================================================================================
+ */
+
+/*
+ * =====================================================================================
+ * ANALYTICS HOOKS
+ * =====================================================================================
  *
- * CONTENT CONSUMPTION (events: post viewed, story viewed):
- * - Algorithmic feed is the primary discovery surface (pre day-45)
- * - Explore tab surfaces trending and personalized content
- * - Search allows finding users, hashtags, and specific posts
- * - View duration is a key quality signal - engagement bait gets short views
+ * 8 deliberately architected patterns hidden in the data:
  *
- * SOCIAL GRAPH (events: user followed, user unfollowed):
- * - Follow/unfollow mechanics drive the social network
- * - Users who receive 5+ follows become prolific creators (follow-back snowball)
- * - Discovery sources: suggested, search, post interactions, mutual connections
- * - Unfollows track reasons to understand content quality issues
+ * -------------------------------------------------------------------------------------
+ * 1. VIRAL CONTENT CASCADE (everything hook)
+ * -------------------------------------------------------------------------------------
+ * 5% of users with 10+ posts become "viral creators." Each of their posts generates
+ * 10-20 extra post viewed, post liked, and post shared events (viral_cascade: true).
  *
- * ENGAGEMENT (events: post liked, post shared, comment posted):
- * - Likes are lightweight engagement (highest volume after views)
- * - Shares amplify reach via repost, DM, external, or copy link
- * - Comments drive conversation with mentions and threaded replies
- * - Viral creators (5% of users) generate 10-20x engagement cascades
+ * Mixpanel Steps:
+ *   - Insights > "post viewed" > Total events > Breakdown: "viral_cascade"
+ *   - Insights > "post liked" > Total events per user > Breakdown: "viral_cascade"
  *
- * MESSAGING (event: dm sent):
- * - Direct messages support text, image, voice, and link content
- * - Conversation threads build over time
- * - DMs are a key sharing destination for content
+ * -------------------------------------------------------------------------------------
+ * 2. FOLLOW-BACK SNOWBALL (everything hook)
+ * -------------------------------------------------------------------------------------
+ * Users with 5+ "user followed" events become prolific creators. 50% of their posts
+ * get duplicated (follow_back_effect: true), plus extra comments are injected.
  *
- * NOTIFICATIONS (event: notification received):
- * - Five types: like, follow, comment, mention, trending
- * - Trending notifications drive re-engagement after day 30
- * - Click-through rates vary by notification type
+ * Mixpanel Steps:
+ *   - Insights > "post created" > Total per user > Breakdown: "follow_back_effect"
+ *   - Insights > "post created" > Total per user > Cohort: users with 5+ follows
  *
- * DISCOVERY & SEARCH (event: search performed):
- * - Three search types: users, hashtags, posts
- * - Results count varies; empty results indicate content gaps
- * - Search is a secondary discovery surface behind feed/explore
+ * -------------------------------------------------------------------------------------
+ * 3. ALGORITHM CHANGE (event hook)
+ * -------------------------------------------------------------------------------------
+ * Day 45: content discovery flips from feed to explore. Before day 45, 70% of
+ * post viewed source = "feed." After, 70% shift to source = "explore."
  *
- * ADVERTISING (events: ad viewed, ad clicked):
- * - Four ad formats: feed native, story, banner, video
- * - Five ad categories: retail, tech, food, finance, entertainment
- * - View duration and click-through tracked for ad effectiveness
+ * Mixpanel Steps:
+ *   - Insights (line) > "post viewed" > Total > Breakdown: "source" > Daily trend
+ *   - Compare date ranges before/after day 45: feed vs explore ratio inverts
  *
- * CREATOR ECONOMY (event: creator subscription started):
- * - Three tiers: basic ($4.99), premium ($9.99), vip ($19.99)
- * - Subscribers unlock exclusive content from creators
- * - Monetized creators post 3x more (they have financial incentive)
+ * -------------------------------------------------------------------------------------
+ * 4. ENGAGEMENT BAIT (event hook)
+ * -------------------------------------------------------------------------------------
+ * 20% of post viewed events are engagement_bait: true with view durations of 1-5 sec.
+ * High impressions but terrible engagement quality.
  *
- * MODERATION (event: report submitted):
- * - Users report spam, harassment, misinformation, hate speech
- * - Content types: posts, comments, users, DMs
- * - Users who report 3+ times show 60% churn (toxic environment drives them out)
+ * Mixpanel Steps:
+ *   - Insights > "post viewed" > Avg "view_duration_sec" > Breakdown: "engagement_bait"
+ *   - Expected: bait ~2-3 sec avg vs normal ~15-30 sec avg
  *
- * COMMUNITIES (group: community_id):
- * - 100 communities with categories (tech, entertainment, sports, etc.)
- * - Communities aggregate posts, comments, likes, and shares
- * - Moderated vs unmoderated communities behave differently
+ * -------------------------------------------------------------------------------------
+ * 5. NOTIFICATION RE-ENGAGEMENT (event hook)
+ * -------------------------------------------------------------------------------------
+ * After day 30, 30% of post viewed events get source overridden to "notification"
+ * with trending_reengagement: true.
  *
- * WHY THESE EVENTS/PROPERTIES?
- * - Events model a complete social media loop: signup -> engagement -> creation -> monetization
- * - Properties enable cohort analysis: account type, content niche, verification status
- * - Funnels reveal friction: onboarding drop-off, content-to-engagement conversion
- * - The algorithm change (day 45) creates a clear before/after for A/B analysis
- * - Viral cascades and follow-back snowballs simulate real network effects
- * - Weekend surges create visible temporal patterns in content creation
- * - The "needle in haystack" hooks simulate real product insights hidden in production data
+ * Mixpanel Steps:
+ *   - Insights (line) > "post viewed" > Total > Filter: source = "notification" > Daily
+ *   - Near-zero before day 30, then ~30% of views from notifications
+ *
+ * -------------------------------------------------------------------------------------
+ * 6. CREATOR MONETIZATION (everything hook)
+ * -------------------------------------------------------------------------------------
+ * Users with any "creator subscription started" event post 3x more. Two extra posts
+ * injected per original (monetized_creator: true). Also extra profile-source views.
+ *
+ * Mixpanel Steps:
+ *   - Insights > "post created" > Total per user > Breakdown: "monetized_creator"
+ *   - Insights > "post viewed" > Filter: source = "profile" > Breakdown: "monetized_creator"
+ *
+ * -------------------------------------------------------------------------------------
+ * 7. TOXICITY CHURN (everything hook)
+ * -------------------------------------------------------------------------------------
+ * Users with 3+ reports lose 60% of events after day 30. Remaining events tagged
+ * toxic_user: true. Simulates churn from toxic content exposure.
+ *
+ * Mixpanel Steps:
+ *   - Retention > Segment: users with 3+ "report submitted" vs fewer
+ *   - Insights (line) > Any event > Total per user > Breakdown: "toxic_user" > Weekly
+ *
+ * -------------------------------------------------------------------------------------
+ * 8. WEEKEND CONTENT SURGE (event + everything hook)
+ * -------------------------------------------------------------------------------------
+ * Saturday/Sunday post/story events tagged weekend_surge: true. 30% get a duplicate
+ * event 1-3 hours later (weekend_duplicate: true).
+ *
+ * Mixpanel Steps:
+ *   - Insights (bar) > "post created" > Total > Breakdown: Day of Week
+ *   - Expected: Sat/Sun bars ~30% taller than weekday bars
+ *
+ * =====================================================================================
+ * EXPECTED METRICS SUMMARY
+ * =====================================================================================
+ *
+ * Hook                      | Metric                  | Baseline     | Hook Effect    | Ratio
+ * --------------------------|-------------------------|--------------|----------------|-------
+ * Viral Content Cascade     | Engagement per post     | 1-2x         | 10-20x         | ~15x
+ * Follow-Back Snowball      | Posts per user           | ~4           | ~8             | 2x
+ * Algorithm Change          | Feed vs. Explore source  | 70/15        | 15/70          | Flip
+ * Engagement Bait           | View duration (sec)      | 15-30        | 1-5            | ~0.2x
+ * Notification Re-engage    | Notification source %    | ~10%         | ~30%           | 3x
+ * Creator Monetization      | Content creation freq    | 1x           | 3x             | 3x
+ * Toxicity Churn            | Post-day-30 retention    | ~80%         | ~40%           | 0.5x
+ * Weekend Content Surge     | Weekend vs. weekday vol  | 1x           | 1.3x           | 1.3x
+ *
+ * =====================================================================================
+ * ADVANCED ANALYSIS IDEAS
+ * =====================================================================================
+ *
+ * - Viral Creators + Algorithm Change: Do viral creators benefit more from the
+ *   explore-based algorithm? Compare viral cascade engagement before/after day 45.
+ * - Follow-Back Snowball + Creator Monetization: Users with both effects compound
+ *   to ~6x content output (2x from follows * 3x from monetization).
+ * - Engagement Bait + Toxicity Churn: Correlation between engagement_bait exposure
+ *   and toxic_user tagging / report submission rates.
+ * - Weekend Surge + Viral Cascade: Compounding creates extreme engagement spikes
+ *   on weekend days.
+ * - Notification Re-engagement + Toxicity Churn: Do trending notifications help
+ *   retain toxic_user-tagged users, or do they still churn?
+ * - Cohort by signup method, content niche, account type, community membership,
+ *   or join week (users joining during algorithm change see a different product).
+ * - Funnel analysis: onboarding by signup method, engagement by source, creator
+ *   journey before/after algorithm change.
+ * =====================================================================================
  */
 
 // Generate consistent post IDs for lookup tables
@@ -358,20 +422,6 @@ const config = {
 
 	lookupTables: [],
 
-	/**
-	 * ARCHITECTED ANALYTICS HOOKS
-	 *
-	 * This hook function creates 8 deliberate patterns in the data:
-	 *
-	 * 1. VIRAL CONTENT CASCADE: 5% of prolific users generate 10-20x engagement
-	 * 2. FOLLOW-BACK SNOWBALL: Users with 5+ follows become prolific creators
-	 * 3. ALGORITHM CHANGE: Day 45 flips discovery from feed to explore
-	 * 4. ENGAGEMENT BAIT: High-hashtag posts get views but terrible view durations
-	 * 5. NOTIFICATION RE-ENGAGEMENT: Trending notifications drive post views after day 30
-	 * 6. CREATOR MONETIZATION: Subscribed creators post 3x more frequently
-	 * 7. TOXICITY CHURN: Users with 3+ reports lose 60% of activity after day 30
-	 * 8. WEEKEND CONTENT SURGE: 30% more content creation on Saturdays and Sundays
-	 */
 	hook: function (record, type, meta) {
 		const NOW = dayjs();
 		const DATASET_START = NOW.subtract(days, 'days');
@@ -634,294 +684,3 @@ const config = {
 };
 
 export default config;
-
-/**
- * =====================================================================================
- * NEEDLE IN A HAYSTACK - CHIRP SOCIAL MEDIA APP ANALYTICS
- * =====================================================================================
- *
- * A Twitter+Instagram-style social media platform with 8 deliberately architected
- * analytics insights hidden in the data. This dungeon simulates realistic social
- * media behavioral patterns including viral cascades, algorithmic feed changes,
- * creator economies, and content moderation challenges.
- *
- * =====================================================================================
- * DATASET OVERVIEW
- * =====================================================================================
- *
- * - 5,000 users over 100 days
- * - 360,000 base events across 18 event types
- * - 3 funnels (onboarding, content engagement, creator journey)
- * - Group analytics (100 communities)
- * - Lookup table (1,000 posts with metadata)
- * - Account types: personal, creator, business
- *
- * =====================================================================================
- * THE 8 ARCHITECTED HOOKS
- * =====================================================================================
- *
- * Each hook creates a specific, discoverable analytics insight that simulates
- * real-world social media product behavior patterns.
- *
- * -------------------------------------------------------------------------------------
- * 1. VIRAL CONTENT CASCADE (everything hook)
- * -------------------------------------------------------------------------------------
- *
- * PATTERN: 5% of users who have created 10+ posts are tagged as "viral creators."
- * Each of their posts generates 10-20 extra post viewed, post liked, and post shared
- * events, all tagged with viral_cascade: true.
- *
- * HOW TO FIND IT:
- *   - Filter events where viral_cascade = true
- *   - Segment users by viral_cascade presence
- *   - Compare: engagement metrics (views, likes, shares) per post for viral vs. normal users
- *
- * EXPECTED INSIGHT: A small minority of users (roughly 250 out of 5,000) drive a
- * disproportionate share of total engagement. Viral creators generate 10-20x more
- * views, likes, and shares per post than the average user.
- *
- * REAL-WORLD ANALOGUE: Power-law distribution in social media where a tiny fraction
- * of creators generate the majority of platform engagement (the 1% rule).
- *
- * -------------------------------------------------------------------------------------
- * 2. FOLLOW-BACK SNOWBALL (everything hook)
- * -------------------------------------------------------------------------------------
- *
- * PATTERN: Users who receive 5 or more "user followed" events become prolific
- * content creators. 50% of their post created events get duplicated (with
- * follow_back_effect: true), and extra comment posted events are injected.
- *
- * HOW TO FIND IT:
- *   - Segment users by count of "user followed" events (5+ vs. fewer)
- *   - Compare: post creation frequency and comment frequency
- *   - Filter: follow_back_effect = true
- *
- * EXPECTED INSIGHT: Users who gain a following create significantly more content.
- * The follow-back snowball creates a positive feedback loop: more followers ->
- * more content -> more engagement -> more followers.
- *
- * REAL-WORLD ANALOGUE: Network effects in social media. Users who gain traction
- * become more active, which further accelerates their growth. This is the
- * mechanism behind "going viral" on platforms like Twitter/X and Instagram.
- *
- * -------------------------------------------------------------------------------------
- * 3. ALGORITHM CHANGE (event hook)
- * -------------------------------------------------------------------------------------
- *
- * PATTERN: On day 45 of the dataset, the content discovery algorithm changes.
- * Before day 45, 70% of post viewed events have source = "feed." After day 45,
- * 70% shift to source = "explore."
- *
- * HOW TO FIND IT:
- *   - Chart: post viewed events broken down by source over time
- *   - Look for the crossover point around day 45
- *   - Compare: engagement metrics before vs. after the algorithm change
- *
- * EXPECTED INSIGHT: A clear inflection point around day 45 where feed traffic
- * drops and explore traffic surges. This simulates a real algorithm deployment
- * and its impact on content discovery patterns.
- *
- * REAL-WORLD ANALOGUE: Platform algorithm changes (e.g., Instagram shifting from
- * chronological feed to algorithmic recommendations, Twitter introducing "For You"
- * tab). These changes fundamentally alter content distribution.
- *
- * -------------------------------------------------------------------------------------
- * 4. ENGAGEMENT BAIT (event hook)
- * -------------------------------------------------------------------------------------
- *
- * PATTERN: 20% of post viewed events are tagged as engagement_bait: true and
- * have very short view durations (1-5 seconds). These represent clickbait or
- * hashtag-stuffed content that attracts views but fails to hold attention.
- *
- * HOW TO FIND IT:
- *   - Filter: post viewed where engagement_bait = true
- *   - Compare: average view_duration_sec for engagement_bait vs. normal views
- *   - Correlate: engagement_bait with downstream actions (likes, comments, shares)
- *
- * EXPECTED INSIGHT: Engagement bait posts get views but have 5-10x shorter view
- * durations. This creates a quality gap: high impression count but poor engagement
- * quality. Users who consume engagement bait likely have lower satisfaction.
- *
- * REAL-WORLD ANALOGUE: Clickbait and hashtag abuse on social platforms. Content
- * that games the algorithm for reach but delivers poor user experience.
- *
- * -------------------------------------------------------------------------------------
- * 5. NOTIFICATION RE-ENGAGEMENT (event hook)
- * -------------------------------------------------------------------------------------
- *
- * PATTERN: After day 30, 30% of post viewed events have their source overridden
- * to "notification" and are tagged with trending_reengagement: true. This simulates
- * the platform using trending notifications to re-engage lapsed users.
- *
- * HOW TO FIND IT:
- *   - Chart: post viewed by source over time, focusing on "notification" after day 30
- *   - Filter: trending_reengagement = true
- *   - Compare: notification-driven views vs. organic views in engagement quality
- *
- * EXPECTED INSIGHT: After day 30, notification-driven views spike as the platform
- * pushes trending content to re-engage users. This creates a visible shift in the
- * source distribution for post views.
- *
- * REAL-WORLD ANALOGUE: Push notification strategies used by social apps to
- * re-engage dormant users with trending or personalized content (e.g., "You're
- * missing out on what's trending").
- *
- * -------------------------------------------------------------------------------------
- * 6. CREATOR MONETIZATION (everything hook)
- * -------------------------------------------------------------------------------------
- *
- * PATTERN: Users who have any "creator subscription started" event post 3x more
- * frequently. For each post created and story created event, 2 additional copies
- * are injected with monetized_creator: true. They also check their own content
- * more (extra post viewed events from "profile" source).
- *
- * HOW TO FIND IT:
- *   - Segment users by: has "creator subscription started" event
- *   - Compare: post creation and story creation frequency
- *   - Filter: monetized_creator = true
- *   - Compare: post viewed source = "profile" rate (analytics checking behavior)
- *
- * EXPECTED INSIGHT: Monetized creators produce 3x more content and check their
- * own profiles more often. The subscription creates a financial incentive that
- * dramatically increases content output.
- *
- * REAL-WORLD ANALOGUE: Creator monetization programs (YouTube Partner Program,
- * TikTok Creator Fund, Twitter/X subscriptions) that incentivize consistent
- * content production from top creators.
- *
- * -------------------------------------------------------------------------------------
- * 7. TOXICITY CHURN (everything hook)
- * -------------------------------------------------------------------------------------
- *
- * PATTERN: Users who submit 3 or more reports experience 60% event removal after
- * day 30 of the dataset. Remaining events are tagged with toxic_user: true. These
- * users encountered enough bad content to file multiple reports, and many of them
- * churned as a result.
- *
- * HOW TO FIND IT:
- *   - Segment users by: count of "report submitted" events (3+ vs. fewer)
- *   - Compare: event volume before and after day 30
- *   - Filter: toxic_user = true
- *   - Compare: D30+ retention rates
- *
- * EXPECTED INSIGHT: Users who report 3+ pieces of content show a dramatic drop
- * in activity after day 30. This simulates the real pattern where users exposed
- * to toxic content eventually leave the platform.
- *
- * REAL-WORLD ANALOGUE: Content moderation challenges on social platforms.
- * Users who encounter repeated toxic content (and report it) eventually churn,
- * even though they're the "good actors" trying to improve the platform.
- *
- * -------------------------------------------------------------------------------------
- * 8. WEEKEND CONTENT SURGE (event hook)
- * -------------------------------------------------------------------------------------
- *
- * PATTERN: Post created and story created events that fall on Saturday or Sunday
- * are tagged with weekend_surge: true. 30% of these weekend events generate a
- * duplicate event 1-3 hours later (tagged weekend_duplicate: true).
- *
- * HOW TO FIND IT:
- *   - Chart: post created and story created events by day of week
- *   - Filter: weekend_surge = true or weekend_duplicate = true
- *   - Compare: weekday vs. weekend content creation volumes
- *
- * EXPECTED INSIGHT: Saturdays and Sundays show roughly 30% more content creation
- * than weekdays. The weekly pattern is clearly visible in a time-series chart,
- * creating a sawtooth pattern in content creation volume.
- *
- * REAL-WORLD ANALOGUE: Real social media usage patterns where users have more
- * leisure time on weekends, leading to increased content creation and consumption.
- * Most social platforms see clear weekly seasonality.
- *
- * =====================================================================================
- * EXPECTED METRICS SUMMARY
- * =====================================================================================
- *
- * Hook                      | Metric                  | Baseline     | Hook Effect    | Ratio
- * --------------------------|-------------------------|--------------|----------------|-------
- * Viral Content Cascade     | Engagement per post     | 1-2x         | 10-20x         | ~15x
- * Follow-Back Snowball      | Posts per user           | ~4           | ~8             | 2x
- * Algorithm Change          | Feed vs. Explore source  | 70/15        | 15/70          | Flip
- * Engagement Bait           | View duration (sec)      | 15-30        | 1-5            | ~0.2x
- * Notification Re-engage    | Notification source %    | ~10%         | ~30%           | 3x
- * Creator Monetization      | Content creation freq    | 1x           | 3x             | 3x
- * Toxicity Churn            | Post-day-30 retention    | ~80%         | ~40%           | 0.5x
- * Weekend Content Surge     | Weekend vs. weekday vol  | 1x           | 1.3x           | 1.3x
- *
- * =====================================================================================
- * CROSS-HOOK ANALYSIS IDEAS
- * =====================================================================================
- *
- * 1. Viral Creators + Algorithm Change:
- *    Do viral creators benefit more from the explore-based algorithm? Compare viral
- *    cascade engagement before and after day 45. The explore algorithm may amplify
- *    viral content even further.
- *
- * 2. Follow-Back Snowball + Creator Monetization:
- *    Users who gain followers AND start creator subscriptions should be the most
- *    prolific content producers. The two hooks compound: 2x from follows * 3x from
- *    monetization = 6x content output.
- *
- * 3. Engagement Bait + Toxicity Churn:
- *    Do users who consume high amounts of engagement bait also submit more reports?
- *    Is there a correlation between engagement_bait exposure and toxic_user tagging?
- *
- * 4. Weekend Surge + Viral Cascade:
- *    Are viral cascades more likely on weekends when more content is created?
- *    The compounding of weekend surge + viral cascade should create extreme
- *    engagement spikes on weekend days.
- *
- * 5. Notification Re-engagement + Toxicity Churn:
- *    Do trending notifications help retain toxic_user-tagged users, or do they
- *    still churn despite re-engagement efforts?
- *
- * 6. Algorithm Change + Engagement Bait:
- *    Does the shift from feed to explore change the proportion of engagement bait?
- *    The explore algorithm may surface different content quality than the feed.
- *
- * 7. Creator Monetization + Viral Cascade:
- *    Monetized creators who are also viral should have astronomical engagement.
- *    These are the platform's most valuable users.
- *
- * 8. Follow-Back Snowball + Toxicity Churn:
- *    Do users who gain many followers also attract more reports? Is popularity
- *    correlated with toxicity exposure?
- *
- * =====================================================================================
- * COHORT ANALYSIS IDEAS
- * =====================================================================================
- *
- * - Cohort by signup method: Do google/apple signups retain better than email?
- * - Cohort by content niche: Which niches produce the most viral creators?
- * - Cohort by account type: How do personal vs. creator vs. business accounts differ?
- * - Cohort by community membership: Do community members engage more?
- * - Cohort by week: Users who joined during algorithm change (day 45) see a
- *   fundamentally different product experience
- *
- * =====================================================================================
- * FUNNEL ANALYSIS IDEAS
- * =====================================================================================
- *
- * - Onboarding Funnel: account created -> profile updated -> post created
- *   How does signup method affect onboarding completion?
- * - Content Engagement Funnel: post viewed -> post liked -> comment posted
- *   Compare conversion by source (feed vs. explore vs. notification)
- * - Creator Journey Funnel: post created -> post viewed -> post liked -> post shared
- *   How does the algorithm change affect creator content reach?
- *
- * =====================================================================================
- * HOW TO RUN THIS DUNGEON
- * =====================================================================================
- *
- * From the dm4 root directory:
- *
- *   npm start
- *
- * Or programmatically:
- *
- *   import generate from './index.js';
- *   import config from './dungeons/harness-social.js';
- *   const results = await generate(config);
- *
- * =====================================================================================
- */

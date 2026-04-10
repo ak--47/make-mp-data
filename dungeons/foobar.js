@@ -1,8 +1,31 @@
 /**
- * This is the default configuration file for the data generator in SIMPLE mode
- * notice how the config object is structured, and see it's type definition in ./types.d.ts
- * feel free to modify this file to customize the data you generate
- * see helper functions in utils.js for more ways to generate data
+ * ═══════════════════════════════════════════════════════════════
+ * DATASET OVERVIEW
+ * ═══════════════════════════════════════════════════════════════
+ *
+ * Foobar — minimal test/sanity dungeon with abstract event names.
+ * - Configurable scale (default 2 billion events for stress testing)
+ * - 10 events: foo, bar, baz, qux, garply, durtle, linny, fonk, crumn, yak
+ * - Super props: string, number, boolean, date
+ * - No funnels, no properties on events — pure weight-driven distribution
+ *
+ * ═══════════════════════════════════════════════════════════════
+ * ANALYTICS HOOKS (2 patterns)
+ * ═══════════════════════════════════════════════════════════════
+ *
+ * 1. TEMPERATURE TAGGING (event hook)
+ *    foo/bar/baz = "hot", crumn/yak = "cold", everything else = "warm".
+ *
+ *    Mixpanel Report:
+ *    - Insights: any event, total events, breakdown by temperature
+ *      Expected: "hot" dominates (highest-weight events)
+ *
+ * 2. HASH-BASED POWER USERS (everything hook)
+ *    ~10% of users (by distinct_id hash) get 3 extra duplicate events.
+ *
+ *    Mixpanel Report:
+ *    - Insights: any event, total per user, breakdown by is_duplicate
+ *      Expected: ~10% of users have extra events tagged is_duplicate=true
  */
 
 

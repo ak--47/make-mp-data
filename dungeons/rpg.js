@@ -10,97 +10,151 @@ const chance = u.initChance(SEED);
 const num_users = 5_000;
 const days = 100;
 
-/** @typedef  {import("../../types.js").Dungeon} Config */
+/** @typedef  {import("../types.d.ts").Dungeon} Config */
 
-/**
- * 🎮 NEEDLE IN A HAYSTACK - GAME DESIGN
+/*
+ * ═══════════════════════════════════════════════════════════════════════════════
+ * DATASET OVERVIEW
+ * ═══════════════════════════════════════════════════════════════════════════════
  *
- * A D&D-style action RPG with deep strategic gameplay and a robust player-driven economy.
+ * D&D-Style Action RPG — a fantasy adventure game with deep strategic gameplay
+ * and a player-driven economy.
  *
- * CORE GAMEPLAY LOOP:
- * Players create characters (Warrior, Mage, Rogue, etc.) and embark on epic adventures through
- * a vast fantasy world. The game emphasizes strategic preparation, guild cooperation, and
- * risk/reward decision-making. Success requires both skill and planning.
+ * CORE LOOP: Players create characters (6 classes, 5 races) and progress through
+ * quests, dungeon crawls, and combat encounters. Strategic preparation (inspect,
+ * search for clues, Ancient Compass) creates skill gaps. Guild membership drives
+ * social retention. Monetization via premium currency, lucky charms, season pass,
+ * and subscription tiers (Free / Premium / Elite).
  *
- * QUEST SYSTEM (events: quest accepted → objective completed → turned in):
- * - Five quest types: Main Story (narrative progression), Side Quests (world-building),
- *   Bounties (repeatable challenges), Exploration (discovery rewards), Escorts (protect NPCs)
- * - Quest difficulty scaling based on player level
- * - Rewards include gold (in-game economy), XP (progression), and rare items
- * - Players can accept multiple quests and complete them in any order
+ * SCALE: 5,000 users × 120 events = 600K events over 100 days
+ * 20 event types, 7 funnels, guild group analytics, subscription tiers
  *
- * DUNGEON EXPLORATION (events: enter → find treasure → exit):
- * - 50 unique dungeons with varying difficulty (Easy → Deadly)
- * - Party-based gameplay: solo or group (1-5 players coordinated through guilds)
- * - Treasure hunting: gold, weapons, armor, consumables, and legendary artifacts
- * - Three outcomes: completed (reached the end), abandoned (left early), died (party wipe)
- * - Time investment: 5-120 minutes per run
+ * KEY SYSTEMS:
+ * - Quests: accept → objective → turn in (5 quest types, gold/XP rewards)
+ * - Dungeons: enter → find treasure → exit (50 dungeons, party-based, 3 outcomes)
+ * - Combat: initiate → complete (6 enemy types, level scaling, loot)
+ * - Economy: item purchase/sell, real money purchases, vendor types
+ * - Progression: level up (1-50), character classes, stat points
+ * - Social: guild join/leave (5-100 members, guild levels 1-20)
+ * - Monetization: premium currency, lucky charms, legendary chests, season pass
+ * - Subscriptions: Free / Premium ($9.99/mo) / Elite ($19.99/mo)
+ */
+
+/*
+ * ═══════════════════════════════════════════════════════════════════════════════
+ * ANALYTICS HOOKS (8 architected patterns)
+ * ═══════════════════════════════════════════════════════════════════════════════
  *
- * STRATEGIC PREPARATION (events: inspect, search for clues):
- * - "Inspect" lets players scout enemies, traps, and treasure before committing
- * - "Search for clues" reveals hidden paths, secret rewards, and dungeon mechanics
- * - Players who prepare strategically have significantly better outcomes
- * - The Ancient Compass is a rare consumable that enhances exploration success
+ * 1. CONVERSION: Ancient Compass Effect
+ *    Players who use the "Ancient Compass" item have 3x quest completion rate
+ *    and earn 1.5x more rewards.
+ *    → Mixpanel: Segment users by "use item" where item_type = "Ancient Compass"
+ *    → Compare quest completion rate and average reward_gold / reward_xp
+ *    → Look for compass_user = true on quest turned in events
  *
- * COMBAT SYSTEM (events: combat initiated → combat completed):
- * - Real-time combat against 6 enemy types: Goblins (swarms), Skeletons (undead),
- *   Dragons (bosses), Demons (elite), Undead (cursed), Beasts (wilderness)
- * - Level-based difficulty: enemies scale from 1-50
- * - Three outcomes: Victory (loot), Defeat (death), Fled (escaped but no rewards)
- * - Combat duration reflects difficulty (10s quick fights → 300s epic battles)
+ * 2. TIME-BASED: Cursed Week (days 40-47)
+ *    Death rates spike 5x, dungeon completion plummets, resurrection usage 4x.
+ *    → Mixpanel: Chart "player death" count by day — clear spike days 40-47
+ *    → Filter cause_of_death = "Curse" and cursed_week = true
+ *    → Compare completion_status distribution before/during/after
  *
- * DEATH & RESURRECTION (event: player death):
- * - Players can die from monsters, traps, fall damage, poison, or friendly fire
- * - Death penalties: lost time, equipment durability loss, potential item drops
- * - Resurrection Stones (consumable) allow instant revival without penalties
- * - Deaths early in a player's journey often lead to frustration and churn
+ * 3. RETENTION: Early Guild Joiners
+ *    Players who join a guild within first 3 days have 80% D30 retention vs 20%.
+ *    → Mixpanel: Create cohort of users who did "guild joined" within first 3 days
+ *    → Compare D30 retention rate and average events per user
+ *    → Look for guild_member_retained = true on late engagement events
  *
- * CHARACTER PROGRESSION (events: level up):
- * - 50 levels of progression (1-50)
- * - Each level grants stat points to customize character builds
- * - Six classes with unique playstyles and abilities
- * - Five races with lore and starting bonuses
+ * 4. CHURN: Death Spiral
+ *    Players with 3+ deaths in first week have 70% churn rate (events removed).
+ *    → Mixpanel: Segment users by count of "player death" in first 7 days
+ *    → Bucket: 0-2, 3-4, 5+ deaths — compare events after day 7
+ *    → Users with 3+ early deaths have 70% fewer post-week-1 events
  *
- * ECONOMY SYSTEMS:
- * - In-game gold economy: earn through quests/dungeons, spend at vendors
- * - Item trading: buy/sell weapons, armor, potions, scrolls (events: item purchased/sold)
- * - Vendor types: Town (general goods), Dungeon (mid-adventure resupply), Special Events (rare items)
- * - Item rarity: Common → Uncommon → Rare → Epic → Legendary (affects pricing)
+ * 5. PURCHASE VALUE: Lucky Charm LTV
+ *    Lucky Charm Pack buyers become 5x higher LTV customers — higher purchase
+ *    frequency, upgraded tiers, more total spend.
+ *    → Mixpanel: Segment by "real money purchase" where product contains "Lucky Charm"
+ *    → Compare total revenue per user, purchase frequency, average order value
+ *    → Look for lucky_charm_effect = true on subsequent purchases
  *
- * MONETIZATION (event: real money purchase):
- * - Free-to-play with optional purchases
- * - Premium currency (1000/5000 gems) for cosmetics and convenience
- * - Lucky Charm Pack: increases rare drop rates (creates high-LTV player segment)
- * - Legendary Weapon Chests: random powerful gear
- * - Season Pass: exclusive content, cosmetics, and progression boosts
- * - Cosmetic Bundles: no gameplay impact, pure customization
+ * 6. BEHAVIORS TOGETHER: Strategic Explorers
+ *    Players who both "inspect" AND "search for clues" before dungeons have
+ *    85% dungeon completion (vs 45%) and 2x treasure value.
+ *    → Mixpanel: Segment users who did BOTH "inspect" AND "search for clues"
+ *    → Filter dungeon funnel: enter → exit, compare completion_status rates
+ *    → Look for strategic_explorer = true on exit dungeon / find treasure events
  *
- * GUILD SYSTEM (events: guild joined/left):
- * - Social cooperative play through guilds (5-100 members)
- * - Guild levels (1-20) unlock perks and group content
- * - Shared progression and coordinated dungeon runs
- * - Early guild joining creates social bonds that dramatically improve retention
- * - Reasons for leaving: Inactive guilds, found better fit, conflicts, guild disbanded
+ * 7. TIMED RELEASE: Shadowmourne Legendary Weapon (day 45)
+ *    2% of players find the legendary weapon after release. They get 90% combat
+ *    win rate (vs 60%) and complete dungeons 40% faster.
+ *    → Mixpanel: Filter "find treasure" where treasure_type = "Shadowmourne Legendary"
+ *    → Compare combat win rate and dungeon time_spent_mins before/after day 45
+ *    → Look for legendary_weapon_equipped = true
  *
- * ITEM USAGE (event: use item):
- * - Consumables: Health/Mana Potions (combat sustainability), Buff Scrolls (temporary power)
- * - Strategic items: Ancient Compass (exploration aid), Lucky Charm (drop rate boost)
- * - Combat items: Resurrection Stone (death prevention)
- * - Context matters: Combat, Exploration, Boss Fights, or Casual use
+ * 8. SUBSCRIPTION TIER: Premium/Elite Advantage
+ *    Premium: 50% better combat wins, 1.4x rewards, 45% higher dungeon completion
+ *    Elite: 70% better combat wins, 1.8x rewards, 65% higher dungeon completion,
+ *    bonus treasure events, reduced death rates.
+ *    → Mixpanel: Segment by subscription_tier super property
+ *    → Compare combat win rates, reward_gold, dungeon completion, death rates
+ *    → Look for subscriber_advantage = "Premium" or "Elite"
  *
- * SUBSCRIPTION TIERS (SCD: subscription_tier):
- * - Free: Base game access, earn everything through play
- * - Premium ($9.99/mo): Faster progression, extra inventory, priority queues
- * - Elite ($19.99/mo): All Premium benefits + exclusive content, monthly gems
- * - Tiers can change monthly based on player engagement and value perception
+ * ───────────────────────────────────────────────────────────────────────────────
+ * EXPECTED METRICS SUMMARY
+ * ───────────────────────────────────────────────────────────────────────────────
  *
- * WHY THESE EVENTS/PROPERTIES?
- * - Events model a complete game loop: onboarding → engagement → monetization → retention
- * - Properties enable cohort analysis: class/race choices, difficulty preferences, spending patterns
- * - Funnels reveal friction: where do players drop off in onboarding, quests, dungeons?
- * - Strategic depth (inspect, search, compass) creates skill gaps visible in the data
- * - Social features (guilds) and monetization (purchases) drive business metrics
- * - The "needle in haystack" hooks simulate real product insights hidden in production data
+ * Hook                  | Metric               | Baseline | Hook Effect | Ratio
+ * ──────────────────────|──────────────────────|──────────|─────────────|──────
+ * Ancient Compass       | Quest completion     | 55%      | 85-90%      | ~1.6x
+ * Cursed Week           | Death rate           | 8%       | 40%         | 5x
+ * Early Guild Join      | D30 Retention        | 20%      | 80%         | 4x
+ * Death Spiral          | Retention (3+ deaths)| 100%     | 30%         | 0.3x
+ * Lucky Charm           | LTV                  | $15      | $75         | 5x
+ * Strategic Explorer    | Dungeon completion   | 45%      | 85%         | ~1.9x
+ * Legendary Weapon      | Combat win rate      | 60%      | 90%         | 1.5x
+ * Premium Tier          | Combat win rate      | 60%      | 90%         | 1.5x
+ * Elite Tier            | Combat win rate      | 60%      | 102%        | 1.7x
+ *
+ * ───────────────────────────────────────────────────────────────────────────────
+ * ADVANCED ANALYSIS IDEAS
+ * ───────────────────────────────────────────────────────────────────────────────
+ *
+ * CROSS-HOOK PATTERNS:
+ *
+ * 1. The Ultimate Player: Users who use Ancient Compass (Hook #1), join guild
+ *    early (Hook #3), buy Lucky Charm (Hook #5), get legendary weapon (Hook #7),
+ *    and have Elite subscription (Hook #8) — exceptional metrics across all dims.
+ *
+ * 2. The Cursed Compass: Do Ancient Compass users survive the Cursed Week
+ *    better than others?
+ *
+ * 3. Guild Churn Prevention: Does early guild joining (Hook #3) prevent
+ *    death-spiral churn (Hook #4)?
+ *
+ * 4. LTV + Retention: Compare Lucky Charm buyers who joined guilds early vs.
+ *    those who didn't.
+ *
+ * 5. Subscription Impact on Churn: Do Premium/Elite subscribers avoid the
+ *    death spiral churn pattern?
+ *
+ * COHORT ANALYSIS:
+ *
+ * - Cohort by starting week: Users who started during Cursed Week (days 40-47)
+ *   should show different patterns
+ * - Cohort by character class: Do certain classes show different hook patterns?
+ * - Cohort by platform: Do PC users vs. console users exhibit different
+ *   strategic explorer behavior?
+ * - Cohort by subscription tier: Track retention, engagement, and monetization
+ *   differences
+ *
+ * FUNNEL ANALYSIS:
+ *
+ * - Onboarding Funnel: How does Ancient Compass usage affect tutorial → first
+ *   quest conversion?
+ * - Dungeon Funnel: Compare enter → treasure → exit completion by strategic
+ *   explorers and subscription tier
+ * - Quest Funnel: Compare quest accepted → completed rates before and during
+ *   Cursed Week
  */
 
 // Generate consistent item/location IDs for lookup tables
@@ -863,315 +917,3 @@ const config = {
 };
 
 export default config;
-
-/**
- * ═══════════════════════════════════════════════════════════════════════════════
- * NEEDLE IN A HAYSTACK - D&D ADVENTURE GAME ANALYTICS
- * ═══════════════════════════════════════════════════════════════════════════════
- *
- * A D&D-style adventure game dungeon with 8 deliberately architected analytics
- * insights hidden in the data. This dungeon is designed to showcase advanced
- * product analytics patterns and demonstrate how to find "needles" (meaningful
- * insights) in "haystacks" (large datasets).
- *
- * ═══════════════════════════════════════════════════════════════════════════════
- * 📊 DATASET OVERVIEW
- * ═══════════════════════════════════════════════════════════════════════════════
- *
- * - 5,000 users over 100 days
- * - 2.4M events across 20+ event types
- * - 3 funnels (onboarding, dungeon exploration, quest completion)
- * - Group analytics (guilds)
- * - Lookup tables (items, quests, dungeons)
- * - Subscription tiers (Free, Premium, Elite)
- *
- * ═══════════════════════════════════════════════════════════════════════════════
- * 🎯 THE 8 ARCHITECTED HOOKS
- * ═══════════════════════════════════════════════════════════════════════════════
- *
- * Each hook creates a specific, discoverable analytics insight that simulates
- * real-world product behavior patterns.
- *
- * ───────────────────────────────────────────────────────────────────────────────
- * 1️⃣ CONVERSION HOOK: The Ancient Compass Effect
- * ───────────────────────────────────────────────────────────────────────────────
- *
- * PATTERN: Players who use the "Ancient Compass" item early in their journey
- * have 3x higher quest completion rates and earn 1.5x more rewards.
- *
- * HOW TO FIND IT:
- *   - Segment users by: used item where item_type = "Ancient Compass"
- *   - Compare: Quest completion rate
- *   - Compare: Average reward_gold and reward_xp
- *
- * EXPECTED INSIGHT: Compass users complete 85-90% of accepted quests vs. 55%
- * baseline. This simulates a power-user feature that drives core conversion.
- *
- * REAL-WORLD ANALOGUE: A key feature (e.g., tutorial completion, power tool
- * usage) that dramatically improves user success rates.
- *
- * ───────────────────────────────────────────────────────────────────────────────
- * 2️⃣ TIME-BASED HOOK: The Cursed Week
- * ───────────────────────────────────────────────────────────────────────────────
- *
- * PATTERN: During days 40-47 of the dataset, a "curse" strikes the game world:
- *   - Death rates spike 5x
- *   - Dungeon completion rates plummet
- *   - Resurrection item usage increases 4x
- *
- * HOW TO FIND IT:
- *   - Chart: player death event count by day
- *   - Filter: days 40-47
- *   - Compare: completion_status = "completed" vs "died" over time
- *
- * EXPECTED INSIGHT: Clear spike in deaths around day 43-44, with a marked
- * increase in cursed_week: true property and cause_of_death: "Curse".
- *
- * REAL-WORLD ANALOGUE: A bug, server issue, or game balance change that
- * temporarily degrades user experience.
- *
- * ───────────────────────────────────────────────────────────────────────────────
- * 3️⃣ RETENTION HOOK: Early Guild Joiners
- * ───────────────────────────────────────────────────────────────────────────────
- *
- * PATTERN: Players who join a guild within their first 3 days have:
- *   - 80% 30-day retention vs. 20% baseline
- *   - More events throughout their lifecycle
- *   - Higher engagement in week 2-4
- *
- * HOW TO FIND IT:
- *   - Create cohort: users who did "guild joined" within first 3 days
- *   - Compare: D30 retention rate
- *   - Compare: Average events per user
- *
- * EXPECTED INSIGHT: Early guild joiners show dramatically higher retention
- * curves, especially after the critical first week.
- *
- * REAL-WORLD ANALOGUE: Social features (friend invites, team creation) that
- * create "sticky" behavior and drive retention.
- *
- * ───────────────────────────────────────────────────────────────────────────────
- * 4️⃣ CHURN HOOK: Death Spiral
- * ───────────────────────────────────────────────────────────────────────────────
- *
- * PATTERN: Players who die 3+ times in their first week have a 70% churn rate -
- * they stop playing after week 1.
- *
- * HOW TO FIND IT:
- *   - Segment users by: count of "player death" events in first 7 days
- *   - Bucket: 0-2 deaths, 3-4 deaths, 5+ deaths
- *   - Compare: Events after day 7 (retention proxy)
- *
- * EXPECTED INSIGHT: Users with 3+ early deaths have 70% fewer events after day 7.
- * The hook literally removes 70% of their post-week-1 events.
- *
- * REAL-WORLD ANALOGUE: Poor onboarding experience or early friction that causes
- * users to abandon the product.
- *
- * ───────────────────────────────────────────────────────────────────────────────
- * 5️⃣ PURCHASE VALUE HOOK: Lucky Charm LTV
- * ───────────────────────────────────────────────────────────────────────────────
- *
- * PATTERN: Players who purchase the "Lucky Charm Pack" early become 5x higher
- * LTV customers:
- *   - They upgrade to higher-tier purchases
- *   - They purchase more frequently
- *   - Their total spend is 5x the average
- *
- * HOW TO FIND IT:
- *   - Segment users by: did "real money purchase" where product contains "Lucky Charm"
- *   - Compare: Total revenue per user
- *   - Compare: Purchase frequency
- *   - Compare: Average order value
- *
- * EXPECTED INSIGHT: Lucky Charm buyers have dramatically higher LTV, with
- * lucky_charm_effect: true properties on subsequent purchases.
- *
- * REAL-WORLD ANALOGUE: An initial purchase or subscription that predicts high
- * lifetime value (e.g., premium feature adoption).
- *
- * ───────────────────────────────────────────────────────────────────────────────
- * 6️⃣ BEHAVIORS TOGETHER HOOK: Strategic Explorers
- * ───────────────────────────────────────────────────────────────────────────────
- *
- * PATTERN: Players who both "inspect" AND "search for clues" before entering
- * dungeons have:
- *   - 85% dungeon completion rate vs. 45% baseline
- *   - 2x treasure value found
- *   - Marked as strategic_explorer: true
- *
- * HOW TO FIND IT:
- *   - Create segment: users who did BOTH "inspect" AND "search for clues"
- *   - Filter funnel: enter dungeon → exit dungeon
- *   - Compare: completion_status = "completed" rate
- *   - Compare: Average treasure_value
- *
- * EXPECTED INSIGHT: Users who exhibit both preparatory behaviors have vastly
- * superior outcomes. This is a "power user" behavioral signature.
- *
- * REAL-WORLD ANALOGUE: Users who engage with multiple features together (e.g.,
- * read docs + watch tutorial) have better outcomes than single-feature users.
- *
- * ───────────────────────────────────────────────────────────────────────────────
- * 7️⃣ TIMED RELEASE HOOK: Shadowmourne Legendary Weapon
- * ───────────────────────────────────────────────────────────────────────────────
- *
- * PATTERN: On day 45, a legendary weapon "Shadowmourne" is released:
- *   - 2% of players find it after release
- *   - These players have 90% combat win rate (vs. 60% baseline)
- *   - They complete dungeons 40% faster
- *   - Marked as legendary_weapon_equipped: true
- *
- * HOW TO FIND IT:
- *   - Filter events: time >= day 45
- *   - Filter: find treasure where treasure_type = "Shadowmourne Legendary"
- *   - Compare: combat_completed outcome = "Victory" rate
- *   - Compare: exit dungeon time_spent_mins
- *
- * EXPECTED INSIGHT: After day 45, a small cohort of "legendary weapon owners"
- * dominates all game modes. Clear before/after in their performance metrics.
- *
- * REAL-WORLD ANALOGUE: A new feature release or product tier that creates a
- * distinct high-performing user segment.
- *
- * ───────────────────────────────────────────────────────────────────────────────
- * 8️⃣ SUBSCRIPTION TIER HOOK: Premium/Elite Advantage
- * ───────────────────────────────────────────────────────────────────────────────
- *
- * PATTERN: Premium and Elite subscribers have dramatically better outcomes:
- *   - Premium: 50% better combat win rate, 1.4x rewards, 45% higher dungeon completion
- *   - Elite: 70% better combat win rate, 1.8x rewards, 65% higher dungeon completion
- *   - Elite users get bonus treasure events
- *   - Marked as subscriber_advantage: "Premium" or "Elite"
- *
- * HOW TO FIND IT:
- *   - Segment users by: subscription_tier
- *   - Compare: Combat win rates by tier
- *   - Compare: Average reward_gold by tier
- *   - Compare: Dungeon completion rates by tier
- *   - Compare: Death rates by tier
- *
- * EXPECTED INSIGHT: Clear tier-based performance differences. Elite > Premium > Free
- * across all engagement and success metrics.
- *
- * REAL-WORLD ANALOGUE: Subscription tiers that provide gameplay advantages (power-ups,
- * boosts, premium content) resulting in measurable outcome differences.
- *
- * ═══════════════════════════════════════════════════════════════════════════════
- * 🔍 ADVANCED ANALYSIS IDEAS
- * ═══════════════════════════════════════════════════════════════════════════════
- *
- * CROSS-HOOK PATTERNS:
- *
- * 1. The Ultimate Player: Users who:
- *    - Use Ancient Compass (Hook #1)
- *    - Join guild early (Hook #3)
- *    - Buy Lucky Charm (Hook #5)
- *    - Get legendary weapon (Hook #7)
- *    - Have Elite subscription (Hook #8)
- *    These players should have exceptional metrics across all dimensions.
- *
- * 2. The Cursed Compass: Do Ancient Compass users survive the Cursed Week
- *    better than others?
- *
- * 3. Guild Churn Prevention: Does early guild joining (Hook #3) prevent
- *    death-spiral churn (Hook #4)?
- *
- * 4. LTV + Retention: Compare Lucky Charm buyers who joined guilds early vs.
- *    those who didn't.
- *
- * 5. Subscription Impact on Churn: Do Premium/Elite subscribers avoid the
- *    death spiral churn pattern?
- *
- * COHORT ANALYSIS:
- *
- * - Cohort by starting week: Users who started during Cursed Week (days 40-47)
- *   should show different patterns
- * - Cohort by character class: Do certain classes show different hook patterns?
- * - Cohort by platform: Do PC users vs. console users exhibit different
- *   strategic explorer behavior?
- * - Cohort by subscription tier: Track retention, engagement, and monetization
- *   differences
- *
- * FUNNEL ANALYSIS:
- *
- * - Onboarding Funnel: How does Ancient Compass usage affect tutorial → first
- *   quest conversion?
- * - Dungeon Funnel: Compare enter → treasure → exit completion by strategic
- *   explorers and subscription tier
- * - Quest Funnel: Compare quest accepted → completed rates before and during
- *   Cursed Week
- *
- * ═══════════════════════════════════════════════════════════════════════════════
- * 📈 EXPECTED METRICS SUMMARY
- * ═══════════════════════════════════════════════════════════════════════════════
- *
- * Hook                  | Metric               | Baseline | Hook Effect | Ratio
- * ──────────────────────|──────────────────────|──────────|─────────────|──────
- * Ancient Compass       | Quest completion     | 55%      | 85-90%      | ~1.6x
- * Cursed Week           | Death rate           | 8%       | 40%         | 5x
- * Early Guild Join      | D30 Retention        | 20%      | 80%         | 4x
- * Death Spiral          | Retention (3+ deaths)| 100%     | 30%         | 0.3x
- * Lucky Charm           | LTV                  | $15      | $75         | 5x
- * Strategic Explorer    | Dungeon completion   | 45%      | 85%         | ~1.9x
- * Legendary Weapon      | Combat win rate      | 60%      | 90%         | 1.5x
- * Premium Tier          | Combat win rate      | 60%      | 90%         | 1.5x
- * Elite Tier            | Combat win rate      | 60%      | 102%        | 1.7x
- *
- * ═══════════════════════════════════════════════════════════════════════════════
- * 🎮 HOW TO RUN THIS DUNGEON
- * ═══════════════════════════════════════════════════════════════════════════════
- *
- * From the dm4 root directory:
- *
- *   npm start
- *
- * Or programmatically:
- *
- *   import generate from './index.js';
- *   import config from './dungeons/harness-gaming.js';
- *   const results = await generate(config);
- *
- * OUTPUT FILES (with writeToDisk: false, format: "parquet", gzip: true):
- *
- *   - needle-in-haystack__events.parquet.gz - All event data
- *   - needle-in-haystack__user_profiles.parquet.gz - User profiles
- *   - needle-in-haystack__group_profiles.parquet.gz - Guild profiles
- *   - needle-in-haystack__item_id_lookup.parquet.gz - Item catalog
- *   - needle-in-haystack__quest_id_lookup.parquet.gz - Quest catalog
- *   - needle-in-haystack__dungeon_id_lookup.parquet.gz - Dungeon catalog
- *
- * ═══════════════════════════════════════════════════════════════════════════════
- * 🧪 TESTING YOUR ANALYTICS PLATFORM
- * ═══════════════════════════════════════════════════════════════════════════════
- *
- * This dungeon is perfect for testing:
- *
- * 1. Segmentation: Can you identify the Ancient Compass power users?
- * 2. Anomaly Detection: Can you detect the Cursed Week automatically?
- * 3. Retention Analysis: Can you discover the early guild joining pattern?
- * 4. Churn Prediction: Can you predict churn based on early death patterns?
- * 5. LTV Modeling: Can you identify high-LTV users early (Lucky Charm buyers)?
- * 6. Behavioral Analysis: Can you find the strategic explorer pattern?
- * 7. Feature Impact: Can you measure the Legendary Weapon release impact?
- * 8. Tier Analysis: Can you quantify subscription tier value differences?
- *
- * ═══════════════════════════════════════════════════════════════════════════════
- * 💡 WHY "NEEDLE IN A HAYSTACK"?
- * ═══════════════════════════════════════════════════════════════════════════════
- *
- * Each hook is a "needle" - a meaningful, actionable insight hidden in a
- * "haystack" of 2.4M events. The challenge is:
- *
- * 1. FINDING the needles (discovery)
- * 2. VALIDATING they're real patterns (statistical significance)
- * 3. UNDERSTANDING why they matter (business impact)
- * 4. ACTING on them (product decisions)
- *
- * This mirrors real-world product analytics: your data contains valuable insights,
- * but you need the right tools and skills to find them.
- *
- * Happy Hunting! 🎯
- *
- * ═══════════════════════════════════════════════════════════════════════════════
- */

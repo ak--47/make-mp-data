@@ -87,6 +87,52 @@ Here's a breakdown of the CLI options you can use with `make-mp-data`:
 - `--complex`: create a complex set models including groups, SCD, and lookup tables.
 - `--simple`: create a simple dataset including events, and users
 
+## ⏱️ TimeSoup — Realistic Time Distributions
+
+TimeSoup controls how events are distributed across time. Out of the box, it produces realistic day-of-week and hour-of-day patterns derived from real Mixpanel data (weekday-heavy, Saturday valley, morning peak).
+
+### Presets
+
+Use a preset string for quick configuration:
+
+```javascript
+const config = {
+  soup: "growth",    // default — gradual uptrend with weekly cycle
+  // ...
+};
+```
+
+| Preset | Pattern | Use Case |
+|--------|---------|----------|
+| `"steady"` | Flat, minimal variation | Enterprise B2B, utility apps |
+| `"growth"` | Gradual uptrend + weekly cycle | General purpose (default) |
+| `"spiky"` | Dramatic peaks and valleys | Gaming, social media, viral products |
+| `"seasonal"` | 3-4 major waves | E-commerce, education |
+| `"global"` | Flat DOW + flat HOD | Global SaaS, infrastructure tools |
+| `"churny"` | Flat, no growth trend | Declining products (pair with churn hooks) |
+| `"chaotic"` | Wild variation | Anomaly detection, incident response |
+
+### Custom Configuration
+
+Override specific parameters or use a preset as a base:
+
+```javascript
+// Preset + overrides
+soup: { preset: "spiky", deviation: 5 }
+
+// Fully custom
+soup: {
+  peaks: 200,
+  deviation: 2,
+  mean: 0,
+  dayOfWeekWeights: [0.637, 1.0, 0.999, 0.998, 0.966, 0.802, 0.528],  // [Sun..Sat]
+  hourOfDayWeights: [/* 24 values, index 0 = midnight UTC */],
+}
+
+// Disable cyclical patterns entirely
+soup: { dayOfWeekWeights: null, hourOfDayWeights: null }
+```
+
 ## 🎯 Hooks — Engineering Trends in Data
 
 Hooks let you engineer deliberate, discoverable patterns into your generated data — things like "premium users convert 2x better" or "there was a service outage during days 40-47." A hook is a single transform function on your dungeon config:

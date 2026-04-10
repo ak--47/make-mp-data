@@ -133,16 +133,33 @@ export type SCDProp = {
 };
 
 /**
- * the soup is a set of parameters that determine the distribution of events over time
+ * Soup preset names for common time distribution patterns
  */
-type soup = {
+export type SoupPreset = "steady" | "growth" | "spiky" | "seasonal" | "global" | "churny" | "chaotic";
+
+/**
+ * Soup configuration object for fine-grained control
+ */
+export type SoupConfig = {
+    /** Use a named preset as base, then override individual fields */
+    preset?: SoupPreset;
     /** Controls clustering tightness. Higher = tighter peaks. Default: 2 */
     deviation?: number;
-    /** Number of time clusters to distribute events across. Default: dynamic (numDays/7, minimum 5) */
+    /** Number of time clusters to distribute events across. Default: numDays*2 */
     peaks?: number;
     /** Offset for the normal distribution center within each peak. Default: 0 */
     mean?: number;
+    /** Day-of-week weights (7 elements, index 0=Sunday). Normalized max=1.0. Set null to disable. */
+    dayOfWeekWeights?: number[] | null;
+    /** Hour-of-day weights (24 elements, index 0=midnight UTC). Normalized max=1.0. Set null to disable. */
+    hourOfDayWeights?: number[] | null;
 };
+
+/**
+ * the soup is a set of parameters that determine the distribution of events over time.
+ * Can be a preset name string, a config object, or a config object with a preset base.
+ */
+type soup = SoupPreset | SoupConfig;
 
 /**
  * Hook types and when they fire (in order per user):

@@ -1,13 +1,3 @@
-/**
- * This is the default configuration file for the data generator in SIMPLE mode
- * notice how the config object is structured, and see it's type definition in ./types.d.ts
- * feel free to modify this file to customize the data you generate
- * see helper functions in utils.js for more ways to generate data
- */
-
-
-
-
 import Chance from 'chance';
 let chance = new Chance();
 import dayjs from "dayjs";
@@ -19,6 +9,79 @@ import { pickAWinner, weighNumRange, date, integer, weighChoices, decimal } from
 const itemCategories = ["Books", "Movies", "Music", "Games", "Electronics", "Computers", "Smart Home", "Home", "Garden", "Pet", "Beauty", "Health", "Toys", "Kids", "Baby", "Handmade", "Sports", "Outdoors", "Automotive", "Industrial", "Entertainment", "Art", "Food", "Appliances", "Office", "Wedding", "Software"];
 const videoCategories = ["funny", "educational", "inspirational", "music", "news", "sports", "cooking", "DIY", "travel", "gaming"];
 const spiritAnimals = ["duck", "dog", "otter", "penguin", "cat", "elephant", "lion", "cheetah", "giraffe", "zebra", "rhino", "hippo", "whale", "dolphin", "shark", "octopus", "squid", "jellyfish", "starfish", "seahorse", "crab", "lobster", "shrimp", "clam", "snail", "slug", "butterfly", "moth", "bee", "wasp", "ant", "beetle", "ladybug", "caterpillar", "centipede", "millipede", "scorpion", "spider", "tarantula", "tick", "mite", "mosquito", "fly", "dragonfly", "damselfly", "grasshopper", "cricket", "locust", "mantis", "cockroach", "termite", "praying mantis", "walking stick", "stick bug", "leaf insect", "lacewing", "aphid", "cicada", "thrips", "psyllid", "scale insect", "whitefly", "mealybug", "planthopper", "leafhopper", "treehopper", "flea", "louse", "bedbug", "flea beetle", "weevil", "longhorn beetle", "leaf beetle", "tiger beetle", "ground beetle", "lady beetle", "firefly", "click beetle", "rove beetle", "scarab beetle", "dung beetle", "stag beetle", "rhinoceros beetle", "hercules beetle", "goliath beetle", "jewel beetle", "tortoise beetle"];
+
+/*
+ * ============================================================================
+ * DATASET OVERVIEW
+ * ============================================================================
+ *
+ * App: eCommerce marketplace with integrated video content
+ * Scale: 50K users, 2M events, 108 days
+ *
+ * Core loop: Users browse products, watch videos, build carts, and check out.
+ * A signup funnel converts browsers into registered users. Video engagement
+ * (likes/dislikes) runs alongside the shopping flow.
+ *
+ * Events:
+ *   page view (10) > view item (8) > watch video (8) > like video (6)
+ *   > save item (5) > add to cart (4) > dislike video (4) > checkout (2) > sign up (1)
+ *
+ * Funnels:
+ *   - Signup Flow: page view → view item → save item → page view → sign up (50%)
+ *   - Video Likes: watch → like → watch → like (60%)
+ *   - Video Dislikes: watch → dislike → watch → dislike (20%)
+ *   - eCommerce Purchase: view → view → add to cart → view → add to cart → checkout (15%)
+ *
+ * User props: title, luckyNumber, spiritAnimal
+ * Super props: theme (light/dark/custom)
+ * ============================================================================
+ */
+
+/*
+ * ============================================================================
+ * ANALYTICS HOOKS
+ * ============================================================================
+ *
+ * Hook 1: Signup Flow Improvement
+ *   Type: event + everything (tag-and-filter)
+ *   What: 7 days ago, signup flow switches from "v1" to "v2". Before that date,
+ *     50% of sign ups are tagged _drop and removed in the everything hook,
+ *     simulating a broken flow that got fixed.
+ *   Mixpanel report:
+ *     - Insights > line chart > "sign up" totaled by day, breakdown by signup_flow
+ *     - Expect: ~2x volume increase in last 7 days; v1 disappears, v2 takes over
+ *
+ * Hook 2: Watch Time Inflection
+ *   Type: event
+ *   What: 30 days ago, watch time shifts. Before: watchTimeSec reduced by 25-79%.
+ *     After: increased by 25-79%. Creates a clear before/after inflection.
+ *   Mixpanel report:
+ *     - Insights > line chart > "watch video" with AVG(watchTimeSec) by day
+ *     - Expect: clear upward inflection ~30 days ago; watch time roughly doubles
+ *
+ * Hook 3: Toys + Shoes Cart Correlation
+ *   Type: event
+ *   What: Checkout carts with toys get shoes injected (and vice versa). Carts
+ *     with neither toys nor shoes have all item prices discounted to 75-90%.
+ *   Mixpanel report:
+ *     - Insights > bar chart > "checkout" broken down by cart[].category
+ *     - Expect: toys and shoes co-occur at high rate; carts without both have lower values
+ *
+ * Hook 4: Quality → Watch Time Correlation
+ *   Type: event
+ *   What: Video quality multiplies watchTimeSec: 2160p=1.5x, 1440p=1.4x,
+ *     1080p=1.3x, 720p=1.15x, 480p=1.0x, 360p=0.85x, 240p=0.7x.
+ *   Mixpanel report:
+ *     - Insights > bar chart > "watch video" with AVG(watchTimeSec), breakdown by quality
+ *     - Expect: monotonic increase from 240p to 2160p
+ *
+ * Hook 5: Item Flattening
+ *   Type: event
+ *   What: Events with an item array property get the first item's fields
+ *     flattened onto the event record, making category/amount/slug available
+ *     as top-level properties for easier breakdown in reports.
+ * ============================================================================
+ */
 
 
 function makeProducts(maxItems = 5) {
@@ -64,7 +127,7 @@ function makeProducts(maxItems = 5) {
 };
 
 
-/** @type {import('../types').Dungeon} */
+/** @type {import('../types.d.ts').Dungeon} */
 const config = {
 	token: "",
 	seed: "simple is best",
@@ -217,7 +280,7 @@ const config = {
 	mirrorProps: {},
 
 	/*
-	for group analytics keys, we need an array of arrays [[],[],[]] 
+	for group analytics keys, we need an array of arrays [[],[],[]]
 	each pair represents a group_key and the number of profiles for that key
 	*/
 	groupKeys: [],
@@ -231,7 +294,7 @@ const config = {
 			const DAY_WATCH_TIME_WENT_UP = NOW.subtract(30, 'day');
 			const eventTime = dayjs(record.time);
 
-			// unflattering 'items'			
+			// unflattering 'items'
 			if (record.item && Array.isArray(record.item)) {
 				record = { ...record, ...record.item[0] };
 				delete record.item;
@@ -320,7 +383,6 @@ const config = {
 			// big themes!
 
 			// users who view items in the home and garden category churn more frequently
-			
 
 
 			// dark mode leads to faster purchase conversion

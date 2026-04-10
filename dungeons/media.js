@@ -10,59 +10,206 @@ const chance = u.initChance(SEED);
 const num_users = 5_000;
 const days = 100;
 
-/** @typedef  {import("../../types.js").Dungeon} Config */
+/** @typedef  {import("../types.js").Dungeon} Config */
 
 /**
- * STREAMVAULT - Video Streaming Platform Analytics
+ * ═══════════════════════════════════════════════════════════════════════════════
+ * DATASET OVERVIEW — STREAMVAULT VIDEO STREAMING PLATFORM
+ * ═══════════════════════════════════════════════════════════════════════════════
  *
  * StreamVault is a Netflix/Hulu-style video streaming platform where users browse a rich
  * catalog of movies, series, documentaries, and specials. Users manage watchlists, watch
  * content with configurable playback options, rate and share content, and manage family
- * profiles under a single account. Monetization runs through tiered subscriptions:
- * Free (ad-supported), Standard (ad-free HD), and Premium (4K, offline downloads, 5 profiles).
+ * profiles under a single account.
  *
- * CONTENT DISCOVERY:
- * Users land on a personalized home screen with sections like "Continue Watching",
- * "Trending Now", "New Releases", and genre-based rows. A recommendation engine (using
- * collaborative filtering, content-based, trending, and editorial algorithms) surfaces
- * relevant content. Users can also search by title, actor, director, or genre. The browse
- * and search patterns reveal how users navigate the catalog and which discovery paths
- * lead to actual viewership.
+ * - 5,000 users over 100 days
+ * - ~600,000 events across 17 event types
+ * - 9 funnels (onboarding, content discovery, engagement loop, search, watchlist, etc.)
+ * - Subscription tiers: Free (ad-supported), Standard ($9.99/mo), Premium ($14.99/mo)
+ * - Device types: Smart TV, Mobile, Tablet, Laptop, Desktop
+ * - Content catalog: 500 titles with genres, types, and a blockbuster release event
  *
- * PLAYBACK EXPERIENCE:
- * Once content is selected, playback begins with quality auto-selected based on connection
- * speed (480p to 4K). Users can adjust playback speed, toggle subtitles in multiple
- * languages, and pause/resume. Playback completion percentage and watch duration are
- * tracked to understand engagement depth. Some users exhibit "binge-watching" behavior,
- * consuming multiple episodes consecutively with high completion rates and minimal pausing.
+ * Core loop: onboarding -> discovery -> consumption -> engagement -> monetization.
+ * Users land on a personalized home screen, discover content via browse/search/recommendations,
+ * watch with quality and subtitle options, rate and share, and manage subscriptions.
+ * Profile switching (main, kids, partner, guest) reveals household dynamics.
+ */
+
+/**
+ * ═══════════════════════════════════════════════════════════════════════════════
+ * ANALYTICS HOOKS (8 architected patterns)
+ * ═══════════════════════════════════════════════════════════════════════════════
  *
- * PROFILE MANAGEMENT:
- * A single account supports multiple profiles: main, kids, partner, and guest. The kids
- * profile has content restrictions (only animation and documentaries, no ads). Profile
- * switching events reveal household composition and viewing patterns across family members.
+ * ───────────────────────────────────────────────────────────────────────────────
+ * 1. GENRE FUNNEL CONVERSION (funnel-pre)
+ * ───────────────────────────────────────────────────────────────────────────────
  *
- * MONETIZATION MODEL:
- * - Free tier: Ad-supported with pre-roll, mid-roll, banner, and interstitial ads. Users
- *   on this tier experience ad fatigue over time, which drives churn or upgrades.
- * - Standard tier ($9.99/mo): Ad-free viewing in HD, 2 simultaneous streams.
- * - Premium tier ($14.99/mo): 4K streaming, offline downloads, 5 profiles, early access.
- * - Subscription changes (upgrades, downgrades, cancellations, resubscriptions) are tracked
- *   with reasons to understand the lifecycle of subscriber value.
+ * PATTERN: Comedy and Animation content has 1.3x higher funnel conversion rates,
+ * while Documentary content has 0.7x conversion (users browse but abandon more).
  *
- * CONTENT ENGAGEMENT:
- * Users rate content (1-5 stars with optional review text), add/remove items from their
- * watchlist, share content via link/social/DM/email, and download content for offline
- * viewing. These engagement signals feed back into the recommendation engine and reveal
- * content quality and user satisfaction patterns.
+ * HOW TO FIND IT:
+ *   - Funnels: "content browsed" -> "content selected" -> "playback started" -> "playback completed"
+ *   - Breakdown: "genre"
+ *   - Expected: Comedy/Animation convert at ~65% vs Documentary at ~35%
+ *   - Also try: Insights on "content selected", breakdown by "genre_boost"
  *
- * WHY THESE EVENTS/PROPERTIES?
- * - Events model the full streaming lifecycle: onboarding -> discovery -> consumption -> engagement -> monetization
- * - Properties enable cohort analysis: subscription tier, device type, genre preference, viewing patterns
- * - Funnels reveal friction: where do users drop off between browsing, selecting, starting, and finishing content?
- * - The recommendation engine creates measurable A/B-testable discovery paths
- * - Ad impression tracking enables fatigue analysis and churn prediction for free-tier users
- * - Profile switching reveals household dynamics and kids safety patterns
- * - The 8 "needle in haystack" hooks simulate real product insights hidden in production data
+ * ───────────────────────────────────────────────────────────────────────────────
+ * 2. BINGE-WATCHING PATTERN (everything)
+ * ───────────────────────────────────────────────────────────────────────────────
+ *
+ * PATTERN: Users who complete 3+ episodes consecutively become "binge-watchers":
+ *   - Extra playback started + playback completed events are spliced in
+ *   - Completion percentages are 90-100% (they finish every episode)
+ *   - Pause events are reduced by 60% (they don't stop watching)
+ *   - Events tagged with binge_session = true
+ *
+ * HOW TO FIND IT:
+ *   - Insights: "playback completed", total events per user, breakdown by "binge_session"
+ *   - Expected: binge_session=true users have 40-60% more completions per user
+ *   - Also try: Average of "completion_percent" by "binge_session" (90-100% vs ~70%)
+ *
+ * ───────────────────────────────────────────────────────────────────────────────
+ * 3. WEEKEND vs WEEKDAY PATTERNS (event)
+ * ───────────────────────────────────────────────────────────────────────────────
+ *
+ * PATTERN: Weekend viewing sessions are 1.5x longer than weekday sessions.
+ * Weekday viewing concentrates in evening prime-time (6PM-11PM).
+ *
+ * HOW TO FIND IT:
+ *   - Insights: "playback completed", average of "watch_duration_min", breakdown by "weekend_viewing"
+ *   - Expected: weekend_viewing=true ~67 min avg vs false ~45 min avg (1.5x)
+ *   - Also try: Total "playback completed" events by "prime_time" (60-70% of weekday views)
+ *
+ * ───────────────────────────────────────────────────────────────────────────────
+ * 4. AD FATIGUE CHURN (everything)
+ * ───────────────────────────────────────────────────────────────────────────────
+ *
+ * PATTERN: Free-tier users who see 10+ ad impressions experience 50% churn
+ * after day 45 of their lifecycle.
+ *
+ * HOW TO FIND IT:
+ *   - Retention: any event (filter subscription_plan=free), segment by ad impression count >= 10 vs < 10
+ *   - Expected: 10+ ad users show ~50% retention drop after day 45
+ *   - Also try: Insights line chart, any event filtered by "ad_fatigue" = true, weekly trend
+ *
+ * ───────────────────────────────────────────────────────────────────────────────
+ * 5. NEW RELEASE SPIKE (event)
+ * ───────────────────────────────────────────────────────────────────────────────
+ *
+ * PATTERN: On day 50, a blockbuster movie releases, creating a content spike:
+ *   - 20% of content selected and playback started events redirect to the blockbuster
+ *   - Content rated events for the blockbuster skew to 4-5 star ratings
+ *   - All affected events tagged with blockbuster_release = true
+ *
+ * HOW TO FIND IT:
+ *   - Insights line chart: "content selected", filter "blockbuster_release" = true, daily trend
+ *   - Expected: Zero before day 50, then ~20% of content selections
+ *   - Also try: "content rated" average of "rating" by "blockbuster_release" (4-5 vs ~3.5)
+ *
+ * ───────────────────────────────────────────────────────────────────────────────
+ * 6. KIDS PROFILE SAFETY (event)
+ * ───────────────────────────────────────────────────────────────────────────────
+ *
+ * PATTERN: 15% of the time, events are tagged as kids profile activity:
+ *   - Content selection restricted to animation and documentary genres
+ *   - Ad impressions are blocked (ad_blocked = true)
+ *   - Events tagged with kids_profile = true
+ *
+ * HOW TO FIND IT:
+ *   - Insights: "content selected", breakdown by "genre", filter "kids_profile" = true
+ *   - Expected: 100% animation and documentary genres only
+ *   - Also try: "ad impression" breakdown by "kids_profile" — kids should have ad_blocked=true
+ *
+ * ───────────────────────────────────────────────────────────────────────────────
+ * 7. RECOMMENDATION ENGINE IMPROVEMENT (funnel-pre)
+ * ───────────────────────────────────────────────────────────────────────────────
+ *
+ * PATTERN: After day 60, the engagement loop funnel (recommendation clicked ->
+ * playback started -> content rated) gets a 1.5x conversion rate boost,
+ * simulating a recommendation engine improvement.
+ *
+ * HOW TO FIND IT:
+ *   - Funnels: "recommendation clicked" -> "playback started" -> "playback completed" -> "content rated"
+ *   - Breakdown: "improved_recs"
+ *   - Expected: improved_recs=true shows ~1.5x higher conversion rate
+ *   - Also try: Insights line chart of "recommendation clicked" filtered by "improved_recs" = true
+ *
+ * ───────────────────────────────────────────────────────────────────────────────
+ * 8. SUBTITLE USERS WATCH MORE (everything)
+ * ───────────────────────────────────────────────────────────────────────────────
+ *
+ * PATTERN: Users who enable subtitles have measurably higher engagement:
+ *   - 25% higher completion_percent on playback completed events (capped at 100)
+ *   - 15% longer watch_duration_min
+ *   - 20% more playback completed events (extra content consumption)
+ *   - Events tagged with subtitle_user = true
+ *
+ * HOW TO FIND IT:
+ *   - Insights: "playback completed", average of "completion_percent", breakdown by "subtitle_user"
+ *   - Expected: subtitle_user=true ~85% completion vs false ~68% (1.25x)
+ *   - Also try: Average of "watch_duration_min" by "subtitle_user" (~15% longer)
+ *   - Also try: Total events per user by "subtitle_user" (~20% more completions)
+ *
+ * ═══════════════════════════════════════════════════════════════════════════════
+ * EXPECTED METRICS SUMMARY
+ * ═══════════════════════════════════════════════════════════════════════════════
+ *
+ * Hook                     | Metric                  | Baseline  | Hook Effect | Ratio
+ * ─────────────────────────|─────────────────────────|───────────|─────────────|──────
+ * Genre Funnel Conversion  | Funnel conversion rate  | 50%       | 65% / 35%   | 1.3x / 0.7x
+ * Binge-Watching           | Content consumed/user   | 12        | 18-20       | ~1.5x
+ * Weekend vs Weekday       | Watch duration (min)    | 45        | 67 (weekend)| 1.5x
+ * Ad Fatigue Churn         | Post-day-45 activity    | 100%      | 50%         | 0.5x
+ * New Release Spike        | Content selections/day  | baseline  | +20% spike  | 1.2x
+ * Kids Profile Safety      | Ad impressions          | normal    | 0 (dropped) | 0x
+ * Rec Engine Improvement   | Engagement funnel conv  | 30%       | 45%         | 1.5x
+ * Subtitle Users           | Completion percent      | 68%       | 85%         | 1.25x
+ *
+ * ═══════════════════════════════════════════════════════════════════════════════
+ * ADVANCED ANALYSIS IDEAS
+ * ═══════════════════════════════════════════════════════════════════════════════
+ *
+ * CROSS-HOOK PATTERNS:
+ *
+ * 1. Binge + Subtitle: Do subtitle-enabled binge-watchers have the highest
+ *    total watch hours? (Hooks #2 + #8 combined)
+ *
+ * 2. Ad Fatigue + Blockbuster: Does the blockbuster release (Hook #5) rescue
+ *    free-tier users from ad fatigue churn (Hook #4)?
+ *
+ * 3. Kids + Weekend: Is kids profile viewing concentrated on weekends (Hook #6
+ *    + #3)? Does weekend kids viewing show different genre preferences?
+ *
+ * 4. Rec Engine + Genre: Does the recommendation engine improvement (Hook #7)
+ *    disproportionately help certain genres (Hook #1)?
+ *
+ * 5. Subtitle + Binge + Weekend: The "super viewer" - subtitle-enabled,
+ *    binge-watching on weekends. What is their lifetime watch hours?
+ *
+ * COHORT ANALYSIS:
+ *
+ * - Cohort by signup_source: Do referral users binge more than organic?
+ * - Cohort by device_type: Do smart TV users watch longer than mobile?
+ * - Cohort by subscription_plan: Do premium users binge more, or does
+ *   ad-free viewing change consumption patterns?
+ * - Cohort by preferred_genre: Does genre preference predict churn?
+ *
+ * FUNNEL ANALYSIS:
+ *
+ * - Onboarding Funnel: account created -> content browsed -> playback started.
+ *   How does signup_source affect first-session conversion?
+ * - Content Discovery Funnel: Does the browse_section (home vs trending vs
+ *   genre) affect downstream completion rates?
+ * - Engagement Loop: How does recommendation algorithm type (collaborative
+ *   filtering vs editorial) affect the full loop conversion?
+ *
+ * MONETIZATION ANALYSIS:
+ *
+ * - Free-to-Standard conversion: Which events predict upgrade?
+ * - Ad tolerance threshold: At what ad count do free users start churning?
+ * - Premium value: Do premium users actually consume more content, or just
+ *   consume at higher quality (4K)?
+ * - Download behavior: Does offline download usage correlate with retention?
  */
 
 // Generate consistent content IDs for lookup tables and events
@@ -108,6 +255,9 @@ const config = {
 			conversionRate: 55,
 			timeToConvert: 2,
 			weight: 5,
+			props: {
+				genre: ["action", "comedy", "drama", "documentary", "horror", "sci_fi", "animation", "thriller", "romance"],
+			},
 		},
 		{
 			// Recommendation-driven viewing
@@ -336,7 +486,7 @@ const config = {
 	 * 1. GENRE FUNNEL CONVERSION: Comedy/Animation complete more; Documentary abandons more (funnel-pre)
 	 * 2. BINGE-WATCHING: Users with 3+ consecutive completions get extra episodes (everything)
 	 * 3. WEEKEND vs WEEKDAY: Weekend sessions 1.5x longer; weekday prime-time tagging (event)
-	 * 4. AD FATIGUE CHURN: Free-tier users with 20+ ads churn after day 45 (everything)
+	 * 4. AD FATIGUE CHURN: Free-tier users with 10+ ads churn after day 45 (everything)
 	 * 5. NEW RELEASE SPIKE: Blockbuster release on day 50 drives content selection (event)
 	 * 6. KIDS PROFILE SAFETY: Kids mode restricts genres and drops ads (event)
 	 * 7. RECOMMENDATION ENGINE IMPROVEMENT: Post-day-60 boost to engagement funnel (funnel-pre)
@@ -345,51 +495,56 @@ const config = {
 	hook: function (record, type, meta) {
 		const NOW = dayjs();
 		const DATASET_START = NOW.subtract(days, 'days');
+		// FIXED_START is the pre-shift time range start; needed because
+		// meta.firstEventTime in funnel-pre is in the FIXED (pre-shift) timeframe
+		const FIXED_START = dayjs.unix(global.FIXED_NOW).subtract(days, 'days');
 
 		// ─────────────────────────────────────────────────────────────
 		// Hook #1: GENRE FUNNEL CONVERSION (funnel-pre)
 		// Comedy/Animation funnels convert 1.3x better; Documentary 0.7x
 		// ─────────────────────────────────────────────────────────────
 		if (type === "funnel-pre") {
-			const props = record.props || {};
-			const genre = props.genre;
+			record.props = record.props || {};
+			const genre = record.props.genre;
 
 			if (genre === "comedy" || genre === "animation") {
 				record.conversionRate = record.conversionRate * 1.3;
-				record.genre_boost = true;
-				record.genre_penalty = false;
+				record.props.genre_boost = true;
+				record.props.genre_penalty = false;
 			} else if (genre === "documentary") {
 				record.conversionRate = record.conversionRate * 0.7;
-				record.genre_boost = false;
-				record.genre_penalty = true;
+				record.props.genre_boost = false;
+				record.props.genre_penalty = true;
 			} else if (!genre && chance.bool({ likelihood: 25 })) {
 				// Randomly apply genre effects when genre isn't in funnel props
 				if (chance.bool({ likelihood: 60 })) {
 					record.conversionRate = record.conversionRate * 1.3;
-					record.genre_boost = true;
-					record.genre_penalty = false;
+					record.props.genre_boost = true;
+					record.props.genre_penalty = false;
 				} else {
 					record.conversionRate = record.conversionRate * 0.7;
-					record.genre_boost = false;
-					record.genre_penalty = true;
+					record.props.genre_boost = false;
+					record.props.genre_penalty = true;
 				}
 			} else {
-				record.genre_boost = false;
-				record.genre_penalty = false;
+				record.props.genre_boost = false;
+				record.props.genre_penalty = false;
 			}
 
 			// ─────────────────────────────────────────────────────────────
 			// Hook #7: RECOMMENDATION ENGINE IMPROVEMENT (funnel-pre)
-			// After day 60 (proxied by 50% chance), engagement funnel gets 1.5x boost
+			// After day 60, engagement funnel gets 1.5x boost
 			// ─────────────────────────────────────────────────────────────
 			const seq = record.sequence || [];
 			const isEngagementFunnel = seq.includes("recommendation clicked");
+			const funnelTime = meta && meta.firstEventTime ? dayjs.unix(meta.firstEventTime) : null;
+			const isAfterImprovement = funnelTime && funnelTime.isAfter(FIXED_START.add(60, 'days'));
 
-			if (isEngagementFunnel && chance.bool({ likelihood: 50 })) {
+			if (isEngagementFunnel && isAfterImprovement) {
 				record.conversionRate = record.conversionRate * 1.5;
-				record.improved_recs = true;
+				record.props.improved_recs = true;
 			} else {
-				record.improved_recs = false;
+				record.props.improved_recs = false;
 			}
 
 			return record;
@@ -571,8 +726,8 @@ const config = {
 			}
 
 			// Hook #4: AD FATIGUE CHURN
-			// Free-tier users with 20+ ads lose 50% of events after day 45
-			if (isFreeTier && adImpressionCount >= 20) {
+			// Free-tier users with 10+ ads lose 50% of events after day 45
+			if (isFreeTier && adImpressionCount >= 10) {
 				const churnCutoff = firstEventTime.add(45, 'days');
 				for (let i = userEvents.length - 1; i >= 0; i--) {
 					const evt = userEvents[i];
@@ -633,328 +788,3 @@ const config = {
 };
 
 export default config;
-
-/**
- * ═══════════════════════════════════════════════════════════════════════════════
- * NEEDLE IN A HAYSTACK - STREAMVAULT VIDEO STREAMING ANALYTICS
- * ═══════════════════════════════════════════════════════════════════════════════
- *
- * A video streaming platform dungeon with 8 deliberately architected analytics
- * insights hidden in the data. This dungeon simulates a Netflix/Hulu-style service
- * and is designed to showcase advanced product analytics patterns for streaming
- * media businesses.
- *
- * ═══════════════════════════════════════════════════════════════════════════════
- * DATASET OVERVIEW
- * ═══════════════════════════════════════════════════════════════════════════════
- *
- * - 5,000 users over 100 days
- * - 360,000 events across 17 event types
- * - 3 funnels (onboarding, content discovery, engagement loop)
- * - 1 lookup table (content catalog with 500 titles)
- * - Subscription tiers: Free (ad-supported), Standard, Premium
- * - Device types: Smart TV, Mobile, Tablet, Laptop, Desktop
- *
- * ═══════════════════════════════════════════════════════════════════════════════
- * THE 8 ARCHITECTED HOOKS
- * ═══════════════════════════════════════════════════════════════════════════════
- *
- * Each hook creates a specific, discoverable analytics insight that simulates
- * real-world streaming platform behavior patterns.
- *
- * ───────────────────────────────────────────────────────────────────────────────
- * 1. GENRE FUNNEL CONVERSION (funnel-pre)
- * ───────────────────────────────────────────────────────────────────────────────
- *
- * PATTERN: Comedy and Animation content has 1.3x higher funnel conversion rates,
- * while Documentary content has 0.7x conversion (users browse but abandon more).
- *
- * HOW TO FIND IT:
- *   - Break down funnels by genre property
- *   - Compare: conversion rate for Comedy/Animation vs Documentary vs other genres
- *   - Look for: genre_boost = true or genre_penalty = true tags
- *
- * EXPECTED INSIGHT: Comedy and Animation content converts browsers to completers
- * at 1.3x the baseline rate. Documentary has high browse rates but low completion,
- * suggesting users are interested but find long-form docs harder to finish.
- *
- * REAL-WORLD ANALOGUE: Content genre significantly affects engagement depth.
- * Light entertainment converts better than educational content, informing
- * content acquisition and recommendation strategy.
- *
- * ───────────────────────────────────────────────────────────────────────────────
- * 2. BINGE-WATCHING PATTERN (everything)
- * ───────────────────────────────────────────────────────────────────────────────
- *
- * PATTERN: Users who complete 3+ episodes consecutively become "binge-watchers":
- *   - Extra playback started + playback completed events are spliced in
- *   - Completion percentages are 90-100% (they finish every episode)
- *   - Pause events are reduced by 60% (they don't stop watching)
- *   - Events tagged with binge_session = true
- *
- * HOW TO FIND IT:
- *   - Segment users by: binge_session = true on any event
- *   - Compare: total playback completed count per user
- *   - Compare: average completion_percent for binge vs non-binge users
- *   - Compare: playback paused frequency
- *
- * EXPECTED INSIGHT: Binge-watchers consume 40-60% more content, with near-perfect
- * completion rates. They pause far less frequently. This cohort drives the majority
- * of total watch hours on the platform.
- *
- * REAL-WORLD ANALOGUE: Netflix's binge-viewing behavior - a small percentage of
- * users generate a disproportionate share of total viewing. Identifying and
- * nurturing binge-watchers is critical for retention and content ROI.
- *
- * ───────────────────────────────────────────────────────────────────────────────
- * 3. WEEKEND vs WEEKDAY PATTERNS (event)
- * ───────────────────────────────────────────────────────────────────────────────
- *
- * PATTERN: Weekend viewing sessions are 1.5x longer than weekday sessions.
- * Weekday viewing concentrates in evening prime-time (6PM-11PM).
- *
- * HOW TO FIND IT:
- *   - Filter: playback completed events
- *   - Compare: average watch_duration_min by day of week
- *   - Filter: weekend_viewing = true vs prime_time = true
- *   - Chart: event volume by hour of day, split by weekend vs weekday
- *
- * EXPECTED INSIGHT: Weekend watch_duration_min averages ~67 mins vs ~45 mins
- * weekday. Weekday prime-time (6PM-11PM) accounts for 60-70% of weekday views.
- *
- * REAL-WORLD ANALOGUE: All streaming platforms see this pattern. Understanding
- * peak viewing windows drives content release strategy (release on Friday for
- * weekend binge), ad pricing, and infrastructure capacity planning.
- *
- * ───────────────────────────────────────────────────────────────────────────────
- * 4. AD FATIGUE CHURN (everything)
- * ───────────────────────────────────────────────────────────────────────────────
- *
- * PATTERN: Free-tier users who see 20+ ad impressions experience 50% churn
- * after day 45 of their lifecycle.
- *
- * HOW TO FIND IT:
- *   - Segment: subscription_plan = "free"
- *   - Count: ad impression events per user
- *   - Compare: users with 20+ ads vs <20 ads
- *   - Chart: event activity over time for high-ad-exposure free users
- *   - Look for: ad_fatigue = true tag on surviving events
- *
- * EXPECTED INSIGHT: Free-tier users with heavy ad exposure show a sharp activity
- * cliff around day 45. Remaining events carry the ad_fatigue tag. This simulates
- * the real tension between ad revenue and user experience on free tiers.
- *
- * REAL-WORLD ANALOGUE: Ad-supported streaming tiers (Hulu, Peacock) must balance
- * ad load against churn. Too many ads drive users to cancel or switch to
- * competitors. This hook reveals the "ad tolerance threshold."
- *
- * ───────────────────────────────────────────────────────────────────────────────
- * 5. NEW RELEASE SPIKE (event)
- * ───────────────────────────────────────────────────────────────────────────────
- *
- * PATTERN: On day 50, a blockbuster movie releases, creating a content spike:
- *   - 20% of content selected and playback started events redirect to the blockbuster
- *   - Content rated events for the blockbuster skew to 4-5 star ratings
- *   - All affected events tagged with blockbuster_release = true
- *
- * HOW TO FIND IT:
- *   - Chart: content selected and playback started by day
- *   - Filter: blockbuster_release = true
- *   - Filter: content_id = blockbuster ID
- *   - Compare: ratings distribution before vs after day 50
- *
- * EXPECTED INSIGHT: Clear spike in content engagement after day 50, with a
- * single content_id dominating selections. Ratings for this title cluster at
- * 4-5 stars, showing strong audience reception.
- *
- * REAL-WORLD ANALOGUE: Major content releases (Stranger Things season drop,
- * Disney+ Marvel premiere) create massive engagement spikes that affect all
- * platform metrics. Understanding release impact is crucial for content
- * scheduling and marketing spend.
- *
- * ───────────────────────────────────────────────────────────────────────────────
- * 6. KIDS PROFILE SAFETY (event)
- * ───────────────────────────────────────────────────────────────────────────────
- *
- * PATTERN: 15% of the time, events are tagged as kids profile activity:
- *   - Content selection restricted to animation and documentary genres
- *   - Ad impressions are dropped entirely (no ads for kids)
- *   - Events tagged with kids_profile = true
- *
- * HOW TO FIND IT:
- *   - Filter: kids_profile = true
- *   - Compare: genre distribution for kids vs non-kids events
- *   - Count: ad impression events for kids vs non-kids
- *   - Notice: zero ad impressions when kids_profile = true
- *
- * EXPECTED INSIGHT: Kids profile content is 100% animation/documentary. Zero ads
- * served to kids profiles. This shows proper content gating and ad-free kids
- * experience, which is a regulatory and trust requirement.
- *
- * REAL-WORLD ANALOGUE: COPPA compliance and parental controls. All major
- * streaming platforms (Netflix Kids, Disney+, YouTube Kids) restrict content
- * and ads for children's profiles. Verifying this works correctly is critical.
- *
- * ───────────────────────────────────────────────────────────────────────────────
- * 7. RECOMMENDATION ENGINE IMPROVEMENT (funnel-pre)
- * ───────────────────────────────────────────────────────────────────────────────
- *
- * PATTERN: After day 60 (proxied by 50% probability), the engagement loop funnel
- * (recommendation clicked -> playback started -> content rated) gets a 1.5x
- * conversion rate boost, simulating a recommendation engine improvement.
- *
- * HOW TO FIND IT:
- *   - Compare: engagement funnel conversion over time (first half vs second half)
- *   - Filter: improved_recs = true on funnel events
- *   - Chart: recommendation clicked -> playback started conversion by week
- *
- * EXPECTED INSIGHT: The engagement funnel conversion rate improves ~1.5x in the
- * latter half of the dataset. Events tagged with improved_recs = true show higher
- * conversion, simulating an A/B test or algorithm deployment.
- *
- * REAL-WORLD ANALOGUE: Recommendation engine updates are the highest-leverage
- * product changes at streaming companies. Netflix estimates its rec engine saves
- * $1B/year in retention. Measuring before/after impact of algorithm changes is
- * critical product analytics.
- *
- * ───────────────────────────────────────────────────────────────────────────────
- * 8. SUBTITLE USERS WATCH MORE (everything)
- * ───────────────────────────────────────────────────────────────────────────────
- *
- * PATTERN: Users who enable subtitles have measurably higher engagement:
- *   - 25% higher completion_percent on playback completed events (capped at 100)
- *   - 15% longer watch_duration_min
- *   - 20% more playback completed events (extra content consumption)
- *   - Events tagged with subtitle_user = true
- *
- * HOW TO FIND IT:
- *   - Create segment: users who did "subtitle toggled" where action = "enabled"
- *   - Compare: average completion_percent (subtitle users vs non-subtitle users)
- *   - Compare: average watch_duration_min
- *   - Compare: total playback completed count per user
- *
- * EXPECTED INSIGHT: Subtitle users complete content 25% more often and watch 15%
- * longer per session. They also consume 20% more titles overall. This suggests
- * subtitles reduce comprehension friction and keep viewers engaged.
- *
- * REAL-WORLD ANALOGUE: Subtitle usage has exploded on streaming platforms.
- * Netflix reports 40%+ of viewing uses subtitles. Subtitle users exhibit higher
- * engagement, especially with foreign-language content (Korean dramas, anime).
- * This insight drives investment in subtitle/dub quality and availability.
- *
- * ═══════════════════════════════════════════════════════════════════════════════
- * EXPECTED METRICS SUMMARY
- * ═══════════════════════════════════════════════════════════════════════════════
- *
- * Hook                     | Metric                  | Baseline  | Hook Effect | Ratio
- * ─────────────────────────|─────────────────────────|───────────|─────────────|──────
- * Genre Funnel Conversion  | Funnel conversion rate  | 50%       | 65% / 35%   | 1.3x / 0.7x
- * Binge-Watching           | Content consumed/user   | 12        | 18-20       | ~1.5x
- * Weekend vs Weekday       | Watch duration (min)    | 45        | 67 (weekend)| 1.5x
- * Ad Fatigue Churn         | Post-day-45 activity    | 100%      | 50%         | 0.5x
- * New Release Spike        | Content selections/day  | baseline  | +20% spike  | 1.2x
- * Kids Profile Safety      | Ad impressions          | normal    | 0 (dropped) | 0x
- * Rec Engine Improvement   | Engagement funnel conv  | 30%       | 45%         | 1.5x
- * Subtitle Users           | Completion percent      | 68%       | 85%         | 1.25x
- *
- * ═══════════════════════════════════════════════════════════════════════════════
- * ADVANCED ANALYSIS IDEAS
- * ═══════════════════════════════════════════════════════════════════════════════
- *
- * CROSS-HOOK PATTERNS:
- *
- * 1. Binge + Subtitle: Do subtitle-enabled binge-watchers have the highest
- *    total watch hours? (Hooks #2 + #8 combined)
- *
- * 2. Ad Fatigue + Blockbuster: Does the blockbuster release (Hook #5) rescue
- *    free-tier users from ad fatigue churn (Hook #4)?
- *
- * 3. Kids + Weekend: Is kids profile viewing concentrated on weekends (Hook #6
- *    + #3)? Does weekend kids viewing show different genre preferences?
- *
- * 4. Rec Engine + Genre: Does the recommendation engine improvement (Hook #7)
- *    disproportionately help certain genres (Hook #1)?
- *
- * 5. Subtitle + Binge + Weekend: The "super viewer" - subtitle-enabled,
- *    binge-watching on weekends. What is their lifetime watch hours?
- *
- * COHORT ANALYSIS:
- *
- * - Cohort by signup_source: Do referral users binge more than organic?
- * - Cohort by device_type: Do smart TV users watch longer than mobile?
- * - Cohort by subscription_plan: Do premium users binge more, or does
- *   ad-free viewing change consumption patterns?
- * - Cohort by preferred_genre: Does genre preference predict churn?
- *
- * FUNNEL ANALYSIS:
- *
- * - Onboarding Funnel: account created -> content browsed -> playback started.
- *   How does signup_source affect first-session conversion?
- * - Content Discovery Funnel: Does the browse_section (home vs trending vs
- *   genre) affect downstream completion rates?
- * - Engagement Loop: How does recommendation algorithm type (collaborative
- *   filtering vs editorial) affect the full loop conversion?
- *
- * MONETIZATION ANALYSIS:
- *
- * - Free-to-Standard conversion: Which events predict upgrade?
- * - Ad tolerance threshold: At what ad count do free users start churning?
- * - Premium value: Do premium users actually consume more content, or just
- *   consume at higher quality (4K)?
- * - Download behavior: Does offline download usage correlate with retention?
- *
- * ═══════════════════════════════════════════════════════════════════════════════
- * HOW TO RUN THIS DUNGEON
- * ═══════════════════════════════════════════════════════════════════════════════
- *
- * From the dm4 root directory:
- *
- *   npm start
- *
- * Or programmatically:
- *
- *   import generate from './index.js';
- *   import config from './dungeons/harness-media.js';
- *   const results = await generate(config);
- *
- * OUTPUT FILES (with writeToDisk: false, format: "json", gzip: true):
- *
- *   - needle-haystack-streaming__events.json.gz - All event data
- *   - needle-haystack-streaming__user_profiles.json.gz - User profiles
- *   - needle-haystack-streaming__content_id_lookup.json.gz - Content catalog
- *
- * ═══════════════════════════════════════════════════════════════════════════════
- * TESTING YOUR ANALYTICS PLATFORM
- * ═══════════════════════════════════════════════════════════════════════════════
- *
- * This dungeon is perfect for testing:
- *
- * 1. Funnel Breakdown: Can you break down funnels by genre to find conversion differences?
- * 2. Behavioral Clustering: Can you identify binge-watchers from event patterns?
- * 3. Time-Based Analysis: Can you detect weekend vs weekday viewing patterns?
- * 4. Churn Prediction: Can you predict ad-fatigue churn before it happens?
- * 5. Content Impact: Can you measure the blockbuster release's platform-wide effect?
- * 6. Safety Compliance: Can you verify kids profiles never see ads?
- * 7. A/B Testing: Can you measure the recommendation engine improvement's impact?
- * 8. Feature Impact: Can you quantify the subtitle-engagement correlation?
- *
- * ═══════════════════════════════════════════════════════════════════════════════
- * WHY "NEEDLE IN A HAYSTACK"?
- * ═══════════════════════════════════════════════════════════════════════════════
- *
- * Each hook is a "needle" - a meaningful, actionable insight hidden in a
- * "haystack" of 360K events. The challenge is:
- *
- * 1. FINDING the needles (discovery)
- * 2. VALIDATING they're real patterns (statistical significance)
- * 3. UNDERSTANDING why they matter (business impact)
- * 4. ACTING on them (product decisions)
- *
- * This mirrors real-world streaming analytics: your data contains valuable
- * insights about viewer behavior, content performance, and monetization
- * efficiency, but you need the right tools and skills to find them.
- *
- * Happy Streaming!
- *
- * ═══════════════════════════════════════════════════════════════════════════════
- */

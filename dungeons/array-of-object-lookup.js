@@ -1,11 +1,3 @@
-/**
- * This is the default configuration file for the data generator in SIMPLE mode
- * notice how the config object is structured, and see it's type definition in ./types.d.ts
- * feel free to modify this file to customize the data you generate
- * see helper functions in utils.js for more ways to generate data
- */
-
-
 import Chance from 'chance';
 let chance = new Chance();
 import dayjs from "dayjs";
@@ -16,6 +8,34 @@ import { pickAWinner, weighNumRange, date, integer, weighChoices } from "../lib/
 
 const videoCategories = ["funny", "educational", "inspirational", "music", "news", "sports", "cooking", "DIY", "travel", "gaming"];
 const spiritAnimals = ["duck", "dog", "otter", "penguin", "cat", "elephant", "lion", "cheetah", "giraffe", "zebra", "rhino", "hippo", "whale", "dolphin", "shark", "octopus", "squid", "jellyfish", "starfish", "seahorse", "crab", "lobster", "shrimp", "clam", "snail", "slug", "butterfly", "moth", "bee", "wasp", "ant", "beetle", "ladybug", "caterpillar", "centipede", "millipede", "scorpion", "spider", "tarantula", "tick", "mite", "mosquito", "fly", "dragonfly", "damselfly", "grasshopper", "cricket", "locust", "mantis", "cockroach", "termite", "praying mantis", "walking stick", "stick bug", "leaf insect", "lacewing", "aphid", "cicada", "thrips", "psyllid", "scale insect", "whitefly", "mealybug", "planthopper", "leafhopper", "treehopper", "flea", "louse", "bedbug", "flea beetle", "weevil", "longhorn beetle", "leaf beetle", "tiger beetle", "ground beetle", "lady beetle", "firefly", "click beetle", "rove beetle", "scarab beetle", "dung beetle", "stag beetle", "rhinoceros beetle", "hercules beetle", "goliath beetle", "jewel beetle", "tortoise beetle"];
+
+/**
+ * ═══════════════════════════════════════════════════════════════
+ * DATASET OVERVIEW
+ * ═══════════════════════════════════════════════════════════════
+ *
+ * Array-of-Object Lookup Test — tests nested product arrays in events.
+ * - 1,000 users over 60 days, ~100K events
+ * - Events: checkout (cart array), add to cart, view/save item (single item)
+ * - Lookup table: 1,000 products with price, category, descriptor
+ * - Tests Mixpanel's array-of-objects property handling
+ *
+ * ═══════════════════════════════════════════════════════════════
+ * ANALYTICS HOOKS (3 patterns)
+ * ═══════════════════════════════════════════════════════════════
+ *
+ * 1. COUPON DISCOUNT TAGGING (event hook)
+ *    Checkout events with coupons get discount_applied: true and
+ *    discount_percent extracted from the coupon string.
+ *
+ * 2. WEEKEND BROWSE vs WEEKDAY INTENT (event hook)
+ *    Save item events on weekends tagged save_context: "weekend_browse",
+ *    weekdays tagged "weekday_intent".
+ *
+ * 3. WINDOW SHOPPERS (everything hook)
+ *    Users with 5+ view item events but 0 checkouts get all their
+ *    events tagged user_segment: "window_shopper".
+ */
 
 /** @type {import('../types.js').Dungeon} */
 const config = {

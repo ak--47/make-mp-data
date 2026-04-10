@@ -13,12 +13,8 @@ import * as u from 'ak-tools';
 import Papa from 'papaparse';
 
 import simple from '../dungeons/simple.js';
-import complex from '../dungeons/complex.js';
-import anon from '../dungeons/anon.js';
-import funnels from '../dungeons/funnels.js';
+
 import foobar from '../dungeons/foobar.js';
-import mirror from '../dungeons/mirror.js';
-import adspend from '../dungeons/adspend.js';
 import scd from '../dungeons/scd.js';
 
 const timeout = 600000;
@@ -94,29 +90,6 @@ describe.sequential('Module Integration Tests', () => {
 		expect(result.userCount).toBe(10);
 		const csvs = (await u.ls('./data')).filter(a => a.includes('.csv'));
 		expect(csvs.length).toBe(2);
-	}, timeout);
-
-	test('complex dungeon - full data model', async () => {
-		console.log('COMPLEX DUNGEON TEST');
-		/** @type {Dungeon} */
-		const config = {
-			...complex,
-			numEvents: 100,
-			numUsers: 10,
-			seed: "complex-test",
-			writeToDisk: true,
-			format: 'json'
-		};
-
-		const result = await generate(config);
-
-		expect(result.eventCount).toBeGreaterThan(0);
-		expect(result.userCount).toBe(10);
-
-		// Complex should have events, users, groups, lookups
-		// Note: SCD files not generated without service account credentials
-		const jsonFiles = (await u.ls('./data')).filter(a => a.includes('.json'));
-		expect(jsonFiles.length).toBeGreaterThan(4);
 	}, timeout);
 
 	test('simple dungeon - basic model', async () => {

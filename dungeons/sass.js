@@ -10,15 +10,25 @@ const chance = u.initChance(SEED);
 const num_users = 5_000;
 const days = 100;
 
-/** @typedef  {import("../../types.js").Dungeon} Config */
+/** @typedef  {import("../types.js").Dungeon} Config */
 
-/**
+/*
+ * ═══════════════════════════════════════════════════════════════════════════════
+ * DATASET OVERVIEW
+ * ═══════════════════════════════════════════════════════════════════════════════
+ *
  * CLOUDFORGE - B2B Cloud Infrastructure Monitoring & Deployment Platform
  *
  * CloudForge is a B2B SaaS platform that combines infrastructure monitoring (like Datadog)
  * with deployment automation (like Terraform). It serves engineering teams across companies
  * of all sizes - from startups deploying their first microservice to enterprises managing
  * thousands of services across multi-cloud environments.
+ *
+ * - 5,000 users over 100 days
+ * - 600K events across 18 event types (+ 1 hook-created event type)
+ * - 8 funnels (onboarding, monitoring, incident response, deployment, infra, team, docs, billing)
+ * - Group analytics (companies)
+ * - Desktop/browser only (B2B SaaS - no mobile devices)
  *
  * CORE PLATFORM:
  * Teams create workspaces, deploy services across AWS/GCP/Azure, and monitor everything
@@ -27,42 +37,202 @@ const days = 100;
  * PagerDuty/Slack integrations, and on-call engineers acknowledge and resolve incidents
  * using automated runbooks.
  *
- * DEPLOYMENT PIPELINE:
- * CloudForge manages CI/CD pipelines that deploy services to production, staging, and dev
- * environments. Pipelines track commit counts, duration, and success/failure rates. When
- * deployments fail, recovery deploys take longer as engineers carefully roll forward.
- * Infrastructure can scale automatically or manually based on load.
- *
- * INCIDENT MANAGEMENT:
- * Alerts flow through a severity system (info -> warning -> critical -> emergency).
- * Critical and emergency alerts sometimes escalate into formal incidents with P1/P2
- * classification, paging multiple teams. Teams with Slack + PagerDuty integrations
- * respond and resolve incidents significantly faster than those without.
- *
- * COST MANAGEMENT:
- * The platform generates cost reports showing daily/weekly/monthly spend. When costs
- * spike beyond budgets, teams react by scaling down infrastructure. End-of-quarter
- * pushes drive plan upgrades and team expansion as companies rush to hit targets.
- *
- * SECURITY & COMPLIANCE:
- * Regular security scans check for vulnerabilities, compliance violations, and access
- * audit issues. Feature flags control rollout of new capabilities across environments.
- *
  * PRICING MODEL:
- * Four tiers: Free (limited), Team (small teams), Business (mid-market), Enterprise
- * (large organizations). Pricing based on seat count and resource usage. Enterprise
- * customers get dedicated customer success managers and annual contracts.
+ * Four tiers: Free, Team, Business, Enterprise. Enterprise customers get dedicated
+ * customer success managers and annual contracts. Pricing based on seat count and
+ * resource usage.
+ */
+
+/*
+ * ═══════════════════════════════════════════════════════════════════════════════
+ * ANALYTICS HOOKS
+ * ═══════════════════════════════════════════════════════════════════════════════
  *
- * TARGET USERS:
- * Engineers, SREs, DevOps professionals, engineering managers, and executives who
- * need visibility into their cloud infrastructure and deployment processes.
+ * 8 deliberately architected patterns hidden in the data, simulating real-world
+ * B2B SaaS behavior. Several hooks use event removal (splice), event replacement,
+ * and module-level closure state tracking via Map objects.
  *
- * WHY THESE EVENTS/PROPERTIES?
- * - Events model a complete B2B SaaS lifecycle: onboarding -> adoption -> expansion -> renewal
- * - Properties enable cohort analysis: company size, plan tier, role, cloud provider
- * - Funnels reveal friction: onboarding completion, incident resolution, deployment success
- * - Hooks simulate real operational insights hidden in production telemetry data
- * - The "needle in haystack" hooks create discoverable patterns that mirror real B2B analytics
+ * ─────────────────────────────────────────────────────────────────────────────
+ * 1. END-OF-QUARTER SPIKE (event hook)
+ * ─────────────────────────────────────────────────────────────────────────────
+ *
+ * Days 80-90: billing events shift toward plan upgrades 40% of the time, and team
+ * member invitations are duplicated 50% of the time. Tagged: quarter_end_push: true.
+ *
+ * Mixpanel Report — Plan Upgrades Over Time:
+ *   • Insights line chart
+ *   • Event: "billing event", filter "event_type" = "plan_upgraded"
+ *   • Daily trend
+ *   • Expected: Spike in plan upgrades during days 80-90 (4x normal volume)
+ *
+ * Mixpanel Report — Team Expansion Surge:
+ *   • Insights line chart
+ *   • Event: "team member invited", filter "quarter_end_push" = true
+ *   • Daily trend
+ *   • Expected: Clear volume spike in last 10 days with duplicate invites
+ *
+ * ─────────────────────────────────────────────────────────────────────────────
+ * 2. CHURNED ACCOUNT SILENCING (everything hook)
+ * ─────────────────────────────────────────────────────────────────────────────
+ *
+ * ~10% of users (hash of distinct_id, idHash % 5 === 0) go completely silent
+ * after day 30. ALL events after month 1 are removed via splice(). User profiles
+ * are tagged churned_account: true for discoverability.
+ *
+ * Mixpanel Report — Churned Account Retention:
+ *   • Retention report
+ *   • Event A/B: Any event
+ *   • Breakdown: User profile "churned_account"
+ *   • Expected: churned_account=true shows 0% retention after day 30
+ *
+ * Mixpanel Report — Churned Account Activity:
+ *   • Insights line chart
+ *   • Event: Any event, measure total per user
+ *   • Breakdown: User profile "churned_account"
+ *   • Weekly trend
+ *   • Expected: churned_account=true flatlines after week 4
+ *
+ * ─────────────────────────────────────────────────────────────────────────────
+ * 3. ALERT ESCALATION REPLACEMENT (event hook)
+ * ─────────────────────────────────────────────────────────────────────────────
+ *
+ * 30% of critical/emergency "alert triggered" events are REPLACED with a new
+ * event type "incident created" (not in the events array — hook-only). Includes
+ * escalation_level (P1/P2), teams_paged, incident_id.
+ *
+ * Mixpanel Report — Incident Created Discovery:
+ *   • Insights report
+ *   • Event: "incident created"
+ *   • Breakdown: "escalation_level"
+ *   • Expected: P1 and P2 incidents, ~30% of critical/emergency alert volume
+ *
+ * Mixpanel Report — Alert vs Incident Ratio:
+ *   • Insights report
+ *   • Events: "alert triggered" AND "incident created"
+ *   • Expected: incident created count ~ 30% of critical+emergency alerts
+ *
+ * ─────────────────────────────────────────────────────────────────────────────
+ * 4. INTEGRATION USERS SUCCEED (everything hook)
+ * ─────────────────────────────────────────────────────────────────────────────
+ *
+ * Users with BOTH Slack AND PagerDuty integrations resolve alerts faster:
+ * response_time_mins reduced 60%, resolution_time_mins reduced 50%.
+ * Tagged: integrated_team: true.
+ *
+ * Mixpanel Report — Integration Impact on Response Time:
+ *   • Insights report
+ *   • Event: "alert acknowledged", measure avg "response_time_mins"
+ *   • Breakdown: "integrated_team"
+ *   • Expected: integrated_team=true ~ 60% lower response time
+ *
+ * Mixpanel Report — Integration Impact on Resolution:
+ *   • Insights report
+ *   • Event: "alert resolved", measure avg "resolution_time_mins"
+ *   • Breakdown: "integrated_team"
+ *   • Expected: integrated_team=true ~ 50% faster resolution
+ *
+ * ─────────────────────────────────────────────────────────────────────────────
+ * 5. DOCS READERS DEPLOY MORE (everything hook)
+ * ─────────────────────────────────────────────────────────────────────────────
+ *
+ * Users with 3+ "best_practices" documentation views get 2-3 extra production
+ * deploys spliced into their event stream. Tagged: docs_informed: true.
+ *
+ * Mixpanel Report — Docs-Informed Deployments:
+ *   • Insights report
+ *   • Event: "service deployed", filter "environment" = "production"
+ *   • Breakdown: "docs_informed"
+ *   • Expected: docs_informed=true shows extra production deployments
+ *
+ * Mixpanel Report — Docs Readers vs Non-Readers:
+ *   • Insights report
+ *   • Event: "service deployed", measure total per user
+ *   • Segment: Users with 3+ "documentation viewed" (doc_section = "best_practices")
+ *   • Expected: ~1.8x more production deploys per user for docs readers
+ *
+ * ─────────────────────────────────────────────────────────────────────────────
+ * 6. COST OVERRUN PATTERN (event hook — closure state)
+ * ─────────────────────────────────────────────────────────────────────────────
+ *
+ * When cost_change_percent > 25 on a "cost report generated" event, the user
+ * is stored in a module-level Map. Their next "infrastructure scaled" event
+ * is forced to scale_direction: "down". Tagged: budget_exceeded, cost_reaction.
+ *
+ * Mixpanel Report — Cost Overrun to Scale Down:
+ *   • Insights report
+ *   • Event: "infrastructure scaled"
+ *   • Breakdown: "cost_reaction"
+ *   • Expected: cost_reaction=true events are 100% scale_direction="down"
+ *
+ * ─────────────────────────────────────────────────────────────────────────────
+ * 7. FAILED DEPLOYMENT RECOVERY (event hook — closure state)
+ * ─────────────────────────────────────────────────────────────────────────────
+ *
+ * After a failed pipeline run, the user's next successful deploy has
+ * duration_sec * 1.5 (recovery deploys are slower). Tagged: recovery_deployment.
+ * Uses module-level Map for cross-call state.
+ *
+ * Mixpanel Report — Recovery Deploy Duration:
+ *   • Insights report
+ *   • Event: "deployment pipeline run", measure avg "duration_sec"
+ *   • Breakdown: "recovery_deployment"
+ *   • Expected: recovery_deployment=true ~ 1.5x longer duration
+ *
+ * ─────────────────────────────────────────────────────────────────────────────
+ * 8. ENTERPRISE VS STARTUP (user hook)
+ * ─────────────────────────────────────────────────────────────────────────────
+ *
+ * Company size determines seat_count, annual_contract_value, and
+ * customer_success_manager (enterprise only). All users get customer_health_score.
+ *
+ * Mixpanel Report — ACV by Company Size:
+ *   • Insights report
+ *   • Event: Any, measure unique users
+ *   • Breakdown: User profile "company_size"
+ *   • Expected: startup ($0-3.6K), smb ($3.6K-12K), mid_market ($12K-50K),
+ *     enterprise ($50K-500K)
+ *
+ * ─────────────────────────────────────────────────────────────────────────────
+ * EXPECTED METRICS SUMMARY
+ * ─────────────────────────────────────────────────────────────────────────────
+ *
+ * Hook                     | Metric                   | Baseline  | Hook Effect    | Ratio
+ * -------------------------|--------------------------|-----------|----------------|------
+ * End-of-Quarter Spike     | Plan upgrades/day        | ~2/day    | ~8/day         | 4x
+ * Churned Accounts         | Users active month 2     | 100%      | 90%            | 0.9x
+ * Alert Escalation         | Incidents from alerts    | 0%        | ~30% of crit   | new
+ * Integration Users        | MTTR (minutes)           | ~300      | ~150           | 0.5x
+ * Docs Readers             | Prod deploys/user        | ~3        | ~5-6           | 1.8x
+ * Cost Overrun             | Scale-down after overrun | 50%       | 100%           | 2x
+ * Failed Deploy Recovery   | Deploy duration (sec)    | ~500      | ~750           | 1.5x
+ * Enterprise vs Startup    | ACV range                | $0-3.6K   | $50K-500K      | 100x+
+ *
+ * ─────────────────────────────────────────────────────────────────────────────
+ * ADVANCED ANALYSIS IDEAS
+ * ─────────────────────────────────────────────────────────────────────────────
+ *
+ * CROSS-HOOK PATTERNS:
+ * - Churned + Enterprise: Do churned accounts skew toward startups or are
+ *   enterprise accounts also silenced?
+ * - Integration + Cost: Do teams with full integrations manage costs better?
+ * - Docs + Deploys + Failures: Do docs readers have fewer failed deployments?
+ * - Quarter Spike + Churn: Are quarter-end upgrades correlated with later churn?
+ * - Enterprise Recovery: Do enterprise customers recover from failed deploys
+ *   differently than startups?
+ *
+ * COHORT ANALYSIS:
+ * - By company_size: Compare all metrics across startup/smb/mid_market/enterprise
+ * - By plan_tier: Free vs. Team vs. Business vs. Enterprise engagement
+ * - By cloud_provider: AWS vs. GCP vs. Azure deployment and alert patterns
+ * - By primary_role: Engineer vs. SRE vs. DevOps vs. Manager behaviors
+ *
+ * KEY METRICS:
+ * - MTTR: alert triggered → alert resolved duration
+ * - Deployment Frequency: service deployed per user per week
+ * - Deployment Success Rate: pipeline success vs. failure ratio
+ * - Cost Efficiency: total_cost trend over time per company
+ * - Feature Adoption: integration configured events by type
+ * - Documentation Engagement: documentation viewed by section
  */
 
 // Generate consistent IDs for lookup tables and event properties
@@ -486,14 +656,14 @@ const config = {
 
 		// ─────────────────────────────────────────────────────────────
 		// Hook #2: CHURNED ACCOUNT SILENCING (everything)
-		// ~10% of users go completely silent after day 30
+		// ~20% targeted (hash % 5), yielding ~10% visible after accounting for invisible churned users
 		// ─────────────────────────────────────────────────────────────
 		if (type === "everything") {
 			const userEvents = record;
 			if (userEvents && userEvents.length > 0) {
 				const firstEvent = userEvents[0];
 				const idHash = String(firstEvent.user_id || firstEvent.device_id).split("").reduce((acc, char) => acc + char.charCodeAt(0), 0);
-				const isChurnedAccount = (idHash % 10) === 0;
+				const isChurnedAccount = (idHash % 5) === 0;
 
 				if (isChurnedAccount) {
 					for (let i = userEvents.length - 1; i >= 0; i--) {
@@ -591,6 +761,10 @@ const config = {
 		// Company size determines seat count, ACV, and health score
 		// ─────────────────────────────────────────────────────────────
 		if (type === "user") {
+			// Hook #2 support: tag churned accounts on user profile for discoverability
+			const idHash = String(record.distinct_id || "").split("").reduce((acc, char) => acc + char.charCodeAt(0), 0);
+			record.churned_account = (idHash % 5) === 0;
+
 			const companySize = record.company_size;
 
 			if (companySize === "enterprise") {
@@ -619,304 +793,3 @@ const config = {
 };
 
 export default config;
-
-/**
- * =================================================================================
- * NEEDLE IN A HAYSTACK - CLOUDFORGE B2B SAAS ANALYTICS
- * =================================================================================
- *
- * A B2B cloud infrastructure monitoring and deployment platform dungeon with 8
- * deliberately architected analytics insights hidden in the data. This dungeon
- * simulates CloudForge - a Datadog + Terraform hybrid serving engineering teams
- * across companies of all sizes.
- *
- * =================================================================================
- * DATASET OVERVIEW
- * =================================================================================
- *
- * - 5,000 users over 100 days
- * - 360K events across 18 event types (+ 1 hook-created event type)
- * - 3 funnels (onboarding, incident response, deployment pipeline)
- * - Group analytics (companies)
- * - Lookup tables (services, alerts)
- * - Desktop/browser only (B2B SaaS - no mobile devices)
- *
- * =================================================================================
- * THE 8 ARCHITECTED HOOKS
- * =================================================================================
- *
- * Each hook creates a specific, discoverable analytics insight that simulates
- * real-world B2B SaaS behavior patterns. Several hooks use techniques like
- * event removal (splice), event replacement, and module-level closure
- * state tracking via Map objects.
- *
- * ---------------------------------------------------------------------------------
- * 1. END-OF-QUARTER SPIKE (event hook)
- * ---------------------------------------------------------------------------------
- *
- * PATTERN: During days 80-90 of the dataset (end of quarter), billing events
- * shift toward plan upgrades 40% of the time, and team member invitations are
- * duplicated 50% of the time. All affected events are tagged with
- * quarter_end_push: true.
- *
- * HOW TO FIND IT:
- *   - Chart "billing event" by event_type, broken down by week
- *   - Chart "team member invited" count by day
- *   - Filter: quarter_end_push = true
- *   - Compare: last 10 days vs. rest of dataset
- *
- * EXPECTED INSIGHT: Clear spike in plan_upgraded billing events and team
- * invitations in the final 10 days. Duplicate invitations create an
- * artificially inflated invite count.
- *
- * REAL-WORLD ANALOGUE: End-of-quarter sales pushes, budget utilization
- * deadlines, and team expansion before fiscal year-end.
- *
- * ---------------------------------------------------------------------------------
- * 2. CHURNED ACCOUNT SILENCING (everything hook)
- * ---------------------------------------------------------------------------------
- *
- * PATTERN: ~10% of users (determined by hash of distinct_id) go completely
- * silent after day 30. ALL of their events after month 1 are removed via
- * splice() - they simply vanish from the dataset.
- *
- * HOW TO FIND IT:
- *   - Chart: unique users per week
- *   - Retention analysis: D30 retention by cohort
- *   - Compare: users active in month 1 vs. month 2
- *   - Look for users with events ONLY in the first 30 days
- *
- * EXPECTED INSIGHT: A distinct cohort of ~300 users with activity exclusively
- * in the first month. No gradual decline - a hard cutoff at day 30.
- *
- * REAL-WORLD ANALOGUE: Trial users who never convert, accounts that churn
- * after initial evaluation period, or companies that lose budget approval.
- *
- * ---------------------------------------------------------------------------------
- * 3. ALERT ESCALATION REPLACEMENT (event hook)
- * ---------------------------------------------------------------------------------
- *
- * PATTERN: When an "alert triggered" event has severity "critical" or
- * "emergency", there is a 30% chance the event is REPLACED entirely with a
- * new event type: "incident created". This event type does NOT exist in the
- * events array - it only appears because of hooks.
- *
- * HOW TO FIND IT:
- *   - Look for "incident created" events in the dataset (surprise event type)
- *   - Correlate: incident created events have escalation_level (P1, P2),
- *     teams_paged, incident_id, and auto_escalated: true
- *   - Compare: ratio of critical/emergency alerts to incident creations
- *
- * EXPECTED INSIGHT: Approximately 30% of critical/emergency alerts escalate
- * into formal incidents. The "incident created" event is a hidden event type
- * that analysts must discover through exploration.
- *
- * REAL-WORLD ANALOGUE: Automated escalation systems that create incident
- * records from high-severity alerts (PagerDuty, OpsGenie workflows).
- *
- * ---------------------------------------------------------------------------------
- * 4. INTEGRATION USERS SUCCEED (everything hook)
- * ---------------------------------------------------------------------------------
- *
- * PATTERN: Users who have configured BOTH Slack AND PagerDuty integrations
- * respond to and resolve alerts significantly faster:
- *   - alert_acknowledged response_time_mins reduced by 60%
- *   - alert_resolved resolution_time_mins reduced by 50%
- *   - Affected events tagged with integrated_team: true
- *
- * HOW TO FIND IT:
- *   - Segment users by: has "integration configured" for both "slack" AND "pagerduty"
- *   - Compare: average response_time_mins on alert acknowledged
- *   - Compare: average resolution_time_mins on alert resolved
- *   - Filter: integrated_team = true
- *
- * EXPECTED INSIGHT: Users with both integrations have median response time
- * ~60% lower than baseline. This is a two-feature combination effect.
- *
- * REAL-WORLD ANALOGUE: Tool integration stacks that compound productivity
- * (e.g., CI/CD + monitoring + alerting creating faster MTTR).
- *
- * ---------------------------------------------------------------------------------
- * 5. DOCS READERS DEPLOY MORE (everything hook)
- * ---------------------------------------------------------------------------------
- *
- * PATTERN: Users who view "best_practices" documentation 3 or more times get
- * 2-3 extra "service deployed" events with environment: "production" spliced
- * into their event stream. Tagged with docs_informed: true.
- *
- * HOW TO FIND IT:
- *   - Segment users by: count of "documentation viewed" where doc_section = "best_practices" >= 3
- *   - Compare: count of "service deployed" where environment = "production"
- *   - Filter: docs_informed = true
- *
- * EXPECTED INSIGHT: Users who read best practices documentation 3+ times
- * deploy more services to production, suggesting docs drive confidence
- * and adoption.
- *
- * REAL-WORLD ANALOGUE: Documentation engagement as a leading indicator of
- * product adoption (developer tools where docs reading predicts usage).
- *
- * ---------------------------------------------------------------------------------
- * 6. COST OVERRUN PATTERN (event hook - closure state)
- * ---------------------------------------------------------------------------------
- *
- * PATTERN: When a "cost report generated" event has cost_change_percent > 25,
- * the user is stored in a module-level Map. When that same user later triggers
- * an "infrastructure scaled" event, the scale_direction is forced to "down"
- * (cost-cutting reaction). Uses closure-based state tracking across separate
- * hook calls.
- *
- * HOW TO FIND IT:
- *   - Filter: cost_report_generated where budget_exceeded = true
- *   - Correlate: subsequent infrastructure_scaled where cost_reaction = true
- *   - Compare: scale_direction distribution for cost_reaction users vs. others
- *
- * EXPECTED INSIGHT: Users who experience cost overruns (>25% increase)
- * consistently scale down their infrastructure afterward. The Map-based
- * tracking creates a causal chain across separate events.
- *
- * REAL-WORLD ANALOGUE: Cloud cost management behavior - teams that exceed
- * budgets immediately react by reducing resource allocation.
- *
- * ---------------------------------------------------------------------------------
- * 7. FAILED DEPLOYMENT RECOVERY (event hook - closure state)
- * ---------------------------------------------------------------------------------
- *
- * PATTERN: When a deployment pipeline fails, the user is stored in a
- * module-level Map. Their next successful deployment has duration_sec
- * multiplied by 1.5x (recovery deploys are slower/more careful). Tagged
- * with recovery_deployment: true.
- *
- * HOW TO FIND IT:
- *   - Filter: deployment_pipeline_run where recovery_deployment = true
- *   - Compare: average duration_sec for recovery vs. normal deployments
- *   - Sequence: look for failed -> success pairs per user
- *
- * EXPECTED INSIGHT: Recovery deployments after failures take 50% longer
- * than normal deployments, reflecting more cautious deployment practices.
- *
- * REAL-WORLD ANALOGUE: Post-incident deployment behavior - engineers take
- * extra care after a failed deploy, adding more checks and review steps.
- *
- * ---------------------------------------------------------------------------------
- * 8. ENTERPRISE VS STARTUP (user hook)
- * ---------------------------------------------------------------------------------
- *
- * PATTERN: Based on company_size, users get additional profile properties:
- *   - enterprise: seat_count (50-500), annual_contract_value (50K-500K), customer_success_manager: true
- *   - mid_market: seat_count (10-50), annual_contract_value (12K-50K)
- *   - smb: seat_count (3-10), annual_contract_value (3.6K-12K)
- *   - startup: seat_count (1-5), annual_contract_value (0-3.6K)
- *   - All users get customer_health_score (1-100)
- *
- * HOW TO FIND IT:
- *   - Segment users by: company_size
- *   - Compare: annual_contract_value distribution
- *   - Compare: seat_count ranges
- *   - Filter: customer_success_manager = true (enterprise only)
- *
- * EXPECTED INSIGHT: Clear segmentation of user base by company size with
- * corresponding ACV and seat count distributions. Enterprise customers
- * uniquely have dedicated CSMs.
- *
- * REAL-WORLD ANALOGUE: B2B SaaS customer segmentation where company size
- * directly determines contract value, support tier, and expansion potential.
- *
- * =================================================================================
- * ADVANCED ANALYSIS IDEAS
- * =================================================================================
- *
- * CROSS-HOOK PATTERNS:
- *
- * 1. Churned + Enterprise: Do churned accounts (Hook #2) skew toward startups
- *    or are enterprise accounts also silenced? Cross-reference company_size
- *    with the ~10% churn cohort.
- *
- * 2. Integration + Cost: Do teams with full integrations (Hook #4) also manage
- *    costs better (Hook #6)? Integrated teams may detect cost overruns faster.
- *
- * 3. Docs + Deploys + Failures: Do docs readers (Hook #5) have fewer failed
- *    deployments (Hook #7)? Best practices readers may deploy more carefully.
- *
- * 4. Quarter Spike + Churn: Are quarter-end upgrades (Hook #1) correlated with
- *    accounts that later churn? False expansion before abandonment.
- *
- * 5. Enterprise Recovery: Do enterprise customers (Hook #8) recover from failed
- *    deployments (Hook #7) differently than startups?
- *
- * COHORT ANALYSIS:
- *
- * - Cohort by company_size: Compare all metrics across startup/smb/mid_market/enterprise
- * - Cohort by plan_tier: Free vs. Team vs. Business vs. Enterprise engagement
- * - Cohort by cloud_provider: AWS vs. GCP vs. Azure deployment and alert patterns
- * - Cohort by primary_role: Engineer vs. SRE vs. DevOps vs. Manager behaviors
- *
- * FUNNEL ANALYSIS:
- *
- * - Onboarding: workspace created -> service deployed -> dashboard viewed
- *   Compare by company_size and plan_tier
- * - Incident Response: alert triggered -> acknowledged -> resolved
- *   Compare integrated_team vs. non-integrated response times
- * - Deployment: pipeline run -> service deployed -> dashboard viewed
- *   Compare recovery_deployment vs. normal deployment success
- *
- * KEY METRICS TO TRACK:
- *
- * - MTTR (Mean Time To Resolve): alert triggered -> alert resolved duration
- * - Deployment Frequency: service deployed events per user per week
- * - Deployment Success Rate: pipeline success vs. failure ratio
- * - Cost Efficiency: total_cost trend over time per company
- * - Feature Adoption: integration configured events by type
- * - Documentation Engagement: documentation viewed by section
- *
- * =================================================================================
- * EXPECTED METRICS SUMMARY
- * =================================================================================
- *
- * Hook                     | Metric                   | Baseline  | Hook Effect    | Ratio
- * -------------------------|--------------------------|-----------|----------------|------
- * End-of-Quarter Spike     | Plan upgrades/day        | ~2/day    | ~8/day         | 4x
- * Churned Accounts         | Users active month 2     | 100%      | 90%            | 0.9x
- * Alert Escalation         | Incidents from alerts    | 0%        | ~30% of crit   | new
- * Integration Users        | MTTR (minutes)           | ~300      | ~150           | 0.5x
- * Docs Readers             | Prod deploys/user        | ~3        | ~5-6           | 1.8x
- * Cost Overrun             | Scale-down after overrun | 50%       | 100%           | 2x
- * Failed Deploy Recovery   | Deploy duration (sec)    | ~500      | ~750           | 1.5x
- * Enterprise vs Startup    | ACV range                | $0-3.6K   | $50K-500K      | 100x+
- *
- * =================================================================================
- * HOW TO RUN THIS DUNGEON
- * =================================================================================
- *
- * From the dm4 root directory:
- *
- *   npm start
- *
- * Or programmatically:
- *
- *   import generate from './index.js';
- *   import config from './dungeons/harness-sass.js';
- *   const results = await generate(config);
- *
- * =================================================================================
- * TECHNICAL NOTES
- * =================================================================================
- *
- * - Module-level Maps (costOverrunUsers, failedDeployUsers) provide closure-based
- *   state tracking across individual event hook calls. This is the key differentiator
- *   for this dungeon - hooks 6 and 7 maintain state between separate invocations.
- *
- * - Hook #3 creates "incident created" events that do NOT exist in the events array.
- *   This event type only appears because of hook-based event replacement.
- *
- * - Hook #2 uses splice() in the "everything" handler to remove events after day 30
- *   for ~10% of users. This creates accounts with a hard activity cutoff - complete silence.
- *
- * - The "everything" hooks (2, 4, and 5) operate on the full user event array, enabling
- *   two-pass analysis: first identify patterns, then modify events accordingly.
- *
- * - Desktop/browser only: hasAndroidDevices and hasIOSDevices are both false,
- *   reflecting the B2B SaaS reality that CloudForge is used from workstations.
- *
- * =================================================================================
- */

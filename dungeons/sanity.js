@@ -1,13 +1,3 @@
-/**
- * This is the default configuration file for the data generator in SIMPLE mode
- * notice how the config object is structured, and see it's type definition in ./types.d.ts
- * feel free to modify this file to customize the data you generate
- * see helper functions in utils.js for more ways to generate data
- */
-
-
-
-
 import Chance from 'chance';
 const chance = new Chance();
 import dayjs from 'dayjs';
@@ -15,6 +5,27 @@ import utc from 'dayjs/plugin/utc.js';
 dayjs.extend(utc);
 import { weighNumRange, integer } from "../lib/utils/utils.js";
 
+/**
+ * ═══════════════════════════════════════════════════════════════
+ * DATASET OVERVIEW
+ * ═══════════════════════════════════════════════════════════════
+ *
+ * Sanity Test — lightweight dungeon for module integration testing.
+ * - 500 users over 30 days, ~50K events
+ * - 10 abstract events (foo-yak) with no properties
+ * - Super props: color, number — for quick breakdown testing
+ * - Groups, SCDs, inferred funnels all disabled
+ *
+ * ═══════════════════════════════════════════════════════════════
+ * ANALYTICS HOOKS (2 patterns)
+ * ═══════════════════════════════════════════════════════════════
+ *
+ * 1. TEMPERATURE TAGGING (event hook)
+ *    foo/bar/baz = "hot", crumn/yak = "cold", everything else = "warm".
+ *
+ * 2. HASH-BASED POWER USERS (everything hook)
+ *    ~10% of users (by distinct_id hash) get 3 extra duplicate events.
+ */
 
 /** @type {import('../types.js').Dungeon} */
 const config = {

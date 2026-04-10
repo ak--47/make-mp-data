@@ -731,11 +731,12 @@ describe('funnel ordering strategies', () => {
 		expect(result.length).toBe(5);
 	});
 
-	test('shuffleMiddle keeps middle, shuffles outside', () => {
+	test('shuffleMiddle keeps first and last, shuffles middle', () => {
 		initChance('middle-fixed');
 		const input = ['A', 'B', 'C', 'D', 'E'];
 		const result = u.shuffleMiddle([...input]);
-		expect(result[2]).toBe('C'); // middle element preserved
+		expect(result[0]).toBe('A'); // first element preserved
+		expect(result[result.length - 1]).toBe('E'); // last element preserved
 		expect(result.length).toBe(5);
 	});
 
@@ -759,9 +760,9 @@ describe('funnel experiments', () => {
 		initChance('exp-test');
 		const generate = (await import('../index.js')).default;
 		const results = await generate({
-			numUsers: 20,
-			numEvents: 500,
-			seed: 'exp-test',
+			numUsers: 50,
+			numEvents: 1000,
+			seed: 'exp-test-fixed',
 			writeToDisk: false,
 			events: [
 				{ event: 'view_page', weight: 3, isFirstEvent: true },

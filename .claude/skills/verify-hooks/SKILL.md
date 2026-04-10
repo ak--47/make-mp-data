@@ -65,6 +65,7 @@ For each hook/pattern, catalog:
 - **Mechanism** — what the hook code actually does (modifies properties, splices events, changes conversion rates, etc.)
 - **Expected signal** — the specific, measurable outcome you should see in the data (e.g., "compass_user=true events should have ~1.5x reward_gold compared to compass_user=false")
 - **Which output file** the signal lives in (events, users, groups, etc.)
+- **Mixpanel report instructions** — check whether the documentation includes specific Mixpanel report instructions (report type, event, measure, breakdown, filter, expected numbers). If missing or vague (e.g., just "break down by X" without specifying report type or expected values), flag this in the report recommendations as "DOCS: needs Mixpanel report instructions"
 
 ## Step 2: Run the Dungeon
 

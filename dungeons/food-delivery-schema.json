@@ -1,0 +1,192 @@
+{
+	"events": [
+		{
+			"event": "account created",
+			"weight": 1,
+			"isFirstEvent": true,
+			"properties": {
+				"signup_method": ["email", "google", "apple", "facebook"],
+				"referral_source": ["organic", "referral", "paid_ad", "social_media"]
+			}
+		},
+		{
+			"event": "app opened",
+			"weight": 2,
+			"isSessionStartEvent": true,
+			"properties": {
+				"open_source": ["direct", "push_notification", "deeplink", "widget"]
+			}
+		},
+		{
+			"event": "browse restaurants",
+			"weight": 15,
+			"properties": {
+				"cuisine_filter": ["American", "Italian", "Chinese", "Japanese", "Mexican", "Indian", "Thai", "Mediterranean"],
+				"sort_by": ["recommended", "distance", "rating", "price", "delivery_time"],
+				"price_filter": ["any", "$", "$$", "$$$", "$$$$"]
+			}
+		},
+		{
+			"event": "search",
+			"weight": 10,
+			"properties": {
+				"results_count": { "$range": [0, 50] },
+				"search_type": ["dish", "restaurant", "cuisine"]
+			}
+		},
+		{
+			"event": "restaurant viewed",
+			"weight": 14,
+			"properties": {
+				"cuisine_type": ["American", "Italian", "Chinese", "Japanese", "Mexican", "Indian", "Thai", "Mediterranean"],
+				"avg_rating": { "$range": [1, 5] },
+				"delivery_time_est": { "$range": [15, 75] },
+				"price_tier": ["$", "$$", "$$$", "$$$$"]
+			}
+		},
+		{
+			"event": "view menu item",
+			"weight": 16,
+			"properties": {
+				"item_category": ["entree", "appetizer", "drink", "dessert", "side"],
+				"item_price": { "$range": [3, 55] },
+				"has_photo": [true, false]
+			}
+		},
+		{
+			"event": "favorite item",
+			"weight": 5,
+			"properties": {
+				"item_category": ["entree", "appetizer", "drink", "dessert", "side"],
+				"item_price": { "$range": [3, 55] }
+			}
+		},
+		{
+			"event": "add to cart",
+			"weight": 12,
+			"properties": {
+				"item_price": { "$range": [3, 55] },
+				"quantity": { "$range": [1, 5] },
+				"customization_count": { "$range": [0, 4] }
+			}
+		},
+		{
+			"event": "remove from cart",
+			"weight": 3,
+			"properties": {
+				"removal_reason": ["changed_mind", "too_expensive", "substitution"]
+			}
+		},
+		{
+			"event": "checkout started",
+			"weight": 8,
+			"properties": {
+				"cart_total": { "$range": [10, 120] },
+				"items_count": { "$range": [1, 8] },
+				"delivery_address_saved": [true, false]
+			}
+		},
+		{
+			"event": "order placed",
+			"weight": 7,
+			"properties": {
+				"payment_method": ["credit_card", "apple_pay", "google_pay", "debit_card", "paypal"],
+				"order_total": { "$range": [12, 150] },
+				"tip_amount": { "$range": [0, 25] },
+				"delivery_fee": { "$range": [0, 10] }
+			}
+		},
+		{
+			"event": "order tracked",
+			"weight": 9,
+			"properties": {
+				"tracking_status": ["confirmed", "preparing", "picked_up", "en_route", "delivered"],
+				"eta_mins": { "$range": [5, 60] }
+			}
+		},
+		{
+			"event": "order delivered",
+			"weight": 6,
+			"properties": {
+				"delivery_time_mins": { "$range": [15, 80] },
+				"on_time": [true, false]
+			}
+		},
+		{
+			"event": "order rated",
+			"weight": 5,
+			"properties": {
+				"food_rating": { "$range": [1, 5] },
+				"delivery_rating": { "$range": [1, 5] },
+				"would_reorder": [true, false]
+			}
+		},
+		{
+			"event": "promotion viewed",
+			"weight": 6,
+			"properties": {
+				"promo_type": ["banner", "push_notification", "in_feed", "email"],
+				"promo_value": ["10%", "15%", "20%", "25%", "$5 off", "$10 off", "free delivery"]
+			}
+		},
+		{
+			"event": "coupon applied",
+			"weight": 3,
+			"properties": {
+				"discount_type": ["percent", "flat", "free_delivery"],
+				"discount_value": { "$range": [5, 40] }
+			}
+		},
+		{
+			"event": "reorder initiated",
+			"weight": 4,
+			"properties": {
+				"days_since_original": { "$range": [1, 45] }
+			}
+		},
+		{
+			"event": "support contacted",
+			"weight": 2,
+			"properties": {
+				"issue_type": ["missing_item", "wrong_order", "late_delivery", "quality_issue", "refund_request", "app_bug"]
+			}
+		}
+	],
+	"superProps": {
+		"platform": ["iOS", "Android", "Web"],
+		"subscription_tier": ["Free", "QuickBite+"],
+		"city": ["New York", "Los Angeles", "Chicago", "Houston", "Phoenix", "San Francisco", "Seattle", "Miami"]
+	},
+	"userProps": {
+		"preferred_cuisine": ["American", "Italian", "Chinese", "Japanese", "Mexican", "Indian", "Thai", "Mediterranean"],
+		"avg_order_value": { "$range": [15, 80] },
+		"orders_per_month": { "$range": [1, 15] },
+		"account_age_days": { "$range": [1, 365] }
+	},
+	"funnels": [
+		{
+			"sequence": ["account created", "browse restaurants", "restaurant viewed"],
+			"isFirstFunnel": true,
+			"conversionRate": 75,
+			"timeToConvert": 0.5
+		},
+		{
+			"sequence": ["view menu item", "add to cart", "checkout started", "order placed"],
+			"conversionRate": 50,
+			"timeToConvert": 1,
+			"weight": 5
+		},
+		{
+			"sequence": ["browse restaurants", "restaurant viewed", "view menu item", "favorite item"],
+			"conversionRate": 35,
+			"timeToConvert": 2,
+			"weight": 3
+		},
+		{
+			"sequence": ["order delivered", "order rated", "reorder initiated"],
+			"conversionRate": 40,
+			"timeToConvert": 24,
+			"weight": 2
+		}
+	]
+}

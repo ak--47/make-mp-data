@@ -1,0 +1,906 @@
+{
+  "schema": {
+    "token": "",
+    "seed": "harness-media",
+    "numDays": 100,
+    "numEvents": 600000,
+    "numUsers": 5000,
+    "hasAnonIds": false,
+    "hasSessionIds": true,
+    "format": "json",
+    "gzip": true,
+    "alsoInferFunnels": false,
+    "hasLocation": true,
+    "hasAndroidDevices": true,
+    "hasIOSDevices": true,
+    "hasDesktopDevices": true,
+    "hasBrowser": false,
+    "hasCampaigns": false,
+    "isAnonymous": false,
+    "hasAdSpend": false,
+    "percentUsersBornInDataset": 50,
+    "hasAvatar": true,
+    "batchSize": 2500000,
+    "concurrency": 1,
+    "writeToDisk": false,
+    "funnels": [
+      {
+        "sequence": [
+          "account created",
+          "content browsed",
+          "playback started"
+        ],
+        "isFirstFunnel": true,
+        "conversionRate": 80,
+        "timeToConvert": 0.25
+      },
+      {
+        "sequence": [
+          "content browsed",
+          "content selected",
+          "playback started",
+          "playback completed"
+        ],
+        "conversionRate": 55,
+        "timeToConvert": 2,
+        "weight": 5,
+        "props": {
+          "genre": [
+            "action",
+            "comedy",
+            "drama",
+            "documentary",
+            "horror",
+            "sci_fi",
+            "animation",
+            "thriller",
+            "romance"
+          ]
+        }
+      },
+      {
+        "sequence": [
+          "recommendation clicked",
+          "playback started",
+          "playback completed",
+          "content rated"
+        ],
+        "conversionRate": 35,
+        "timeToConvert": 1,
+        "weight": 3
+      },
+      {
+        "sequence": [
+          "search performed",
+          "content selected",
+          "playback started"
+        ],
+        "conversionRate": 50,
+        "timeToConvert": 0.5,
+        "weight": 3
+      },
+      {
+        "sequence": [
+          "content browsed",
+          "watchlist added",
+          "content selected",
+          "playback started"
+        ],
+        "conversionRate": 40,
+        "timeToConvert": 12,
+        "weight": 2
+      },
+      {
+        "sequence": [
+          "profile switched",
+          "subtitle toggled",
+          "playback started",
+          "playback completed"
+        ],
+        "conversionRate": 45,
+        "timeToConvert": 1,
+        "weight": 2
+      },
+      {
+        "sequence": [
+          "ad impression",
+          "playback started",
+          "playback paused"
+        ],
+        "conversionRate": 60,
+        "timeToConvert": 0.5,
+        "weight": 2
+      },
+      {
+        "sequence": [
+          "playback completed",
+          "share content",
+          "download started"
+        ],
+        "conversionRate": 25,
+        "timeToConvert": 1,
+        "weight": 1
+      },
+      {
+        "sequence": [
+          "content browsed",
+          "subscription changed"
+        ],
+        "conversionRate": 15,
+        "timeToConvert": 24,
+        "weight": 1
+      }
+    ],
+    "events": [
+      {
+        "event": "account created",
+        "weight": 1,
+        "isFirstEvent": true,
+        "properties": {
+          "signup_source": [
+            "organic",
+            "referral",
+            "trial_offer",
+            "ad"
+          ],
+          "plan_selected": [
+            "free",
+            "standard",
+            "premium"
+          ]
+        }
+      },
+      {
+        "event": "content browsed",
+        "weight": 20,
+        "properties": {
+          "browse_section": [
+            "home",
+            "trending",
+            "new_releases",
+            "genre",
+            "continue_watching"
+          ],
+          "genre": [
+            "action",
+            "comedy",
+            "drama",
+            "documentary",
+            "horror",
+            "sci_fi",
+            "animation",
+            "thriller",
+            "romance"
+          ]
+        }
+      },
+      {
+        "event": "content selected",
+        "weight": 15,
+        "properties": {
+          "content_type": [
+            "movie",
+            "series",
+            "documentary",
+            "special"
+          ],
+          "genre": [
+            "action",
+            "comedy",
+            "drama",
+            "documentary",
+            "horror",
+            "sci_fi",
+            "animation",
+            "thriller",
+            "romance"
+          ],
+          "content_id": {
+            "functionName": "arrow",
+            "body": "function () {\n\t\tconst weighted = [];\n\t\tfor (let i = 0; i < 10; i++) {\n\t\t\tconst rand = chance.d10(); // Random number between 1 and 10\n\n\t\t\t// 35% chance to favor the most chosen index\n\t\t\tif (chance.bool({ likelihood: 35 })) {\n\t\t\t\t// 50% chance to slightly alter the index\n\t\t\t\tif (chance.bool({ likelihood: 50 })) {\n\t\t\t\t\tweighted.push(items[mostChosenIndex]);\n\t\t\t\t} else {\n\t\t\t\t\tconst addOrSubtract = chance.bool({ likelihood: 50 }) ? -rand : rand;\n\t\t\t\t\tlet newIndex = mostChosenIndex + addOrSubtract;\n\n\t\t\t\t\t// Ensure newIndex is within bounds\n\t\t\t\t\tif (newIndex < 0) newIndex = 0;\n\t\t\t\t\tif (newIndex >= items.length) newIndex = items.length - 1;\n\t\t\t\t\tweighted.push(items[newIndex]);\n\t\t\t\t}\n\t\t\t}\n\t\t\t// 25% chance to favor the second most chosen index\n\t\t\telse if (chance.bool({ likelihood: 25 })) {\n\t\t\t\tweighted.push(items[secondMostChosenIndex]);\n\t\t\t}\n\t\t\t// 15% chance to favor the third most chosen index\n\t\t\telse if (chance.bool({ likelihood: 15 })) {\n\t\t\t\tweighted.push(items[thirdMostChosenIndex]);\n\t\t\t}\n\t\t\t// Otherwise, pick a random item from the list\n\t\t\telse {\n\t\t\t\tweighted.push(chance.pickone(items));\n\t\t\t}\n\t\t}\n\t\treturn weighted;\n\t}"
+          }
+        }
+      },
+      {
+        "event": "playback started",
+        "weight": 18,
+        "properties": {
+          "content_id": {
+            "functionName": "arrow",
+            "body": "function () {\n\t\tconst weighted = [];\n\t\tfor (let i = 0; i < 10; i++) {\n\t\t\tconst rand = chance.d10(); // Random number between 1 and 10\n\n\t\t\t// 35% chance to favor the most chosen index\n\t\t\tif (chance.bool({ likelihood: 35 })) {\n\t\t\t\t// 50% chance to slightly alter the index\n\t\t\t\tif (chance.bool({ likelihood: 50 })) {\n\t\t\t\t\tweighted.push(items[mostChosenIndex]);\n\t\t\t\t} else {\n\t\t\t\t\tconst addOrSubtract = chance.bool({ likelihood: 50 }) ? -rand : rand;\n\t\t\t\t\tlet newIndex = mostChosenIndex + addOrSubtract;\n\n\t\t\t\t\t// Ensure newIndex is within bounds\n\t\t\t\t\tif (newIndex < 0) newIndex = 0;\n\t\t\t\t\tif (newIndex >= items.length) newIndex = items.length - 1;\n\t\t\t\t\tweighted.push(items[newIndex]);\n\t\t\t\t}\n\t\t\t}\n\t\t\t// 25% chance to favor the second most chosen index\n\t\t\telse if (chance.bool({ likelihood: 25 })) {\n\t\t\t\tweighted.push(items[secondMostChosenIndex]);\n\t\t\t}\n\t\t\t// 15% chance to favor the third most chosen index\n\t\t\telse if (chance.bool({ likelihood: 15 })) {\n\t\t\t\tweighted.push(items[thirdMostChosenIndex]);\n\t\t\t}\n\t\t\t// Otherwise, pick a random item from the list\n\t\t\telse {\n\t\t\t\tweighted.push(chance.pickone(items));\n\t\t\t}\n\t\t}\n\t\treturn weighted;\n\t}"
+          },
+          "content_type": [
+            "movie",
+            "series",
+            "documentary",
+            "special"
+          ],
+          "playback_quality": [
+            "480p",
+            "720p",
+            "1080p",
+            "4k"
+          ],
+          "subtitle_language": [
+            "none",
+            "english",
+            "spanish",
+            "french",
+            "japanese",
+            "korean"
+          ],
+          "playback_speed": {
+            "functionName": "arrow",
+            "body": "function () {\n\t\tconst weighted = [];\n\t\tfor (let i = 0; i < 10; i++) {\n\t\t\tconst rand = chance.d10(); // Random number between 1 and 10\n\n\t\t\t// 35% chance to favor the most chosen index\n\t\t\tif (chance.bool({ likelihood: 35 })) {\n\t\t\t\t// 50% chance to slightly alter the index\n\t\t\t\tif (chance.bool({ likelihood: 50 })) {\n\t\t\t\t\tweighted.push(items[mostChosenIndex]);\n\t\t\t\t} else {\n\t\t\t\t\tconst addOrSubtract = chance.bool({ likelihood: 50 }) ? -rand : rand;\n\t\t\t\t\tlet newIndex = mostChosenIndex + addOrSubtract;\n\n\t\t\t\t\t// Ensure newIndex is within bounds\n\t\t\t\t\tif (newIndex < 0) newIndex = 0;\n\t\t\t\t\tif (newIndex >= items.length) newIndex = items.length - 1;\n\t\t\t\t\tweighted.push(items[newIndex]);\n\t\t\t\t}\n\t\t\t}\n\t\t\t// 25% chance to favor the second most chosen index\n\t\t\telse if (chance.bool({ likelihood: 25 })) {\n\t\t\t\tweighted.push(items[secondMostChosenIndex]);\n\t\t\t}\n\t\t\t// 15% chance to favor the third most chosen index\n\t\t\telse if (chance.bool({ likelihood: 15 })) {\n\t\t\t\tweighted.push(items[thirdMostChosenIndex]);\n\t\t\t}\n\t\t\t// Otherwise, pick a random item from the list\n\t\t\telse {\n\t\t\t\tweighted.push(chance.pickone(items));\n\t\t\t}\n\t\t}\n\t\treturn weighted;\n\t}"
+          }
+        }
+      },
+      {
+        "event": "playback completed",
+        "weight": 12,
+        "properties": {
+          "content_id": {
+            "functionName": "arrow",
+            "body": "function () {\n\t\tconst weighted = [];\n\t\tfor (let i = 0; i < 10; i++) {\n\t\t\tconst rand = chance.d10(); // Random number between 1 and 10\n\n\t\t\t// 35% chance to favor the most chosen index\n\t\t\tif (chance.bool({ likelihood: 35 })) {\n\t\t\t\t// 50% chance to slightly alter the index\n\t\t\t\tif (chance.bool({ likelihood: 50 })) {\n\t\t\t\t\tweighted.push(items[mostChosenIndex]);\n\t\t\t\t} else {\n\t\t\t\t\tconst addOrSubtract = chance.bool({ likelihood: 50 }) ? -rand : rand;\n\t\t\t\t\tlet newIndex = mostChosenIndex + addOrSubtract;\n\n\t\t\t\t\t// Ensure newIndex is within bounds\n\t\t\t\t\tif (newIndex < 0) newIndex = 0;\n\t\t\t\t\tif (newIndex >= items.length) newIndex = items.length - 1;\n\t\t\t\t\tweighted.push(items[newIndex]);\n\t\t\t\t}\n\t\t\t}\n\t\t\t// 25% chance to favor the second most chosen index\n\t\t\telse if (chance.bool({ likelihood: 25 })) {\n\t\t\t\tweighted.push(items[secondMostChosenIndex]);\n\t\t\t}\n\t\t\t// 15% chance to favor the third most chosen index\n\t\t\telse if (chance.bool({ likelihood: 15 })) {\n\t\t\t\tweighted.push(items[thirdMostChosenIndex]);\n\t\t\t}\n\t\t\t// Otherwise, pick a random item from the list\n\t\t\telse {\n\t\t\t\tweighted.push(chance.pickone(items));\n\t\t\t}\n\t\t}\n\t\treturn weighted;\n\t}"
+          },
+          "content_type": [
+            "movie",
+            "series",
+            "documentary",
+            "special"
+          ],
+          "watch_duration_min": [
+            64,
+            87,
+            153,
+            42,
+            50,
+            68,
+            77,
+            149,
+            127,
+            36,
+            98,
+            119,
+            54,
+            132,
+            51,
+            58,
+            48,
+            63,
+            143,
+            114,
+            127,
+            35,
+            61,
+            112,
+            67,
+            81,
+            68,
+            42,
+            115,
+            132,
+            48,
+            46,
+            138,
+            71,
+            49,
+            146,
+            47,
+            65,
+            46,
+            117,
+            84,
+            68,
+            50,
+            93,
+            62
+          ],
+          "completion_percent": [
+            50,
+            51,
+            47,
+            57,
+            35,
+            55,
+            52,
+            52,
+            40,
+            31,
+            50,
+            49,
+            60,
+            25,
+            49,
+            40,
+            95,
+            25,
+            80,
+            80,
+            67,
+            35,
+            75,
+            42,
+            58,
+            98,
+            66,
+            53,
+            75,
+            46,
+            47,
+            53,
+            52,
+            33,
+            55,
+            49,
+            42,
+            41,
+            31,
+            58,
+            54,
+            51,
+            55,
+            50,
+            59,
+            66,
+            43,
+            38,
+            32,
+            11,
+            54,
+            89,
+            25,
+            35,
+            41,
+            46,
+            51,
+            72,
+            46,
+            52,
+            91,
+            51,
+            32,
+            43,
+            40,
+            14,
+            42,
+            87,
+            54,
+            55,
+            60,
+            39,
+            28,
+            39,
+            66,
+            33,
+            48,
+            34,
+            47,
+            51,
+            76,
+            86,
+            40,
+            17,
+            56
+          ]
+        }
+      },
+      {
+        "event": "playback paused",
+        "weight": 10,
+        "properties": {
+          "content_id": {
+            "functionName": "arrow",
+            "body": "function () {\n\t\tconst weighted = [];\n\t\tfor (let i = 0; i < 10; i++) {\n\t\t\tconst rand = chance.d10(); // Random number between 1 and 10\n\n\t\t\t// 35% chance to favor the most chosen index\n\t\t\tif (chance.bool({ likelihood: 35 })) {\n\t\t\t\t// 50% chance to slightly alter the index\n\t\t\t\tif (chance.bool({ likelihood: 50 })) {\n\t\t\t\t\tweighted.push(items[mostChosenIndex]);\n\t\t\t\t} else {\n\t\t\t\t\tconst addOrSubtract = chance.bool({ likelihood: 50 }) ? -rand : rand;\n\t\t\t\t\tlet newIndex = mostChosenIndex + addOrSubtract;\n\n\t\t\t\t\t// Ensure newIndex is within bounds\n\t\t\t\t\tif (newIndex < 0) newIndex = 0;\n\t\t\t\t\tif (newIndex >= items.length) newIndex = items.length - 1;\n\t\t\t\t\tweighted.push(items[newIndex]);\n\t\t\t\t}\n\t\t\t}\n\t\t\t// 25% chance to favor the second most chosen index\n\t\t\telse if (chance.bool({ likelihood: 25 })) {\n\t\t\t\tweighted.push(items[secondMostChosenIndex]);\n\t\t\t}\n\t\t\t// 15% chance to favor the third most chosen index\n\t\t\telse if (chance.bool({ likelihood: 15 })) {\n\t\t\t\tweighted.push(items[thirdMostChosenIndex]);\n\t\t\t}\n\t\t\t// Otherwise, pick a random item from the list\n\t\t\telse {\n\t\t\t\tweighted.push(chance.pickone(items));\n\t\t\t}\n\t\t}\n\t\treturn weighted;\n\t}"
+          },
+          "pause_reason": [
+            "manual",
+            "ad_break",
+            "buffering",
+            "notification"
+          ]
+        }
+      },
+      {
+        "event": "content rated",
+        "weight": 6,
+        "properties": {
+          "content_id": {
+            "functionName": "arrow",
+            "body": "function () {\n\t\tconst weighted = [];\n\t\tfor (let i = 0; i < 10; i++) {\n\t\t\tconst rand = chance.d10(); // Random number between 1 and 10\n\n\t\t\t// 35% chance to favor the most chosen index\n\t\t\tif (chance.bool({ likelihood: 35 })) {\n\t\t\t\t// 50% chance to slightly alter the index\n\t\t\t\tif (chance.bool({ likelihood: 50 })) {\n\t\t\t\t\tweighted.push(items[mostChosenIndex]);\n\t\t\t\t} else {\n\t\t\t\t\tconst addOrSubtract = chance.bool({ likelihood: 50 }) ? -rand : rand;\n\t\t\t\t\tlet newIndex = mostChosenIndex + addOrSubtract;\n\n\t\t\t\t\t// Ensure newIndex is within bounds\n\t\t\t\t\tif (newIndex < 0) newIndex = 0;\n\t\t\t\t\tif (newIndex >= items.length) newIndex = items.length - 1;\n\t\t\t\t\tweighted.push(items[newIndex]);\n\t\t\t\t}\n\t\t\t}\n\t\t\t// 25% chance to favor the second most chosen index\n\t\t\telse if (chance.bool({ likelihood: 25 })) {\n\t\t\t\tweighted.push(items[secondMostChosenIndex]);\n\t\t\t}\n\t\t\t// 15% chance to favor the third most chosen index\n\t\t\telse if (chance.bool({ likelihood: 15 })) {\n\t\t\t\tweighted.push(items[thirdMostChosenIndex]);\n\t\t\t}\n\t\t\t// Otherwise, pick a random item from the list\n\t\t\telse {\n\t\t\t\tweighted.push(chance.pickone(items));\n\t\t\t}\n\t\t}\n\t\treturn weighted;\n\t}"
+          },
+          "rating": [
+            3,
+            2,
+            2,
+            2
+          ],
+          "review_text_length": []
+        }
+      },
+      {
+        "event": "watchlist added",
+        "weight": 8,
+        "properties": {
+          "content_id": {
+            "functionName": "arrow",
+            "body": "function () {\n\t\tconst weighted = [];\n\t\tfor (let i = 0; i < 10; i++) {\n\t\t\tconst rand = chance.d10(); // Random number between 1 and 10\n\n\t\t\t// 35% chance to favor the most chosen index\n\t\t\tif (chance.bool({ likelihood: 35 })) {\n\t\t\t\t// 50% chance to slightly alter the index\n\t\t\t\tif (chance.bool({ likelihood: 50 })) {\n\t\t\t\t\tweighted.push(items[mostChosenIndex]);\n\t\t\t\t} else {\n\t\t\t\t\tconst addOrSubtract = chance.bool({ likelihood: 50 }) ? -rand : rand;\n\t\t\t\t\tlet newIndex = mostChosenIndex + addOrSubtract;\n\n\t\t\t\t\t// Ensure newIndex is within bounds\n\t\t\t\t\tif (newIndex < 0) newIndex = 0;\n\t\t\t\t\tif (newIndex >= items.length) newIndex = items.length - 1;\n\t\t\t\t\tweighted.push(items[newIndex]);\n\t\t\t\t}\n\t\t\t}\n\t\t\t// 25% chance to favor the second most chosen index\n\t\t\telse if (chance.bool({ likelihood: 25 })) {\n\t\t\t\tweighted.push(items[secondMostChosenIndex]);\n\t\t\t}\n\t\t\t// 15% chance to favor the third most chosen index\n\t\t\telse if (chance.bool({ likelihood: 15 })) {\n\t\t\t\tweighted.push(items[thirdMostChosenIndex]);\n\t\t\t}\n\t\t\t// Otherwise, pick a random item from the list\n\t\t\telse {\n\t\t\t\tweighted.push(chance.pickone(items));\n\t\t\t}\n\t\t}\n\t\treturn weighted;\n\t}"
+          },
+          "content_type": [
+            "movie",
+            "series",
+            "documentary",
+            "special"
+          ],
+          "genre": [
+            "action",
+            "comedy",
+            "drama",
+            "documentary",
+            "horror",
+            "sci_fi",
+            "animation",
+            "thriller",
+            "romance"
+          ]
+        }
+      },
+      {
+        "event": "watchlist removed",
+        "weight": 3,
+        "properties": {
+          "content_id": {
+            "functionName": "arrow",
+            "body": "function () {\n\t\tconst weighted = [];\n\t\tfor (let i = 0; i < 10; i++) {\n\t\t\tconst rand = chance.d10(); // Random number between 1 and 10\n\n\t\t\t// 35% chance to favor the most chosen index\n\t\t\tif (chance.bool({ likelihood: 35 })) {\n\t\t\t\t// 50% chance to slightly alter the index\n\t\t\t\tif (chance.bool({ likelihood: 50 })) {\n\t\t\t\t\tweighted.push(items[mostChosenIndex]);\n\t\t\t\t} else {\n\t\t\t\t\tconst addOrSubtract = chance.bool({ likelihood: 50 }) ? -rand : rand;\n\t\t\t\t\tlet newIndex = mostChosenIndex + addOrSubtract;\n\n\t\t\t\t\t// Ensure newIndex is within bounds\n\t\t\t\t\tif (newIndex < 0) newIndex = 0;\n\t\t\t\t\tif (newIndex >= items.length) newIndex = items.length - 1;\n\t\t\t\t\tweighted.push(items[newIndex]);\n\t\t\t\t}\n\t\t\t}\n\t\t\t// 25% chance to favor the second most chosen index\n\t\t\telse if (chance.bool({ likelihood: 25 })) {\n\t\t\t\tweighted.push(items[secondMostChosenIndex]);\n\t\t\t}\n\t\t\t// 15% chance to favor the third most chosen index\n\t\t\telse if (chance.bool({ likelihood: 15 })) {\n\t\t\t\tweighted.push(items[thirdMostChosenIndex]);\n\t\t\t}\n\t\t\t// Otherwise, pick a random item from the list\n\t\t\telse {\n\t\t\t\tweighted.push(chance.pickone(items));\n\t\t\t}\n\t\t}\n\t\treturn weighted;\n\t}"
+          },
+          "reason": [
+            "watched",
+            "not_interested",
+            "expired"
+          ]
+        }
+      },
+      {
+        "event": "search performed",
+        "weight": 7,
+        "properties": {
+          "search_term": {
+            "functionName": "arrow",
+            "body": "() => chance.word()"
+          },
+          "results_count": [
+            13,
+            25,
+            37,
+            19,
+            11,
+            41,
+            20,
+            11,
+            32,
+            35,
+            24,
+            34,
+            14,
+            14,
+            12
+          ],
+          "search_type": [
+            "title",
+            "actor",
+            "director",
+            "genre"
+          ]
+        }
+      },
+      {
+        "event": "recommendation clicked",
+        "weight": 9,
+        "properties": {
+          "algorithm": [
+            "collaborative_filtering",
+            "content_based",
+            "trending",
+            "editorial"
+          ],
+          "position": [
+            9,
+            10,
+            11,
+            4,
+            3,
+            5,
+            19,
+            5,
+            6,
+            6,
+            6,
+            5,
+            4,
+            11,
+            7,
+            17,
+            12,
+            8,
+            8,
+            9,
+            9,
+            6,
+            13,
+            13,
+            14,
+            4,
+            5,
+            9,
+            18,
+            18,
+            7,
+            4,
+            5,
+            6,
+            13,
+            7,
+            6,
+            13,
+            13,
+            11,
+            7,
+            12,
+            9,
+            6,
+            18,
+            16,
+            6,
+            16,
+            12,
+            10
+          ]
+        }
+      },
+      {
+        "event": "profile switched",
+        "weight": 4,
+        "properties": {
+          "profile_type": [
+            "main",
+            "kids",
+            "partner",
+            "guest"
+          ]
+        }
+      },
+      {
+        "event": "ad impression",
+        "weight": 8,
+        "properties": {
+          "ad_type": [
+            "pre_roll",
+            "mid_roll",
+            "banner",
+            "interstitial"
+          ],
+          "ad_duration_sec": [
+            16,
+            8,
+            22,
+            11,
+            17,
+            21,
+            16,
+            11,
+            13,
+            14,
+            11,
+            16,
+            18,
+            12,
+            15,
+            16,
+            12,
+            11,
+            9,
+            12,
+            15,
+            18,
+            25,
+            15,
+            9,
+            19,
+            21,
+            23,
+            11,
+            20,
+            7,
+            15,
+            24,
+            14,
+            18,
+            15,
+            12,
+            18,
+            19,
+            25,
+            11,
+            10,
+            14,
+            11,
+            11,
+            19,
+            11,
+            21,
+            26,
+            8
+          ],
+          "skipped": {
+            "functionName": "arrow",
+            "body": "function () {\n\t\tconst weighted = [];\n\t\tfor (let i = 0; i < 10; i++) {\n\t\t\tconst rand = chance.d10(); // Random number between 1 and 10\n\n\t\t\t// 35% chance to favor the most chosen index\n\t\t\tif (chance.bool({ likelihood: 35 })) {\n\t\t\t\t// 50% chance to slightly alter the index\n\t\t\t\tif (chance.bool({ likelihood: 50 })) {\n\t\t\t\t\tweighted.push(items[mostChosenIndex]);\n\t\t\t\t} else {\n\t\t\t\t\tconst addOrSubtract = chance.bool({ likelihood: 50 }) ? -rand : rand;\n\t\t\t\t\tlet newIndex = mostChosenIndex + addOrSubtract;\n\n\t\t\t\t\t// Ensure newIndex is within bounds\n\t\t\t\t\tif (newIndex < 0) newIndex = 0;\n\t\t\t\t\tif (newIndex >= items.length) newIndex = items.length - 1;\n\t\t\t\t\tweighted.push(items[newIndex]);\n\t\t\t\t}\n\t\t\t}\n\t\t\t// 25% chance to favor the second most chosen index\n\t\t\telse if (chance.bool({ likelihood: 25 })) {\n\t\t\t\tweighted.push(items[secondMostChosenIndex]);\n\t\t\t}\n\t\t\t// 15% chance to favor the third most chosen index\n\t\t\telse if (chance.bool({ likelihood: 15 })) {\n\t\t\t\tweighted.push(items[thirdMostChosenIndex]);\n\t\t\t}\n\t\t\t// Otherwise, pick a random item from the list\n\t\t\telse {\n\t\t\t\tweighted.push(chance.pickone(items));\n\t\t\t}\n\t\t}\n\t\treturn weighted;\n\t}"
+          }
+        }
+      },
+      {
+        "event": "subscription changed",
+        "weight": 2,
+        "properties": {
+          "old_plan": [
+            "free",
+            "standard",
+            "premium"
+          ],
+          "new_plan": [
+            "free",
+            "standard",
+            "premium"
+          ],
+          "change_reason": [
+            "upgrade",
+            "downgrade",
+            "cancel",
+            "resubscribe"
+          ]
+        }
+      },
+      {
+        "event": "download started",
+        "weight": 5,
+        "properties": {
+          "content_id": {
+            "functionName": "arrow",
+            "body": "function () {\n\t\tconst weighted = [];\n\t\tfor (let i = 0; i < 10; i++) {\n\t\t\tconst rand = chance.d10(); // Random number between 1 and 10\n\n\t\t\t// 35% chance to favor the most chosen index\n\t\t\tif (chance.bool({ likelihood: 35 })) {\n\t\t\t\t// 50% chance to slightly alter the index\n\t\t\t\tif (chance.bool({ likelihood: 50 })) {\n\t\t\t\t\tweighted.push(items[mostChosenIndex]);\n\t\t\t\t} else {\n\t\t\t\t\tconst addOrSubtract = chance.bool({ likelihood: 50 }) ? -rand : rand;\n\t\t\t\t\tlet newIndex = mostChosenIndex + addOrSubtract;\n\n\t\t\t\t\t// Ensure newIndex is within bounds\n\t\t\t\t\tif (newIndex < 0) newIndex = 0;\n\t\t\t\t\tif (newIndex >= items.length) newIndex = items.length - 1;\n\t\t\t\t\tweighted.push(items[newIndex]);\n\t\t\t\t}\n\t\t\t}\n\t\t\t// 25% chance to favor the second most chosen index\n\t\t\telse if (chance.bool({ likelihood: 25 })) {\n\t\t\t\tweighted.push(items[secondMostChosenIndex]);\n\t\t\t}\n\t\t\t// 15% chance to favor the third most chosen index\n\t\t\telse if (chance.bool({ likelihood: 15 })) {\n\t\t\t\tweighted.push(items[thirdMostChosenIndex]);\n\t\t\t}\n\t\t\t// Otherwise, pick a random item from the list\n\t\t\telse {\n\t\t\t\tweighted.push(chance.pickone(items));\n\t\t\t}\n\t\t}\n\t\treturn weighted;\n\t}"
+          },
+          "content_type": [
+            "movie",
+            "series",
+            "documentary",
+            "special"
+          ],
+          "download_quality": [
+            "720p",
+            "1080p",
+            "4k"
+          ]
+        }
+      },
+      {
+        "event": "share content",
+        "weight": 3,
+        "properties": {
+          "share_method": [
+            "link",
+            "social",
+            "dm",
+            "email"
+          ],
+          "content_type": [
+            "movie",
+            "series",
+            "documentary",
+            "special"
+          ]
+        }
+      },
+      {
+        "event": "subtitle toggled",
+        "weight": 4,
+        "properties": {
+          "subtitle_language": [
+            "none",
+            "english",
+            "spanish",
+            "french",
+            "japanese",
+            "korean"
+          ],
+          "action": [
+            "enabled",
+            "disabled",
+            "changed"
+          ]
+        }
+      }
+    ],
+    "superProps": {
+      "subscription_plan": {
+        "functionName": "arrow",
+        "body": "function () {\n\t\tconst weighted = [];\n\t\tfor (let i = 0; i < 10; i++) {\n\t\t\tconst rand = chance.d10(); // Random number between 1 and 10\n\n\t\t\t// 35% chance to favor the most chosen index\n\t\t\tif (chance.bool({ likelihood: 35 })) {\n\t\t\t\t// 50% chance to slightly alter the index\n\t\t\t\tif (chance.bool({ likelihood: 50 })) {\n\t\t\t\t\tweighted.push(items[mostChosenIndex]);\n\t\t\t\t} else {\n\t\t\t\t\tconst addOrSubtract = chance.bool({ likelihood: 50 }) ? -rand : rand;\n\t\t\t\t\tlet newIndex = mostChosenIndex + addOrSubtract;\n\n\t\t\t\t\t// Ensure newIndex is within bounds\n\t\t\t\t\tif (newIndex < 0) newIndex = 0;\n\t\t\t\t\tif (newIndex >= items.length) newIndex = items.length - 1;\n\t\t\t\t\tweighted.push(items[newIndex]);\n\t\t\t\t}\n\t\t\t}\n\t\t\t// 25% chance to favor the second most chosen index\n\t\t\telse if (chance.bool({ likelihood: 25 })) {\n\t\t\t\tweighted.push(items[secondMostChosenIndex]);\n\t\t\t}\n\t\t\t// 15% chance to favor the third most chosen index\n\t\t\telse if (chance.bool({ likelihood: 15 })) {\n\t\t\t\tweighted.push(items[thirdMostChosenIndex]);\n\t\t\t}\n\t\t\t// Otherwise, pick a random item from the list\n\t\t\telse {\n\t\t\t\tweighted.push(chance.pickone(items));\n\t\t\t}\n\t\t}\n\t\treturn weighted;\n\t}"
+      },
+      "device_type": [
+        "smart_tv",
+        "mobile",
+        "tablet",
+        "laptop",
+        "desktop"
+      ]
+    },
+    "scdProps": {},
+    "userProps": {
+      "preferred_genre": [
+        "action",
+        "comedy",
+        "drama",
+        "documentary",
+        "horror",
+        "sci_fi",
+        "animation"
+      ],
+      "avg_session_duration_min": [
+        63,
+        54,
+        136,
+        60,
+        45,
+        59,
+        58,
+        53,
+        54,
+        61,
+        87,
+        36,
+        123,
+        65,
+        126,
+        72,
+        95,
+        51,
+        66,
+        146,
+        47,
+        138,
+        131,
+        76,
+        54,
+        53,
+        53,
+        129,
+        53,
+        52,
+        65,
+        107,
+        114,
+        48,
+        141,
+        39,
+        58,
+        138,
+        119,
+        47,
+        68,
+        51,
+        95,
+        54,
+        62
+      ],
+      "total_watch_hours": [
+        135,
+        201,
+        119,
+        346,
+        331,
+        211,
+        340,
+        156,
+        334,
+        206,
+        157,
+        175,
+        231,
+        97,
+        217,
+        250,
+        231,
+        384,
+        298,
+        155,
+        253,
+        136,
+        173,
+        202,
+        158,
+        339,
+        315,
+        90,
+        67,
+        150,
+        410,
+        338,
+        161,
+        178,
+        330,
+        187,
+        149,
+        324,
+        173,
+        331,
+        125,
+        153,
+        250,
+        195,
+        151,
+        393,
+        394,
+        125,
+        197,
+        150
+      ],
+      "profiles_count": [
+        2,
+        2,
+        1,
+        4,
+        2,
+        2,
+        2,
+        2,
+        2,
+        3,
+        4,
+        2,
+        3,
+        2,
+        2,
+        2,
+        4,
+        3,
+        2,
+        3,
+        2,
+        1,
+        3,
+        4,
+        3,
+        2,
+        2,
+        2,
+        2,
+        2,
+        3,
+        2,
+        2,
+        2,
+        3,
+        2,
+        2,
+        3,
+        1,
+        3,
+        3,
+        3,
+        1,
+        2,
+        4,
+        4,
+        2,
+        1,
+        2,
+        1
+      ],
+      "downloads_enabled": {
+        "functionName": "arrow",
+        "body": "function () {\n\t\tconst weighted = [];\n\t\tfor (let i = 0; i < 10; i++) {\n\t\t\tconst rand = chance.d10(); // Random number between 1 and 10\n\n\t\t\t// 35% chance to favor the most chosen index\n\t\t\tif (chance.bool({ likelihood: 35 })) {\n\t\t\t\t// 50% chance to slightly alter the index\n\t\t\t\tif (chance.bool({ likelihood: 50 })) {\n\t\t\t\t\tweighted.push(items[mostChosenIndex]);\n\t\t\t\t} else {\n\t\t\t\t\tconst addOrSubtract = chance.bool({ likelihood: 50 }) ? -rand : rand;\n\t\t\t\t\tlet newIndex = mostChosenIndex + addOrSubtract;\n\n\t\t\t\t\t// Ensure newIndex is within bounds\n\t\t\t\t\tif (newIndex < 0) newIndex = 0;\n\t\t\t\t\tif (newIndex >= items.length) newIndex = items.length - 1;\n\t\t\t\t\tweighted.push(items[newIndex]);\n\t\t\t\t}\n\t\t\t}\n\t\t\t// 25% chance to favor the second most chosen index\n\t\t\telse if (chance.bool({ likelihood: 25 })) {\n\t\t\t\tweighted.push(items[secondMostChosenIndex]);\n\t\t\t}\n\t\t\t// 15% chance to favor the third most chosen index\n\t\t\telse if (chance.bool({ likelihood: 15 })) {\n\t\t\t\tweighted.push(items[thirdMostChosenIndex]);\n\t\t\t}\n\t\t\t// Otherwise, pick a random item from the list\n\t\t\telse {\n\t\t\t\tweighted.push(chance.pickone(items));\n\t\t\t}\n\t\t}\n\t\treturn weighted;\n\t}"
+      }
+    },
+    "lookupTables": []
+  },
+  "hooks": "function (record, type, meta) {\n\t\tconst NOW = dayjs();\n\t\tconst DATASET_START = NOW.subtract(days, 'days');\n\t\t// FIXED_START is the pre-shift time range start; needed because\n\t\t// meta.firstEventTime in funnel-pre is in the FIXED (pre-shift) timeframe\n\t\tconst FIXED_START = dayjs.unix(global.FIXED_NOW).subtract(days, 'days');\n\n\t\t// ─────────────────────────────────────────────────────────────\n\t\t// Hook #1: GENRE FUNNEL CONVERSION (funnel-pre)\n\t\t// Comedy/Animation funnels convert 1.3x better; Documentary 0.7x\n\t\t// ─────────────────────────────────────────────────────────────\n\t\tif (type === \"funnel-pre\") {\n\t\t\trecord.props = record.props || {};\n\t\t\tconst genre = record.props.genre;\n\n\t\t\tif (genre === \"comedy\" || genre === \"animation\") {\n\t\t\t\trecord.conversionRate = record.conversionRate * 1.3;\n\t\t\t\trecord.props.genre_boost = true;\n\t\t\t\trecord.props.genre_penalty = false;\n\t\t\t} else if (genre === \"documentary\") {\n\t\t\t\trecord.conversionRate = record.conversionRate * 0.7;\n\t\t\t\trecord.props.genre_boost = false;\n\t\t\t\trecord.props.genre_penalty = true;\n\t\t\t} else if (!genre && chance.bool({ likelihood: 25 })) {\n\t\t\t\t// Randomly apply genre effects when genre isn't in funnel props\n\t\t\t\tif (chance.bool({ likelihood: 60 })) {\n\t\t\t\t\trecord.conversionRate = record.conversionRate * 1.3;\n\t\t\t\t\trecord.props.genre_boost = true;\n\t\t\t\t\trecord.props.genre_penalty = false;\n\t\t\t\t} else {\n\t\t\t\t\trecord.conversionRate = record.conversionRate * 0.7;\n\t\t\t\t\trecord.props.genre_boost = false;\n\t\t\t\t\trecord.props.genre_penalty = true;\n\t\t\t\t}\n\t\t\t} else {\n\t\t\t\trecord.props.genre_boost = false;\n\t\t\t\trecord.props.genre_penalty = false;\n\t\t\t}\n\n\t\t\t// ─────────────────────────────────────────────────────────────\n\t\t\t// Hook #7: RECOMMENDATION ENGINE IMPROVEMENT (funnel-pre)\n\t\t\t// After day 60, engagement funnel gets 1.5x boost\n\t\t\t// ─────────────────────────────────────────────────────────────\n\t\t\tconst seq = record.sequence || [];\n\t\t\tconst isEngagementFunnel = seq.includes(\"recommendation clicked\");\n\t\t\tconst funnelTime = meta && meta.firstEventTime ? dayjs.unix(meta.firstEventTime) : null;\n\t\t\tconst isAfterImprovement = funnelTime && funnelTime.isAfter(FIXED_START.add(60, 'days'));\n\n\t\t\tif (isEngagementFunnel && isAfterImprovement) {\n\t\t\t\trecord.conversionRate = record.conversionRate * 1.5;\n\t\t\t\trecord.props.improved_recs = true;\n\t\t\t} else {\n\t\t\t\trecord.props.improved_recs = false;\n\t\t\t}\n\n\t\t\treturn record;\n\t\t}\n\n\t\t// ─────────────────────────────────────────────────────────────\n\t\t// Hook #3: WEEKEND vs WEEKDAY PATTERNS (event)\n\t\t// Weekend: 1.5x watch duration. Weekday 6PM-11PM: prime_time tag\n\t\t// ─────────────────────────────────────────────────────────────\n\t\tif (type === \"event\") {\n\t\t\tconst EVENT_TIME = dayjs(record.time);\n\t\t\tconst dayOfWeek = EVENT_TIME.day(); // 0 = Sunday, 6 = Saturday\n\t\t\tconst hour = EVENT_TIME.hour();\n\t\t\tconst isWeekend = dayOfWeek === 0 || dayOfWeek === 6;\n\n\t\t\tif (isWeekend) {\n\t\t\t\trecord.weekend_viewing = true;\n\t\t\t\trecord.prime_time = false;\n\t\t\t\tif (record.event === \"playback completed\" && record.watch_duration_min) {\n\t\t\t\t\trecord.watch_duration_min = Math.round(record.watch_duration_min * 1.5);\n\t\t\t\t}\n\t\t\t} else {\n\t\t\t\trecord.weekend_viewing = false;\n\t\t\t\t// Weekday prime-time: 6PM to 11PM\n\t\t\t\tif (hour >= 18 && hour <= 23) {\n\t\t\t\t\trecord.prime_time = true;\n\t\t\t\t} else {\n\t\t\t\t\trecord.prime_time = false;\n\t\t\t\t}\n\t\t\t}\n\n\t\t\t// ─────────────────────────────────────────────────────────────\n\t\t\t// Hook #5: NEW RELEASE SPIKE (event)\n\t\t\t// After day 50, blockbuster release drives content selection\n\t\t\t// ─────────────────────────────────────────────────────────────\n\t\t\tconst BLOCKBUSTER_RELEASE = DATASET_START.add(50, 'days');\n\t\t\tif (record.event === \"content selected\" || record.event === \"playback started\") {\n\t\t\t\tif (EVENT_TIME.isAfter(BLOCKBUSTER_RELEASE) && chance.bool({ likelihood: 20 })) {\n\t\t\t\t\trecord.content_type = \"movie\";\n\t\t\t\t\trecord.content_id = blockbusterId;\n\t\t\t\t\trecord.blockbuster_release = true;\n\t\t\t\t} else {\n\t\t\t\t\trecord.blockbuster_release = false;\n\t\t\t\t}\n\t\t\t}\n\n\t\t\tif (record.event === \"content rated\") {\n\t\t\t\tif (EVENT_TIME.isAfter(BLOCKBUSTER_RELEASE) && chance.bool({ likelihood: 20 })) {\n\t\t\t\t\trecord.rating = chance.integer({ min: 4, max: 5 });\n\t\t\t\t\trecord.content_id = blockbusterId;\n\t\t\t\t\trecord.blockbuster_release = true;\n\t\t\t\t} else {\n\t\t\t\t\trecord.blockbuster_release = false;\n\t\t\t\t}\n\t\t\t}\n\n\t\t\t// ─────────────────────────────────────────────────────────────\n\t\t\t// Hook #6: KIDS PROFILE SAFETY (event)\n\t\t\t// 15% of the time, apply kids mode: restrict genres, drop ads\n\t\t\t// ─────────────────────────────────────────────────────────────\n\t\t\tif (chance.bool({ likelihood: 15 })) {\n\t\t\t\trecord.kids_profile = true;\n\t\t\t\tif (record.event === \"content selected\" || record.event === \"playback started\") {\n\t\t\t\t\trecord.genre = chance.pickone([\"animation\", \"documentary\"]);\n\t\t\t\t} else if (record.event === \"ad impression\") {\n\t\t\t\t\trecord.ad_blocked = true;\n\t\t\t\t}\n\t\t\t} else {\n\t\t\t\trecord.kids_profile = false;\n\t\t\t\tif (record.event === \"ad impression\") {\n\t\t\t\t\trecord.ad_blocked = false;\n\t\t\t\t}\n\t\t\t}\n\n\t\t\treturn record;\n\t\t}\n\n\t\t// ─────────────────────────────────────────────────────────────\n\t\t// Hook #2, #4, #8: EVERYTHING PASS - Complex behavioral patterns\n\t\t// ─────────────────────────────────────────────────────────────\n\t\tif (type === \"everything\") {\n\t\t\tconst userEvents = record;\n\t\t\tif (!userEvents || userEvents.length === 0) return record;\n\n\t\t\tconst firstEventTime = dayjs(userEvents[0].time);\n\n\t\t\t// ─── First pass: identify user patterns ───\n\t\t\tlet consecutiveCompletions = 0;\n\t\t\tlet maxConsecutiveCompletions = 0;\n\t\t\tlet isBingeWatcher = false;\n\t\t\tlet adImpressionCount = 0;\n\t\t\tlet isFreeTier = false;\n\t\t\tlet hasSubtitlesEnabled = false;\n\n\t\t\tuserEvents.forEach((event, idx) => {\n\t\t\t\t// Track subscription tier from superProps\n\t\t\t\tif (idx === 0 && event.subscription_plan) {\n\t\t\t\t\tisFreeTier = event.subscription_plan === \"free\";\n\t\t\t\t}\n\n\t\t\t\t// Hook #2: Track consecutive playback completions\n\t\t\t\tif (event.event === \"playback completed\") {\n\t\t\t\t\tconsecutiveCompletions++;\n\t\t\t\t\tif (consecutiveCompletions > maxConsecutiveCompletions) {\n\t\t\t\t\t\tmaxConsecutiveCompletions = consecutiveCompletions;\n\t\t\t\t\t}\n\t\t\t\t} else if (event.event !== \"playback started\") {\n\t\t\t\t\t// Reset streak on non-playback events (started doesn't break streak)\n\t\t\t\t\tconsecutiveCompletions = 0;\n\t\t\t\t}\n\n\t\t\t\t// Hook #4: Count ad impressions for free-tier users\n\t\t\t\tif (event.event === \"ad impression\") {\n\t\t\t\t\tadImpressionCount++;\n\t\t\t\t}\n\n\t\t\t\t// Hook #8: Check for subtitle enabled\n\t\t\t\tif (event.event === \"subtitle toggled\" && event.action === \"enabled\") {\n\t\t\t\t\thasSubtitlesEnabled = true;\n\t\t\t\t}\n\t\t\t});\n\n\t\t\tisBingeWatcher = maxConsecutiveCompletions >= 3;\n\n\t\t\t// ─── Second pass: set schema defaults then modify ───\n\n\t\t\t// Set defaults for conditional properties on all events\n\t\t\tuserEvents.forEach((event) => {\n\t\t\t\tif (event.event === \"playback completed\") {\n\t\t\t\t\tif (event.binge_session === undefined) event.binge_session = false;\n\t\t\t\t\tif (event.subtitle_user === undefined) event.subtitle_user = false;\n\t\t\t\t}\n\t\t\t\tif (event.event === \"playback started\") {\n\t\t\t\t\tif (event.binge_session === undefined) event.binge_session = false;\n\t\t\t\t}\n\t\t\t\tif (event.ad_fatigue === undefined) event.ad_fatigue = false;\n\t\t\t});\n\n\t\t\t// Hook #2: BINGE-WATCHING PATTERN\n\t\t\t// Binge-watchers get extra episodes, high completion, fewer pauses\n\t\t\tif (isBingeWatcher) {\n\t\t\t\tfor (let i = userEvents.length - 1; i >= 0; i--) {\n\t\t\t\t\tconst event = userEvents[i];\n\t\t\t\t\tconst eventTime = dayjs(event.time);\n\n\t\t\t\t\t// Remove some pause events (binge-watchers don't stop)\n\t\t\t\t\tif (event.event === \"playback paused\") {\n\t\t\t\t\t\tif (chance.bool({ likelihood: 60 })) {\n\t\t\t\t\t\t\tuserEvents.splice(i, 1);\n\t\t\t\t\t\t\tcontinue;\n\t\t\t\t\t\t}\n\t\t\t\t\t}\n\n\t\t\t\t\t// Add extra viewing events after completions\n\t\t\t\t\tif (event.event === \"playback completed\" && chance.bool({ likelihood: 40 })) {\n\t\t\t\t\t\tconst nextContentId = chance.pickone(contentIds);\n\t\t\t\t\t\tconst extraStart = {\n\t\t\t\t\t\t\tevent: \"playback started\",\n\t\t\t\t\t\t\ttime: eventTime.add(chance.integer({ min: 1, max: 5 }), 'minutes').toISOString(),\n\t\t\t\t\t\t\tuser_id: event.user_id,\n\t\t\t\t\t\t\tcontent_id: nextContentId,\n\t\t\t\t\t\t\tcontent_type: \"series\",\n\t\t\t\t\t\t\tplayback_quality: event.playback_quality || \"1080p\",\n\t\t\t\t\t\t\tbinge_session: true,\n\t\t\t\t\t\t};\n\t\t\t\t\t\tconst extraComplete = {\n\t\t\t\t\t\t\tevent: \"playback completed\",\n\t\t\t\t\t\t\ttime: eventTime.add(chance.integer({ min: 25, max: 60 }), 'minutes').toISOString(),\n\t\t\t\t\t\t\tuser_id: event.user_id,\n\t\t\t\t\t\t\tcontent_id: nextContentId,\n\t\t\t\t\t\t\tcontent_type: \"series\",\n\t\t\t\t\t\t\twatch_duration_min: chance.integer({ min: 20, max: 55 }),\n\t\t\t\t\t\t\tcompletion_percent: chance.integer({ min: 90, max: 100 }),\n\t\t\t\t\t\t\tbinge_session: true,\n\t\t\t\t\t\t};\n\t\t\t\t\t\tuserEvents.splice(i + 1, 0, extraStart, extraComplete);\n\t\t\t\t\t}\n\t\t\t\t}\n\t\t\t}\n\n\t\t\t// Hook #4: AD FATIGUE CHURN\n\t\t\t// Free-tier users with 10+ ads lose 50% of events after day 45\n\t\t\tif (isFreeTier && adImpressionCount >= 10) {\n\t\t\t\tconst churnCutoff = firstEventTime.add(45, 'days');\n\t\t\t\tfor (let i = userEvents.length - 1; i >= 0; i--) {\n\t\t\t\t\tconst evt = userEvents[i];\n\t\t\t\t\tif (dayjs(evt.time).isAfter(churnCutoff)) {\n\t\t\t\t\t\tif (chance.bool({ likelihood: 50 })) {\n\t\t\t\t\t\t\tuserEvents.splice(i, 1);\n\t\t\t\t\t\t} else {\n\t\t\t\t\t\t\tevt.ad_fatigue = true;\n\t\t\t\t\t\t}\n\t\t\t\t\t}\n\t\t\t\t}\n\t\t\t}\n\n\t\t\t// Hook #8: SUBTITLE USERS WATCH MORE\n\t\t\t// Users who enabled subtitles have 25% higher completion and 15% longer watch time\n\t\t\tif (hasSubtitlesEnabled) {\n\t\t\t\tfor (let i = 0; i < userEvents.length; i++) {\n\t\t\t\t\tconst event = userEvents[i];\n\n\t\t\t\t\tif (event.event === \"playback completed\") {\n\t\t\t\t\t\t// Boost completion percent (cap at 100)\n\t\t\t\t\t\tif (event.completion_percent) {\n\t\t\t\t\t\t\tevent.completion_percent = Math.min(100, Math.round(event.completion_percent * 1.25));\n\t\t\t\t\t\t}\n\t\t\t\t\t\t// Boost watch duration\n\t\t\t\t\t\tif (event.watch_duration_min) {\n\t\t\t\t\t\t\tevent.watch_duration_min = Math.round(event.watch_duration_min * 1.15);\n\t\t\t\t\t\t}\n\t\t\t\t\t\tevent.subtitle_user = true;\n\t\t\t\t\t}\n\t\t\t\t}\n\n\t\t\t\t// Splice extra playback completed events (subtitle users watch more overall)\n\t\t\t\tconst completionEvents = userEvents.filter(e => e.event === \"playback completed\");\n\t\t\t\tconst extraCount = Math.floor(completionEvents.length * 0.2); // 20% more completions\n\t\t\t\tfor (let j = 0; j < extraCount; j++) {\n\t\t\t\t\tconst templateEvent = chance.pickone(completionEvents);\n\t\t\t\t\tconst templateTime = dayjs(templateEvent.time);\n\t\t\t\t\tconst extraCompletion = {\n\t\t\t\t\t\tevent: \"playback completed\",\n\t\t\t\t\t\ttime: templateTime.add(chance.integer({ min: 30, max: 180 }), 'minutes').toISOString(),\n\t\t\t\t\t\tuser_id: templateEvent.user_id,\n\t\t\t\t\t\tcontent_id: chance.pickone(contentIds),\n\t\t\t\t\t\tcontent_type: chance.pickone([\"movie\", \"series\", \"documentary\"]),\n\t\t\t\t\t\twatch_duration_min: chance.integer({ min: 25, max: 120 }),\n\t\t\t\t\t\tcompletion_percent: chance.integer({ min: 80, max: 100 }),\n\t\t\t\t\t\tsubtitle_user: true,\n\t\t\t\t\t};\n\t\t\t\t\tuserEvents.push(extraCompletion);\n\t\t\t\t}\n\t\t\t}\n\n\t\t\treturn record;\n\t\t}\n\n\t\treturn record;\n\t}",
+  "timestamp": "2026-04-10T01:39:07.207Z",
+  "version": "4.0"
+}

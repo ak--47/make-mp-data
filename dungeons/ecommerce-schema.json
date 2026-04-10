@@ -1,0 +1,462 @@
+{
+  "schema": {
+    "token": "",
+    "seed": "simple is best",
+    "numDays": 108,
+    "numEvents": 2000000,
+    "numUsers": 50000,
+    "format": "json",
+    "region": "US",
+    "hasAnonIds": false,
+    "hasSessionIds": false,
+    "hasAdSpend": false,
+    "hasLocation": true,
+    "hasAndroidDevices": true,
+    "hasIOSDevices": true,
+    "hasDesktopDevices": true,
+    "hasBrowser": true,
+    "hasCampaigns": false,
+    "isAnonymous": false,
+    "alsoInferFunnels": false,
+    "concurrency": 1,
+    "batchSize": 2500000,
+    "percentUsersBornInDataset": 25,
+    "events": [
+      {
+        "event": "checkout",
+        "weight": 2,
+        "properties": {
+          "currency": [
+            "USD",
+            "CAD",
+            "EUR",
+            "BTC",
+            "ETH",
+            "JPY"
+          ],
+          "coupon": {
+            "functionName": "arrow",
+            "body": "function generateWeightedArray() {\n\t\tconst weightedArray = [];\n\n\t\t// Add each value to the array the number of times specified by its weight\n\t\tweightedItems.forEach(({ value, weight }) => {\n\t\t\tif (!weight) weight = 1;\n\t\t\tfor (let i = 0; i < weight; i++) {\n\t\t\t\tweightedArray.push(value);\n\t\t\t}\n\t\t});\n\n\t\treturn weightedArray;\n\t}"
+          },
+          "cart": {
+            "functionName": "arrow",
+            "body": "function () {\n\t\tconst categories = [\"electronics\", \"books\", \"clothing\", \"home\", \"garden\", \"toys\", \"sports\", \"automotive\", \"beauty\", \"health\", \"grocery\", \"jewelry\", \"shoes\", \"tools\", \"office supplies\"];\n\t\tconst descriptors = [\"brand new\", \"open box\", \"refurbished\", \"used\", \"like new\", \"vintage\", \"antique\", \"collectible\"];\n\t\tconst suffix = [\"item\", \"product\", \"good\", \"merchandise\", \"thing\", \"object\", \"widget\", \"gadget\", \"device\", \"apparatus\", \"contraption\", \"instrument\", \"tool\", \"implement\", \"utensil\", \"appliance\", \"machine\", \"equipment\", \"gear\", \"kit\", \"set\", \"package\"];\n\t\tconst assetPreview = ['.png', '.jpg', '.jpeg', '.heic', '.mp4', '.mov', '.avi'];\n\t\tconst data = [];\n\t\tconst numOfItems = integer(1, maxItems);\n\n\t\tfor (var i = 0; i < numOfItems; i++) {\n\t\t\tconst category = chance.pickone(categories);\n\t\t\tconst descriptor = chance.pickone(descriptors);\n\t\t\tconst suffixWord = chance.pickone(suffix);\n\t\t\tconst slug = `${descriptor.replace(/\\s+/g, '-').toLowerCase()}-${suffixWord.replace(/\\s+/g, '-').toLowerCase()}`;\n\t\t\tconst asset = chance.pickone(assetPreview);\n\n\t\t\t// const product_id = chance.guid();\n\t\t\tconst price = integer(1, 100);\n\t\t\tconst quantity = integer(1, 5);\n\n\t\t\tconst item = {\n\t\t\t\t// product_id: product_id,\n\t\t\t\t// sku: integer(11111, 99999),\n\t\t\t\tamount: price,\n\t\t\t\tquantity: quantity,\n\t\t\t\ttotal_value: price * quantity,\n\t\t\t\tfeatured: chance.pickone([true, false, false]),\n\t\t\t\tcategory: category,\n\t\t\t\tdescriptor: descriptor,\n\t\t\t\tslug: slug,\n\t\t\t\tassetPreview: `https://example.com/assets/${slug}${asset}`,\n\t\t\t\tassetType: asset\n\n\t\t\t};\n\n\t\t\tdata.push(item);\n\t\t}\n\n\t\treturn () => [data];\n\t}"
+          }
+        }
+      },
+      {
+        "event": "add to cart",
+        "weight": 4,
+        "properties": {
+          "item": {
+            "functionName": "arrow",
+            "body": "function () {\n\t\tconst categories = [\"electronics\", \"books\", \"clothing\", \"home\", \"garden\", \"toys\", \"sports\", \"automotive\", \"beauty\", \"health\", \"grocery\", \"jewelry\", \"shoes\", \"tools\", \"office supplies\"];\n\t\tconst descriptors = [\"brand new\", \"open box\", \"refurbished\", \"used\", \"like new\", \"vintage\", \"antique\", \"collectible\"];\n\t\tconst suffix = [\"item\", \"product\", \"good\", \"merchandise\", \"thing\", \"object\", \"widget\", \"gadget\", \"device\", \"apparatus\", \"contraption\", \"instrument\", \"tool\", \"implement\", \"utensil\", \"appliance\", \"machine\", \"equipment\", \"gear\", \"kit\", \"set\", \"package\"];\n\t\tconst assetPreview = ['.png', '.jpg', '.jpeg', '.heic', '.mp4', '.mov', '.avi'];\n\t\tconst data = [];\n\t\tconst numOfItems = integer(1, maxItems);\n\n\t\tfor (var i = 0; i < numOfItems; i++) {\n\t\t\tconst category = chance.pickone(categories);\n\t\t\tconst descriptor = chance.pickone(descriptors);\n\t\t\tconst suffixWord = chance.pickone(suffix);\n\t\t\tconst slug = `${descriptor.replace(/\\s+/g, '-').toLowerCase()}-${suffixWord.replace(/\\s+/g, '-').toLowerCase()}`;\n\t\t\tconst asset = chance.pickone(assetPreview);\n\n\t\t\t// const product_id = chance.guid();\n\t\t\tconst price = integer(1, 100);\n\t\t\tconst quantity = integer(1, 5);\n\n\t\t\tconst item = {\n\t\t\t\t// product_id: product_id,\n\t\t\t\t// sku: integer(11111, 99999),\n\t\t\t\tamount: price,\n\t\t\t\tquantity: quantity,\n\t\t\t\ttotal_value: price * quantity,\n\t\t\t\tfeatured: chance.pickone([true, false, false]),\n\t\t\t\tcategory: category,\n\t\t\t\tdescriptor: descriptor,\n\t\t\t\tslug: slug,\n\t\t\t\tassetPreview: `https://example.com/assets/${slug}${asset}`,\n\t\t\t\tassetType: asset\n\n\t\t\t};\n\n\t\t\tdata.push(item);\n\t\t}\n\n\t\treturn () => [data];\n\t}"
+          }
+        }
+      },
+      {
+        "event": "view item",
+        "weight": 8,
+        "properties": {
+          "item": {
+            "functionName": "arrow",
+            "body": "function () {\n\t\tconst categories = [\"electronics\", \"books\", \"clothing\", \"home\", \"garden\", \"toys\", \"sports\", \"automotive\", \"beauty\", \"health\", \"grocery\", \"jewelry\", \"shoes\", \"tools\", \"office supplies\"];\n\t\tconst descriptors = [\"brand new\", \"open box\", \"refurbished\", \"used\", \"like new\", \"vintage\", \"antique\", \"collectible\"];\n\t\tconst suffix = [\"item\", \"product\", \"good\", \"merchandise\", \"thing\", \"object\", \"widget\", \"gadget\", \"device\", \"apparatus\", \"contraption\", \"instrument\", \"tool\", \"implement\", \"utensil\", \"appliance\", \"machine\", \"equipment\", \"gear\", \"kit\", \"set\", \"package\"];\n\t\tconst assetPreview = ['.png', '.jpg', '.jpeg', '.heic', '.mp4', '.mov', '.avi'];\n\t\tconst data = [];\n\t\tconst numOfItems = integer(1, maxItems);\n\n\t\tfor (var i = 0; i < numOfItems; i++) {\n\t\t\tconst category = chance.pickone(categories);\n\t\t\tconst descriptor = chance.pickone(descriptors);\n\t\t\tconst suffixWord = chance.pickone(suffix);\n\t\t\tconst slug = `${descriptor.replace(/\\s+/g, '-').toLowerCase()}-${suffixWord.replace(/\\s+/g, '-').toLowerCase()}`;\n\t\t\tconst asset = chance.pickone(assetPreview);\n\n\t\t\t// const product_id = chance.guid();\n\t\t\tconst price = integer(1, 100);\n\t\t\tconst quantity = integer(1, 5);\n\n\t\t\tconst item = {\n\t\t\t\t// product_id: product_id,\n\t\t\t\t// sku: integer(11111, 99999),\n\t\t\t\tamount: price,\n\t\t\t\tquantity: quantity,\n\t\t\t\ttotal_value: price * quantity,\n\t\t\t\tfeatured: chance.pickone([true, false, false]),\n\t\t\t\tcategory: category,\n\t\t\t\tdescriptor: descriptor,\n\t\t\t\tslug: slug,\n\t\t\t\tassetPreview: `https://example.com/assets/${slug}${asset}`,\n\t\t\t\tassetType: asset\n\n\t\t\t};\n\n\t\t\tdata.push(item);\n\t\t}\n\n\t\treturn () => [data];\n\t}"
+          }
+        }
+      },
+      {
+        "event": "save item",
+        "weight": 5,
+        "properties": {
+          "item": {
+            "functionName": "arrow",
+            "body": "function () {\n\t\tconst categories = [\"electronics\", \"books\", \"clothing\", \"home\", \"garden\", \"toys\", \"sports\", \"automotive\", \"beauty\", \"health\", \"grocery\", \"jewelry\", \"shoes\", \"tools\", \"office supplies\"];\n\t\tconst descriptors = [\"brand new\", \"open box\", \"refurbished\", \"used\", \"like new\", \"vintage\", \"antique\", \"collectible\"];\n\t\tconst suffix = [\"item\", \"product\", \"good\", \"merchandise\", \"thing\", \"object\", \"widget\", \"gadget\", \"device\", \"apparatus\", \"contraption\", \"instrument\", \"tool\", \"implement\", \"utensil\", \"appliance\", \"machine\", \"equipment\", \"gear\", \"kit\", \"set\", \"package\"];\n\t\tconst assetPreview = ['.png', '.jpg', '.jpeg', '.heic', '.mp4', '.mov', '.avi'];\n\t\tconst data = [];\n\t\tconst numOfItems = integer(1, maxItems);\n\n\t\tfor (var i = 0; i < numOfItems; i++) {\n\t\t\tconst category = chance.pickone(categories);\n\t\t\tconst descriptor = chance.pickone(descriptors);\n\t\t\tconst suffixWord = chance.pickone(suffix);\n\t\t\tconst slug = `${descriptor.replace(/\\s+/g, '-').toLowerCase()}-${suffixWord.replace(/\\s+/g, '-').toLowerCase()}`;\n\t\t\tconst asset = chance.pickone(assetPreview);\n\n\t\t\t// const product_id = chance.guid();\n\t\t\tconst price = integer(1, 100);\n\t\t\tconst quantity = integer(1, 5);\n\n\t\t\tconst item = {\n\t\t\t\t// product_id: product_id,\n\t\t\t\t// sku: integer(11111, 99999),\n\t\t\t\tamount: price,\n\t\t\t\tquantity: quantity,\n\t\t\t\ttotal_value: price * quantity,\n\t\t\t\tfeatured: chance.pickone([true, false, false]),\n\t\t\t\tcategory: category,\n\t\t\t\tdescriptor: descriptor,\n\t\t\t\tslug: slug,\n\t\t\t\tassetPreview: `https://example.com/assets/${slug}${asset}`,\n\t\t\t\tassetType: asset\n\n\t\t\t};\n\n\t\t\tdata.push(item);\n\t\t}\n\n\t\treturn () => [data];\n\t}"
+          }
+        }
+      },
+      {
+        "event": "page view",
+        "weight": 10,
+        "properties": {
+          "page": [
+            "/",
+            "/help",
+            "/account",
+            "/watch",
+            "/listen",
+            "/product",
+            "/people",
+            "/peace"
+          ]
+        }
+      },
+      {
+        "event": "watch video",
+        "weight": 8,
+        "properties": {
+          "watchTimeSec": [
+            253,
+            478,
+            146,
+            160,
+            195,
+            218,
+            473,
+            435,
+            137,
+            359,
+            421,
+            167,
+            445,
+            160,
+            174,
+            156,
+            184,
+            463,
+            409,
+            436,
+            136,
+            181,
+            405,
+            193,
+            228,
+            194,
+            146,
+            410,
+            444,
+            156,
+            153,
+            456,
+            202,
+            158,
+            469,
+            154,
+            188,
+            152,
+            415,
+            238,
+            194,
+            160,
+            305,
+            181,
+            189,
+            195,
+            181,
+            401,
+            160,
+            257
+          ]
+        }
+      },
+      {
+        "event": "like video",
+        "weight": 6,
+        "properties": {}
+      },
+      {
+        "event": "dislike video",
+        "weight": 4,
+        "properties": {}
+      },
+      {
+        "event": "sign up",
+        "weight": 1,
+        "isFirstEvent": true,
+        "properties": {
+          "signupMethod": [
+            "email",
+            "google",
+            "facebook",
+            "twitter",
+            "linkedin",
+            "github"
+          ],
+          "referral": {
+            "functionName": "arrow",
+            "body": "function generateWeightedArray() {\n\t\tconst weightedArray = [];\n\n\t\t// Add each value to the array the number of times specified by its weight\n\t\tweightedItems.forEach(({ value, weight }) => {\n\t\t\tif (!weight) weight = 1;\n\t\t\tfor (let i = 0; i < weight; i++) {\n\t\t\t\tweightedArray.push(value);\n\t\t\t}\n\t\t});\n\n\t\treturn weightedArray;\n\t}"
+          }
+        }
+      }
+    ],
+    "funnels": [
+      {
+        "sequence": [
+          "page view",
+          "view item",
+          "save item",
+          "page view",
+          "sign up"
+        ],
+        "conversionRate": 50,
+        "order": "first-and-last-fixed",
+        "weight": 1,
+        "isFirstFunnel": true,
+        "timeToConvert": 2,
+        "experiment": false,
+        "name": "Signup Flow"
+      },
+      {
+        "sequence": [
+          "watch video",
+          "like video",
+          "watch video",
+          "like video"
+        ],
+        "name": "Video Likes",
+        "conversionRate": 60,
+        "props": {
+          "videoCategory": [
+            "funny",
+            "educational",
+            "inspirational",
+            "music",
+            "news",
+            "sports",
+            "cooking",
+            "DIY",
+            "travel",
+            "gaming"
+          ],
+          "quality": [
+            "2160p",
+            "1440p",
+            "1080p",
+            "720p",
+            "480p",
+            "360p",
+            "240p"
+          ],
+          "format": [
+            "mp4",
+            "avi",
+            "mov",
+            "mpg"
+          ],
+          "uploader_id": {
+            "functionName": "arrow",
+            "body": "function () { [native code] }"
+          }
+        }
+      },
+      {
+        "name": "Video Dislikes",
+        "sequence": [
+          "watch video",
+          "dislike video",
+          "watch video",
+          "dislike video"
+        ],
+        "conversionRate": 20,
+        "props": {
+          "videoCategory": [
+            "funny",
+            "educational",
+            "inspirational",
+            "music",
+            "news",
+            "sports",
+            "cooking",
+            "DIY",
+            "travel",
+            "gaming"
+          ],
+          "quality": [
+            "2160p",
+            "1440p",
+            "1080p",
+            "720p",
+            "480p",
+            "360p",
+            "240p"
+          ],
+          "format": [
+            "mp4",
+            "avi",
+            "mov",
+            "mpg"
+          ],
+          "uploader_id": {
+            "functionName": "arrow",
+            "body": "function () { [native code] }"
+          }
+        }
+      },
+      {
+        "name": "eCommerce Purchase",
+        "sequence": [
+          "view item",
+          "view item",
+          "add to cart",
+          "view item",
+          "add to cart",
+          "checkout"
+        ],
+        "conversionRate": 15,
+        "requireRepeats": true,
+        "weight": 10,
+        "order": "last-fixed"
+      }
+    ],
+    "superProps": {
+      "theme": {
+        "functionName": "arrow",
+        "body": "function () {\n\t\tconst weighted = [];\n\t\tfor (let i = 0; i < 10; i++) {\n\t\t\tconst rand = chance.d10(); // Random number between 1 and 10\n\n\t\t\t// 35% chance to favor the most chosen index\n\t\t\tif (chance.bool({ likelihood: 35 })) {\n\t\t\t\t// 50% chance to slightly alter the index\n\t\t\t\tif (chance.bool({ likelihood: 50 })) {\n\t\t\t\t\tweighted.push(items[mostChosenIndex]);\n\t\t\t\t} else {\n\t\t\t\t\tconst addOrSubtract = chance.bool({ likelihood: 50 }) ? -rand : rand;\n\t\t\t\t\tlet newIndex = mostChosenIndex + addOrSubtract;\n\n\t\t\t\t\t// Ensure newIndex is within bounds\n\t\t\t\t\tif (newIndex < 0) newIndex = 0;\n\t\t\t\t\tif (newIndex >= items.length) newIndex = items.length - 1;\n\t\t\t\t\tweighted.push(items[newIndex]);\n\t\t\t\t}\n\t\t\t}\n\t\t\t// 25% chance to favor the second most chosen index\n\t\t\telse if (chance.bool({ likelihood: 25 })) {\n\t\t\t\tweighted.push(items[secondMostChosenIndex]);\n\t\t\t}\n\t\t\t// 15% chance to favor the third most chosen index\n\t\t\telse if (chance.bool({ likelihood: 15 })) {\n\t\t\t\tweighted.push(items[thirdMostChosenIndex]);\n\t\t\t}\n\t\t\t// Otherwise, pick a random item from the list\n\t\t\telse {\n\t\t\t\tweighted.push(chance.pickone(items));\n\t\t\t}\n\t\t}\n\t\treturn weighted;\n\t}"
+      }
+    },
+    "userProps": {
+      "title": {
+        "functionName": "arrow",
+        "body": "function () { [native code] }"
+      },
+      "luckyNumber": [
+        337,
+        319,
+        335,
+        137,
+        276,
+        133,
+        318,
+        144,
+        337,
+        131,
+        328,
+        328,
+        315,
+        139,
+        323,
+        146,
+        293,
+        338,
+        313,
+        170,
+        324,
+        153,
+        154,
+        175,
+        168,
+        137,
+        192,
+        159,
+        146,
+        145,
+        135,
+        295,
+        113,
+        119,
+        176,
+        166,
+        264,
+        162,
+        299,
+        314,
+        147,
+        141,
+        121,
+        136,
+        123,
+        181,
+        334,
+        131,
+        139,
+        121
+      ],
+      "spiritAnimal": [
+        "duck",
+        "dog",
+        "otter",
+        "penguin",
+        "cat",
+        "elephant",
+        "lion",
+        "cheetah",
+        "giraffe",
+        "zebra",
+        "rhino",
+        "hippo",
+        "whale",
+        "dolphin",
+        "shark",
+        "octopus",
+        "squid",
+        "jellyfish",
+        "starfish",
+        "seahorse",
+        "crab",
+        "lobster",
+        "shrimp",
+        "clam",
+        "snail",
+        "slug",
+        "butterfly",
+        "moth",
+        "bee",
+        "wasp",
+        "ant",
+        "beetle",
+        "ladybug",
+        "caterpillar",
+        "centipede",
+        "millipede",
+        "scorpion",
+        "spider",
+        "tarantula",
+        "tick",
+        "mite",
+        "mosquito",
+        "fly",
+        "dragonfly",
+        "damselfly",
+        "grasshopper",
+        "cricket",
+        "locust",
+        "mantis",
+        "cockroach",
+        "termite",
+        "praying mantis",
+        "walking stick",
+        "stick bug",
+        "leaf insect",
+        "lacewing",
+        "aphid",
+        "cicada",
+        "thrips",
+        "psyllid",
+        "scale insect",
+        "whitefly",
+        "mealybug",
+        "planthopper",
+        "leafhopper",
+        "treehopper",
+        "flea",
+        "louse",
+        "bedbug",
+        "flea beetle",
+        "weevil",
+        "longhorn beetle",
+        "leaf beetle",
+        "tiger beetle",
+        "ground beetle",
+        "lady beetle",
+        "firefly",
+        "click beetle",
+        "rove beetle",
+        "scarab beetle",
+        "dung beetle",
+        "stag beetle",
+        "rhinoceros beetle",
+        "hercules beetle",
+        "goliath beetle",
+        "jewel beetle",
+        "tortoise beetle"
+      ]
+    },
+    "scdProps": {},
+    "mirrorProps": {},
+    "groupKeys": [],
+    "groupProps": {},
+    "lookupTables": []
+  },
+  "hooks": "function (record, type, meta) {\n\n\t\tif (type === \"event\") {\n\t\t\tconst NOW = dayjs();\n\t\t\tconst DAY_SIGNUPS_IMPROVED = NOW.subtract(7, 'day');\n\t\t\tconst DAY_WATCH_TIME_WENT_UP = NOW.subtract(30, 'day');\n\t\t\tconst eventTime = dayjs(record.time);\n\n\t\t\t// unflattering 'items'\n\t\t\tif (record.item && Array.isArray(record.item)) {\n\t\t\t\trecord = { ...record, ...record.item[0] };\n\t\t\t\tdelete record.item;\n\t\t\t}\n\n\t\t\tif (record.event === 'sign up') {\n\t\t\t\trecord.signup_flow = \"v1\";\n\t\t\t\tif (eventTime.isBefore(DAY_SIGNUPS_IMPROVED)) {\n\t\t\t\t\t// tag 50% for removal (filtered in \"everything\" hook)\n\t\t\t\t\tif (chance.bool({ likelihood: 50 })) {\n\t\t\t\t\t\trecord._drop = true;\n\t\t\t\t\t}\n\t\t\t\t}\n\t\t\t\tif (eventTime.isAfter(DAY_SIGNUPS_IMPROVED)) {\n\t\t\t\t\trecord.signup_flow = \"v2\";\n\t\t\t\t}\n\t\t\t}\n\n\t\t\tif (record.event === 'watch video') {\n\t\t\t\tconst factor = decimal(0.25, 0.79);\n\t\t\t\tif (eventTime.isBefore(DAY_WATCH_TIME_WENT_UP)) {\n\t\t\t\t\trecord.watchTimeSec = Math.round(record.watchTimeSec * (1 - factor));\n\t\t\t\t}\n\t\t\t\tif (eventTime.isAfter(DAY_WATCH_TIME_WENT_UP)) {\n\t\t\t\t\t// increase watch time by 33%\n\t\t\t\t\trecord.watchTimeSec = Math.round(record.watchTimeSec * (1 + factor));\n\t\t\t\t}\n\n\t\t\t}\n\n\t\t\t// toys + shoes frequently purchases together (and are higher cart values)\n\t\t\tif (record.event === 'checkout' && Array.isArray(record.cart)) {\n\t\t\t\tconst hasToys = record.cart.some(item => item.category === 'toys');\n\t\t\t\tconst hasShoes = record.cart.some(item => item.category === 'shoes');\n\t\t\t\tif (hasToys && !hasShoes) {\n\t\t\t\t\tconst bigCart = makeProducts(20)()()[0];\n\t\t\t\t\tconst shoeItems = bigCart.filter(item => item.category === 'shoes');\n\t\t\t\t\tif (shoeItems.length > 0) {\n\t\t\t\t\t\trecord.cart.push(shoeItems[0]);\n\t\t\t\t\t}\n\t\t\t\t}\n\n\t\t\t\tif (hasShoes && !hasToys) {\n\t\t\t\t\tconst bigCart = makeProducts(20)()()[0];\n\t\t\t\t\tconst toyItems = bigCart.filter(item => item.category === 'toys');\n\t\t\t\t\tif (toyItems.length > 0) {\n\t\t\t\t\t\trecord.cart.push(toyItems[0]);\n\t\t\t\t\t}\n\t\t\t\t}\n\n\t\t\t\tif (!hasToys && !hasShoes) {\n\t\t\t\t\tconst cheapFactor = decimal(.75, 0.9);\n\t\t\t\t\t// make every item a bit cheaper\n\t\t\t\t\trecord.cart = record.cart.map(item => {\n\t\t\t\t\t\treturn {\n\t\t\t\t\t\t\t...item,\n\t\t\t\t\t\t\tamount: Math.round(item.amount * cheapFactor),\n\t\t\t\t\t\t\ttotal_value: Math.round(item.total_value * cheapFactor)\n\t\t\t\t\t\t};\n\t\t\t\t\t});\n\t\t\t\t}\n\t\t\t}\n\t\t\t// high quality video means longer watch times (lower quality shorter watch times)\n\t\t\tif (record.event === 'watch video') {\n\t\t\t\tconst qualityFactors = {\n\t\t\t\t\t\"2160p\": 1.5,\n\t\t\t\t\t\"1440p\": 1.4,\n\t\t\t\t\t\"1080p\": 1.3,\n\t\t\t\t\t\"720p\": 1.15,\n\t\t\t\t\t\"480p\": 1.0,\n\t\t\t\t\t\"360p\": 0.85,\n\t\t\t\t\t\"240p\": 0.7\n\t\t\t\t};\n\t\t\t\tconst quality = record.quality || \"480p\";\n\t\t\t\tconst factor = qualityFactors[quality] || 1.0;\n\t\t\t\trecord.watchTimeSec = Math.round(record.watchTimeSec * factor);\n\t\t\t}\n\n\n\n\t\t}\n\n\n\n\t\tif (type === \"everything\") {\n\t\t\t// big themes!\n\n\t\t\t// users who view items in the home and garden category churn more frequently\n\n\n\t\t\t// dark mode leads to faster purchase conversion\n\n\n\t\t\t// people who pay in bitcoin tend to buy more electronics and gadgets\n\n\n\t\t\t//custom themes purchase more:\n\t\t\t// const numCustomMode = record.filter(a => a.theme === 'custom').length;\n\t\t\t// const numLightMode = record.filter(a => a.theme === 'light').length;\n\t\t\t// const numDarkMode = record.filter(a => a.theme === 'dark').length;\n\t\t\t// if (numCustomMode > numLightMode || numCustomMode > numDarkMode) {\n\t\t\t// \t//triple their checkout events\n\t\t\t// \tconst checkoutEvents = record.filter(a => a.event === 'checkout');\n\t\t\t// \tconst newCheckouts = checkoutEvents.map(a => {\n\t\t\t// \t\tconst randomInt = integer(-48, 48);\n\t\t\t// \t\tconst newCheckout = {\n\t\t\t// \t\t\t...a,\n\t\t\t// \t\t\ttime: dayjs(a.time).add(randomInt, 'hour').toISOString(),\n\t\t\t// \t\t\tevent: \"checkout\",\n\t\t\t// \t\t\tamount: a.amount * 2,\n\t\t\t// \t\t\tcoupon: \"50%OFF\"\n\t\t\t// \t\t};\n\t\t\t// \t\treturn newCheckout;\n\t\t\t// \t});\n\t\t\t// \trecord.push(...newCheckouts);\n\t\t\t// }\n\n\t\t\t// //users who watch low quality videos churn more:\n\t\t\t// const loQuality = [\"480p\", \"360p\", \"240p\"];\n\t\t\t// const lowQualityWatches = record.filter(a => a.event === 'watch video' && loQuality.includes(a.quality));\n\t\t\t// const highQualityWatches = record.filter(a => a.event === 'watch video' && !loQuality.includes(a.quality));\n\t\t\t// if (lowQualityWatches.length > highQualityWatches.length) {\n\t\t\t// \tif (flip()) {\n\t\t\t// \t\t// find midpoint of records\n\t\t\t// \t\tconst midpoint = Math.floor(record.length / 2);\n\t\t\t// \t\trecord = record.slice(0, midpoint);\n\n\t\t\t// \t}\n\t\t\t// }\n\n\n\n\n\t\t}\n\n\t\t// Filter out events tagged for removal in the event hook\n\t\tif (type === \"everything\") {\n\t\t\trecord = record.filter(e => !e._drop);\n\t\t}\n\n\t\treturn record;\n\t}",
+  "timestamp": "2026-04-10T01:39:06.655Z",
+  "version": "4.0"
+}

@@ -26,6 +26,13 @@ If you wish, you can view how existing ./dungeons are structured for reference a
 
 ## File Structure
 
+The file is organized so humans (and AI) can understand the intent before reading code:
+
+1. **Imports + constants** — boilerplate, seed, IDs
+2. **Dataset Overview** — what app this models, scale, core loop, monetization
+3. **Analytics Hooks** — each hook with quick Mixpanel report steps
+4. **Code** — the config object, with inline comments in the hook function explaining each mutation
+
 ```javascript
 import dayjs from "dayjs";
 import utc from "dayjs/plugin/utc.js";
@@ -33,7 +40,7 @@ import "dotenv/config";
 import * as u from "../lib/utils/utils.js";
 import * as v from "ak-tools";
 
-const SEED = "needle-haystack-VERTICAL";
+const SEED = "dm4-VERTICAL";
 dayjs.extend(utc);
 const chance = u.initChance(SEED);
 const num_users = 5_000;
@@ -41,30 +48,70 @@ const days = 100;
 
 /** @typedef  {import("../types").Dungeon} Config */
 
-/**
- * APP DESIGN DOCUMENTATION
- * - App name, concept, what it models
- * - Core gameplay/usage loop
- * - Why each event and property was chosen
- * - Monetization model
- */
-
 // Generate consistent IDs at module level
 const entityIds = v.range(1, N).map(n => `prefix_${v.uid(8)}`);
 
-/** @type {Config} */
-const config = { ... };
-
-export default config;
+/**
+ * ═══════════════════════════════════════════════════════════════
+ * DATASET OVERVIEW
+ * ═══════════════════════════════════════════════════════════════
+ *
+ * App Name — what it models, the core user loop, monetization.
+ * - N users over M days, ~X events
+ * - Key entities and relationships
+ * - Why these events/properties were chosen
+ */
 
 /**
- * COMPREHENSIVE DOCUMENTATION BLOCK
- * - Dataset overview
- * - All 8 hooks with: pattern, how to find it, expected insight, real-world analogue
- * - Expected metrics summary table
- * - Cross-hook analysis ideas
+ * ═══════════════════════════════════════════════════════════════
+ * ANALYTICS HOOKS
+ * ═══════════════════════════════════════════════════════════════
+ *
+ * 1. HOOK NAME (hook type: event/everything/funnel-pre/etc.)
+ *    What it does to the data and why.
+ *
+ *    Mixpanel Report:
+ *    • Type: Insights | Funnels | Retention
+ *    • Event: "event_name"
+ *    • Measure: Average of "property"
+ *    • Breakdown: "segment_property"
+ *    • Expected: segment_a ~Nx higher than segment_b
+ *
+ * 2. NEXT HOOK NAME (hook type)
+ *    ...
+ *
+ * ═══════════════════════════════════════════════════════════════
+ * EXPECTED METRICS SUMMARY
+ * ═══════════════════════════════════════════════════════════════
+ *
+ * Hook            | Metric          | Baseline | Effect | Ratio
+ * ────────────────|─────────────────|──────────|────────|──────
+ * Hook Name       | order_total     | $50      | $150   | 3x
  */
+
+/** @type {Config} */
+const config = {
+  // ... events, funnels, props ...
+
+  hook: function (record, type, meta) {
+    if (type === "everything") {
+      // ── HOOK 1: HOOK NAME ──────────────────────────────────
+      // Explain what this block does and why
+      // e.g., "Boost order values 1.5x for premium users"
+      // ...mutations with inline comments...
+    }
+    return record;
+  }
+};
+
+export default config;
 ```
+
+**Key principles:**
+- Documentation comes BEFORE code so intent is clear before implementation
+- Hook code has inline comments explaining each mutation (what it does to engineer the trend)
+- No giant doc block after `export default` — all docs are above the config
+- Mixpanel report steps are concise and actionable (report type, event, measure, breakdown, expected result)
 
 ## Base Config (use these exact values)
 
@@ -95,6 +142,38 @@ writeToDisk: false,
 scdProps: {},
 mirrorProps: {},
 lookupTables: [],  // NEVER add lookup tables — they require manual import and are not automated
+```
+
+## TimeSoup — Time Distribution (usually omit this)
+
+**DEFAULT BEHAVIOR: Do NOT include `soup` in the config unless the user's prompt explicitly asks for a specific time distribution pattern** (e.g., "make it spiky", "seasonal pattern", "global users"). The default "growth" preset applies automatically and is correct for the vast majority of dungeons. Do not infer a preset from the vertical — a gaming dungeon does NOT automatically need "spiky", an e-commerce dungeon does NOT automatically need "seasonal". Only set `soup` when the user says so.
+
+If the user does request a specific time pattern, use one of these presets:
+
+```javascript
+soup: "steady"     // flat, mature SaaS (low variation)
+soup: "growth"     // gradual uptrend with realistic weekly cycle (this is the default if omitted)
+soup: "spiky"      // dramatic peaks and valleys
+soup: "seasonal"   // 3-4 major waves across the dataset
+soup: "global"     // flat DOW + flat HOD (no cyclical patterns)
+soup: "churny"     // flat distribution, no growth (pair with churn hooks for declining pattern)
+soup: "chaotic"    // wild variation, few tight peaks
+```
+
+For fine-grained custom control (only if the user specifically asks):
+
+```javascript
+// Preset + overrides
+soup: { preset: "spiky", deviation: 5 }
+
+// Fully custom — see lib/templates/soup-presets.js for weight arrays
+soup: {
+  peaks: 200,                    // Gaussian clusters (default: numDays*2)
+  deviation: 2,                  // peak tightness (higher = tighter)
+  mean: 0,                       // offset from chunk center
+  dayOfWeekWeights: [/* 7 values, Sun..Sat, max=1.0 */],
+  hourOfDayWeights: [/* 24 values, 0=midnight UTC, max=1.0 */],
+}
 ```
 
 ## Required Components
@@ -599,6 +678,93 @@ if (type === "everything") {
 }
 ```
 
+## Hook Documentation: Mixpanel Report Instructions (Required)
+
+Every hook's documentation block MUST include a **"Mixpanel Report"** section with step-by-step instructions for recreating the insight in Mixpanel's UI. These instructions should be specific enough that someone unfamiliar with the data can follow them exactly and see the pattern.
+
+### Report Types to Use
+
+| Mixpanel Report Type | When to Use |
+|---------------------|-------------|
+| **Insights** | Comparing metrics across segments, property distributions, time series |
+| **Funnels** | Conversion rate differences between segments |
+| **Retention** | Cohort-based retention differences |
+| **Flows** | Path analysis, event sequencing |
+
+### Required Fields Per Hook
+
+Each hook's "HOW TO FIND IT" section must include:
+
+1. **Report type** — Which Mixpanel report to create (Insights, Funnels, Retention)
+2. **Events** — Which event(s) to add to the report
+3. **Measure** — What metric to use (Total, Uniques, Avg, Median, etc.)
+4. **Breakdown** — Which property to break down by (if applicable)
+5. **Filter** — Any filters to apply (property = value)
+6. **Comparison** — What the user should compare (segment A vs B, before vs after, etc.)
+7. **Expected result** — What the numbers should look like (e.g., "Premium segment should show ~3x higher avg reward value than Basic")
+
+### Documentation Template Per Hook
+
+```
+───────────────────────────────────────────────────────────────────────────────
+N. HOOK NAME (hook type)
+───────────────────────────────────────────────────────────────────────────────
+
+PATTERN: <what the hook does to the data>
+
+HOW TO FIND IT IN MIXPANEL:
+
+  Report 1: <Title>
+  • Report type: Insights
+  • Event: "<event_name>"
+  • Measure: Average of <property_name>
+  • Breakdown: <segment_property>
+  • Filter: (optional) <property> = <value>
+  • Compare: <segment_a> vs <segment_b>
+  • Expected: <segment_a> should show ~Nx higher <metric> than <segment_b>
+
+  Report 2 (optional): <Title>
+  • Report type: Funnels
+  • Steps: "<step1>" → "<step2>" → "<step3>"
+  • Breakdown: <property>
+  • Expected: <segment> should convert at ~X% vs ~Y% baseline
+
+REAL-WORLD ANALOGUE: <why this pattern matters in production>
+```
+
+### Examples of Good Mixpanel Report Instructions
+
+**Good (specific, actionable):**
+```
+HOW TO FIND IT IN MIXPANEL:
+
+  Report 1: Premium Reward Value
+  • Report type: Insights
+  • Event: "reward redeemed"
+  • Measure: Average of "value"
+  • Breakdown: "account_tier"
+  • Expected: "premium" should show ~3x higher avg value than "basic"
+    (premium ≈ $30, plus ≈ $15, basic ≈ $10)
+
+  Report 2: Premium Investment Returns
+  • Report type: Insights
+  • Event: "investment made"
+  • Measure: Average of "amount"
+  • Filter: "action" = "sell"
+  • Breakdown: "account_tier"
+  • Expected: "premium" should show ~2x higher avg sell amount
+```
+
+**Bad (vague, not actionable):**
+```
+HOW TO FIND IT:
+  - Segment by account_tier
+  - Compare reward values
+  - Look for premium_reward = true
+```
+
+The bad example doesn't tell the user what report type to create, what metric to measure, or what numbers to expect. Always be specific.
+
 ## Common Pitfalls to Avoid
 
 1. **Don't wrap plain string arrays in `pickAWinner()`**: Arrays of 3+ unique strings like `["email", "google", "facebook"]` are automatically power-law weighted by the engine. Just use the plain array. Only use `pickAWinner()` explicitly when you need the second argument or have < 3 items. Note: `u.pickAWinner(["a","b"], 0)` with 2 elements and integer index CRASHES — use a float index or add a 3rd element.
@@ -664,6 +830,20 @@ Include `isFirstEvent`, `isFirstFunnel`, `name`, `weight`, `order`, and other no
 3. Verify the hook function loads without errors
 4. Verify the JSON schema file is valid JSON: `node -e "import fs from 'fs'; JSON.parse(fs.readFileSync('./dungeons/FILENAME-schema.json', 'utf8')); console.log('valid json');"`
 
+## Verifying Hooks
+
+A verify runner already exists at `scripts/verify-runner.mjs` — do NOT create a new one. Use it to generate a small dataset and verify hooks with DuckDB:
+
+```bash
+# Generate test data (1K users, 100K events)
+node scripts/verify-runner.mjs dungeons/FILENAME.js verify-FILENAME
+
+# Query the output with DuckDB to verify hook patterns
+duckdb -c "SELECT ... FROM 'verify-FILENAME__events.json'"
+```
+
+The runner overrides: `numUsers=1000, numEvents=100_000, format=json, writeToDisk=true, concurrency=1`.
+
 ## Quality Checklist
 
 - [ ] App narrative is detailed and explains design choices
@@ -671,7 +851,7 @@ Include `isFirstEvent`, `isFirstFunnel`, `name`, `weight`, `order`, and other no
 - [ ] 5 funnels with one marked `isFirstFunnel`
 - [ ] All funnel event names exist in events array
 - [ ] 8 hooks using varied techniques (not all `everything`)
-- [ ] Each hook has a clear "how to find it" in the documentation
+- [ ] Each hook has a clear "how to find it" with **specific Mixpanel report instructions** (report type, event, measure, breakdown, filter, expected result)
 - [ ] Each hook has a real-world analogue explained
 - [ ] Documentation block includes metrics summary table
 - [ ] No `pickAWinner` calls with exactly 2 items and integer index

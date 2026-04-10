@@ -1,0 +1,1118 @@
+{
+  "schema": {
+    "token": "",
+    "seed": "harness-social",
+    "numDays": 100,
+    "numEvents": 600000,
+    "numUsers": 5000,
+    "hasAnonIds": false,
+    "hasSessionIds": true,
+    "format": "json",
+    "gzip": true,
+    "alsoInferFunnels": false,
+    "hasLocation": true,
+    "hasAndroidDevices": true,
+    "hasIOSDevices": true,
+    "hasDesktopDevices": true,
+    "hasBrowser": false,
+    "hasCampaigns": false,
+    "isAnonymous": false,
+    "hasAdSpend": false,
+    "percentUsersBornInDataset": 50,
+    "hasAvatar": true,
+    "batchSize": 2500000,
+    "concurrency": 1,
+    "writeToDisk": false,
+    "scdProps": {},
+    "funnels": [
+      {
+        "sequence": [
+          "account created",
+          "profile updated",
+          "post created"
+        ],
+        "isFirstFunnel": true,
+        "conversionRate": 70,
+        "timeToConvert": 0.5
+      },
+      {
+        "sequence": [
+          "post viewed",
+          "post liked",
+          "comment posted"
+        ],
+        "conversionRate": 45,
+        "timeToConvert": 0.5,
+        "weight": 6
+      },
+      {
+        "sequence": [
+          "post created",
+          "post viewed",
+          "post liked",
+          "post shared"
+        ],
+        "conversionRate": 30,
+        "timeToConvert": 3,
+        "weight": 3
+      },
+      {
+        "sequence": [
+          "story created",
+          "story viewed",
+          "dm sent"
+        ],
+        "conversionRate": 40,
+        "timeToConvert": 1,
+        "weight": 3
+      },
+      {
+        "sequence": [
+          "search performed",
+          "post viewed",
+          "user followed"
+        ],
+        "conversionRate": 35,
+        "timeToConvert": 1,
+        "weight": 2
+      },
+      {
+        "sequence": [
+          "notification received",
+          "post viewed",
+          "post liked"
+        ],
+        "conversionRate": 50,
+        "timeToConvert": 0.5,
+        "weight": 2
+      },
+      {
+        "sequence": [
+          "profile updated",
+          "creator subscription started",
+          "post created"
+        ],
+        "conversionRate": 15,
+        "timeToConvert": 24,
+        "weight": 1
+      },
+      {
+        "sequence": [
+          "ad viewed",
+          "ad clicked",
+          "report submitted"
+        ],
+        "conversionRate": 20,
+        "timeToConvert": 2,
+        "weight": 1
+      }
+    ],
+    "events": [
+      {
+        "event": "account created",
+        "weight": 1,
+        "isFirstEvent": true,
+        "properties": {
+          "signup_method": [
+            "email",
+            "google",
+            "apple",
+            "sso"
+          ],
+          "referred_by": [
+            "organic",
+            "friend",
+            "ad",
+            "influencer"
+          ]
+        }
+      },
+      {
+        "event": "post created",
+        "weight": 12,
+        "properties": {
+          "post_type": [
+            "text",
+            "image",
+            "video",
+            "poll",
+            "link"
+          ],
+          "character_count": [
+            18,
+            111,
+            139,
+            273,
+            47,
+            75,
+            119,
+            132,
+            257,
+            183,
+            24,
+            142,
+            167,
+            87,
+            196,
+            76,
+            97,
+            68,
+            109,
+            233,
+            158,
+            183,
+            22,
+            105,
+            155,
+            117,
+            135,
+            118,
+            46,
+            158,
+            196,
+            68,
+            62,
+            217,
+            124,
+            72,
+            246,
+            64,
+            113,
+            60,
+            162,
+            138,
+            118,
+            76,
+            141,
+            106,
+            113,
+            119,
+            106,
+            153
+          ],
+          "has_media": {
+            "functionName": "arrow",
+            "body": "function () {\n\t\tconst weighted = [];\n\t\tfor (let i = 0; i < 10; i++) {\n\t\t\tconst rand = chance.d10(); // Random number between 1 and 10\n\n\t\t\t// 35% chance to favor the most chosen index\n\t\t\tif (chance.bool({ likelihood: 35 })) {\n\t\t\t\t// 50% chance to slightly alter the index\n\t\t\t\tif (chance.bool({ likelihood: 50 })) {\n\t\t\t\t\tweighted.push(items[mostChosenIndex]);\n\t\t\t\t} else {\n\t\t\t\t\tconst addOrSubtract = chance.bool({ likelihood: 50 }) ? -rand : rand;\n\t\t\t\t\tlet newIndex = mostChosenIndex + addOrSubtract;\n\n\t\t\t\t\t// Ensure newIndex is within bounds\n\t\t\t\t\tif (newIndex < 0) newIndex = 0;\n\t\t\t\t\tif (newIndex >= items.length) newIndex = items.length - 1;\n\t\t\t\t\tweighted.push(items[newIndex]);\n\t\t\t\t}\n\t\t\t}\n\t\t\t// 25% chance to favor the second most chosen index\n\t\t\telse if (chance.bool({ likelihood: 25 })) {\n\t\t\t\tweighted.push(items[secondMostChosenIndex]);\n\t\t\t}\n\t\t\t// 15% chance to favor the third most chosen index\n\t\t\telse if (chance.bool({ likelihood: 15 })) {\n\t\t\t\tweighted.push(items[thirdMostChosenIndex]);\n\t\t\t}\n\t\t\t// Otherwise, pick a random item from the list\n\t\t\telse {\n\t\t\t\tweighted.push(chance.pickone(items));\n\t\t\t}\n\t\t}\n\t\treturn weighted;\n\t}"
+          },
+          "hashtag_count": [
+            3,
+            5,
+            4,
+            4,
+            3,
+            2,
+            3,
+            3,
+            6,
+            2,
+            3,
+            3,
+            8,
+            2,
+            8,
+            8,
+            7,
+            3,
+            7,
+            3,
+            6,
+            8,
+            7,
+            4,
+            7,
+            3,
+            3,
+            4,
+            4,
+            3,
+            4,
+            3,
+            3,
+            3,
+            2,
+            6,
+            1,
+            2,
+            4,
+            4,
+            5,
+            4,
+            6,
+            7,
+            3,
+            3,
+            2,
+            2,
+            2,
+            4
+          ]
+        }
+      },
+      {
+        "event": "post viewed",
+        "weight": 30,
+        "properties": {
+          "post_type": [
+            "text",
+            "image",
+            "video",
+            "poll",
+            "link"
+          ],
+          "view_duration_sec": [
+            93,
+            29,
+            31,
+            26,
+            33
+          ],
+          "source": [
+            "feed",
+            "explore",
+            "search",
+            "profile",
+            "notification"
+          ]
+        }
+      },
+      {
+        "event": "post liked",
+        "weight": 18,
+        "properties": {
+          "post_type": [
+            "text",
+            "image",
+            "video",
+            "poll",
+            "link"
+          ]
+        }
+      },
+      {
+        "event": "post shared",
+        "weight": 6,
+        "properties": {
+          "share_destination": [
+            "repost",
+            "dm",
+            "external",
+            "copy_link"
+          ]
+        }
+      },
+      {
+        "event": "comment posted",
+        "weight": 10,
+        "properties": {
+          "comment_length": [
+            146,
+            162,
+            369,
+            146,
+            166,
+            387,
+            163,
+            125,
+            141,
+            136,
+            110,
+            139,
+            384,
+            191,
+            207,
+            343,
+            134,
+            121,
+            134,
+            359
+          ],
+          "has_mention": {
+            "functionName": "arrow",
+            "body": "function () {\n\t\tconst weighted = [];\n\t\tfor (let i = 0; i < 10; i++) {\n\t\t\tconst rand = chance.d10(); // Random number between 1 and 10\n\n\t\t\t// 35% chance to favor the most chosen index\n\t\t\tif (chance.bool({ likelihood: 35 })) {\n\t\t\t\t// 50% chance to slightly alter the index\n\t\t\t\tif (chance.bool({ likelihood: 50 })) {\n\t\t\t\t\tweighted.push(items[mostChosenIndex]);\n\t\t\t\t} else {\n\t\t\t\t\tconst addOrSubtract = chance.bool({ likelihood: 50 }) ? -rand : rand;\n\t\t\t\t\tlet newIndex = mostChosenIndex + addOrSubtract;\n\n\t\t\t\t\t// Ensure newIndex is within bounds\n\t\t\t\t\tif (newIndex < 0) newIndex = 0;\n\t\t\t\t\tif (newIndex >= items.length) newIndex = items.length - 1;\n\t\t\t\t\tweighted.push(items[newIndex]);\n\t\t\t\t}\n\t\t\t}\n\t\t\t// 25% chance to favor the second most chosen index\n\t\t\telse if (chance.bool({ likelihood: 25 })) {\n\t\t\t\tweighted.push(items[secondMostChosenIndex]);\n\t\t\t}\n\t\t\t// 15% chance to favor the third most chosen index\n\t\t\telse if (chance.bool({ likelihood: 15 })) {\n\t\t\t\tweighted.push(items[thirdMostChosenIndex]);\n\t\t\t}\n\t\t\t// Otherwise, pick a random item from the list\n\t\t\telse {\n\t\t\t\tweighted.push(chance.pickone(items));\n\t\t\t}\n\t\t}\n\t\treturn weighted;\n\t}"
+          }
+        }
+      },
+      {
+        "event": "user followed",
+        "weight": 8,
+        "properties": {
+          "discovery_source": [
+            "suggested",
+            "search",
+            "post",
+            "profile",
+            "mutual"
+          ]
+        }
+      },
+      {
+        "event": "user unfollowed",
+        "weight": 2,
+        "properties": {
+          "reason": [
+            "content_quality",
+            "too_frequent",
+            "lost_interest",
+            "offensive"
+          ]
+        }
+      },
+      {
+        "event": "story viewed",
+        "weight": 15,
+        "properties": {
+          "story_type": [
+            "photo",
+            "video",
+            "text"
+          ],
+          "view_duration_sec": [
+            8,
+            14,
+            10,
+            10,
+            9
+          ],
+          "completed": {
+            "functionName": "arrow",
+            "body": "function () {\n\t\tconst weighted = [];\n\t\tfor (let i = 0; i < 10; i++) {\n\t\t\tconst rand = chance.d10(); // Random number between 1 and 10\n\n\t\t\t// 35% chance to favor the most chosen index\n\t\t\tif (chance.bool({ likelihood: 35 })) {\n\t\t\t\t// 50% chance to slightly alter the index\n\t\t\t\tif (chance.bool({ likelihood: 50 })) {\n\t\t\t\t\tweighted.push(items[mostChosenIndex]);\n\t\t\t\t} else {\n\t\t\t\t\tconst addOrSubtract = chance.bool({ likelihood: 50 }) ? -rand : rand;\n\t\t\t\t\tlet newIndex = mostChosenIndex + addOrSubtract;\n\n\t\t\t\t\t// Ensure newIndex is within bounds\n\t\t\t\t\tif (newIndex < 0) newIndex = 0;\n\t\t\t\t\tif (newIndex >= items.length) newIndex = items.length - 1;\n\t\t\t\t\tweighted.push(items[newIndex]);\n\t\t\t\t}\n\t\t\t}\n\t\t\t// 25% chance to favor the second most chosen index\n\t\t\telse if (chance.bool({ likelihood: 25 })) {\n\t\t\t\tweighted.push(items[secondMostChosenIndex]);\n\t\t\t}\n\t\t\t// 15% chance to favor the third most chosen index\n\t\t\telse if (chance.bool({ likelihood: 15 })) {\n\t\t\t\tweighted.push(items[thirdMostChosenIndex]);\n\t\t\t}\n\t\t\t// Otherwise, pick a random item from the list\n\t\t\telse {\n\t\t\t\tweighted.push(chance.pickone(items));\n\t\t\t}\n\t\t}\n\t\treturn weighted;\n\t}"
+          }
+        }
+      },
+      {
+        "event": "story created",
+        "weight": 5,
+        "properties": {
+          "story_type": [
+            "photo",
+            "video",
+            "text"
+          ],
+          "has_filter": {
+            "functionName": "arrow",
+            "body": "function () {\n\t\tconst weighted = [];\n\t\tfor (let i = 0; i < 10; i++) {\n\t\t\tconst rand = chance.d10(); // Random number between 1 and 10\n\n\t\t\t// 35% chance to favor the most chosen index\n\t\t\tif (chance.bool({ likelihood: 35 })) {\n\t\t\t\t// 50% chance to slightly alter the index\n\t\t\t\tif (chance.bool({ likelihood: 50 })) {\n\t\t\t\t\tweighted.push(items[mostChosenIndex]);\n\t\t\t\t} else {\n\t\t\t\t\tconst addOrSubtract = chance.bool({ likelihood: 50 }) ? -rand : rand;\n\t\t\t\t\tlet newIndex = mostChosenIndex + addOrSubtract;\n\n\t\t\t\t\t// Ensure newIndex is within bounds\n\t\t\t\t\tif (newIndex < 0) newIndex = 0;\n\t\t\t\t\tif (newIndex >= items.length) newIndex = items.length - 1;\n\t\t\t\t\tweighted.push(items[newIndex]);\n\t\t\t\t}\n\t\t\t}\n\t\t\t// 25% chance to favor the second most chosen index\n\t\t\telse if (chance.bool({ likelihood: 25 })) {\n\t\t\t\tweighted.push(items[secondMostChosenIndex]);\n\t\t\t}\n\t\t\t// 15% chance to favor the third most chosen index\n\t\t\telse if (chance.bool({ likelihood: 15 })) {\n\t\t\t\tweighted.push(items[thirdMostChosenIndex]);\n\t\t\t}\n\t\t\t// Otherwise, pick a random item from the list\n\t\t\telse {\n\t\t\t\tweighted.push(chance.pickone(items));\n\t\t\t}\n\t\t}\n\t\treturn weighted;\n\t}"
+          },
+          "has_sticker": {
+            "functionName": "arrow",
+            "body": "function () {\n\t\tconst weighted = [];\n\t\tfor (let i = 0; i < 10; i++) {\n\t\t\tconst rand = chance.d10(); // Random number between 1 and 10\n\n\t\t\t// 35% chance to favor the most chosen index\n\t\t\tif (chance.bool({ likelihood: 35 })) {\n\t\t\t\t// 50% chance to slightly alter the index\n\t\t\t\tif (chance.bool({ likelihood: 50 })) {\n\t\t\t\t\tweighted.push(items[mostChosenIndex]);\n\t\t\t\t} else {\n\t\t\t\t\tconst addOrSubtract = chance.bool({ likelihood: 50 }) ? -rand : rand;\n\t\t\t\t\tlet newIndex = mostChosenIndex + addOrSubtract;\n\n\t\t\t\t\t// Ensure newIndex is within bounds\n\t\t\t\t\tif (newIndex < 0) newIndex = 0;\n\t\t\t\t\tif (newIndex >= items.length) newIndex = items.length - 1;\n\t\t\t\t\tweighted.push(items[newIndex]);\n\t\t\t\t}\n\t\t\t}\n\t\t\t// 25% chance to favor the second most chosen index\n\t\t\telse if (chance.bool({ likelihood: 25 })) {\n\t\t\t\tweighted.push(items[secondMostChosenIndex]);\n\t\t\t}\n\t\t\t// 15% chance to favor the third most chosen index\n\t\t\telse if (chance.bool({ likelihood: 15 })) {\n\t\t\t\tweighted.push(items[thirdMostChosenIndex]);\n\t\t\t}\n\t\t\t// Otherwise, pick a random item from the list\n\t\t\telse {\n\t\t\t\tweighted.push(chance.pickone(items));\n\t\t\t}\n\t\t}\n\t\treturn weighted;\n\t}"
+          }
+        }
+      },
+      {
+        "event": "search performed",
+        "weight": 7,
+        "properties": {
+          "search_type": [
+            "users",
+            "hashtags",
+            "posts"
+          ],
+          "results_count": [
+            20,
+            10,
+            12,
+            37,
+            14,
+            19,
+            13,
+            19,
+            35,
+            15
+          ]
+        }
+      },
+      {
+        "event": "notification received",
+        "weight": 12,
+        "properties": {
+          "notification_type": [
+            "like",
+            "follow",
+            "comment",
+            "mention",
+            "trending"
+          ],
+          "clicked": {
+            "functionName": "arrow",
+            "body": "function () {\n\t\tconst weighted = [];\n\t\tfor (let i = 0; i < 10; i++) {\n\t\t\tconst rand = chance.d10(); // Random number between 1 and 10\n\n\t\t\t// 35% chance to favor the most chosen index\n\t\t\tif (chance.bool({ likelihood: 35 })) {\n\t\t\t\t// 50% chance to slightly alter the index\n\t\t\t\tif (chance.bool({ likelihood: 50 })) {\n\t\t\t\t\tweighted.push(items[mostChosenIndex]);\n\t\t\t\t} else {\n\t\t\t\t\tconst addOrSubtract = chance.bool({ likelihood: 50 }) ? -rand : rand;\n\t\t\t\t\tlet newIndex = mostChosenIndex + addOrSubtract;\n\n\t\t\t\t\t// Ensure newIndex is within bounds\n\t\t\t\t\tif (newIndex < 0) newIndex = 0;\n\t\t\t\t\tif (newIndex >= items.length) newIndex = items.length - 1;\n\t\t\t\t\tweighted.push(items[newIndex]);\n\t\t\t\t}\n\t\t\t}\n\t\t\t// 25% chance to favor the second most chosen index\n\t\t\telse if (chance.bool({ likelihood: 25 })) {\n\t\t\t\tweighted.push(items[secondMostChosenIndex]);\n\t\t\t}\n\t\t\t// 15% chance to favor the third most chosen index\n\t\t\telse if (chance.bool({ likelihood: 15 })) {\n\t\t\t\tweighted.push(items[thirdMostChosenIndex]);\n\t\t\t}\n\t\t\t// Otherwise, pick a random item from the list\n\t\t\telse {\n\t\t\t\tweighted.push(chance.pickone(items));\n\t\t\t}\n\t\t}\n\t\treturn weighted;\n\t}"
+          }
+        }
+      },
+      {
+        "event": "dm sent",
+        "weight": 8,
+        "properties": {
+          "message_type": [
+            "text",
+            "image",
+            "voice",
+            "link"
+          ],
+          "conversation_length": [
+            25,
+            34,
+            35,
+            24,
+            67,
+            57,
+            68,
+            67,
+            21,
+            59,
+            66,
+            50,
+            65,
+            30,
+            33,
+            25,
+            43,
+            50,
+            51,
+            14,
+            12,
+            22,
+            97,
+            23,
+            29,
+            26,
+            26,
+            23,
+            17,
+            52,
+            32,
+            83,
+            58,
+            36,
+            36,
+            43,
+            43,
+            25,
+            65,
+            61,
+            70,
+            19,
+            21,
+            41,
+            91,
+            88,
+            32,
+            16,
+            24,
+            28
+          ]
+        }
+      },
+      {
+        "event": "ad viewed",
+        "weight": 10,
+        "properties": {
+          "ad_format": [
+            "feed_native",
+            "story",
+            "banner",
+            "video"
+          ],
+          "ad_category": [
+            "retail",
+            "tech",
+            "food",
+            "finance",
+            "entertainment"
+          ],
+          "view_duration_sec": [
+            21,
+            9,
+            9,
+            21,
+            21,
+            20,
+            6,
+            9,
+            20,
+            11,
+            8,
+            24,
+            23,
+            8,
+            23,
+            20,
+            12,
+            11,
+            7,
+            22,
+            8,
+            13,
+            21,
+            11,
+            8,
+            9,
+            10,
+            8,
+            10,
+            17,
+            9,
+            10,
+            11,
+            9,
+            8,
+            8,
+            8,
+            10,
+            19,
+            23,
+            10,
+            8,
+            20,
+            22,
+            23,
+            8,
+            21,
+            7,
+            10,
+            23
+          ]
+        }
+      },
+      {
+        "event": "ad clicked",
+        "weight": 2,
+        "properties": {
+          "ad_format": [
+            "feed_native",
+            "story",
+            "banner",
+            "video"
+          ],
+          "ad_category": [
+            "retail",
+            "tech",
+            "food",
+            "finance",
+            "entertainment"
+          ]
+        }
+      },
+      {
+        "event": "report submitted",
+        "weight": 1,
+        "properties": {
+          "report_type": [
+            "spam",
+            "harassment",
+            "misinformation",
+            "hate_speech",
+            "other"
+          ],
+          "content_type": [
+            "post",
+            "comment",
+            "user",
+            "dm"
+          ]
+        }
+      },
+      {
+        "event": "profile updated",
+        "weight": 3,
+        "properties": {
+          "field_updated": [
+            "bio",
+            "avatar",
+            "display_name",
+            "privacy_settings",
+            "interests"
+          ]
+        }
+      },
+      {
+        "event": "creator subscription started",
+        "weight": 2,
+        "properties": {
+          "tier": [
+            "basic",
+            "premium",
+            "vip"
+          ],
+          "price_usd": {
+            "functionName": "arrow",
+            "body": "function () {\n\t\tconst weighted = [];\n\t\tfor (let i = 0; i < 10; i++) {\n\t\t\tconst rand = chance.d10(); // Random number between 1 and 10\n\n\t\t\t// 35% chance to favor the most chosen index\n\t\t\tif (chance.bool({ likelihood: 35 })) {\n\t\t\t\t// 50% chance to slightly alter the index\n\t\t\t\tif (chance.bool({ likelihood: 50 })) {\n\t\t\t\t\tweighted.push(items[mostChosenIndex]);\n\t\t\t\t} else {\n\t\t\t\t\tconst addOrSubtract = chance.bool({ likelihood: 50 }) ? -rand : rand;\n\t\t\t\t\tlet newIndex = mostChosenIndex + addOrSubtract;\n\n\t\t\t\t\t// Ensure newIndex is within bounds\n\t\t\t\t\tif (newIndex < 0) newIndex = 0;\n\t\t\t\t\tif (newIndex >= items.length) newIndex = items.length - 1;\n\t\t\t\t\tweighted.push(items[newIndex]);\n\t\t\t\t}\n\t\t\t}\n\t\t\t// 25% chance to favor the second most chosen index\n\t\t\telse if (chance.bool({ likelihood: 25 })) {\n\t\t\t\tweighted.push(items[secondMostChosenIndex]);\n\t\t\t}\n\t\t\t// 15% chance to favor the third most chosen index\n\t\t\telse if (chance.bool({ likelihood: 15 })) {\n\t\t\t\tweighted.push(items[thirdMostChosenIndex]);\n\t\t\t}\n\t\t\t// Otherwise, pick a random item from the list\n\t\t\telse {\n\t\t\t\tweighted.push(chance.pickone(items));\n\t\t\t}\n\t\t}\n\t\treturn weighted;\n\t}"
+          }
+        }
+      }
+    ],
+    "superProps": {
+      "app_version": [
+        "4.0",
+        "4.1",
+        "4.2",
+        "4.3",
+        "5.0"
+      ],
+      "account_type": [
+        "personal",
+        "creator",
+        "business"
+      ]
+    },
+    "userProps": {
+      "follower_count": [
+        2597,
+        2309,
+        2449,
+        2918,
+        2259,
+        2376,
+        2504,
+        2270,
+        7335,
+        7358,
+        2457,
+        2379,
+        3823,
+        2218,
+        2396,
+        2903,
+        7072,
+        3066,
+        2760,
+        7569,
+        2481,
+        7501,
+        2534,
+        7114,
+        2673,
+        3123,
+        2685,
+        2497,
+        7415,
+        2479,
+        2550,
+        7056,
+        2487,
+        6889,
+        6817,
+        2780,
+        2880,
+        5000,
+        2552,
+        2612,
+        2574,
+        2718,
+        2702,
+        2584,
+        7800,
+        2669,
+        3374,
+        2261,
+        3317,
+        2986
+      ],
+      "following_count": [
+        1361,
+        3819,
+        1325,
+        1347,
+        1605,
+        3340,
+        3614,
+        2500,
+        1285,
+        1430,
+        1287,
+        1618,
+        1229,
+        3633,
+        3561,
+        1694,
+        3606,
+        1376,
+        3579,
+        1656,
+        1381,
+        1469,
+        1886,
+        1153,
+        1744,
+        2500,
+        1882,
+        3783,
+        3376,
+        1374,
+        2794,
+        1294,
+        1456,
+        1630,
+        1385,
+        3599,
+        3479,
+        1130,
+        1059,
+        1352,
+        3871,
+        3594,
+        1400,
+        1484,
+        3557,
+        1536,
+        1347,
+        3525,
+        1456,
+        3560,
+        1249,
+        1365,
+        2500,
+        1581,
+        1357,
+        3816,
+        3819,
+        1250,
+        1594,
+        1348,
+        1274,
+        1316,
+        997,
+        3667,
+        1304,
+        1297,
+        1356,
+        1410,
+        1110,
+        1529,
+        3729,
+        1471,
+        3470,
+        1293,
+        1167,
+        1183,
+        3877,
+        2001,
+        1284,
+        3414,
+        1388,
+        978,
+        3287,
+        3672,
+        3515,
+        1341,
+        1162,
+        1391,
+        1415,
+        1187,
+        1924,
+        1301,
+        1318,
+        1279,
+        2036,
+        1104,
+        1360,
+        2500,
+        942,
+        3446
+      ],
+      "bio_length": [
+        69,
+        75,
+        17,
+        23,
+        106,
+        118,
+        31,
+        51,
+        3,
+        48,
+        81,
+        39,
+        57,
+        91,
+        35,
+        101,
+        66,
+        108,
+        30,
+        110,
+        35,
+        91,
+        52,
+        104,
+        41,
+        45,
+        36,
+        87,
+        50,
+        45,
+        53,
+        126,
+        54,
+        127,
+        29,
+        19,
+        43,
+        63,
+        44,
+        102,
+        95,
+        67,
+        30,
+        37,
+        128,
+        134,
+        87,
+        8,
+        50,
+        46
+      ],
+      "verified": {
+        "functionName": "arrow",
+        "body": "function () {\n\t\tconst weighted = [];\n\t\tfor (let i = 0; i < 10; i++) {\n\t\t\tconst rand = chance.d10(); // Random number between 1 and 10\n\n\t\t\t// 35% chance to favor the most chosen index\n\t\t\tif (chance.bool({ likelihood: 35 })) {\n\t\t\t\t// 50% chance to slightly alter the index\n\t\t\t\tif (chance.bool({ likelihood: 50 })) {\n\t\t\t\t\tweighted.push(items[mostChosenIndex]);\n\t\t\t\t} else {\n\t\t\t\t\tconst addOrSubtract = chance.bool({ likelihood: 50 }) ? -rand : rand;\n\t\t\t\t\tlet newIndex = mostChosenIndex + addOrSubtract;\n\n\t\t\t\t\t// Ensure newIndex is within bounds\n\t\t\t\t\tif (newIndex < 0) newIndex = 0;\n\t\t\t\t\tif (newIndex >= items.length) newIndex = items.length - 1;\n\t\t\t\t\tweighted.push(items[newIndex]);\n\t\t\t\t}\n\t\t\t}\n\t\t\t// 25% chance to favor the second most chosen index\n\t\t\telse if (chance.bool({ likelihood: 25 })) {\n\t\t\t\tweighted.push(items[secondMostChosenIndex]);\n\t\t\t}\n\t\t\t// 15% chance to favor the third most chosen index\n\t\t\telse if (chance.bool({ likelihood: 15 })) {\n\t\t\t\tweighted.push(items[thirdMostChosenIndex]);\n\t\t\t}\n\t\t\t// Otherwise, pick a random item from the list\n\t\t\telse {\n\t\t\t\tweighted.push(chance.pickone(items));\n\t\t\t}\n\t\t}\n\t\treturn weighted;\n\t}"
+      },
+      "content_niche": [
+        "lifestyle",
+        "tech",
+        "food",
+        "fitness",
+        "travel",
+        "comedy",
+        "news",
+        "art"
+      ]
+    },
+    "groupKeys": [
+      [
+        "community_id",
+        100,
+        [
+          "post created",
+          "comment posted",
+          "post liked",
+          "post shared"
+        ]
+      ]
+    ],
+    "groupProps": {
+      "community_id": {
+        "name": {
+          "functionName": "arrow",
+          "body": "() => `${chance.word()} ${chance.pickone([\"Hub\", \"Circle\", \"Squad\", \"Zone\", \"Space\"])}`"
+        },
+        "member_count": [
+          3318,
+          1526,
+          1364,
+          3127,
+          1378,
+          3629,
+          1698,
+          1286,
+          1300,
+          3265,
+          1284,
+          1930,
+          1121,
+          1386,
+          3754,
+          1827,
+          1856,
+          1506,
+          1523,
+          1061,
+          1034,
+          1325,
+          3284,
+          1558,
+          1633,
+          3369,
+          3236,
+          1339,
+          3727,
+          1295,
+          3828,
+          3597,
+          1332,
+          1481,
+          1605,
+          1088,
+          3556,
+          2987,
+          3737,
+          1692,
+          3588,
+          1578,
+          1240,
+          1762,
+          1357,
+          1364,
+          2074,
+          3775,
+          4059,
+          1332,
+          3303,
+          3286,
+          1432,
+          3022,
+          1510,
+          3310,
+          1722,
+          3721,
+          1393,
+          1139,
+          1526,
+          1547,
+          3771,
+          1691,
+          3580,
+          3656,
+          1963,
+          3886,
+          3295,
+          1239,
+          1777,
+          3067,
+          1620,
+          2120,
+          1314,
+          1321,
+          3302,
+          2037,
+          1605,
+          1496,
+          1229,
+          1393,
+          1059,
+          3944,
+          1624,
+          1389,
+          3209,
+          3316,
+          2875,
+          1170,
+          3259,
+          1260,
+          3709,
+          1236,
+          3792,
+          1281,
+          1464,
+          1584,
+          3592,
+          1217,
+          3630,
+          1348,
+          1665,
+          1275,
+          3532,
+          3610,
+          1657,
+          3723,
+          1538,
+          1286,
+          3703,
+          1653,
+          1329,
+          1474,
+          2951,
+          3482,
+          3875,
+          1661,
+          1040,
+          3729,
+          1379,
+          1262,
+          1777,
+          1582,
+          3006,
+          996,
+          1318,
+          1907,
+          1563,
+          3778,
+          3480,
+          1394,
+          3744,
+          3423,
+          3185,
+          3765,
+          1481,
+          3816,
+          1192,
+          3979,
+          1396,
+          1278,
+          1688,
+          1127,
+          1237,
+          1854,
+          1626,
+          1427,
+          1235,
+          3182,
+          3058,
+          1879,
+          1230,
+          2525,
+          3617,
+          1252,
+          3703,
+          3761,
+          3617,
+          1591,
+          1091,
+          1127,
+          3429,
+          3663,
+          1483,
+          3650,
+          1731,
+          3442,
+          3668,
+          2012,
+          1123,
+          3767,
+          1610,
+          3294,
+          3675,
+          3789,
+          3787,
+          1434,
+          1132,
+          1996,
+          3074,
+          1174,
+          3970,
+          1861,
+          1511,
+          2879,
+          1238,
+          3323,
+          3195,
+          1261,
+          1383,
+          3293,
+          1171,
+          1428,
+          1263,
+          1214,
+          3722,
+          3066,
+          3432,
+          1733
+        ],
+        "category": [
+          "technology",
+          "entertainment",
+          "sports",
+          "politics",
+          "art",
+          "science"
+        ],
+        "is_moderated": {
+          "functionName": "arrow",
+          "body": "function () {\n\t\tconst weighted = [];\n\t\tfor (let i = 0; i < 10; i++) {\n\t\t\tconst rand = chance.d10(); // Random number between 1 and 10\n\n\t\t\t// 35% chance to favor the most chosen index\n\t\t\tif (chance.bool({ likelihood: 35 })) {\n\t\t\t\t// 50% chance to slightly alter the index\n\t\t\t\tif (chance.bool({ likelihood: 50 })) {\n\t\t\t\t\tweighted.push(items[mostChosenIndex]);\n\t\t\t\t} else {\n\t\t\t\t\tconst addOrSubtract = chance.bool({ likelihood: 50 }) ? -rand : rand;\n\t\t\t\t\tlet newIndex = mostChosenIndex + addOrSubtract;\n\n\t\t\t\t\t// Ensure newIndex is within bounds\n\t\t\t\t\tif (newIndex < 0) newIndex = 0;\n\t\t\t\t\tif (newIndex >= items.length) newIndex = items.length - 1;\n\t\t\t\t\tweighted.push(items[newIndex]);\n\t\t\t\t}\n\t\t\t}\n\t\t\t// 25% chance to favor the second most chosen index\n\t\t\telse if (chance.bool({ likelihood: 25 })) {\n\t\t\t\tweighted.push(items[secondMostChosenIndex]);\n\t\t\t}\n\t\t\t// 15% chance to favor the third most chosen index\n\t\t\telse if (chance.bool({ likelihood: 15 })) {\n\t\t\t\tweighted.push(items[thirdMostChosenIndex]);\n\t\t\t}\n\t\t\t// Otherwise, pick a random item from the list\n\t\t\telse {\n\t\t\t\tweighted.push(chance.pickone(items));\n\t\t\t}\n\t\t}\n\t\treturn weighted;\n\t}"
+        }
+      }
+    },
+    "lookupTables": []
+  },
+  "hooks": "function (record, type, meta) {\n\t\tconst NOW = dayjs();\n\t\tconst DATASET_START = NOW.subtract(days, 'days');\n\t\tconst ALGORITHM_CHANGE_DAY = DATASET_START.add(45, 'days');\n\t\tconst REENGAGEMENT_START = DATASET_START.add(30, 'days');\n\n\t\t// ─── EVENT-LEVEL HOOKS ───────────────────────────────────────────\n\n\t\tif (type === \"event\") {\n\t\t\tconst EVENT_TIME = dayjs(record.time);\n\n\t\t\t// Hook #3: ALGORITHM CHANGE - Day 45 flips feed to explore\n\t\t\tif (record.event === \"post viewed\") {\n\t\t\t\tif (EVENT_TIME.isAfter(ALGORITHM_CHANGE_DAY)) {\n\t\t\t\t\t// After day 45: 70% explore, 15% feed\n\t\t\t\t\tif (chance.bool({ likelihood: 70 })) {\n\t\t\t\t\t\trecord.source = \"explore\";\n\t\t\t\t\t}\n\t\t\t\t} else {\n\t\t\t\t\t// Before day 45: 70% feed, 15% explore (reinforce default)\n\t\t\t\t\tif (chance.bool({ likelihood: 70 })) {\n\t\t\t\t\t\trecord.source = \"feed\";\n\t\t\t\t\t}\n\t\t\t\t}\n\t\t\t}\n\n\t\t\t// Hook #4: ENGAGEMENT BAIT - High hashtag posts get short view durations\n\t\t\tif (record.event === \"post viewed\") {\n\t\t\t\t// 20% of post views are engagement-bait content\n\t\t\t\tif (chance.bool({ likelihood: 20 })) {\n\t\t\t\t\trecord.view_duration_sec = chance.integer({ min: 1, max: 5 });\n\t\t\t\t\trecord.engagement_bait = true;\n\t\t\t\t} else {\n\t\t\t\t\trecord.engagement_bait = false;\n\t\t\t\t}\n\n\t\t\t\t// Hook #5: NOTIFICATION RE-ENGAGEMENT - Trending drives views after day 30\n\t\t\t\tif (EVENT_TIME.isAfter(REENGAGEMENT_START) && chance.bool({ likelihood: 30 })) {\n\t\t\t\t\trecord.source = \"notification\";\n\t\t\t\t\trecord.trending_reengagement = true;\n\t\t\t\t} else {\n\t\t\t\t\trecord.trending_reengagement = false;\n\t\t\t\t}\n\t\t\t}\n\n\t\t\t// Hook #8: WEEKEND CONTENT SURGE - tag weekend content (duplication handled in everything hook)\n\t\t\tif (record.event === \"post created\" || record.event === \"story created\") {\n\t\t\t\tconst dayOfWeek = EVENT_TIME.day(); // 0 = Sunday, 6 = Saturday\n\t\t\t\tif (dayOfWeek === 0 || dayOfWeek === 6) {\n\t\t\t\t\trecord.weekend_surge = true;\n\t\t\t\t} else {\n\t\t\t\t\trecord.weekend_surge = false;\n\t\t\t\t}\n\t\t\t}\n\t\t}\n\n\t\t// ─── EVERYTHING-LEVEL HOOKS ──────────────────────────────────────\n\n\t\tif (type === \"everything\") {\n\t\t\tconst userEvents = record;\n\t\t\tif (!userEvents || userEvents.length === 0) return record;\n\n\t\t\t// Tracking variables for user patterns\n\t\t\tlet postCreatedCount = 0;\n\t\t\tlet followReceivedCount = 0;\n\t\t\tlet reportSubmittedCount = 0;\n\t\t\tlet hasCreatorSubscription = false;\n\t\t\tlet isViralCreator = false;\n\n\t\t\t// First pass: identify user patterns\n\t\t\tuserEvents.forEach((event) => {\n\t\t\t\tif (event.event === \"post created\") {\n\t\t\t\t\tpostCreatedCount++;\n\t\t\t\t}\n\t\t\t\tif (event.event === \"user followed\") {\n\t\t\t\t\tfollowReceivedCount++;\n\t\t\t\t}\n\t\t\t\tif (event.event === \"report submitted\") {\n\t\t\t\t\treportSubmittedCount++;\n\t\t\t\t}\n\t\t\t\tif (event.event === \"creator subscription started\") {\n\t\t\t\t\thasCreatorSubscription = true;\n\t\t\t\t}\n\t\t\t});\n\n\t\t\t// Hook #1: VIRAL CONTENT CASCADE\n\t\t\t// Users with 10+ posts and 5% random chance are viral creators\n\t\t\tif (postCreatedCount >= 10 && chance.bool({ likelihood: 5 })) {\n\t\t\t\tisViralCreator = true;\n\t\t\t}\n\n\t\t\t// Second pass: set schema defaults then modify/inject based on patterns\n\t\t\tfor (let idx = userEvents.length - 1; idx >= 0; idx--) {\n\t\t\t\tconst event = userEvents[idx];\n\t\t\t\tconst eventTime = dayjs(event.time);\n\n\t\t\t\t// Set schema defaults for conditional properties\n\t\t\t\tif (event.event === \"post created\" || event.event === \"story created\") {\n\t\t\t\t\tif (event.monetized_creator === undefined) event.monetized_creator = false;\n\t\t\t\t\tif (event.follow_back_effect === undefined) event.follow_back_effect = false;\n\t\t\t\t}\n\t\t\t\tif (event.event === \"post viewed\") {\n\t\t\t\t\tif (event.viral_cascade === undefined) event.viral_cascade = false;\n\t\t\t\t}\n\t\t\t\tif (event.toxic_user === undefined) event.toxic_user = false;\n\n\t\t\t\t// Hook #1: VIRAL CONTENT CASCADE\n\t\t\t\t// Viral creators get 10-20x engagement on their posts\n\t\t\t\tif (isViralCreator && event.event === \"post created\") {\n\t\t\t\t\tconst viralViews = chance.integer({ min: 10, max: 20 });\n\t\t\t\t\tconst viralLikes = chance.integer({ min: 10, max: 20 });\n\t\t\t\t\tconst viralShares = chance.integer({ min: 10, max: 20 });\n\t\t\t\t\tconst injected = [];\n\n\t\t\t\t\tfor (let i = 0; i < viralViews; i++) {\n\t\t\t\t\t\tinjected.push({\n\t\t\t\t\t\t\tevent: \"post viewed\",\n\t\t\t\t\t\t\ttime: eventTime.add(chance.integer({ min: 1, max: 180 }), 'minutes').toISOString(),\n\t\t\t\t\t\t\tuser_id: event.user_id,\n\t\t\t\t\t\t\tpost_type: event.post_type || \"text\",\n\t\t\t\t\t\t\tsource: chance.pickone([\"feed\", \"explore\", \"search\"]),\n\t\t\t\t\t\t\tview_duration_sec: chance.integer({ min: 5, max: 90 }),\n\t\t\t\t\t\t\tviral_cascade: true,\n\t\t\t\t\t\t});\n\t\t\t\t\t}\n\t\t\t\t\tfor (let i = 0; i < viralLikes; i++) {\n\t\t\t\t\t\tinjected.push({\n\t\t\t\t\t\t\tevent: \"post liked\",\n\t\t\t\t\t\t\ttime: eventTime.add(chance.integer({ min: 2, max: 240 }), 'minutes').toISOString(),\n\t\t\t\t\t\t\tuser_id: event.user_id,\n\t\t\t\t\t\t\tpost_type: event.post_type || \"text\",\n\t\t\t\t\t\t\tviral_cascade: true,\n\t\t\t\t\t\t});\n\t\t\t\t\t}\n\t\t\t\t\tfor (let i = 0; i < viralShares; i++) {\n\t\t\t\t\t\tinjected.push({\n\t\t\t\t\t\t\tevent: \"post shared\",\n\t\t\t\t\t\t\ttime: eventTime.add(chance.integer({ min: 5, max: 300 }), 'minutes').toISOString(),\n\t\t\t\t\t\t\tuser_id: event.user_id,\n\t\t\t\t\t\t\tshare_destination: chance.pickone([\"repost\", \"dm\", \"external\", \"copy_link\"]),\n\t\t\t\t\t\t\tviral_cascade: true,\n\t\t\t\t\t\t});\n\t\t\t\t\t}\n\n\t\t\t\t\t// Splice all injected events after the post created event\n\t\t\t\t\tuserEvents.splice(idx + 1, 0, ...injected);\n\t\t\t\t}\n\n\t\t\t\t// Hook #2: FOLLOW-BACK SNOWBALL\n\t\t\t\t// Users with 5+ follows become prolific creators\n\t\t\t\tif (followReceivedCount >= 5 && event.event === \"post created\") {\n\t\t\t\t\tif (chance.bool({ likelihood: 50 })) {\n\t\t\t\t\t\tconst duplicatePost = {\n\t\t\t\t\t\t\tevent: \"post created\",\n\t\t\t\t\t\t\ttime: eventTime.add(chance.integer({ min: 30, max: 240 }), 'minutes').toISOString(),\n\t\t\t\t\t\t\tuser_id: event.user_id,\n\t\t\t\t\t\t\tpost_type: chance.pickone([\"text\", \"image\", \"video\"]),\n\t\t\t\t\t\t\tcharacter_count: chance.integer({ min: 10, max: 280 }),\n\t\t\t\t\t\t\thas_media: chance.bool({ likelihood: 60 }),\n\t\t\t\t\t\t\thashtag_count: chance.integer({ min: 0, max: 5 }),\n\t\t\t\t\t\t\tfollow_back_effect: true,\n\t\t\t\t\t\t};\n\t\t\t\t\t\tconst extraComment = {\n\t\t\t\t\t\t\tevent: \"comment posted\",\n\t\t\t\t\t\t\ttime: eventTime.add(chance.integer({ min: 10, max: 120 }), 'minutes').toISOString(),\n\t\t\t\t\t\t\tuser_id: event.user_id,\n\t\t\t\t\t\t\tcomment_length: chance.integer({ min: 5, max: 200 }),\n\t\t\t\t\t\t\thas_mention: chance.bool({ likelihood: 40 }),\n\t\t\t\t\t\t\tfollow_back_effect: true,\n\t\t\t\t\t\t};\n\t\t\t\t\t\tuserEvents.splice(idx + 1, 0, duplicatePost, extraComment);\n\t\t\t\t\t}\n\t\t\t\t}\n\n\t\t\t\t// Hook #6: CREATOR MONETIZATION\n\t\t\t\t// Monetized creators post 3x more frequently\n\t\t\t\tif (hasCreatorSubscription && event.event === \"post created\") {\n\t\t\t\t\t// Triple frequency: add 2 extra posts for each existing one\n\t\t\t\t\tfor (let i = 0; i < 2; i++) {\n\t\t\t\t\t\tconst extraPost = {\n\t\t\t\t\t\t\tevent: \"post created\",\n\t\t\t\t\t\t\ttime: eventTime.add(chance.integer({ min: 1, max: 12 }), 'hours').toISOString(),\n\t\t\t\t\t\t\tuser_id: event.user_id,\n\t\t\t\t\t\t\tpost_type: chance.pickone([\"text\", \"image\", \"video\", \"link\"]),\n\t\t\t\t\t\t\tcharacter_count: chance.integer({ min: 20, max: 280 }),\n\t\t\t\t\t\t\thas_media: chance.bool({ likelihood: 70 }),\n\t\t\t\t\t\t\thashtag_count: chance.integer({ min: 1, max: 8 }),\n\t\t\t\t\t\t\tmonetized_creator: true,\n\t\t\t\t\t\t};\n\t\t\t\t\t\tuserEvents.splice(idx + 1, 0, extraPost);\n\t\t\t\t\t}\n\t\t\t\t}\n\t\t\t\tif (hasCreatorSubscription && event.event === \"story created\") {\n\t\t\t\t\t// Also triple story creation\n\t\t\t\t\tfor (let i = 0; i < 2; i++) {\n\t\t\t\t\t\tconst extraStory = {\n\t\t\t\t\t\t\tevent: \"story created\",\n\t\t\t\t\t\t\ttime: eventTime.add(chance.integer({ min: 1, max: 8 }), 'hours').toISOString(),\n\t\t\t\t\t\t\tuser_id: event.user_id,\n\t\t\t\t\t\t\tstory_type: chance.pickone([\"photo\", \"video\", \"text\"]),\n\t\t\t\t\t\t\thas_filter: chance.bool({ likelihood: 60 }),\n\t\t\t\t\t\t\thas_sticker: chance.bool({ likelihood: 40 }),\n\t\t\t\t\t\t\tmonetized_creator: true,\n\t\t\t\t\t\t};\n\t\t\t\t\t\tuserEvents.splice(idx + 1, 0, extraStory);\n\t\t\t\t\t}\n\t\t\t\t}\n\t\t\t\t// Monetized creators also check their analytics more (extra post views)\n\t\t\t\tif (hasCreatorSubscription && event.event === \"post viewed\") {\n\t\t\t\t\tif (chance.bool({ likelihood: 25 })) {\n\t\t\t\t\t\tconst analyticsView = {\n\t\t\t\t\t\t\tevent: \"post viewed\",\n\t\t\t\t\t\t\ttime: eventTime.add(chance.integer({ min: 1, max: 30 }), 'minutes').toISOString(),\n\t\t\t\t\t\t\tuser_id: event.user_id,\n\t\t\t\t\t\t\tpost_type: event.post_type || \"text\",\n\t\t\t\t\t\t\tsource: \"profile\",\n\t\t\t\t\t\t\tview_duration_sec: chance.integer({ min: 10, max: 60 }),\n\t\t\t\t\t\t\tmonetized_creator: true,\n\t\t\t\t\t\t};\n\t\t\t\t\t\tuserEvents.splice(idx + 1, 0, analyticsView);\n\t\t\t\t\t}\n\t\t\t\t}\n\t\t\t}\n\n\t\t\t// Hook #8: WEEKEND CONTENT SURGE - inject duplicate events for weekend content\n\t\t\tfor (let idx = userEvents.length - 1; idx >= 0; idx--) {\n\t\t\t\tconst event = userEvents[idx];\n\t\t\t\tif (event.weekend_surge && !event.weekend_duplicate) {\n\t\t\t\t\tif (chance.bool({ likelihood: 30 })) {\n\t\t\t\t\t\tconst etime = dayjs(event.time);\n\t\t\t\t\t\tconst dup = {\n\t\t\t\t\t\t\t...event,\n\t\t\t\t\t\t\ttime: etime.add(chance.integer({ min: 1, max: 3 }), 'hours').toISOString(),\n\t\t\t\t\t\t\tweekend_duplicate: true,\n\t\t\t\t\t\t};\n\t\t\t\t\t\tuserEvents.splice(idx + 1, 0, dup);\n\t\t\t\t\t}\n\t\t\t\t}\n\t\t\t}\n\n\t\t\t// Hook #7: TOXICITY CHURN\n\t\t\t// Users with 3+ reports lose 60% of activity after day 30\n\t\t\tif (reportSubmittedCount >= 3) {\n\t\t\t\tconst churnCutoff = DATASET_START.add(30, 'days');\n\t\t\t\tfor (let i = userEvents.length - 1; i >= 0; i--) {\n\t\t\t\t\tconst evt = userEvents[i];\n\t\t\t\t\tif (dayjs(evt.time).isAfter(churnCutoff)) {\n\t\t\t\t\t\tif (chance.bool({ likelihood: 60 })) {\n\t\t\t\t\t\t\tuserEvents.splice(i, 1);\n\t\t\t\t\t\t} else {\n\t\t\t\t\t\t\tevt.toxic_user = true;\n\t\t\t\t\t\t}\n\t\t\t\t\t}\n\t\t\t\t}\n\t\t\t}\n\t\t}\n\n\t\treturn record;\n\t}",
+  "timestamp": "2026-04-10T01:39:07.776Z",
+  "version": "4.0"
+}

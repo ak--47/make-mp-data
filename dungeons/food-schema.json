@@ -1,0 +1,1152 @@
+{
+  "schema": {
+    "token": "",
+    "seed": "harness-food",
+    "numDays": 100,
+    "numEvents": 600000,
+    "numUsers": 5000,
+    "hasAnonIds": false,
+    "hasSessionIds": true,
+    "format": "json",
+    "gzip": true,
+    "alsoInferFunnels": false,
+    "hasLocation": true,
+    "hasAndroidDevices": true,
+    "hasIOSDevices": true,
+    "hasDesktopDevices": true,
+    "hasBrowser": false,
+    "hasCampaigns": false,
+    "isAnonymous": false,
+    "hasAdSpend": false,
+    "percentUsersBornInDataset": 50,
+    "hasAvatar": true,
+    "batchSize": 2500000,
+    "concurrency": 1,
+    "writeToDisk": false,
+    "scdProps": {},
+    "funnels": [
+      {
+        "sequence": [
+          "account created",
+          "restaurant browsed",
+          "restaurant viewed"
+        ],
+        "isFirstFunnel": true,
+        "conversionRate": 80,
+        "timeToConvert": 0.5
+      },
+      {
+        "sequence": [
+          "restaurant browsed",
+          "restaurant viewed",
+          "item added to cart"
+        ],
+        "conversionRate": 55,
+        "timeToConvert": 1,
+        "weight": 5,
+        "props": {
+          "restaurant_id": {
+            "functionName": "arrow",
+            "body": "function () {\n\t\tconst weighted = [];\n\t\tfor (let i = 0; i < 10; i++) {\n\t\t\tconst rand = chance.d10(); // Random number between 1 and 10\n\n\t\t\t// 35% chance to favor the most chosen index\n\t\t\tif (chance.bool({ likelihood: 35 })) {\n\t\t\t\t// 50% chance to slightly alter the index\n\t\t\t\tif (chance.bool({ likelihood: 50 })) {\n\t\t\t\t\tweighted.push(items[mostChosenIndex]);\n\t\t\t\t} else {\n\t\t\t\t\tconst addOrSubtract = chance.bool({ likelihood: 50 }) ? -rand : rand;\n\t\t\t\t\tlet newIndex = mostChosenIndex + addOrSubtract;\n\n\t\t\t\t\t// Ensure newIndex is within bounds\n\t\t\t\t\tif (newIndex < 0) newIndex = 0;\n\t\t\t\t\tif (newIndex >= items.length) newIndex = items.length - 1;\n\t\t\t\t\tweighted.push(items[newIndex]);\n\t\t\t\t}\n\t\t\t}\n\t\t\t// 25% chance to favor the second most chosen index\n\t\t\telse if (chance.bool({ likelihood: 25 })) {\n\t\t\t\tweighted.push(items[secondMostChosenIndex]);\n\t\t\t}\n\t\t\t// 15% chance to favor the third most chosen index\n\t\t\telse if (chance.bool({ likelihood: 15 })) {\n\t\t\t\tweighted.push(items[thirdMostChosenIndex]);\n\t\t\t}\n\t\t\t// Otherwise, pick a random item from the list\n\t\t\telse {\n\t\t\t\tweighted.push(chance.pickone(items));\n\t\t\t}\n\t\t}\n\t\treturn weighted;\n\t}"
+          }
+        }
+      },
+      {
+        "sequence": [
+          "search performed",
+          "restaurant viewed",
+          "item added to cart",
+          "checkout started"
+        ],
+        "conversionRate": 45,
+        "timeToConvert": 2,
+        "weight": 3
+      },
+      {
+        "sequence": [
+          "checkout started",
+          "order placed",
+          "order tracked",
+          "order delivered"
+        ],
+        "conversionRate": 65,
+        "timeToConvert": 2,
+        "weight": 4,
+        "props": {
+          "order_id": {
+            "functionName": "arrow",
+            "body": "function () {\n\t\tconst weighted = [];\n\t\tfor (let i = 0; i < 10; i++) {\n\t\t\tconst rand = chance.d10(); // Random number between 1 and 10\n\n\t\t\t// 35% chance to favor the most chosen index\n\t\t\tif (chance.bool({ likelihood: 35 })) {\n\t\t\t\t// 50% chance to slightly alter the index\n\t\t\t\tif (chance.bool({ likelihood: 50 })) {\n\t\t\t\t\tweighted.push(items[mostChosenIndex]);\n\t\t\t\t} else {\n\t\t\t\t\tconst addOrSubtract = chance.bool({ likelihood: 50 }) ? -rand : rand;\n\t\t\t\t\tlet newIndex = mostChosenIndex + addOrSubtract;\n\n\t\t\t\t\t// Ensure newIndex is within bounds\n\t\t\t\t\tif (newIndex < 0) newIndex = 0;\n\t\t\t\t\tif (newIndex >= items.length) newIndex = items.length - 1;\n\t\t\t\t\tweighted.push(items[newIndex]);\n\t\t\t\t}\n\t\t\t}\n\t\t\t// 25% chance to favor the second most chosen index\n\t\t\telse if (chance.bool({ likelihood: 25 })) {\n\t\t\t\tweighted.push(items[secondMostChosenIndex]);\n\t\t\t}\n\t\t\t// 15% chance to favor the third most chosen index\n\t\t\telse if (chance.bool({ likelihood: 15 })) {\n\t\t\t\tweighted.push(items[thirdMostChosenIndex]);\n\t\t\t}\n\t\t\t// Otherwise, pick a random item from the list\n\t\t\telse {\n\t\t\t\tweighted.push(chance.pickone(items));\n\t\t\t}\n\t\t}\n\t\treturn weighted;\n\t}"
+          }
+        }
+      },
+      {
+        "sequence": [
+          "order delivered",
+          "order rated",
+          "reorder initiated"
+        ],
+        "conversionRate": 40,
+        "timeToConvert": 24,
+        "weight": 2
+      },
+      {
+        "sequence": [
+          "promotion viewed",
+          "coupon applied",
+          "checkout started"
+        ],
+        "conversionRate": 50,
+        "timeToConvert": 1,
+        "weight": 2
+      },
+      {
+        "sequence": [
+          "support ticket",
+          "order rated"
+        ],
+        "conversionRate": 45,
+        "timeToConvert": 6,
+        "weight": 1
+      },
+      {
+        "sequence": [
+          "subscription started",
+          "order placed",
+          "subscription cancelled"
+        ],
+        "conversionRate": 20,
+        "timeToConvert": 48,
+        "weight": 1
+      }
+    ],
+    "events": [
+      {
+        "event": "account created",
+        "weight": 1,
+        "isFirstEvent": true,
+        "properties": {
+          "signup_method": [
+            "email",
+            "google",
+            "apple",
+            "facebook"
+          ],
+          "referral_code": {
+            "functionName": "arrow",
+            "body": "function () {\n\t\tconst weighted = [];\n\t\tfor (let i = 0; i < 10; i++) {\n\t\t\tconst rand = chance.d10(); // Random number between 1 and 10\n\n\t\t\t// 35% chance to favor the most chosen index\n\t\t\tif (chance.bool({ likelihood: 35 })) {\n\t\t\t\t// 50% chance to slightly alter the index\n\t\t\t\tif (chance.bool({ likelihood: 50 })) {\n\t\t\t\t\tweighted.push(items[mostChosenIndex]);\n\t\t\t\t} else {\n\t\t\t\t\tconst addOrSubtract = chance.bool({ likelihood: 50 }) ? -rand : rand;\n\t\t\t\t\tlet newIndex = mostChosenIndex + addOrSubtract;\n\n\t\t\t\t\t// Ensure newIndex is within bounds\n\t\t\t\t\tif (newIndex < 0) newIndex = 0;\n\t\t\t\t\tif (newIndex >= items.length) newIndex = items.length - 1;\n\t\t\t\t\tweighted.push(items[newIndex]);\n\t\t\t\t}\n\t\t\t}\n\t\t\t// 25% chance to favor the second most chosen index\n\t\t\telse if (chance.bool({ likelihood: 25 })) {\n\t\t\t\tweighted.push(items[secondMostChosenIndex]);\n\t\t\t}\n\t\t\t// 15% chance to favor the third most chosen index\n\t\t\telse if (chance.bool({ likelihood: 15 })) {\n\t\t\t\tweighted.push(items[thirdMostChosenIndex]);\n\t\t\t}\n\t\t\t// Otherwise, pick a random item from the list\n\t\t\telse {\n\t\t\t\tweighted.push(chance.pickone(items));\n\t\t\t}\n\t\t}\n\t\treturn weighted;\n\t}"
+          }
+        }
+      },
+      {
+        "event": "restaurant browsed",
+        "weight": 18,
+        "properties": {
+          "cuisine_type": [
+            "American",
+            "Italian",
+            "Chinese",
+            "Japanese",
+            "Mexican",
+            "Indian",
+            "Thai",
+            "Mediterranean"
+          ],
+          "sort_by": [
+            "recommended",
+            "distance",
+            "rating",
+            "price"
+          ],
+          "filter_applied": {
+            "functionName": "arrow",
+            "body": "function () {\n\t\tconst weighted = [];\n\t\tfor (let i = 0; i < 10; i++) {\n\t\t\tconst rand = chance.d10(); // Random number between 1 and 10\n\n\t\t\t// 35% chance to favor the most chosen index\n\t\t\tif (chance.bool({ likelihood: 35 })) {\n\t\t\t\t// 50% chance to slightly alter the index\n\t\t\t\tif (chance.bool({ likelihood: 50 })) {\n\t\t\t\t\tweighted.push(items[mostChosenIndex]);\n\t\t\t\t} else {\n\t\t\t\t\tconst addOrSubtract = chance.bool({ likelihood: 50 }) ? -rand : rand;\n\t\t\t\t\tlet newIndex = mostChosenIndex + addOrSubtract;\n\n\t\t\t\t\t// Ensure newIndex is within bounds\n\t\t\t\t\tif (newIndex < 0) newIndex = 0;\n\t\t\t\t\tif (newIndex >= items.length) newIndex = items.length - 1;\n\t\t\t\t\tweighted.push(items[newIndex]);\n\t\t\t\t}\n\t\t\t}\n\t\t\t// 25% chance to favor the second most chosen index\n\t\t\telse if (chance.bool({ likelihood: 25 })) {\n\t\t\t\tweighted.push(items[secondMostChosenIndex]);\n\t\t\t}\n\t\t\t// 15% chance to favor the third most chosen index\n\t\t\telse if (chance.bool({ likelihood: 15 })) {\n\t\t\t\tweighted.push(items[thirdMostChosenIndex]);\n\t\t\t}\n\t\t\t// Otherwise, pick a random item from the list\n\t\t\telse {\n\t\t\t\tweighted.push(chance.pickone(items));\n\t\t\t}\n\t\t}\n\t\treturn weighted;\n\t}"
+          }
+        }
+      },
+      {
+        "event": "restaurant viewed",
+        "weight": 15,
+        "properties": {
+          "restaurant_id": {
+            "functionName": "arrow",
+            "body": "function () {\n\t\tconst weighted = [];\n\t\tfor (let i = 0; i < 10; i++) {\n\t\t\tconst rand = chance.d10(); // Random number between 1 and 10\n\n\t\t\t// 35% chance to favor the most chosen index\n\t\t\tif (chance.bool({ likelihood: 35 })) {\n\t\t\t\t// 50% chance to slightly alter the index\n\t\t\t\tif (chance.bool({ likelihood: 50 })) {\n\t\t\t\t\tweighted.push(items[mostChosenIndex]);\n\t\t\t\t} else {\n\t\t\t\t\tconst addOrSubtract = chance.bool({ likelihood: 50 }) ? -rand : rand;\n\t\t\t\t\tlet newIndex = mostChosenIndex + addOrSubtract;\n\n\t\t\t\t\t// Ensure newIndex is within bounds\n\t\t\t\t\tif (newIndex < 0) newIndex = 0;\n\t\t\t\t\tif (newIndex >= items.length) newIndex = items.length - 1;\n\t\t\t\t\tweighted.push(items[newIndex]);\n\t\t\t\t}\n\t\t\t}\n\t\t\t// 25% chance to favor the second most chosen index\n\t\t\telse if (chance.bool({ likelihood: 25 })) {\n\t\t\t\tweighted.push(items[secondMostChosenIndex]);\n\t\t\t}\n\t\t\t// 15% chance to favor the third most chosen index\n\t\t\telse if (chance.bool({ likelihood: 15 })) {\n\t\t\t\tweighted.push(items[thirdMostChosenIndex]);\n\t\t\t}\n\t\t\t// Otherwise, pick a random item from the list\n\t\t\telse {\n\t\t\t\tweighted.push(chance.pickone(items));\n\t\t\t}\n\t\t}\n\t\treturn weighted;\n\t}"
+          },
+          "cuisine_type": [
+            "American",
+            "Italian",
+            "Chinese",
+            "Japanese",
+            "Mexican",
+            "Indian",
+            "Thai",
+            "Mediterranean"
+          ],
+          "avg_rating": [
+            2,
+            2,
+            2,
+            2,
+            2,
+            4,
+            4,
+            2,
+            3,
+            2,
+            3,
+            2,
+            3,
+            2,
+            4,
+            2,
+            3,
+            5,
+            3,
+            2,
+            3,
+            2,
+            3,
+            2,
+            2,
+            2,
+            2,
+            2,
+            2,
+            2
+          ],
+          "delivery_time_est_mins": [
+            51,
+            67,
+            36,
+            41,
+            49,
+            47,
+            43,
+            62,
+            52,
+            33,
+            49,
+            53,
+            59,
+            44,
+            77,
+            39,
+            48,
+            73,
+            39,
+            31,
+            53,
+            50,
+            82,
+            66,
+            80,
+            34,
+            53,
+            31,
+            66,
+            39,
+            82,
+            29,
+            73,
+            73,
+            64,
+            36,
+            70,
+            40,
+            56,
+            84
+          ],
+          "price_tier": [
+            "$",
+            "$$",
+            "$$$",
+            "$$$$"
+          ]
+        }
+      },
+      {
+        "event": "item added to cart",
+        "weight": 14,
+        "properties": {
+          "item_id": {
+            "functionName": "arrow",
+            "body": "function () {\n\t\tconst weighted = [];\n\t\tfor (let i = 0; i < 10; i++) {\n\t\t\tconst rand = chance.d10(); // Random number between 1 and 10\n\n\t\t\t// 35% chance to favor the most chosen index\n\t\t\tif (chance.bool({ likelihood: 35 })) {\n\t\t\t\t// 50% chance to slightly alter the index\n\t\t\t\tif (chance.bool({ likelihood: 50 })) {\n\t\t\t\t\tweighted.push(items[mostChosenIndex]);\n\t\t\t\t} else {\n\t\t\t\t\tconst addOrSubtract = chance.bool({ likelihood: 50 }) ? -rand : rand;\n\t\t\t\t\tlet newIndex = mostChosenIndex + addOrSubtract;\n\n\t\t\t\t\t// Ensure newIndex is within bounds\n\t\t\t\t\tif (newIndex < 0) newIndex = 0;\n\t\t\t\t\tif (newIndex >= items.length) newIndex = items.length - 1;\n\t\t\t\t\tweighted.push(items[newIndex]);\n\t\t\t\t}\n\t\t\t}\n\t\t\t// 25% chance to favor the second most chosen index\n\t\t\telse if (chance.bool({ likelihood: 25 })) {\n\t\t\t\tweighted.push(items[secondMostChosenIndex]);\n\t\t\t}\n\t\t\t// 15% chance to favor the third most chosen index\n\t\t\telse if (chance.bool({ likelihood: 15 })) {\n\t\t\t\tweighted.push(items[thirdMostChosenIndex]);\n\t\t\t}\n\t\t\t// Otherwise, pick a random item from the list\n\t\t\telse {\n\t\t\t\tweighted.push(chance.pickone(items));\n\t\t\t}\n\t\t}\n\t\treturn weighted;\n\t}"
+          },
+          "item_category": [
+            "entree",
+            "appetizer",
+            "drink",
+            "dessert",
+            "side"
+          ],
+          "item_price": [
+            54,
+            23,
+            16,
+            33,
+            21,
+            46,
+            20,
+            33,
+            22,
+            33,
+            23,
+            16,
+            12,
+            48,
+            41,
+            40,
+            31,
+            25,
+            23,
+            26,
+            36,
+            8,
+            35,
+            16,
+            35,
+            18,
+            29,
+            20,
+            12,
+            43,
+            19,
+            11,
+            16,
+            29,
+            38,
+            20,
+            42,
+            19,
+            15,
+            17
+          ],
+          "customization_count": [
+            2,
+            2,
+            1,
+            2,
+            2,
+            1,
+            1,
+            2,
+            2,
+            3,
+            3,
+            1,
+            2,
+            2,
+            2,
+            2,
+            2,
+            0,
+            1,
+            4
+          ]
+        }
+      },
+      {
+        "event": "item removed from cart",
+        "weight": 5,
+        "properties": {
+          "item_id": {
+            "functionName": "arrow",
+            "body": "function () {\n\t\tconst weighted = [];\n\t\tfor (let i = 0; i < 10; i++) {\n\t\t\tconst rand = chance.d10(); // Random number between 1 and 10\n\n\t\t\t// 35% chance to favor the most chosen index\n\t\t\tif (chance.bool({ likelihood: 35 })) {\n\t\t\t\t// 50% chance to slightly alter the index\n\t\t\t\tif (chance.bool({ likelihood: 50 })) {\n\t\t\t\t\tweighted.push(items[mostChosenIndex]);\n\t\t\t\t} else {\n\t\t\t\t\tconst addOrSubtract = chance.bool({ likelihood: 50 }) ? -rand : rand;\n\t\t\t\t\tlet newIndex = mostChosenIndex + addOrSubtract;\n\n\t\t\t\t\t// Ensure newIndex is within bounds\n\t\t\t\t\tif (newIndex < 0) newIndex = 0;\n\t\t\t\t\tif (newIndex >= items.length) newIndex = items.length - 1;\n\t\t\t\t\tweighted.push(items[newIndex]);\n\t\t\t\t}\n\t\t\t}\n\t\t\t// 25% chance to favor the second most chosen index\n\t\t\telse if (chance.bool({ likelihood: 25 })) {\n\t\t\t\tweighted.push(items[secondMostChosenIndex]);\n\t\t\t}\n\t\t\t// 15% chance to favor the third most chosen index\n\t\t\telse if (chance.bool({ likelihood: 15 })) {\n\t\t\t\tweighted.push(items[thirdMostChosenIndex]);\n\t\t\t}\n\t\t\t// Otherwise, pick a random item from the list\n\t\t\telse {\n\t\t\t\tweighted.push(chance.pickone(items));\n\t\t\t}\n\t\t}\n\t\treturn weighted;\n\t}"
+          },
+          "removal_reason": [
+            "changed_mind",
+            "too_expensive",
+            "substitution"
+          ]
+        }
+      },
+      {
+        "event": "coupon applied",
+        "weight": 4,
+        "properties": {
+          "coupon_code": {
+            "functionName": "arrow",
+            "body": "function () {\n\t\tconst weighted = [];\n\t\tfor (let i = 0; i < 10; i++) {\n\t\t\tconst rand = chance.d10(); // Random number between 1 and 10\n\n\t\t\t// 35% chance to favor the most chosen index\n\t\t\tif (chance.bool({ likelihood: 35 })) {\n\t\t\t\t// 50% chance to slightly alter the index\n\t\t\t\tif (chance.bool({ likelihood: 50 })) {\n\t\t\t\t\tweighted.push(items[mostChosenIndex]);\n\t\t\t\t} else {\n\t\t\t\t\tconst addOrSubtract = chance.bool({ likelihood: 50 }) ? -rand : rand;\n\t\t\t\t\tlet newIndex = mostChosenIndex + addOrSubtract;\n\n\t\t\t\t\t// Ensure newIndex is within bounds\n\t\t\t\t\tif (newIndex < 0) newIndex = 0;\n\t\t\t\t\tif (newIndex >= items.length) newIndex = items.length - 1;\n\t\t\t\t\tweighted.push(items[newIndex]);\n\t\t\t\t}\n\t\t\t}\n\t\t\t// 25% chance to favor the second most chosen index\n\t\t\telse if (chance.bool({ likelihood: 25 })) {\n\t\t\t\tweighted.push(items[secondMostChosenIndex]);\n\t\t\t}\n\t\t\t// 15% chance to favor the third most chosen index\n\t\t\telse if (chance.bool({ likelihood: 15 })) {\n\t\t\t\tweighted.push(items[thirdMostChosenIndex]);\n\t\t\t}\n\t\t\t// Otherwise, pick a random item from the list\n\t\t\telse {\n\t\t\t\tweighted.push(chance.pickone(items));\n\t\t\t}\n\t\t}\n\t\treturn weighted;\n\t}"
+          },
+          "discount_type": [
+            "percent",
+            "flat",
+            "free_delivery"
+          ],
+          "discount_value": [
+            20,
+            26,
+            18,
+            26,
+            34,
+            21,
+            16,
+            21,
+            21,
+            15,
+            34,
+            30,
+            35,
+            34,
+            14,
+            30,
+            34,
+            27,
+            33,
+            19
+          ]
+        }
+      },
+      {
+        "event": "checkout started",
+        "weight": 12,
+        "properties": {
+          "cart_total": [
+            52,
+            42,
+            65,
+            77,
+            79,
+            31,
+            28,
+            39,
+            138,
+            40,
+            47,
+            44,
+            44,
+            41,
+            34,
+            82,
+            51,
+            123,
+            93,
+            56,
+            56,
+            66,
+            65,
+            43,
+            102,
+            97,
+            108,
+            36,
+            39,
+            63,
+            132,
+            128,
+            51,
+            33,
+            41,
+            46,
+            100,
+            52,
+            48,
+            97
+          ],
+          "items_count": [
+            5,
+            5,
+            3,
+            5,
+            4,
+            3,
+            7,
+            6,
+            3,
+            7,
+            5,
+            4,
+            4,
+            2,
+            6,
+            3,
+            4,
+            5,
+            4,
+            3
+          ],
+          "delivery_address_saved": {
+            "functionName": "arrow",
+            "body": "function () {\n\t\tconst weighted = [];\n\t\tfor (let i = 0; i < 10; i++) {\n\t\t\tconst rand = chance.d10(); // Random number between 1 and 10\n\n\t\t\t// 35% chance to favor the most chosen index\n\t\t\tif (chance.bool({ likelihood: 35 })) {\n\t\t\t\t// 50% chance to slightly alter the index\n\t\t\t\tif (chance.bool({ likelihood: 50 })) {\n\t\t\t\t\tweighted.push(items[mostChosenIndex]);\n\t\t\t\t} else {\n\t\t\t\t\tconst addOrSubtract = chance.bool({ likelihood: 50 }) ? -rand : rand;\n\t\t\t\t\tlet newIndex = mostChosenIndex + addOrSubtract;\n\n\t\t\t\t\t// Ensure newIndex is within bounds\n\t\t\t\t\tif (newIndex < 0) newIndex = 0;\n\t\t\t\t\tif (newIndex >= items.length) newIndex = items.length - 1;\n\t\t\t\t\tweighted.push(items[newIndex]);\n\t\t\t\t}\n\t\t\t}\n\t\t\t// 25% chance to favor the second most chosen index\n\t\t\telse if (chance.bool({ likelihood: 25 })) {\n\t\t\t\tweighted.push(items[secondMostChosenIndex]);\n\t\t\t}\n\t\t\t// 15% chance to favor the third most chosen index\n\t\t\telse if (chance.bool({ likelihood: 15 })) {\n\t\t\t\tweighted.push(items[thirdMostChosenIndex]);\n\t\t\t}\n\t\t\t// Otherwise, pick a random item from the list\n\t\t\telse {\n\t\t\t\tweighted.push(chance.pickone(items));\n\t\t\t}\n\t\t}\n\t\treturn weighted;\n\t}"
+          }
+        }
+      },
+      {
+        "event": "order placed",
+        "weight": 10,
+        "properties": {
+          "order_id": {
+            "functionName": "arrow",
+            "body": "function () {\n\t\tconst weighted = [];\n\t\tfor (let i = 0; i < 10; i++) {\n\t\t\tconst rand = chance.d10(); // Random number between 1 and 10\n\n\t\t\t// 35% chance to favor the most chosen index\n\t\t\tif (chance.bool({ likelihood: 35 })) {\n\t\t\t\t// 50% chance to slightly alter the index\n\t\t\t\tif (chance.bool({ likelihood: 50 })) {\n\t\t\t\t\tweighted.push(items[mostChosenIndex]);\n\t\t\t\t} else {\n\t\t\t\t\tconst addOrSubtract = chance.bool({ likelihood: 50 }) ? -rand : rand;\n\t\t\t\t\tlet newIndex = mostChosenIndex + addOrSubtract;\n\n\t\t\t\t\t// Ensure newIndex is within bounds\n\t\t\t\t\tif (newIndex < 0) newIndex = 0;\n\t\t\t\t\tif (newIndex >= items.length) newIndex = items.length - 1;\n\t\t\t\t\tweighted.push(items[newIndex]);\n\t\t\t\t}\n\t\t\t}\n\t\t\t// 25% chance to favor the second most chosen index\n\t\t\telse if (chance.bool({ likelihood: 25 })) {\n\t\t\t\tweighted.push(items[secondMostChosenIndex]);\n\t\t\t}\n\t\t\t// 15% chance to favor the third most chosen index\n\t\t\telse if (chance.bool({ likelihood: 15 })) {\n\t\t\t\tweighted.push(items[thirdMostChosenIndex]);\n\t\t\t}\n\t\t\t// Otherwise, pick a random item from the list\n\t\t\telse {\n\t\t\t\tweighted.push(chance.pickone(items));\n\t\t\t}\n\t\t}\n\t\treturn weighted;\n\t}"
+          },
+          "payment_method": [
+            "credit_card",
+            "apple_pay",
+            "google_pay",
+            "paypal",
+            "cash"
+          ],
+          "order_total": [
+            157,
+            143,
+            77,
+            108,
+            167,
+            43,
+            56,
+            91,
+            95,
+            143,
+            51,
+            76,
+            136,
+            14,
+            136,
+            121,
+            89,
+            66,
+            54,
+            48,
+            187,
+            107,
+            59,
+            40,
+            167,
+            60,
+            132,
+            82,
+            54,
+            173,
+            51,
+            71,
+            131,
+            60,
+            146,
+            59,
+            132,
+            79,
+            48,
+            88
+          ],
+          "tip_amount": [
+            15,
+            12,
+            8,
+            15,
+            3,
+            11,
+            10,
+            8,
+            8,
+            11,
+            15,
+            17,
+            12,
+            18,
+            14,
+            15,
+            7,
+            13,
+            28,
+            4
+          ],
+          "delivery_fee": [
+            9,
+            8,
+            5,
+            3,
+            3,
+            3,
+            8,
+            3,
+            3,
+            4,
+            6,
+            7,
+            2,
+            9,
+            1,
+            4,
+            9,
+            7,
+            2,
+            5
+          ]
+        }
+      },
+      {
+        "event": "order tracked",
+        "weight": 13,
+        "properties": {
+          "order_id": {
+            "functionName": "arrow",
+            "body": "function () {\n\t\tconst weighted = [];\n\t\tfor (let i = 0; i < 10; i++) {\n\t\t\tconst rand = chance.d10(); // Random number between 1 and 10\n\n\t\t\t// 35% chance to favor the most chosen index\n\t\t\tif (chance.bool({ likelihood: 35 })) {\n\t\t\t\t// 50% chance to slightly alter the index\n\t\t\t\tif (chance.bool({ likelihood: 50 })) {\n\t\t\t\t\tweighted.push(items[mostChosenIndex]);\n\t\t\t\t} else {\n\t\t\t\t\tconst addOrSubtract = chance.bool({ likelihood: 50 }) ? -rand : rand;\n\t\t\t\t\tlet newIndex = mostChosenIndex + addOrSubtract;\n\n\t\t\t\t\t// Ensure newIndex is within bounds\n\t\t\t\t\tif (newIndex < 0) newIndex = 0;\n\t\t\t\t\tif (newIndex >= items.length) newIndex = items.length - 1;\n\t\t\t\t\tweighted.push(items[newIndex]);\n\t\t\t\t}\n\t\t\t}\n\t\t\t// 25% chance to favor the second most chosen index\n\t\t\telse if (chance.bool({ likelihood: 25 })) {\n\t\t\t\tweighted.push(items[secondMostChosenIndex]);\n\t\t\t}\n\t\t\t// 15% chance to favor the third most chosen index\n\t\t\telse if (chance.bool({ likelihood: 15 })) {\n\t\t\t\tweighted.push(items[thirdMostChosenIndex]);\n\t\t\t}\n\t\t\t// Otherwise, pick a random item from the list\n\t\t\telse {\n\t\t\t\tweighted.push(chance.pickone(items));\n\t\t\t}\n\t\t}\n\t\treturn weighted;\n\t}"
+          },
+          "order_status": [
+            "confirmed",
+            "preparing",
+            "picked_up",
+            "en_route",
+            "delivered"
+          ],
+          "eta_mins": [
+            46,
+            18,
+            26,
+            41,
+            29,
+            24,
+            33,
+            27,
+            22,
+            27,
+            40,
+            41,
+            13,
+            9,
+            20,
+            52,
+            23,
+            19,
+            27,
+            19,
+            14,
+            25,
+            16,
+            37,
+            18,
+            20,
+            25,
+            28,
+            23,
+            41
+          ]
+        }
+      },
+      {
+        "event": "order delivered",
+        "weight": 9,
+        "properties": {
+          "order_id": {
+            "functionName": "arrow",
+            "body": "function () {\n\t\tconst weighted = [];\n\t\tfor (let i = 0; i < 10; i++) {\n\t\t\tconst rand = chance.d10(); // Random number between 1 and 10\n\n\t\t\t// 35% chance to favor the most chosen index\n\t\t\tif (chance.bool({ likelihood: 35 })) {\n\t\t\t\t// 50% chance to slightly alter the index\n\t\t\t\tif (chance.bool({ likelihood: 50 })) {\n\t\t\t\t\tweighted.push(items[mostChosenIndex]);\n\t\t\t\t} else {\n\t\t\t\t\tconst addOrSubtract = chance.bool({ likelihood: 50 }) ? -rand : rand;\n\t\t\t\t\tlet newIndex = mostChosenIndex + addOrSubtract;\n\n\t\t\t\t\t// Ensure newIndex is within bounds\n\t\t\t\t\tif (newIndex < 0) newIndex = 0;\n\t\t\t\t\tif (newIndex >= items.length) newIndex = items.length - 1;\n\t\t\t\t\tweighted.push(items[newIndex]);\n\t\t\t\t}\n\t\t\t}\n\t\t\t// 25% chance to favor the second most chosen index\n\t\t\telse if (chance.bool({ likelihood: 25 })) {\n\t\t\t\tweighted.push(items[secondMostChosenIndex]);\n\t\t\t}\n\t\t\t// 15% chance to favor the third most chosen index\n\t\t\telse if (chance.bool({ likelihood: 15 })) {\n\t\t\t\tweighted.push(items[thirdMostChosenIndex]);\n\t\t\t}\n\t\t\t// Otherwise, pick a random item from the list\n\t\t\telse {\n\t\t\t\tweighted.push(chance.pickone(items));\n\t\t\t}\n\t\t}\n\t\treturn weighted;\n\t}"
+          },
+          "actual_delivery_mins": [
+            21,
+            57,
+            30,
+            54,
+            55,
+            51,
+            31,
+            35,
+            15,
+            54,
+            34,
+            58,
+            25,
+            15,
+            32,
+            78,
+            31,
+            35,
+            33,
+            62,
+            40,
+            45,
+            33,
+            43,
+            77,
+            72,
+            56,
+            31,
+            32,
+            43,
+            40,
+            35,
+            51,
+            44,
+            31,
+            75,
+            35,
+            70,
+            47,
+            52
+          ],
+          "on_time": {
+            "functionName": "arrow",
+            "body": "function () {\n\t\tconst weighted = [];\n\t\tfor (let i = 0; i < 10; i++) {\n\t\t\tconst rand = chance.d10(); // Random number between 1 and 10\n\n\t\t\t// 35% chance to favor the most chosen index\n\t\t\tif (chance.bool({ likelihood: 35 })) {\n\t\t\t\t// 50% chance to slightly alter the index\n\t\t\t\tif (chance.bool({ likelihood: 50 })) {\n\t\t\t\t\tweighted.push(items[mostChosenIndex]);\n\t\t\t\t} else {\n\t\t\t\t\tconst addOrSubtract = chance.bool({ likelihood: 50 }) ? -rand : rand;\n\t\t\t\t\tlet newIndex = mostChosenIndex + addOrSubtract;\n\n\t\t\t\t\t// Ensure newIndex is within bounds\n\t\t\t\t\tif (newIndex < 0) newIndex = 0;\n\t\t\t\t\tif (newIndex >= items.length) newIndex = items.length - 1;\n\t\t\t\t\tweighted.push(items[newIndex]);\n\t\t\t\t}\n\t\t\t}\n\t\t\t// 25% chance to favor the second most chosen index\n\t\t\telse if (chance.bool({ likelihood: 25 })) {\n\t\t\t\tweighted.push(items[secondMostChosenIndex]);\n\t\t\t}\n\t\t\t// 15% chance to favor the third most chosen index\n\t\t\telse if (chance.bool({ likelihood: 15 })) {\n\t\t\t\tweighted.push(items[thirdMostChosenIndex]);\n\t\t\t}\n\t\t\t// Otherwise, pick a random item from the list\n\t\t\telse {\n\t\t\t\tweighted.push(chance.pickone(items));\n\t\t\t}\n\t\t}\n\t\treturn weighted;\n\t}"
+          }
+        }
+      },
+      {
+        "event": "order rated",
+        "weight": 7,
+        "properties": {
+          "order_id": {
+            "functionName": "arrow",
+            "body": "function () {\n\t\tconst weighted = [];\n\t\tfor (let i = 0; i < 10; i++) {\n\t\t\tconst rand = chance.d10(); // Random number between 1 and 10\n\n\t\t\t// 35% chance to favor the most chosen index\n\t\t\tif (chance.bool({ likelihood: 35 })) {\n\t\t\t\t// 50% chance to slightly alter the index\n\t\t\t\tif (chance.bool({ likelihood: 50 })) {\n\t\t\t\t\tweighted.push(items[mostChosenIndex]);\n\t\t\t\t} else {\n\t\t\t\t\tconst addOrSubtract = chance.bool({ likelihood: 50 }) ? -rand : rand;\n\t\t\t\t\tlet newIndex = mostChosenIndex + addOrSubtract;\n\n\t\t\t\t\t// Ensure newIndex is within bounds\n\t\t\t\t\tif (newIndex < 0) newIndex = 0;\n\t\t\t\t\tif (newIndex >= items.length) newIndex = items.length - 1;\n\t\t\t\t\tweighted.push(items[newIndex]);\n\t\t\t\t}\n\t\t\t}\n\t\t\t// 25% chance to favor the second most chosen index\n\t\t\telse if (chance.bool({ likelihood: 25 })) {\n\t\t\t\tweighted.push(items[secondMostChosenIndex]);\n\t\t\t}\n\t\t\t// 15% chance to favor the third most chosen index\n\t\t\telse if (chance.bool({ likelihood: 15 })) {\n\t\t\t\tweighted.push(items[thirdMostChosenIndex]);\n\t\t\t}\n\t\t\t// Otherwise, pick a random item from the list\n\t\t\telse {\n\t\t\t\tweighted.push(chance.pickone(items));\n\t\t\t}\n\t\t}\n\t\treturn weighted;\n\t}"
+          },
+          "food_rating": [
+            3,
+            2,
+            3,
+            2,
+            1,
+            3,
+            4,
+            4,
+            2,
+            2,
+            2,
+            2,
+            2,
+            3,
+            2,
+            2,
+            2,
+            3,
+            2,
+            2,
+            3,
+            1,
+            3,
+            3,
+            3,
+            2,
+            2,
+            4,
+            4,
+            2
+          ],
+          "delivery_rating": [
+            1,
+            2,
+            1,
+            2,
+            3,
+            2,
+            2,
+            3,
+            2,
+            5,
+            4,
+            3,
+            4,
+            2,
+            4,
+            2,
+            3,
+            2,
+            4,
+            2,
+            2,
+            2,
+            3,
+            2,
+            2,
+            2,
+            4,
+            2,
+            4,
+            2
+          ],
+          "would_reorder": {
+            "functionName": "arrow",
+            "body": "function () {\n\t\tconst weighted = [];\n\t\tfor (let i = 0; i < 10; i++) {\n\t\t\tconst rand = chance.d10(); // Random number between 1 and 10\n\n\t\t\t// 35% chance to favor the most chosen index\n\t\t\tif (chance.bool({ likelihood: 35 })) {\n\t\t\t\t// 50% chance to slightly alter the index\n\t\t\t\tif (chance.bool({ likelihood: 50 })) {\n\t\t\t\t\tweighted.push(items[mostChosenIndex]);\n\t\t\t\t} else {\n\t\t\t\t\tconst addOrSubtract = chance.bool({ likelihood: 50 }) ? -rand : rand;\n\t\t\t\t\tlet newIndex = mostChosenIndex + addOrSubtract;\n\n\t\t\t\t\t// Ensure newIndex is within bounds\n\t\t\t\t\tif (newIndex < 0) newIndex = 0;\n\t\t\t\t\tif (newIndex >= items.length) newIndex = items.length - 1;\n\t\t\t\t\tweighted.push(items[newIndex]);\n\t\t\t\t}\n\t\t\t}\n\t\t\t// 25% chance to favor the second most chosen index\n\t\t\telse if (chance.bool({ likelihood: 25 })) {\n\t\t\t\tweighted.push(items[secondMostChosenIndex]);\n\t\t\t}\n\t\t\t// 15% chance to favor the third most chosen index\n\t\t\telse if (chance.bool({ likelihood: 15 })) {\n\t\t\t\tweighted.push(items[thirdMostChosenIndex]);\n\t\t\t}\n\t\t\t// Otherwise, pick a random item from the list\n\t\t\telse {\n\t\t\t\tweighted.push(chance.pickone(items));\n\t\t\t}\n\t\t}\n\t\treturn weighted;\n\t}"
+          }
+        }
+      },
+      {
+        "event": "search performed",
+        "weight": 11,
+        "properties": {
+          "search_query": {
+            "functionName": "arrow",
+            "body": "() => chance.pickone([\n\t\t\t\t\t\"pizza\", \"sushi\", \"burger\", \"tacos\", \"pad thai\",\n\t\t\t\t\t\"chicken\", \"salad\", \"ramen\", \"pasta\", \"sandwich\",\n\t\t\t\t\t\"wings\", \"curry\", \"pho\", \"burritos\", \"steak\"\n\t\t\t\t])"
+          },
+          "results_count": [
+            8,
+            13,
+            19,
+            13,
+            33,
+            31,
+            20,
+            10,
+            12,
+            39,
+            41,
+            28,
+            5,
+            15,
+            14,
+            29,
+            18,
+            14,
+            27,
+            15,
+            34,
+            21,
+            12,
+            13,
+            28,
+            12,
+            23,
+            8,
+            15,
+            37
+          ],
+          "search_type": [
+            "restaurant",
+            "cuisine",
+            "dish"
+          ]
+        }
+      },
+      {
+        "event": "promotion viewed",
+        "weight": 8,
+        "properties": {
+          "promo_id": {
+            "functionName": "arrow",
+            "body": "() => `promo_${v.uid(5)}`"
+          },
+          "promo_type": [
+            "banner",
+            "push",
+            "in_feed"
+          ],
+          "promo_value": [
+            "10%",
+            "15%",
+            "20%",
+            "25%",
+            "30%",
+            "40%",
+            "50%"
+          ]
+        }
+      },
+      {
+        "event": "subscription started",
+        "weight": 2,
+        "properties": {
+          "plan": {
+            "functionName": "arrow",
+            "body": "function () {\n\t\tconst weighted = [];\n\t\tfor (let i = 0; i < 10; i++) {\n\t\t\tconst rand = chance.d10(); // Random number between 1 and 10\n\n\t\t\t// 35% chance to favor the most chosen index\n\t\t\tif (chance.bool({ likelihood: 35 })) {\n\t\t\t\t// 50% chance to slightly alter the index\n\t\t\t\tif (chance.bool({ likelihood: 50 })) {\n\t\t\t\t\tweighted.push(items[mostChosenIndex]);\n\t\t\t\t} else {\n\t\t\t\t\tconst addOrSubtract = chance.bool({ likelihood: 50 }) ? -rand : rand;\n\t\t\t\t\tlet newIndex = mostChosenIndex + addOrSubtract;\n\n\t\t\t\t\t// Ensure newIndex is within bounds\n\t\t\t\t\tif (newIndex < 0) newIndex = 0;\n\t\t\t\t\tif (newIndex >= items.length) newIndex = items.length - 1;\n\t\t\t\t\tweighted.push(items[newIndex]);\n\t\t\t\t}\n\t\t\t}\n\t\t\t// 25% chance to favor the second most chosen index\n\t\t\telse if (chance.bool({ likelihood: 25 })) {\n\t\t\t\tweighted.push(items[secondMostChosenIndex]);\n\t\t\t}\n\t\t\t// 15% chance to favor the third most chosen index\n\t\t\telse if (chance.bool({ likelihood: 15 })) {\n\t\t\t\tweighted.push(items[thirdMostChosenIndex]);\n\t\t\t}\n\t\t\t// Otherwise, pick a random item from the list\n\t\t\telse {\n\t\t\t\tweighted.push(chance.pickone(items));\n\t\t\t}\n\t\t}\n\t\treturn weighted;\n\t}"
+          },
+          "price": {
+            "functionName": "arrow",
+            "body": "function () {\n\t\tconst weighted = [];\n\t\tfor (let i = 0; i < 10; i++) {\n\t\t\tconst rand = chance.d10(); // Random number between 1 and 10\n\n\t\t\t// 35% chance to favor the most chosen index\n\t\t\tif (chance.bool({ likelihood: 35 })) {\n\t\t\t\t// 50% chance to slightly alter the index\n\t\t\t\tif (chance.bool({ likelihood: 50 })) {\n\t\t\t\t\tweighted.push(items[mostChosenIndex]);\n\t\t\t\t} else {\n\t\t\t\t\tconst addOrSubtract = chance.bool({ likelihood: 50 }) ? -rand : rand;\n\t\t\t\t\tlet newIndex = mostChosenIndex + addOrSubtract;\n\n\t\t\t\t\t// Ensure newIndex is within bounds\n\t\t\t\t\tif (newIndex < 0) newIndex = 0;\n\t\t\t\t\tif (newIndex >= items.length) newIndex = items.length - 1;\n\t\t\t\t\tweighted.push(items[newIndex]);\n\t\t\t\t}\n\t\t\t}\n\t\t\t// 25% chance to favor the second most chosen index\n\t\t\telse if (chance.bool({ likelihood: 25 })) {\n\t\t\t\tweighted.push(items[secondMostChosenIndex]);\n\t\t\t}\n\t\t\t// 15% chance to favor the third most chosen index\n\t\t\telse if (chance.bool({ likelihood: 15 })) {\n\t\t\t\tweighted.push(items[thirdMostChosenIndex]);\n\t\t\t}\n\t\t\t// Otherwise, pick a random item from the list\n\t\t\telse {\n\t\t\t\tweighted.push(chance.pickone(items));\n\t\t\t}\n\t\t}\n\t\treturn weighted;\n\t}"
+          },
+          "trial": {
+            "functionName": "arrow",
+            "body": "function () {\n\t\tconst weighted = [];\n\t\tfor (let i = 0; i < 10; i++) {\n\t\t\tconst rand = chance.d10(); // Random number between 1 and 10\n\n\t\t\t// 35% chance to favor the most chosen index\n\t\t\tif (chance.bool({ likelihood: 35 })) {\n\t\t\t\t// 50% chance to slightly alter the index\n\t\t\t\tif (chance.bool({ likelihood: 50 })) {\n\t\t\t\t\tweighted.push(items[mostChosenIndex]);\n\t\t\t\t} else {\n\t\t\t\t\tconst addOrSubtract = chance.bool({ likelihood: 50 }) ? -rand : rand;\n\t\t\t\t\tlet newIndex = mostChosenIndex + addOrSubtract;\n\n\t\t\t\t\t// Ensure newIndex is within bounds\n\t\t\t\t\tif (newIndex < 0) newIndex = 0;\n\t\t\t\t\tif (newIndex >= items.length) newIndex = items.length - 1;\n\t\t\t\t\tweighted.push(items[newIndex]);\n\t\t\t\t}\n\t\t\t}\n\t\t\t// 25% chance to favor the second most chosen index\n\t\t\telse if (chance.bool({ likelihood: 25 })) {\n\t\t\t\tweighted.push(items[secondMostChosenIndex]);\n\t\t\t}\n\t\t\t// 15% chance to favor the third most chosen index\n\t\t\telse if (chance.bool({ likelihood: 15 })) {\n\t\t\t\tweighted.push(items[thirdMostChosenIndex]);\n\t\t\t}\n\t\t\t// Otherwise, pick a random item from the list\n\t\t\telse {\n\t\t\t\tweighted.push(chance.pickone(items));\n\t\t\t}\n\t\t}\n\t\treturn weighted;\n\t}"
+          }
+        }
+      },
+      {
+        "event": "subscription cancelled",
+        "weight": 1,
+        "properties": {
+          "reason": [
+            "too_expensive",
+            "not_ordering_enough",
+            "found_alternative",
+            "bad_experience"
+          ],
+          "months_subscribed": [
+            2,
+            15,
+            12,
+            14,
+            16,
+            10,
+            13,
+            11,
+            18,
+            14,
+            10,
+            2,
+            10,
+            12,
+            3
+          ]
+        }
+      },
+      {
+        "event": "support ticket",
+        "weight": 3,
+        "properties": {
+          "issue_type": [
+            "missing_item",
+            "wrong_order",
+            "late_delivery",
+            "quality_issue",
+            "refund_request"
+          ],
+          "order_id": {
+            "functionName": "arrow",
+            "body": "function () {\n\t\tconst weighted = [];\n\t\tfor (let i = 0; i < 10; i++) {\n\t\t\tconst rand = chance.d10(); // Random number between 1 and 10\n\n\t\t\t// 35% chance to favor the most chosen index\n\t\t\tif (chance.bool({ likelihood: 35 })) {\n\t\t\t\t// 50% chance to slightly alter the index\n\t\t\t\tif (chance.bool({ likelihood: 50 })) {\n\t\t\t\t\tweighted.push(items[mostChosenIndex]);\n\t\t\t\t} else {\n\t\t\t\t\tconst addOrSubtract = chance.bool({ likelihood: 50 }) ? -rand : rand;\n\t\t\t\t\tlet newIndex = mostChosenIndex + addOrSubtract;\n\n\t\t\t\t\t// Ensure newIndex is within bounds\n\t\t\t\t\tif (newIndex < 0) newIndex = 0;\n\t\t\t\t\tif (newIndex >= items.length) newIndex = items.length - 1;\n\t\t\t\t\tweighted.push(items[newIndex]);\n\t\t\t\t}\n\t\t\t}\n\t\t\t// 25% chance to favor the second most chosen index\n\t\t\telse if (chance.bool({ likelihood: 25 })) {\n\t\t\t\tweighted.push(items[secondMostChosenIndex]);\n\t\t\t}\n\t\t\t// 15% chance to favor the third most chosen index\n\t\t\telse if (chance.bool({ likelihood: 15 })) {\n\t\t\t\tweighted.push(items[thirdMostChosenIndex]);\n\t\t\t}\n\t\t\t// Otherwise, pick a random item from the list\n\t\t\telse {\n\t\t\t\tweighted.push(chance.pickone(items));\n\t\t\t}\n\t\t}\n\t\treturn weighted;\n\t}"
+          }
+        }
+      },
+      {
+        "event": "reorder initiated",
+        "weight": 6,
+        "properties": {
+          "order_id": {
+            "functionName": "arrow",
+            "body": "function () {\n\t\tconst weighted = [];\n\t\tfor (let i = 0; i < 10; i++) {\n\t\t\tconst rand = chance.d10(); // Random number between 1 and 10\n\n\t\t\t// 35% chance to favor the most chosen index\n\t\t\tif (chance.bool({ likelihood: 35 })) {\n\t\t\t\t// 50% chance to slightly alter the index\n\t\t\t\tif (chance.bool({ likelihood: 50 })) {\n\t\t\t\t\tweighted.push(items[mostChosenIndex]);\n\t\t\t\t} else {\n\t\t\t\t\tconst addOrSubtract = chance.bool({ likelihood: 50 }) ? -rand : rand;\n\t\t\t\t\tlet newIndex = mostChosenIndex + addOrSubtract;\n\n\t\t\t\t\t// Ensure newIndex is within bounds\n\t\t\t\t\tif (newIndex < 0) newIndex = 0;\n\t\t\t\t\tif (newIndex >= items.length) newIndex = items.length - 1;\n\t\t\t\t\tweighted.push(items[newIndex]);\n\t\t\t\t}\n\t\t\t}\n\t\t\t// 25% chance to favor the second most chosen index\n\t\t\telse if (chance.bool({ likelihood: 25 })) {\n\t\t\t\tweighted.push(items[secondMostChosenIndex]);\n\t\t\t}\n\t\t\t// 15% chance to favor the third most chosen index\n\t\t\telse if (chance.bool({ likelihood: 15 })) {\n\t\t\t\tweighted.push(items[thirdMostChosenIndex]);\n\t\t\t}\n\t\t\t// Otherwise, pick a random item from the list\n\t\t\telse {\n\t\t\t\tweighted.push(chance.pickone(items));\n\t\t\t}\n\t\t}\n\t\treturn weighted;\n\t}"
+          },
+          "original_order_age_days": [
+            38,
+            18,
+            24,
+            27,
+            36,
+            31,
+            44,
+            28,
+            37,
+            27,
+            13,
+            29,
+            19,
+            20,
+            30,
+            46,
+            18,
+            32,
+            32,
+            23,
+            31,
+            25,
+            32,
+            29,
+            43,
+            21,
+            5,
+            25,
+            26,
+            46
+          ]
+        }
+      }
+    ],
+    "superProps": {
+      "platform": [
+        "iOS",
+        "Android",
+        "Web"
+      ],
+      "subscription_tier": {
+        "functionName": "arrow",
+        "body": "function () {\n\t\tconst weighted = [];\n\t\tfor (let i = 0; i < 10; i++) {\n\t\t\tconst rand = chance.d10(); // Random number between 1 and 10\n\n\t\t\t// 35% chance to favor the most chosen index\n\t\t\tif (chance.bool({ likelihood: 35 })) {\n\t\t\t\t// 50% chance to slightly alter the index\n\t\t\t\tif (chance.bool({ likelihood: 50 })) {\n\t\t\t\t\tweighted.push(items[mostChosenIndex]);\n\t\t\t\t} else {\n\t\t\t\t\tconst addOrSubtract = chance.bool({ likelihood: 50 }) ? -rand : rand;\n\t\t\t\t\tlet newIndex = mostChosenIndex + addOrSubtract;\n\n\t\t\t\t\t// Ensure newIndex is within bounds\n\t\t\t\t\tif (newIndex < 0) newIndex = 0;\n\t\t\t\t\tif (newIndex >= items.length) newIndex = items.length - 1;\n\t\t\t\t\tweighted.push(items[newIndex]);\n\t\t\t\t}\n\t\t\t}\n\t\t\t// 25% chance to favor the second most chosen index\n\t\t\telse if (chance.bool({ likelihood: 25 })) {\n\t\t\t\tweighted.push(items[secondMostChosenIndex]);\n\t\t\t}\n\t\t\t// 15% chance to favor the third most chosen index\n\t\t\telse if (chance.bool({ likelihood: 15 })) {\n\t\t\t\tweighted.push(items[thirdMostChosenIndex]);\n\t\t\t}\n\t\t\t// Otherwise, pick a random item from the list\n\t\t\telse {\n\t\t\t\tweighted.push(chance.pickone(items));\n\t\t\t}\n\t\t}\n\t\treturn weighted;\n\t}"
+      },
+      "city": [
+        "New York",
+        "Los Angeles",
+        "Chicago",
+        "Houston",
+        "Phoenix",
+        "San Francisco"
+      ]
+    },
+    "userProps": {
+      "preferred_cuisine": [
+        "American",
+        "Italian",
+        "Chinese",
+        "Japanese",
+        "Mexican",
+        "Indian",
+        "Thai",
+        "Mediterranean"
+      ],
+      "avg_order_value": [
+        57,
+        56,
+        40,
+        46,
+        68,
+        52,
+        30,
+        43,
+        49,
+        40,
+        47,
+        32,
+        32,
+        52,
+        46,
+        40,
+        38,
+        29,
+        35,
+        22,
+        71,
+        41,
+        35,
+        51,
+        52,
+        48,
+        27,
+        52,
+        30,
+        62,
+        29,
+        65,
+        31,
+        37,
+        40,
+        58,
+        29,
+        60,
+        33,
+        41
+      ],
+      "orders_per_month": [
+        5,
+        12,
+        13,
+        10,
+        15,
+        9,
+        6,
+        14,
+        10,
+        6
+      ],
+      "favorite_restaurant_count": [
+        4,
+        6,
+        6,
+        9,
+        5,
+        1,
+        8,
+        4,
+        3,
+        5,
+        5,
+        6,
+        1,
+        3,
+        5,
+        5,
+        8,
+        6,
+        4,
+        8,
+        6,
+        6,
+        8,
+        4,
+        8,
+        3,
+        9,
+        4,
+        3,
+        5,
+        2,
+        3,
+        5,
+        5,
+        4,
+        3,
+        6,
+        6,
+        5,
+        3,
+        6,
+        7,
+        3,
+        7,
+        8,
+        7,
+        5,
+        2,
+        2,
+        6
+      ]
+    },
+    "groupKeys": [
+      [
+        "restaurant_id",
+        200,
+        [
+          "restaurant viewed",
+          "order placed",
+          "order rated"
+        ]
+      ]
+    ],
+    "groupProps": {
+      "restaurant_id": {
+        "name": {
+          "functionName": "arrow",
+          "body": "() => `${chance.pickone([\"The\", \"Big\", \"Lucky\", \"Golden\", \"Fresh\", \"Urban\"])} ${chance.pickone([\"Kitchen\", \"Grill\", \"Bowl\", \"Wok\", \"Bistro\", \"Plate\", \"Table\", \"Fork\"])}`"
+        },
+        "cuisine": [
+          "American",
+          "Italian",
+          "Chinese",
+          "Japanese",
+          "Mexican",
+          "Indian",
+          "Thai",
+          "Mediterranean"
+        ],
+        "avg_rating": [
+          4,
+          2,
+          4,
+          3,
+          3,
+          4,
+          3,
+          2,
+          4,
+          3,
+          3,
+          4,
+          4,
+          4,
+          2,
+          2,
+          3,
+          3,
+          2,
+          5,
+          3,
+          2,
+          3,
+          2,
+          3,
+          3,
+          2,
+          2,
+          3,
+          2
+        ],
+        "delivery_radius_mi": [
+          6,
+          4,
+          4,
+          11,
+          8,
+          9,
+          7,
+          10,
+          5,
+          10
+        ]
+      }
+    },
+    "lookupTables": []
+  },
+  "hooks": "function (record, type, meta) {\n\t\tconst NOW = dayjs();\n\t\tconst DATASET_START = NOW.subtract(days, 'days');\n\t\tconst RAINY_WEEK_START = DATASET_START.add(20, 'days');\n\t\tconst RAINY_WEEK_END = DATASET_START.add(27, 'days');\n\n\t\t// ═══════════════════════════════════════════════════════════════════\n\t\t// HOOK 1: LUNCH RUSH CONVERSION (funnel-pre)\n\t\t// During lunch (11AM-1PM) and dinner (5PM-8PM), funnel conversion\n\t\t// rates are boosted to reflect real-world meal-time ordering surges.\n\t\t// ═══════════════════════════════════════════════════════════════════\n\t\tif (type === \"funnel-pre\") {\n\t\t\tif (meta && meta.firstEventTime) {\n\t\t\t\tconst hour = dayjs.unix(meta.firstEventTime).hour();\n\n\t\t\t\trecord.props = record.props || {};\n\n\t\t\t\t// Lunch rush: 11AM - 1PM\n\t\t\t\tif (hour >= 11 && hour <= 13) {\n\t\t\t\t\trecord.conversionRate = record.conversionRate * 1.4;\n\t\t\t\t\trecord.props.lunch_rush = true;\n\t\t\t\t\trecord.props.dinner_rush = false;\n\t\t\t\t}\n\t\t\t\t// Dinner rush: 5PM - 8PM\n\t\t\t\telse if (hour >= 17 && hour <= 20) {\n\t\t\t\t\trecord.conversionRate = record.conversionRate * 1.2;\n\t\t\t\t\trecord.props.lunch_rush = false;\n\t\t\t\t\trecord.props.dinner_rush = true;\n\t\t\t\t} else {\n\t\t\t\t\trecord.props.lunch_rush = false;\n\t\t\t\t\trecord.props.dinner_rush = false;\n\t\t\t\t}\n\t\t\t}\n\n\t\t\t// ═══════════════════════════════════════════════════════════════\n\t\t\t// HOOK 8: FIRST ORDER BONUS (funnel-pre)\n\t\t\t// New users (born in dataset) get a massive conversion boost on\n\t\t\t// the Order Completion funnel, simulating first-order promotions\n\t\t\t// and new-user incentives that drive initial purchases.\n\t\t\t// ═══════════════════════════════════════════════════════════════\n\t\t\tif (record.sequence &&\n\t\t\t\trecord.sequence[0] === \"checkout started\" &&\n\t\t\t\trecord.sequence[1] === \"order placed\") {\n\t\t\t\trecord.props = record.props || {};\n\t\t\t\t// Use hash to deterministically assign ~50% of users as \"new\"\n\t\t\t\tconst userId = meta && meta.user && (meta.user.distinct_id || String(meta.user));\n\t\t\t\tconst isNewUser = userId && userId.charCodeAt(0) % 2 === 0;\n\t\t\t\tif (isNewUser) {\n\t\t\t\t\trecord.conversionRate = Math.min(98, record.conversionRate * 1.4);\n\t\t\t\t\trecord.props.first_order_bonus = true;\n\t\t\t\t} else {\n\t\t\t\t\trecord.props.first_order_bonus = false;\n\t\t\t\t}\n\t\t\t}\n\t\t}\n\n\t\t// ═══════════════════════════════════════════════════════════════════\n\t\t// HOOK 2: COUPON INJECTION (funnel-post)\n\t\t// Free-tier users get coupon_applied events spliced into their\n\t\t// funnel sequences 30% of the time, simulating promotional nudges\n\t\t// that push non-subscribers toward conversion.\n\t\t// ═══════════════════════════════════════════════════════════════════\n\t\tif (type === \"funnel-post\") {\n\t\t\tif (Array.isArray(record) && record.length >= 2) {\n\t\t\t\t// Check if user is Free tier from first event's super props\n\t\t\t\tconst firstEvent = record[0];\n\t\t\t\tconst isFreeUser = firstEvent && firstEvent.subscription_tier === \"Free\";\n\n\t\t\t\tif (isFreeUser && chance.bool({ likelihood: 30 })) {\n\t\t\t\t\t// Pick a random insertion point between funnel steps\n\t\t\t\t\tconst insertIdx = chance.integer({ min: 1, max: record.length - 1 });\n\t\t\t\t\tconst prevEvent = record[insertIdx - 1];\n\t\t\t\t\tconst nextEvent = record[insertIdx];\n\t\t\t\t\tconst midTime = dayjs(prevEvent.time).add(\n\t\t\t\t\t\tdayjs(nextEvent.time).diff(dayjs(prevEvent.time)) / 2,\n\t\t\t\t\t\t'milliseconds'\n\t\t\t\t\t).toISOString();\n\n\t\t\t\t\tconst couponEvent = {\n\t\t\t\t\t\tevent: \"coupon applied\",\n\t\t\t\t\t\ttime: midTime,\n\t\t\t\t\t\tuser_id: firstEvent.user_id,\n\t\t\t\t\t\tsubscription_tier: firstEvent.subscription_tier,\n\t\t\t\t\t\tplatform: firstEvent.platform,\n\t\t\t\t\t\tcity: firstEvent.city,\n\t\t\t\t\t\tcoupon_code: chance.pickone(couponCodes),\n\t\t\t\t\t\tdiscount_type: chance.pickone([\"percent\", \"flat\", \"free_delivery\"]),\n\t\t\t\t\t\tdiscount_value: chance.integer({ min: 10, max: 30 }),\n\t\t\t\t\t\tcoupon_injected: true,\n\t\t\t\t\t};\n\t\t\t\t\trecord.splice(insertIdx, 0, couponEvent);\n\t\t\t\t}\n\t\t\t}\n\t\t}\n\n\t\t// ═══════════════════════════════════════════════════════════════════\n\t\t// HOOK 3: LATE NIGHT MUNCHIES (event)\n\t\t// Between 10PM and 2AM, restaurant views and cart additions skew\n\t\t// heavily toward fast food (American cuisine) with inflated prices,\n\t\t// modeling the real-world late-night ordering pattern.\n\t\t// ═══════════════════════════════════════════════════════════════════\n\t\tif (type === \"event\") {\n\t\t\tconst EVENT_TIME = dayjs(record.time);\n\t\t\tconst hour = EVENT_TIME.hour();\n\t\t\tconst isLateNight = hour >= 22 || hour <= 2;\n\n\t\t\tif (record.event === \"restaurant viewed\" || record.event === \"item added to cart\") {\n\t\t\t\tif (isLateNight) {\n\t\t\t\t\t// 70% of late-night browsing/ordering is fast food (American)\n\t\t\t\t\tif (chance.bool({ likelihood: 70 })) {\n\t\t\t\t\t\tif (record.cuisine_type !== undefined) {\n\t\t\t\t\t\t\trecord.cuisine_type = \"American\";\n\t\t\t\t\t\t}\n\t\t\t\t\t}\n\n\t\t\t\t\t// Boost item price by 1.3x (late-night surcharge effect)\n\t\t\t\t\tif (record.item_price !== undefined) {\n\t\t\t\t\t\trecord.item_price = Math.round(record.item_price * 1.3 * 100) / 100;\n\t\t\t\t\t}\n\n\t\t\t\t\trecord.late_night_order = true;\n\t\t\t\t} else {\n\t\t\t\t\trecord.late_night_order = false;\n\t\t\t\t}\n\t\t\t}\n\n\t\t\t// ═══════════════════════════════════════════════════════════════\n\t\t\t// HOOK 4: RAINY WEEK SURGE (event)\n\t\t\t// During days 20-27, delivery fees double on order_placed events\n\t\t\t// and there is a 40% chance of duplicating the event, simulating\n\t\t\t// a weather-driven demand surge with surge pricing.\n\t\t\t// ═══════════════════════════════════════════════════════════════\n\t\t\tif (record.event === \"order placed\") {\n\t\t\t\tif (EVENT_TIME.isAfter(RAINY_WEEK_START) && EVENT_TIME.isBefore(RAINY_WEEK_END)) {\n\t\t\t\t\trecord.delivery_fee = (record.delivery_fee || 5) * 2;\n\t\t\t\t\trecord.surge_pricing = true;\n\t\t\t\t\trecord.rainy_week = true;\n\t\t\t\t} else {\n\t\t\t\t\trecord.surge_pricing = false;\n\t\t\t\t}\n\t\t\t}\n\t\t}\n\n\t\t// ═══════════════════════════════════════════════════════════════════\n\t\t// HOOK 5: REFERRAL POWER USERS (everything)\n\t\t// Users who signed up with a referral code get 2x more reorder\n\t\t// events and boosted food ratings. Referred users are more loyal\n\t\t// and satisfied, mirroring real referral program outcomes.\n\t\t// ═══════════════════════════════════════════════════════════════════\n\t\tif (type === \"everything\") {\n\t\t\tconst userEvents = record;\n\n\t\t\t// First pass: identify user patterns\n\t\t\tlet isReferralUser = false;\n\t\t\tlet hasTrialSubscription = false;\n\t\t\tlet earlyOrderCount = 0;\n\t\t\tlet firstEventTime = userEvents.length > 0 ? dayjs(userEvents[0].time) : null;\n\n\t\t\tuserEvents.forEach((event) => {\n\t\t\t\tconst eventTime = dayjs(event.time);\n\t\t\t\tconst daysSinceStart = firstEventTime ? eventTime.diff(firstEventTime, 'days', true) : 0;\n\n\t\t\t\t// Hook #5: Track referral users\n\t\t\t\tif (event.event === \"account created\" && event.referral_code === true) {\n\t\t\t\t\tisReferralUser = true;\n\t\t\t\t}\n\n\t\t\t\t// Hook #6: Track trial subscribers and early orders\n\t\t\t\tif (event.event === \"subscription started\" && event.trial === true) {\n\t\t\t\t\thasTrialSubscription = true;\n\t\t\t\t}\n\t\t\t\tif (event.event === \"order placed\" && daysSinceStart <= 14) {\n\t\t\t\t\tearlyOrderCount++;\n\t\t\t\t}\n\t\t\t});\n\n\t\t\t// Second pass: apply referral power user effects\n\t\t\tuserEvents.forEach((event, idx) => {\n\t\t\t\tif (event.event === \"order rated\") {\n\t\t\t\t\tif (isReferralUser) {\n\t\t\t\t\t\tevent.food_rating = chance.integer({ min: 4, max: 5 });\n\t\t\t\t\t\tevent.referral_user = true;\n\t\t\t\t\t} else {\n\t\t\t\t\t\tevent.referral_user = false;\n\t\t\t\t\t}\n\t\t\t\t}\n\t\t\t\tif (isReferralUser && event.event === \"reorder initiated\" && chance.bool({ likelihood: 50 })) {\n\t\t\t\t\tconst eventTime = dayjs(event.time);\n\t\t\t\t\tconst extraReorder = {\n\t\t\t\t\t\tevent: \"reorder initiated\",\n\t\t\t\t\t\ttime: eventTime.add(chance.integer({ min: 1, max: 7 }), 'days').toISOString(),\n\t\t\t\t\t\tuser_id: event.user_id,\n\t\t\t\t\t\torder_id: chance.pickone(orderIds),\n\t\t\t\t\t\toriginal_order_age_days: chance.integer({ min: 3, max: 30 }),\n\t\t\t\t\t\treferral_user: true,\n\t\t\t\t\t};\n\t\t\t\t\tuserEvents.splice(idx + 1, 0, extraReorder);\n\t\t\t\t}\n\t\t\t});\n\n\t\t\t// ═══════════════════════════════════════════════════════════════\n\t\t\t// HOOK 6: TRIAL CONVERSION (everything)\n\t\t\t// Trial subscribers who place 3+ orders in their first 14 days\n\t\t\t// are retained. Those with fewer orders churn: 60% of their\n\t\t\t// events after day 14 are removed, simulating subscription\n\t\t\t// abandonment after a failed trial experience.\n\t\t\t// ═══════════════════════════════════════════════════════════════\n\t\t\tif (hasTrialSubscription) {\n\t\t\t\tconst trialCutoff = firstEventTime ? firstEventTime.add(14, 'days') : null;\n\n\t\t\t\tif (earlyOrderCount >= 3) {\n\t\t\t\t\t// Retained: mark events as trial_retained\n\t\t\t\t\tuserEvents.forEach((event) => {\n\t\t\t\t\t\tevent.trial_retained = true;\n\t\t\t\t\t});\n\t\t\t\t} else {\n\t\t\t\t\t// Churned: remove 60% of events after day 14\n\t\t\t\t\tuserEvents.forEach((event) => {\n\t\t\t\t\t\tevent.trial_retained = false;\n\t\t\t\t\t});\n\t\t\t\t\tfor (let i = userEvents.length - 1; i >= 0; i--) {\n\t\t\t\t\t\tconst evt = userEvents[i];\n\t\t\t\t\t\tif (trialCutoff && dayjs(evt.time).isAfter(trialCutoff)) {\n\t\t\t\t\t\t\tif (chance.bool({ likelihood: 60 })) {\n\t\t\t\t\t\t\t\tuserEvents.splice(i, 1);\n\t\t\t\t\t\t\t}\n\t\t\t\t\t\t}\n\t\t\t\t\t}\n\t\t\t\t}\n\t\t\t}\n\n\t\t\t// ═══════════════════════════════════════════════════════════════\n\t\t\t// HOOK 4: RAINY WEEK SURGE - duplicate order events (everything)\n\t\t\t// Events tagged surge_pricing=true in the event hook get a 40%\n\t\t\t// chance of duplication here, creating visible demand spikes.\n\t\t\t// ═══════════════════════════════════════════════════════════════\n\t\t\tconst rainyDuplicates = [];\n\t\t\tuserEvents.forEach((event) => {\n\t\t\t\tif (event.surge_pricing === true && event.event === \"order placed\" && chance.bool({ likelihood: 40 })) {\n\t\t\t\t\tconst dup = JSON.parse(JSON.stringify(event));\n\t\t\t\t\tdup.time = dayjs(event.time).add(chance.integer({ min: 5, max: 60 }), 'minutes').toISOString();\n\t\t\t\t\tdup.rainy_week = true;\n\t\t\t\t\trainyDuplicates.push(dup);\n\t\t\t\t}\n\t\t\t});\n\t\t\tif (rainyDuplicates.length > 0) {\n\t\t\t\tuserEvents.push(...rainyDuplicates);\n\t\t\t}\n\t\t}\n\n\t\t// ═══════════════════════════════════════════════════════════════════\n\t\t// HOOK 7: SUPPORT TICKET CHURN (user)\n\t\t// 15% of users are flagged as high-risk with elevated churn scores.\n\t\t// The remaining users get low churn scores. This creates a clear\n\t\t// segmentation opportunity for proactive retention campaigns.\n\t\t// ═══════════════════════════════════════════════════════════════════\n\t\tif (type === \"user\") {\n\t\t\tif (chance.bool({ likelihood: 15 })) {\n\t\t\t\trecord.is_high_risk = true;\n\t\t\t\trecord.churn_risk_score = chance.integer({ min: 70, max: 100 });\n\t\t\t} else {\n\t\t\t\trecord.is_high_risk = false;\n\t\t\t\trecord.churn_risk_score = chance.integer({ min: 0, max: 40 });\n\t\t\t}\n\t\t}\n\n\t\treturn record;\n\t}",
+  "timestamp": "2026-04-10T01:39:07.015Z",
+  "version": "4.0"
+}

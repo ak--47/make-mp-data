@@ -12,6 +12,77 @@ const days = 92;
 
 /** @typedef  {import("../types.js").Dungeon} Dungeon */
 
+/*
+ * ============================================================================
+ * DATASET OVERVIEW
+ * ============================================================================
+ *
+ * App: Text Generation Demo — showcases DM4's organic text generation
+ * Scale: 8,000 users, ~960K events, 92 days
+ *
+ * A text-heavy SaaS analytics dungeon that exercises every text generation
+ * style available in DM4. Users interact through support tickets, product
+ * reviews, forum posts, search queries, chat messages, social media posts
+ * (Twitter, LinkedIn, Reddit), bug reports, feature requests, onboarding
+ * feedback, charity/wedding comments, and webinar chat.
+ *
+ * Each event type uses a dedicated createTextGenerator() configured with its
+ * own style, tone, formality, keyword banks, typo rates, and authenticity
+ * levels. Text generator styles used: support, review, forum, search,
+ * feedback, chat, email, tweet, comments (9 distinct styles).
+ *
+ * Events:
+ *   social_media_tweet (15) > chat_message (10) > charity_comment_posted (8)
+ *   > wedding_comment_posted (6) > company_announcement_tweet (3)
+ *   > all others (1 each): support ticket, review, forum post, search,
+ *     feedback, email, twitter, linkedin, reddit, bug report, feature
+ *     request, onboarding, tutorial comment, webinar chat, api thread
+ * ============================================================================
+ */
+
+/*
+ * ============================================================================
+ * ANALYTICS HOOKS
+ * ============================================================================
+ *
+ * Hook 1: Power User + Churn Risk Classification
+ *   Type: user
+ *   What: Users with engagement_score > 70 get is_power_user = true.
+ *     Users inactive > 20 days get risk_level = "high_churn", else "healthy".
+ *   Mixpanel report:
+ *     - Insights > user profile breakdown by "is_power_user"
+ *     - Insights > user profile breakdown by "risk_level", cross-reference
+ *       with "user_tier" to see churn risk by plan
+ *
+ * Hook 2: Critical Ticket Auto-Escalation
+ *   Type: event
+ *   What: enterprise_support_ticket events with priority = "critical" get
+ *     escalation_level bumped by 1 (max 3) and auto_escalated = true.
+ *   Mixpanel report:
+ *     - Insights > "enterprise_support_ticket" total events, breakdown by
+ *       auto_escalated
+ *     - Expect: critical tickets show auto_escalated = true
+ *
+ * Hook 3: Critical Bug Flagging
+ *   Type: event
+ *   What: bug_report_submitted events with severity = "critical" AND
+ *     is_reproducible = true get requires_immediate_review = true and a
+ *     random estimated_fix_hours (1-8).
+ *   Mixpanel report:
+ *     - Insights > "bug_report_submitted" total events, breakdown by
+ *       requires_immediate_review
+ *     - Expect: only critical + reproducible bugs are flagged
+ *
+ * Hook 4: Enterprise Satisfaction Survey Injection
+ *   Type: everything
+ *   What: Enterprise-tier users with > 5 events get a
+ *     "satisfaction_survey_triggered" event appended with a 1-10 NPS score.
+ *   Mixpanel report:
+ *     - Insights > "satisfaction_survey_triggered" AVG(score), breakdown by
+ *       product_tier
+ *     - Expect: only enterprise users have survey events
+ * ============================================================================
+ */
 
 // Enterprise support ticket generator with keywords and high authenticity
 const enterpriseSupportGen = createTextGenerator({

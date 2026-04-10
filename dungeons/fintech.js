@@ -9,76 +9,122 @@ const chance = u.initChance(SEED);
 const num_users = 5_000;
 const days = 100;
 
-/** @typedef  {import("../../types.js").Dungeon} Config */
+/** @typedef  {import("../types.d.ts").Dungeon} Config */
 
 /**
- * NEEDLE IN A HAYSTACK - NEOBANK APP DESIGN
+ * ===================================================================
+ * DATASET OVERVIEW
+ * ===================================================================
  *
- * NexBank - A Chime/Revolut-style neobank app where users manage accounts, make transactions,
- * send transfers, pay bills, set budgets, invest, apply for loans, and earn rewards.
+ * NexBank — a Chime/Revolut-style neobank app. Users open accounts
+ * (personal or business), transact across 7 merchant categories,
+ * send transfers, pay bills, set budgets, invest, apply for loans,
+ * and earn tier-scaled rewards.
  *
- * CORE USER LOOP:
- * Users open accounts (personal or business) through one of four channels (app, web, referral,
- * branch). They begin using the app to check balances, make transactions (purchases, ATM
- * withdrawals, direct deposits, refunds), and send transfers (internal, external, P2P, wire).
- * The app tracks spending patterns and encourages financial wellness through budgets, savings
- * goals, and investment tools.
+ * Scale: 5,000 users · 600K events · 100 days · 18 event types
+ * Groups: 500 households
+ * Tiers: Basic (free) / Plus ($4.99/mo) / Premium ($14.99/mo)
  *
- * ACCOUNT TIERS:
- * Three-tiered system drives monetization and user segmentation:
- * - Basic (free): Standard banking, limited rewards
- * - Plus ($4.99/mo): Enhanced rewards, priority support, budgeting tools
- * - Premium ($14.99/mo): 3x rewards, 2x investment returns, premium analytics
- * Tiers are assigned as superProps, creating a persistent segmentation dimension.
+ * Core loop: onboarding → daily banking → financial planning →
+ *   budgets & savings → investments → rewards & monetization
  *
- * TRANSACTION ECOSYSTEM:
- * Transactions are the heartbeat of the app. Seven merchant categories (grocery, restaurant,
- * gas, retail, online, subscription, utilities) and four payment methods (debit, credit,
- * contactless, online) model realistic spending. Transaction amounts follow a power-law
- * distribution centered around $50, with occasional large purchases up to $5,000.
+ * Funnels:
+ *   - Onboarding: account opened → app session → balance checked
+ *   - Daily banking: app session → balance checked → transaction
+ *   - Transfers: app session → transfer sent → notification opened
+ *   - Bill payment: app session → bill paid → notification opened
+ *   - Financial planning: budget created → budget alert → savings goal
+ *   - Investment: balance checked → investment made → reward redeemed
+ *   - Support: support contacted → card locked → dispute filed
+ *   - Lending: loan applied → loan approved → premium upgraded
+ */
+
+/**
+ * ===================================================================
+ * ANALYTICS HOOKS (8 architected patterns)
+ * ===================================================================
  *
- * FINANCIAL WELLNESS:
- * Budget creation and alerts model the "financial health" feature set. Users create budgets
- * across six categories with monthly limits, then receive alerts when approaching or exceeding
- * limits. This creates a measurable engagement loop: budget creators save more and invest more
- * (Hook #5: Budget Users Save More).
+ * 1. PERSONAL VS BUSINESS ACCOUNTS (user hook)
+ *    20% business (employee_count, revenue, industry), 80% personal
+ *    (age_range, life_stage). Breakdown: account_segment.
+ *    → Insights: any event by unique users, breakdown account_segment
+ *    → Insights: "transaction completed" avg amount, breakdown account_segment
  *
- * SAVINGS & INVESTMENT:
- * Savings goals (emergency, vacation, car, home, education, retirement) with target amounts
- * and monthly contributions model long-term financial planning. Investment events (stocks, ETF,
- * crypto, bonds, mutual funds) with buy/sell actions model portfolio activity.
+ * 2. PAYDAY PATTERNS (event hook)
+ *    Direct deposits 3x on 1st/15th (payday: true). Transfers 2x on
+ *    days 1-3 and 15-17 (post_payday_spending: true).
+ *    → Insights: "transaction completed" avg amount, filter direct_deposit, breakdown payday
+ *    → Insights: "transfer sent" avg amount, breakdown post_payday_spending
  *
- * LENDING:
- * Loan applications (personal, auto, home, student, business) flow through apply-to-approved
- * funnel. Requested vs. approved amounts and interest rates create realistic lending analytics.
+ * 3. FRAUD DETECTION (everything hook)
+ *    3% of users get a fraud burst at timeline midpoint: 3-5 rapid
+ *    high-value txns → card locked → dispute → support. Tagged
+ *    fraud_sequence: true.
+ *    → Insights: "transaction completed" total, filter fraud_sequence = true
+ *    → Funnels: card locked → dispute filed → support contacted, filter fraud_sequence = true
  *
- * SUPPORT & ENGAGEMENT:
- * Support contacts across four channels (chat, phone, email, in-app) with resolution tracking.
- * Notifications (transaction, low_balance, bill_due, reward, security, promo) with action
- * tracking model re-engagement effectiveness.
+ * 4. LOW BALANCE CHURN (everything hook)
+ *    Users with 3+ balance checks < $15K lose 50% of events after
+ *    day 30. Surviving events tagged low_balance_churn: true.
+ *    → Retention: any → any, segment low_balance_churn = true vs others
+ *    → Insights: any event total over time, filter low_balance_churn = true
  *
- * BILL PAYMENTS:
- * Six bill types (rent, utilities, phone, insurance, subscription, loan_payment) with auto-pay
- * toggle. Hook #6 (Auto-Pay Loyalty) creates a pattern where auto-pay users never miss
- * payments while manual payers miss 30%, modeling real-world payment reliability.
+ * 5. BUDGET USERS SAVE MORE (everything hook)
+ *    Budget creators get 2x savings contributions, 1.5x investment
+ *    amounts, extra savings goals. Tagged budget_discipline: true.
+ *    → Insights: "savings goal set" avg monthly_contribution, breakdown budget_discipline
+ *    → Insights: "investment made" avg amount, breakdown budget_discipline
  *
- * REWARDS:
- * Four reward types (cashback, points, discount, partner_offer) with values scaled by
- * account tier. Premium users earn 3x rewards (Hook #7), creating clear tier-based value
- * differentiation visible in the data.
+ * 6. AUTO-PAY LOYALTY (event hook)
+ *    Manual payers (auto_pay=false) miss 30% of bills (event renamed
+ *    to "bill payment missed"). Auto-pay users never miss.
+ *    → Insights: "bill paid" + "bill payment missed" totals side by side
+ *    → Insights: "bill paid" total, breakdown manual_payment
  *
- * HOUSEHOLD GROUPS:
- * 500 households group users for shared financial analytics. Household-level properties
- * (size, combined income, financial health score, primary bank) enable group-level analysis
- * of shared financial behaviors.
+ * 7. PREMIUM TIER VALUE (event hook)
+ *    Premium: 3x rewards, 2x investment sell returns. Plus: 1.5x
+ *    rewards. Tagged premium_reward / premium_returns.
+ *    → Insights: "reward redeemed" avg value, breakdown account_tier
+ *      (expected: premium ~$30, plus ~$15, basic ~$10)
+ *    → Insights: "investment made" avg amount, filter action=sell, breakdown premium_returns
  *
- * WHY THESE EVENTS/PROPERTIES?
- * - Events model a complete banking loop: onboarding -> daily use -> financial planning -> monetization
- * - Properties enable cohort analysis: account type, tier, income bracket, credit score
- * - Funnels reveal friction: onboarding completion, transfer flows, investment journeys
- * - Financial wellness features (budgets, goals) create engagement depth visible in the data
- * - Tier-based rewards and investment returns drive business metric differences
- * - The "needle in haystack" hooks simulate real fintech product insights hidden in production data
+ * 8. MONTH-END ANXIETY (event hook)
+ *    Days >= 28: sessions 40% longer, balances 30% lower. Tagged
+ *    month_end_anxiety / month_end_check.
+ *    → Insights: "app session" avg session_duration_sec, breakdown month_end_anxiety
+ *    → Insights: "balance checked" avg account_balance, breakdown month_end_check
+ *
+ * ===================================================================
+ * ADVANCED ANALYSIS IDEAS
+ * ===================================================================
+ *
+ * Cross-hook patterns:
+ *   - Budget + Low Balance: Do budget creators avoid low-balance churn?
+ *   - Premium + Auto-Pay: Do premium users adopt auto-pay more?
+ *   - Fraud + Churn: Do fraud victims churn more? Does resolution help?
+ *   - Payday + Month-End: Do payday spenders run out by month-end?
+ *   - Business vs Personal Fraud: Are business accounts more targeted?
+ *
+ * Cohort analysis:
+ *   - By account_tier: upgrade paths, value realization
+ *   - By signup_channel: referral retention vs organic
+ *   - By income_bracket: feature adoption by income
+ *   - By credit_score_range: loan approvals, tier adoption
+ *
+ * ===================================================================
+ * EXPECTED METRICS SUMMARY
+ * ===================================================================
+ *
+ * Hook                  | Metric                | Baseline | Effect | Ratio
+ * ----------------------|-----------------------|----------|--------|------
+ * Personal vs Business  | Avg transaction amt   | $50      | $200+  | ~4x
+ * Payday Patterns       | Deposit amount        | $50      | $100   | 2x
+ * Fraud Detection       | Users affected        | 0%       | 3%     | --
+ * Low Balance Churn     | D30+ event count      | 100%     | 50%    | 0.5x
+ * Budget Discipline     | Monthly contribution  | $200     | $400   | 2x
+ * Auto-Pay Loyalty      | Bill completion rate   | 100%     | 70%    | 0.7x
+ * Premium Tier Value    | Reward value           | $10      | $30    | 3x
+ * Month-End Anxiety     | Session duration       | 60s      | 84s    | 1.4x
  */
 
 /** @type {Config} */
@@ -361,7 +407,7 @@ const config = {
 	 * 1. PERSONAL VS BUSINESS: Business accounts get employee_count, revenue; personal get age_range, life_stage
 	 * 2. PAYDAY PATTERNS: Transactions spike on 1st/15th with bigger deposits and post-payday spending
 	 * 3. FRAUD DETECTION: 3% of users experience a fraud burst (rapid high-value txns -> card lock -> dispute -> support)
-	 * 4. LOW BALANCE CHURN: Users with chronic low balances (<$500) lose 50% of activity after day 30
+	 * 4. LOW BALANCE CHURN: Users with chronic low balances (<$15K) lose 50% of activity after day 30
 	 * 5. BUDGET DISCIPLINE: Budget creators save 2x more and invest 1.5x more
 	 * 6. AUTO-PAY LOYALTY: Auto-pay users never miss bills; manual payers miss 30%
 	 * 7. PREMIUM TIER VALUE: Premium users get 3x rewards; Plus users get 1.5x; Premium investors get 2x returns
@@ -572,13 +618,13 @@ const config = {
 
 			// -----------------------------------------------------------
 			// Hook #4: LOW BALANCE CHURN
-			// Users who have 3+ balance checks showing < $500 are
+			// Users who have 3+ balance checks showing < $15,000 are
 			// "struggling". After day 30, 50% of their events are removed
 			// and remaining events are tagged low_balance_churn: true.
 			// -----------------------------------------------------------
 			let lowBalanceChecks = 0;
 			userEvents.forEach((event) => {
-				if (event.event === "balance checked" && (event.account_balance || 0) < 3000) {
+				if (event.event === "balance checked" && (event.account_balance || 0) < 15000) {
 					lowBalanceChecks++;
 				}
 			});
@@ -648,328 +694,3 @@ const config = {
 };
 
 export default config;
-
-/**
- * ===================================================================
- * NEEDLE IN A HAYSTACK - NEXBANK NEOBANK ANALYTICS
- * ===================================================================
- *
- * A Chime/Revolut-style neobank dungeon with 8 deliberately architected
- * analytics insights hidden in the data. This dungeon is designed to
- * showcase advanced fintech product analytics patterns and demonstrate
- * how to find "needles" (meaningful insights) in "haystacks" (large
- * banking datasets).
- *
- * ===================================================================
- * DATASET OVERVIEW
- * ===================================================================
- *
- * - 5,000 users over 100 days
- * - 360,000 events across 18 event types
- * - 3 funnels (onboarding, transfer flow, investment journey)
- * - Group analytics (500 households)
- * - Lookup table (500 merchant/transaction entries)
- * - Account tiers (Basic, Plus, Premium)
- *
- * ===================================================================
- * THE 8 ARCHITECTED HOOKS
- * ===================================================================
- *
- * Each hook creates a specific, discoverable analytics insight that
- * simulates real-world fintech product behavior patterns.
- *
- * -------------------------------------------------------------------
- * 1. PERSONAL VS BUSINESS ACCOUNTS (user)
- * -------------------------------------------------------------------
- *
- * PATTERN: 20% of users are business accounts with employee_count
- * (5-500), annual_revenue ($100K-$10M), and industry. The other 80%
- * are personal accounts with age_range and life_stage.
- *
- * HOW TO FIND IT:
- *   - Segment users by: account_segment = "business" vs "personal"
- *   - Compare: Transaction volumes, average amounts, transfer patterns
- *   - Analyze: Industry distribution among business accounts
- *
- * EXPECTED INSIGHT: Business accounts have fundamentally different
- * usage patterns - higher transaction amounts, more wire transfers,
- * and different bill payment profiles.
- *
- * REAL-WORLD ANALOGUE: Identifying and serving different customer
- * segments (B2C vs B2B) with tailored features and pricing.
- *
- * -------------------------------------------------------------------
- * 2. PAYDAY PATTERNS (event)
- * -------------------------------------------------------------------
- *
- * PATTERN: On the 1st and 15th of each month, direct deposit
- * transactions are 2x bigger and tagged with payday: true. On days
- * 1-3 and 15-17, transfer amounts have a 40% chance of being 1.5x
- * larger, tagged with post_payday_spending: true.
- *
- * HOW TO FIND IT:
- *   - Chart: transaction completed count and amount by day of month
- *   - Filter: transaction_type = "direct_deposit"
- *   - Compare: Average transfer amount on days 1-3/15-17 vs other days
- *   - Look for: payday: true and post_payday_spending: true tags
- *
- * EXPECTED INSIGHT: Clear biweekly spikes in deposit amounts and
- * subsequent spending activity. The 2-3 days after payday show
- * elevated transfer activity as users move money around.
- *
- * REAL-WORLD ANALOGUE: Payroll cycle effects on banking activity.
- * Banks use this to time marketing, credit offers, and overdraft
- * protection promotions.
- *
- * -------------------------------------------------------------------
- * 3. FRAUD DETECTION PATTERN (everything)
- * -------------------------------------------------------------------
- *
- * PATTERN: 3% of users experience a fraud event sequence at their
- * timeline midpoint: 3-5 rapid high-value transactions ($500-$3,000)
- * within 1 hour, followed by card locked (suspicious_activity),
- * dispute filed (unauthorized), and support contacted (phone/card).
- * All injected events tagged with fraud_sequence: true.
- *
- * HOW TO FIND IT:
- *   - Filter events: fraud_sequence = true
- *   - Analyze: Time between fraud transactions (< 10 min gaps)
- *   - Funnel: transaction completed -> card locked -> dispute filed -> support contacted
- *   - Segment: Users with any fraud_sequence event
- *
- * EXPECTED INSIGHT: ~150 users (3% of 5,000) show a distinctive burst
- * pattern of rapid high-value purchases followed by account lockdown.
- * Clear temporal clustering of fraud events.
- *
- * REAL-WORLD ANALOGUE: Fraud detection in banking. Unusual velocity
- * and amount patterns trigger automated alerts and account freezes.
- *
- * -------------------------------------------------------------------
- * 4. LOW BALANCE CHURN (everything)
- * -------------------------------------------------------------------
- *
- * PATTERN: Users with 3+ balance checks showing < $500 are
- * "struggling" users. After day 30, 50% of their events are removed
- * (simulating reduced app usage) and surviving events are tagged
- * with low_balance_churn: true.
- *
- * HOW TO FIND IT:
- *   - Segment: Users where count of (balance checked, account_balance < 500) >= 3
- *   - Compare: Event counts before day 30 vs after day 30
- *   - Filter: low_balance_churn = true
- *   - Retention analysis: Compare D30+ retention for low vs healthy balance users
- *
- * EXPECTED INSIGHT: Struggling users show a dramatic drop in activity
- * after the first month. Their engagement halves while healthy-balance
- * users maintain consistent usage.
- *
- * REAL-WORLD ANALOGUE: Financial stress-driven churn. Users who
- * can't maintain balances disengage from their banking app, which
- * predicts account closure.
- *
- * -------------------------------------------------------------------
- * 5. BUDGET USERS SAVE MORE (everything)
- * -------------------------------------------------------------------
- *
- * PATTERN: Users who create any budget have 2x monthly savings
- * contributions, 1.5x investment amounts, and extra savings goal
- * events spliced into their timeline. All affected events tagged
- * with budget_discipline: true.
- *
- * HOW TO FIND IT:
- *   - Segment: Users who did "budget created" vs those who didn't
- *   - Compare: Average monthly_contribution on savings goal events
- *   - Compare: Average investment amount
- *   - Count: savings goal set events per user (budget users have more)
- *   - Filter: budget_discipline = true
- *
- * EXPECTED INSIGHT: Budget creators save 2x more and invest 1.5x more
- * than non-budget users. They also set more savings goals, showing
- * compound financial wellness behavior.
- *
- * REAL-WORLD ANALOGUE: Financial planning tools drive better outcomes.
- * Users who engage with budgeting features are more financially active
- * and retain longer - a key product-market fit signal.
- *
- * -------------------------------------------------------------------
- * 6. AUTO-PAY LOYALTY (event)
- * -------------------------------------------------------------------
- *
- * PATTERN: Bill paid events with auto_pay = false have a 30% chance
- * of being dropped entirely (simulating missed payments). Auto-pay
- * users never miss. Surviving manual payments are tagged with
- * manual_payment: true.
- *
- * HOW TO FIND IT:
- *   - Segment: bill paid events by auto_pay = true vs false
- *   - Compare: Total bill paid count per user in each segment
- *   - Calculate: Effective bill completion rate by segment
- *   - Filter: manual_payment = true for surviving manual payments
- *
- * EXPECTED INSIGHT: Auto-pay users have 100% bill completion while
- * manual payers show only ~70% completion. This creates a clear
- * reliability gap that would drive auto-pay adoption campaigns.
- *
- * REAL-WORLD ANALOGUE: Auto-pay enrollment is one of the strongest
- * retention predictors in fintech. Users who set up auto-pay are
- * less likely to miss payments and less likely to churn.
- *
- * -------------------------------------------------------------------
- * 7. PREMIUM TIER VALUE (event)
- * -------------------------------------------------------------------
- *
- * PATTERN: Premium tier users get 3x reward values and 2x investment
- * sell returns. Plus tier users get 1.5x rewards. Tagged with
- * premium_reward: true and premium_returns: true respectively.
- *
- * HOW TO FIND IT:
- *   - Segment: Events by account_tier (basic, plus, premium)
- *   - Compare: Average reward value on reward redeemed events
- *   - Compare: Average amount on investment made (action = sell)
- *   - Filter: premium_reward = true, premium_returns = true
- *   - Analyze: Total reward value per user by tier
- *
- * EXPECTED INSIGHT: Clear tier-based value curve. Premium users
- * earn 3x the rewards and 2x the investment returns of Basic users,
- * with Plus users in between. This validates tier pricing.
- *
- * REAL-WORLD ANALOGUE: Premium banking tiers that provide tangible
- * financial benefits. The reward multiplier justifies the monthly
- * fee and drives upgrade conversions.
- *
- * -------------------------------------------------------------------
- * 8. MONTH-END ANXIETY (event)
- * -------------------------------------------------------------------
- *
- * PATTERN: On the last 3 days of each month (day >= 28), app sessions
- * are 40% longer and balance checks show 30% lower balances. Tagged
- * with month_end_anxiety: true and month_end_check: true.
- *
- * HOW TO FIND IT:
- *   - Chart: Average session_duration_sec by day of month
- *   - Chart: Average account_balance on balance checked by day of month
- *   - Filter: month_end_anxiety = true, month_end_check = true
- *   - Compare: Day 1-27 vs day 28-31 engagement metrics
- *
- * EXPECTED INSIGHT: Users spend 40% more time in the app at month-end,
- * checking lower balances. This reflects pre-bill-pay anxiety and
- * end-of-month financial stress.
- *
- * REAL-WORLD ANALOGUE: Month-end financial anxiety drives app
- * engagement spikes. Banks can leverage this pattern for timely
- * overdraft protection offers, savings nudges, and bill reminders.
- *
- * ===================================================================
- * ADVANCED ANALYSIS IDEAS
- * ===================================================================
- *
- * CROSS-HOOK PATTERNS:
- *
- * 1. Budget + Low Balance: Do budget creators (Hook #5) avoid the
- *    low-balance churn pattern (Hook #4)? Budget discipline should
- *    correlate with healthier balances.
- *
- * 2. Premium + Auto-Pay: Do premium tier users (Hook #7) have higher
- *    auto-pay adoption than basic users? Does tier upgrading predict
- *    auto-pay enrollment?
- *
- * 3. Fraud + Churn: Do fraud victims (Hook #3) churn more than
- *    non-victims? Does support resolution quality affect post-fraud
- *    retention?
- *
- * 4. Payday + Month-End: Compare payday spending spikes (Hook #2)
- *    with month-end anxiety (Hook #8). Do payday spenders run out
- *    of money by month-end?
- *
- * 5. Business vs Personal Fraud: Are business accounts (Hook #1)
- *    more or less likely to be fraud targets (Hook #3)?
- *
- * COHORT ANALYSIS:
- *
- * - Cohort by account_tier: Track upgrade paths and value realization
- *   across Basic -> Plus -> Premium
- * - Cohort by signup_channel: Do referral users have better retention
- *   and higher balances?
- * - Cohort by income_bracket: How does income correlate with feature
- *   adoption (budgets, investments, savings goals)?
- * - Cohort by credit_score_range: Do higher credit scores predict
- *   loan approvals and premium tier adoption?
- *
- * FUNNEL ANALYSIS:
- *
- * - Onboarding Funnel: account opened -> app session -> balance checked
- *   by account type and signup channel
- * - Transfer Flow: app session -> transfer sent -> notification opened
- *   by tier and platform
- * - Investment Journey: balance checked -> investment made -> reward redeemed
- *   by income bracket and budget creation status
- *
- * ===================================================================
- * EXPECTED METRICS SUMMARY
- * ===================================================================
- *
- * Hook                  | Metric                | Baseline | Hook Effect | Ratio
- * ----------------------|-----------------------|----------|-------------|------
- * Personal vs Business  | Avg transaction amt   | $50      | $200+       | ~4x
- * Payday Patterns       | Deposit amount        | $50      | $100        | 2x
- * Fraud Detection       | Users affected        | 0%       | 3%          | --
- * Low Balance Churn     | D30+ event count      | 100%     | 50%         | 0.5x
- * Budget Discipline     | Monthly contribution  | $200     | $400        | 2x
- * Auto-Pay Loyalty      | Bill completion rate   | 100%     | 70%         | 0.7x
- * Premium Tier Value    | Reward value           | $10      | $30         | 3x
- * Month-End Anxiety     | Session duration       | 60s      | 84s         | 1.4x
- *
- * ===================================================================
- * HOW TO RUN THIS DUNGEON
- * ===================================================================
- *
- * From the dm4 root directory:
- *
- *   npm start
- *
- * Or programmatically:
- *
- *   import generate from './index.js';
- *   import config from './dungeons/harness-fintech.js';
- *   const results = await generate(config);
- *
- * OUTPUT FILES (with writeToDisk: false):
- *
- *   - needle-haystack-fintech__events.json.gz       - All event data
- *   - needle-haystack-fintech__user_profiles.json.gz - User profiles
- *   - needle-haystack-fintech__group_profiles.json.gz - Household profiles
- *   - needle-haystack-fintech__transaction_id_lookup.json.gz - Merchant catalog
- *
- * ===================================================================
- * TESTING YOUR ANALYTICS PLATFORM
- * ===================================================================
- *
- * This dungeon is perfect for testing:
- *
- * 1. Segmentation: Can you separate business vs personal accounts?
- * 2. Time Patterns: Can you detect the biweekly payday cycle?
- * 3. Anomaly Detection: Can you find the fraud burst patterns?
- * 4. Churn Prediction: Can you predict churn from low balance signals?
- * 5. Feature Impact: Can you measure budget tools' effect on savings?
- * 6. Behavioral Analysis: Can you quantify auto-pay vs manual reliability?
- * 7. Tier Analysis: Can you calculate reward ROI by account tier?
- * 8. Temporal Patterns: Can you identify month-end anxiety in the data?
- *
- * ===================================================================
- * WHY "NEEDLE IN A HAYSTACK"?
- * ===================================================================
- *
- * Each hook is a "needle" - a meaningful, actionable insight hidden in a
- * "haystack" of 360K events. The challenge is:
- *
- * 1. FINDING the needles (discovery)
- * 2. VALIDATING they're real patterns (statistical significance)
- * 3. UNDERSTANDING why they matter (business impact)
- * 4. ACTING on them (product decisions)
- *
- * This mirrors real-world fintech analytics: your transaction data contains
- * valuable insights about user behavior, but you need the right tools and
- * skills to find them.
- *
- * ===================================================================
- */
