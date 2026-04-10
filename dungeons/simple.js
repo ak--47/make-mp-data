@@ -1,13 +1,3 @@
-/**
- * This is the default configuration file for the data generator in SIMPLE mode
- * notice how the config object is structured, and see it's type definition in ./types.d.ts
- * feel free to modify this file to customize the data you generate
- * see helper functions in utils.js for more ways to generate data
- */
-
-
-
-
 import Chance from 'chance';
 let chance = new Chance();
 import dayjs from "dayjs";
@@ -19,6 +9,53 @@ import { pickAWinner, weighNumRange, date, integer, weighChoices } from "../lib/
 const itemCategories = ["Books", "Movies", "Music", "Games", "Electronics", "Computers", "Smart Home", "Home", "Garden", "Pet", "Beauty", "Health", "Toys", "Kids", "Baby", "Handmade", "Sports", "Outdoors", "Automotive", "Industrial", "Entertainment", "Art", "Food", "Appliances", "Office", "Wedding", "Software"];
 
 const videoCategories = ["funny", "educational", "inspirational", "music", "news", "sports", "cooking", "DIY", "travel", "gaming"];
+
+/**
+ * ═══════════════════════════════════════════════════════════════
+ * DATASET OVERVIEW
+ * ═══════════════════════════════════════════════════════════════
+ *
+ * Simple E-Commerce + Media App
+ * - 5,000 users over 100 days, ~500K events
+ * - Events: ad impressions/clicks, page views, video watching,
+ *   item browsing/saving, cart, checkout, signup
+ * - Signup funnel with A/B experiment
+ * - Campaigns, location, browser, and device data enabled
+ *
+ * ═══════════════════════════════════════════════════════════════
+ * ANALYTICS HOOKS (3 patterns)
+ * ═══════════════════════════════════════════════════════════════
+ *
+ * 1. TEMPORAL IMPROVEMENT (event hook)
+ *    After 15 days ago: checkout amounts 1.5x, watch times 1.5x.
+ *    Before that: 33% of events are dropped (tagged _drop, filtered in everything).
+ *
+ *    Mixpanel Report:
+ *    - Insights > Line Chart: "checkout", AVG(amount) by Day
+ *      Expected: visible 1.5x uplift in the last 15 days
+ *    - Insights > Line Chart: Total event count by Day
+ *      Expected: ~33% lower volume before 15 days ago, then step-up
+ *
+ * 2. CUSTOM THEME POWER BUYERS (everything hook)
+ *    Users whose custom-theme events outnumber light or dark get
+ *    all checkout events tripled with 2x amount and "50%OFF" coupon.
+ *
+ *    Mixpanel Report:
+ *    - Funnels: any multi-step funnel, breakdown by theme
+ *      Expected: "custom" theme users show much higher checkout counts
+ *    - Insights: "checkout", AVG(amount), breakdown by coupon
+ *      Expected: "50%OFF" spike from power buyers
+ *
+ * 3. LOW-QUALITY VIDEO CHURN (everything hook)
+ *    Users who watch more low-quality (480p/360p/240p) than high-quality
+ *    video have a 50% chance of losing all events after their midpoint.
+ *
+ *    Mixpanel Report:
+ *    - Retention: breakdown by video quality
+ *      Expected: low-quality watchers show ~50% drop-off from midpoint
+ *    - Insights > Stacked Line: event count by quality
+ *      Expected: low-quality cohort volume thins out after midpoint
+ */
 
 /** @type {import('../types').Dungeon} */
 const config = {

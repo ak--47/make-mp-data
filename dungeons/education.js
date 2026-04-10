@@ -10,79 +10,167 @@ const chance = u.initChance(SEED);
 const num_users = 5_000;
 const days = 100;
 
-/** @typedef  {import("../../types.js").Dungeon} Config */
+/** @typedef  {import("../types.d.ts").Dungeon} Config */
 
 /**
- * NEEDLE IN A HAYSTACK - ELEARNING APP DESIGN
+ * ═══════════════════════════════════════════════════════════════════════════════
+ * DATASET OVERVIEW — LearnPath eLearning Platform
+ * ═══════════════════════════════════════════════════════════════════════════════
  *
- * LearnPath - An online learning platform modeled after Coursera, Khan Academy, and Udemy.
- * The platform supports both self-paced and cohort-based learning, with a robust ecosystem
- * of courses, quizzes, assignments, and social study features.
+ * An online learning platform modeled after Coursera, Khan Academy, and Udemy.
+ * Supports self-paced and cohort-based learning with courses, quizzes,
+ * assignments, and social study features.
  *
- * CORE LEARNING LOOP:
- * Students register accounts, browse and enroll in courses across multiple categories
- * (CS, Math, Science, Business, Arts, Languages), then progress through structured
- * modules consisting of lectures, practice problems, quizzes, and assignments. Successful
- * completion of all requirements earns a certificate. The platform emphasizes active
- * learning through note-taking, practice problems, and peer discussion.
+ * Scale: 5,000 users / 600K events / 100 days / 17 event types
  *
- * COURSE SYSTEM (events: course enrolled -> lecture started -> lecture completed):
- * - Six course categories spanning technical and creative disciplines
- * - Three difficulty tiers: beginner, intermediate, advanced
- * - Free and paid course options (drives subscription analytics)
- * - 150 unique courses with varying lengths, ratings, and enrollment counts
- * - Modules (1-12 per course) contain lectures, quizzes, and assignments
+ * CORE LOOP:
+ * Register → browse/enroll in courses → watch lectures → practice problems →
+ * quizzes/assignments → certificate earned. Social layer (study groups,
+ * discussions) drives retention. Subscription tiers (free/monthly/annual)
+ * gate completion rates.
  *
- * LECTURE EXPERIENCE (events: lecture started -> lecture completed):
- * - Variable lecture durations (5-60 minutes) reflecting real MOOC patterns
- * - Playback speed options (0.75x to 2.0x) reveal learning style differences
- * - Note-taking tracking creates a behavioral signal for student diligence
- * - Watch time vs. lecture duration measures actual engagement
+ * FUNNELS:
+ * - Onboarding: account registered → course enrolled → lecture started
+ * - Learning loop: lecture started → lecture completed → practice problem solved
+ * - Assessment: quiz started → quiz completed → assignment submitted
+ * - Course completion: course enrolled → lecture completed → quiz completed → certificate earned
+ * - Social learning: discussion posted → study group joined → resource downloaded
+ * - Instructor interaction: assignment submitted → assignment graded → instructor feedback given
+ * - Support/monetization: help requested → subscription purchased → course reviewed
  *
- * ASSESSMENT SYSTEM (events: quiz started -> quiz completed, assignment submitted -> graded):
- * - Practice quizzes (low stakes, unlimited attempts) vs. graded quizzes vs. final exams
- * - Assignments support text, code, file upload, and project submissions
- * - Grading by instructors, peers, or auto-grader (reflects real platform patterns)
- * - Score tracking enables learning outcome analytics
+ * GROUPS: course_id (150 courses), group_id (300 study groups)
+ * SUBSCRIPTIONS: free (~60%), monthly, annual
+ * ACCOUNT TYPES: ~89% students, ~11% instructors (two-sided marketplace)
+ */
+
+/**
+ * ═══════════════════════════════════════════════════════════════════════════════
+ * ANALYTICS HOOKS (8 architected patterns)
+ * ═══════════════════════════════════════════════════════════════════════════════
  *
- * PRACTICE PROBLEMS (event: practice problem solved):
- * - Difficulty-tiered problems (easy, medium, hard) for skill building
- * - Hint system creates a measurable dependency pattern
- * - Time-to-solve metrics reveal mastery progression
- * - High volume (weight: 12) reflects real platform usage patterns
+ * 1. STUDENT VS INSTRUCTOR PROFILES
+ *    Instructor profiles get teaching attributes (courses_created,
+ *    teaching_experience_years, instructor_rating). Students get learning
+ *    attributes (learning_goal, study_hours_per_week).
  *
- * SOCIAL LEARNING (events: discussion posted, study group joined):
- * - Discussion forums with questions, answers, and comments
- * - Study groups (study circles, project teams, tutoring groups)
- * - Social features drive retention (a key hook pattern)
+ *    Mixpanel reports:
+ *    • Insights → Any event → Unique users → Breakdown: "account_type"
+ *      Expected: ~89% students, ~11% instructors
+ *    • Insights → "instructor feedback given" → Total per user → Breakdown: "account_type"
+ *      Expected: Instructors dominate feedback; students show learning_goal instead
  *
- * INSTRUCTOR ECOSYSTEM (events: instructor feedback given, assignment graded):
- * - Instructors create courses, grade assignments, and provide feedback
- * - Written, video, and rubric-based feedback types
- * - Response time tracking (1-72 hours) measures instructor engagement
+ * 2. DEADLINE CRAMMING
+ *    Assignments submitted on Sun/Mon are rushed: 60% late (vs ~20% baseline),
+ *    quiz scores drop by 25 points. Events carry is_deadline_rush: true.
  *
- * MONETIZATION (event: subscription purchased):
- * - Three tiers: monthly ($19.99), annual ($149.99), lifetime ($499.99)
- * - Free tier with limited access (most users)
- * - Subscription status affects course completion funnels (Hook #7)
+ *    Mixpanel reports:
+ *    • Insights → "assignment submitted" → Total → Breakdown: "is_deadline_rush"
+ *      Expected: is_deadline_rush=true shows ~60% late rate vs ~20% baseline
+ *    • Insights → "quiz completed" → Avg "score_percent" → Breakdown: Day of Week
+ *      Expected: Sun/Mon scores ~25 points lower (~40 vs ~65)
  *
- * SUPPORT SYSTEM (event: help requested):
- * - Four topic categories: technical, content, billing, accessibility
- * - Three channels: chat, email, forum
- * - Tracks student friction points
+ * 3. NOTES-TAKERS SUCCEED
+ *    Students with 5+ notes_taken=true lectures get +20 quiz score boost
+ *    (capped at 100) and 40% chance of bonus certificate. Marked diligent_student: true.
  *
- * COURSE REVIEWS (event: course reviewed):
- * - 1-5 star ratings with written reviews
- * - Would-recommend boolean for NPS-style analysis
- * - Review length correlates with sentiment strength
+ *    Mixpanel reports:
+ *    • Insights → "quiz completed" → Avg "score_percent" → Breakdown: "diligent_student"
+ *      Expected: diligent_student=true ≈ 85 avg vs ~65 baseline (+20 pts)
+ *    • Insights → "certificate earned" → Total per user → Breakdown: "diligent_student"
+ *      Expected: diligent_student=true earn ~40% more certificates
  *
- * WHY THESE EVENTS/PROPERTIES?
- * - Events model the complete student lifecycle: onboarding -> engagement -> mastery -> certification
- * - Properties enable cohort analysis: learning style, education level, account type, subscription status
- * - Funnels reveal friction: where do students drop off in onboarding, course completion, practice mastery?
- * - Behavioral signals (notes, hints, playback speed, study groups) create discoverable skill gaps
- * - Social features (study groups, discussions) and monetization (subscriptions) drive business metrics
- * - The "needle in haystack" hooks simulate real EdTech insights hidden in production data
+ * 4. STUDY GROUP RETENTION
+ *    Early study group joiners (within 10 days) retain and get bonus discussions.
+ *    Non-joiners with low quiz scores (<60) churn hard at day 14 (all later events removed).
+ *
+ *    Mixpanel reports:
+ *    • Retention → A: "account registered" → B: Any event → Segment by early study group join
+ *      Expected: Early joiners ~90% D14 retention; non-joiners with low scores ~30%
+ *    • Insights → "discussion posted" → Total per user → Breakdown: "study_group_member"
+ *      Expected: study_group_member=true users post more
+ *
+ * 5. HINT DEPENDENCY
+ *    Hint users get 60% chance of easy problems; non-hint users get 40% chance of
+ *    hard problems with independent_solver: true.
+ *
+ *    Mixpanel reports:
+ *    • Insights → "practice problem solved" → Total → Breakdown: "difficulty" → Filter: hint_used=true
+ *      Expected: ~60% easy (vs ~33% baseline)
+ *    • Insights → "practice problem solved" → Total → Breakdown: "difficulty" → Filter: hint_used=false
+ *      Expected: ~40% hard (vs ~33% baseline)
+ *
+ * 6. SEMESTER-END SPIKE
+ *    Days 75-85: quiz_started, quiz_completed, assignment_submitted events duplicated
+ *    at 80% rate. Events carry semester_end_rush: true.
+ *
+ *    Mixpanel reports:
+ *    • Insights (line) → "quiz started" + "quiz completed" + "assignment submitted" → Daily
+ *      Expected: ~2x volume spike during days 75-85
+ *    • Insights → "quiz completed" → Total → Breakdown: "semester_end_rush"
+ *      Expected: semester_end_rush=true clusters in days 75-85
+ *
+ * 7. FREE VS PAID COURSES
+ *    Free users get 0.5x funnel conversion rate; paid subscribers get 1.5x.
+ *    Free users also lose 55% of certificates. Creates ~2.2x completion gap.
+ *
+ *    Mixpanel reports:
+ *    • Funnels → "course enrolled" → "lecture completed" → "quiz completed" → "certificate earned"
+ *      Breakdown: "subscription_status"
+ *      Expected: free ≈ 15% completion, paid ≈ 33% (~2.2x difference)
+ *    • Insights → "certificate earned" → Total per user → Breakdown: "subscription_status"
+ *      Expected: Paid subscribers earn significantly more certificates
+ *
+ * 8. PLAYBACK SPEED CORRELATION
+ *    Speed learners (>=2.0x, 3+ lectures): compressed watch_time (0.6x),
+ *    paradoxically higher quiz scores (+8 pts). Thorough learners (<=1.0x):
+ *    extended watch_time (1.4x).
+ *
+ *    Mixpanel reports:
+ *    • Insights → "lecture completed" → Avg "watch_time_mins" → Breakdown: "speed_learner"
+ *      Expected: speed_learner=true ≈ 0.6x watch time
+ *    • Insights → "quiz completed" → Avg "score_percent" → Breakdown: "speed_learner_effect"
+ *      Expected: speed_learner_effect=true shows +8 points (faster = better)
+ *
+ * ═══════════════════════════════════════════════════════════════════════════════
+ * ADVANCED ANALYSIS IDEAS
+ * ═══════════════════════════════════════════════════════════════════════════════
+ *
+ * CROSS-HOOK PATTERNS:
+ * - The Ideal Student: notes (H3) + study groups (H4) + no hints (H5) + paid (H7) + speed (H8)
+ * - Cramming Cascade: deadline crammers (H2) compounded with semester-end spike (H6)?
+ * - Social Safety Net: does early study group joining (H4) prevent churn for low scorers?
+ * - Hint-to-Mastery: do hint-dependent (H5) students who join groups (H4) wean off hints?
+ * - Payment + Notes: are paid subscribers (H7) more likely to take notes (H3)?
+ *
+ * COHORT ANALYSIS:
+ * - By education level: PhD vs self-taught hook patterns
+ * - By learning style: visual vs hands-on note-taking rates
+ * - By platform: mobile vs desktop playback speed preferences
+ * - By course category: CS vs Arts hint usage
+ *
+ * FUNNEL ANALYSIS:
+ * - Onboarding by account_type
+ * - Course completion by subscription, notes, study groups
+ * - Practice mastery by hint usage, speed, learning style
+ *
+ * ═══════════════════════════════════════════════════════════════════════════════
+ * EXPECTED METRICS SUMMARY
+ * ═══════════════════════════════════════════════════════════════════════════════
+ *
+ * Hook                    | Metric                | Baseline | Hook Effect  | Ratio
+ * ────────────────────────|───────────────────────|──────────|──────────────|──────
+ * Student vs Instructor   | Profile attributes    | generic  | role-specific| N/A
+ * Deadline Cramming       | Late submission rate  | ~20%     | ~60%         | 3x
+ * Deadline Cramming       | Quiz score (Sun/Mon)  | ~65      | ~40          | -25pt
+ * Notes-Takers Succeed    | Quiz score            | ~65      | ~85          | +20pt
+ * Notes-Takers Succeed    | Certificate rate      | baseline | +40%         | 1.4x
+ * Study Group Retention   | D14 retention         | ~40%     | ~90%         | 2.3x
+ * Study Group Retention   | Post-D14 events       | 100%     | 30% (churn)  | 0.3x
+ * Hint Dependency         | Easy problem rate     | ~33%     | ~60%         | 1.8x
+ * Hint Dependency         | Hard problem rate     | ~33%     | ~40% (no hint)| 1.2x
+ * Semester-End Spike      | Assessment volume     | baseline | ~2x          | 2x
+ * Free vs Paid            | Course completion     | 15%      | 33%          | 2.2x
+ * Playback Speed          | Quiz score (speed)    | ~65      | ~73          | +8pt
  */
 
 // Generate consistent IDs for lookup tables and event properties
@@ -678,423 +766,3 @@ const config = {
 };
 
 export default config;
-
-/**
- * ═══════════════════════════════════════════════════════════════════════════════
- * NEEDLE IN A HAYSTACK - LEARNPATH ELEARNING ANALYTICS
- * ═══════════════════════════════════════════════════════════════════════════════
- *
- * An online learning platform dungeon with 8 deliberately architected analytics
- * insights hidden in the data. This dungeon simulates a real EdTech product
- * (like Coursera, Khan Academy, or Udemy) and demonstrates how meaningful
- * student behavior patterns can be discovered through product analytics.
- *
- * ═══════════════════════════════════════════════════════════════════════════════
- * DATASET OVERVIEW
- * ═══════════════════════════════════════════════════════════════════════════════
- *
- * - 5,000 users over 100 days
- * - 360K events across 17 event types
- * - 3 funnels (student onboarding, course completion, practice mastery)
- * - Group analytics (courses, study groups)
- * - Lookup tables (courses, quizzes)
- * - Subscription tiers (free, monthly, annual)
- *
- * ═══════════════════════════════════════════════════════════════════════════════
- * THE 8 ARCHITECTED HOOKS
- * ═══════════════════════════════════════════════════════════════════════════════
- *
- * Each hook creates a specific, discoverable analytics insight that simulates
- * real-world EdTech behavior patterns.
- *
- * ───────────────────────────────────────────────────────────────────────────────
- * 1. STUDENT VS INSTRUCTOR PROFILES
- * ───────────────────────────────────────────────────────────────────────────────
- *
- * PATTERN: User profiles are enriched based on account_type. Instructors receive
- * teaching attributes (courses_created, teaching_experience_years, instructor_rating).
- * Students receive learning attributes (learning_goal, study_hours_per_week).
- *
- * HOW TO FIND IT IN MIXPANEL:
- *
- *   Report 1: Student vs Instructor Distribution
- *   • Report type: Insights
- *   • Event: Any event
- *   • Measure: Unique users
- *   • Breakdown: User profile "account_type"
- *   • Expected: ~89% students, ~11% instructors
- *
- *   Report 2: Instructor-Only Properties
- *   • Report type: Insights
- *   • Event: "instructor feedback given"
- *   • Measure: Total events per user
- *   • Breakdown: User profile "account_type"
- *   • Expected: Instructors dominate feedback events; students show
- *     learning_goal property instead of courses_created
- *
- * EXPECTED INSIGHT: ~11% of users are instructors with teaching-specific metrics.
- * Instructors should show different event patterns (more feedback given, fewer
- * quizzes completed). Students show learning-goal-driven behavior differences.
- *
- * REAL-WORLD ANALOGUE: Two-sided marketplace profiling. Drivers vs riders in
- * Uber, sellers vs buyers in eBay - each persona has unique attributes and
- * behavioral patterns that require separate analysis.
- *
- * ───────────────────────────────────────────────────────────────────────────────
- * 2. DEADLINE CRAMMING
- * ───────────────────────────────────────────────────────────────────────────────
- *
- * PATTERN: Assignments submitted on Sundays and Mondays show deadline-rush
- * behavior: 60% are late (vs ~20% baseline) and quiz scores drop by 25 points.
- * These events carry is_deadline_rush: true.
- *
- * HOW TO FIND IT IN MIXPANEL:
- *
- *   Report 1: Late Submission Rate by Day
- *   • Report type: Insights
- *   • Event: "assignment submitted"
- *   • Measure: Total events
- *   • Breakdown: "is_deadline_rush"
- *   • Expected: is_deadline_rush=true shows ~60% late rate vs ~20% baseline
- *
- *   Report 2: Quiz Score by Day of Week
- *   • Report type: Insights
- *   • Event: "quiz completed"
- *   • Measure: Average of "score_percent"
- *   • Breakdown: Day of Week (Mixpanel built-in)
- *   • Expected: Sunday and Monday scores average ~25 points lower
- *     than other days (e.g., ~50 vs ~65)
- *
- * EXPECTED INSIGHT: Clear quality drop on Sun/Mon. Late submission rate spikes
- * from ~20% to ~60%. Quiz scores taken on crunch days average 25 points lower.
- * This creates a visible "weekend dip" in student performance metrics.
- *
- * REAL-WORLD ANALOGUE: The "Sunday Scaries" of EdTech - students procrastinate
- * and cram before Monday deadlines. Identical to real patterns seen in Coursera
- * and university LMS data where submission quality drops near deadlines.
- *
- * ───────────────────────────────────────────────────────────────────────────────
- * 3. NOTES-TAKERS SUCCEED
- * ───────────────────────────────────────────────────────────────────────────────
- *
- * PATTERN: Students who take notes during 5 or more lecture_completed events
- * receive a +20 boost to all quiz scores (capped at 100), and have a 40% chance
- * of earning an extra certificate. Events are marked diligent_student: true.
- *
- * HOW TO FIND IT IN MIXPANEL:
- *
- *   Report 1: Note-Taker Quiz Scores
- *   • Report type: Insights
- *   • Event: "quiz completed"
- *   • Measure: Average of "score_percent"
- *   • Breakdown: "diligent_student"
- *   • Expected: diligent_student=true ≈ 85 avg score vs ~65 baseline (+20 pts)
- *
- *   Report 2: Note-Taker Certificate Rate
- *   • Report type: Insights
- *   • Event: "certificate earned"
- *   • Measure: Total events per user
- *   • Breakdown: "diligent_student"
- *   • Expected: diligent_student=true earn ~40% more certificates
- *
- * EXPECTED INSIGHT: Diligent note-takers score ~20 points higher on quizzes
- * and earn certificates at a significantly higher rate. This is a classic
- * "active learning" signal visible in the data.
- *
- * REAL-WORLD ANALOGUE: Active engagement features (highlighting, bookmarking,
- * note-taking) that correlate with better learning outcomes. Real research
- * confirms note-taking improves retention by 30-40% - this hook models that.
- *
- * ───────────────────────────────────────────────────────────────────────────────
- * 4. STUDY GROUP RETENTION
- * ───────────────────────────────────────────────────────────────────────────────
- *
- * PATTERN: Students who join a study group within their first 10 days and have
- * passing quiz scores retain normally and receive bonus discussion events. Students
- * who do NOT join early AND have quiz scores below 60 experience severe churn:
- * all of their events after day 14 are removed (hard churn).
- *
- * HOW TO FIND IT IN MIXPANEL:
- *
- *   Report 1: Study Group Retention
- *   • Report type: Retention
- *   • Event A: "account registered"
- *   • Event B: Any event
- *   • Segment: Users who did "study group joined" within first 10 days vs not
- *   • Expected: Early joiners retain at ~90% D14; non-joiners with low scores
- *     drop to ~30% D14 (70% churn)
- *
- *   Report 2: Study Group Engagement
- *   • Report type: Insights
- *   • Event: "discussion posted"
- *   • Measure: Total events per user
- *   • Breakdown: "study_group_member"
- *   • Expected: study_group_member=true users post more discussions
- *
- * EXPECTED INSIGHT: Early study group joiners show dramatically better retention
- * curves. Non-joiners with low quiz scores show a cliff-like drop in activity
- * after day 14. The combination of social isolation + poor performance predicts
- * churn with high accuracy.
- *
- * REAL-WORLD ANALOGUE: Social learning features that create accountability and
- * community. MOOCs with study groups or cohort-based programs consistently show
- * 3-5x higher completion rates than pure self-paced learning.
- *
- * ───────────────────────────────────────────────────────────────────────────────
- * 5. HINT DEPENDENCY
- * ───────────────────────────────────────────────────────────────────────────────
- *
- * PATTERN: In practice_problem_solved events, students who use hints have a 60%
- * chance of having their problem difficulty set to "easy". Students who solve
- * without hints have a 40% chance of tackling "hard" problems and receive
- * independent_solver: true.
- *
- * HOW TO FIND IT IN MIXPANEL:
- *
- *   Report 1: Difficulty by Hint Usage
- *   • Report type: Insights
- *   • Event: "practice problem solved"
- *   • Measure: Total events
- *   • Breakdown: "difficulty"
- *   • Filter: "hint_used" = true
- *   • Expected: ~60% of hint-used problems are "easy" vs ~33% baseline
- *
- *   Report 2: Independent Solver Hard Problems
- *   • Report type: Insights
- *   • Event: "practice problem solved"
- *   • Measure: Total events
- *   • Breakdown: "difficulty"
- *   • Filter: "hint_used" = false
- *   • Expected: ~40% "hard" problems for non-hint users vs ~33% baseline
- *
- * EXPECTED INSIGHT: Hint users cluster on easy problems; non-hint users tackle
- * harder problems. This creates a visible "hint dependency" where the scaffolding
- * intended to help students actually limits their growth trajectory.
- *
- * REAL-WORLD ANALOGUE: The "training wheels" problem in education technology.
- * Hints, auto-complete, and guided solutions can create dependency rather than
- * building genuine competence. Real platforms like LeetCode and HackerRank
- * observe this pattern.
- *
- * ───────────────────────────────────────────────────────────────────────────────
- * 6. SEMESTER-END SPIKE
- * ───────────────────────────────────────────────────────────────────────────────
- *
- * PATTERN: During days 75-85 of the dataset, quiz_started, quiz_completed, and
- * assignment_submitted events have a 50% chance of being duplicated (with slightly
- * offset timestamps). All events in this window carry semester_end_rush: true.
- *
- * HOW TO FIND IT IN MIXPANEL:
- *
- *   Report 1: Assessment Volume Over Time
- *   • Report type: Insights (line chart)
- *   • Events: "quiz started", "quiz completed", "assignment submitted"
- *   • Measure: Total events
- *   • Time: Daily trend
- *   • Expected: Visible ~2x spike during days 75-85
- *
- *   Report 2: Semester Rush Tag
- *   • Report type: Insights
- *   • Event: "quiz completed"
- *   • Measure: Total events
- *   • Breakdown: "semester_end_rush"
- *   • Expected: semester_end_rush=true events cluster in days 75-85 window
- *
- * EXPECTED INSIGHT: Assessment activity roughly doubles during the "finals"
- * period. This creates a visible spike in the time series that mirrors real
- * academic calendar patterns.
- *
- * REAL-WORLD ANALOGUE: End-of-semester, end-of-quarter, or end-of-trial
- * behavior spikes. Every EdTech platform sees massive activity surges before
- * deadlines, certification exams, or subscription renewal dates.
- *
- * ───────────────────────────────────────────────────────────────────────────────
- * 7. FREE VS PAID COURSES
- * ───────────────────────────────────────────────────────────────────────────────
- *
- * PATTERN: The Course Completion funnel conversion rate is modified by the user's
- * subscription_status. Free users convert at 0.6x the base rate; monthly and
- * annual subscribers convert at 1.3x. This creates a ~2.2x difference between
- * free and paid users in course completion.
- *
- * HOW TO FIND IT IN MIXPANEL:
- *
- *   Report 1: Course Completion by Subscription
- *   • Report type: Funnels
- *   • Steps: "course enrolled" → "lecture completed" → "quiz completed" → "certificate earned"
- *   • Breakdown: "subscription_status"
- *   • Expected: free ≈ 15% completion, monthly/annual ≈ 33% (~2.2x difference)
- *
- *   Report 2: Certificate Count by Tier
- *   • Report type: Insights
- *   • Event: "certificate earned"
- *   • Measure: Total events per user
- *   • Breakdown: "subscription_status"
- *   • Expected: Paid subscribers earn significantly more certificates
- *
- * EXPECTED INSIGHT: Paid subscribers are roughly 2x more likely to complete
- * courses end-to-end. Free users drop off heavily between quiz_completed and
- * certificate_earned. This mirrors the "skin in the game" effect.
- *
- * REAL-WORLD ANALOGUE: The well-documented correlation between payment and
- * completion in online education. Paid Coursera learners complete courses at
- * 5-10x the rate of free audit-track learners. Financial commitment creates
- * psychological commitment.
- *
- * ───────────────────────────────────────────────────────────────────────────────
- * 8. PLAYBACK SPEED CORRELATION
- * ───────────────────────────────────────────────────────────────────────────────
- *
- * PATTERN: In lecture_completed events, playback speed creates two distinct
- * learner segments:
- *   - Speed learners (>= 2.0x, 3+ lectures): get speed_learner: true, compressed watch_time
- *     (0.6x), and paradoxically HIGHER quiz scores (+8 points)
- *   - Thorough learners (<= 1.0x): get thorough_learner: true, extended watch_time
- *     (1.4x)
- *
- * HOW TO FIND IT IN MIXPANEL:
- *
- *   Report 1: Watch Time by Speed
- *   • Report type: Insights
- *   • Event: "lecture completed"
- *   • Measure: Average of "watch_time_mins"
- *   • Breakdown: "speed_learner"
- *   • Expected: speed_learner=true ≈ 0.6x watch time (compressed)
- *     thorough_learner=true ≈ 1.4x watch time (extended)
- *
- *   Report 2: Speed Learner Quiz Paradox
- *   • Report type: Insights
- *   • Event: "quiz completed"
- *   • Measure: Average of "score_percent"
- *   • Breakdown: "speed_learner_effect"
- *   • Expected: speed_learner_effect=true shows +8 point higher scores
- *     (counter-intuitive: faster learners score better)
- *
- * EXPECTED INSIGHT: Counter-intuitively, speed learners score slightly higher
- * on quizzes despite watching lectures faster. This suggests that playback speed
- * is a proxy for prior knowledge or aptitude, not laziness.
- *
- * REAL-WORLD ANALOGUE: Research on lecture playback speed consistently shows
- * that students who watch at 1.5-2x speed perform equally or better on assessments.
- * Speed selection correlates with confidence and familiarity with the material,
- * not with learning quality.
- *
- * ═══════════════════════════════════════════════════════════════════════════════
- * ADVANCED ANALYSIS IDEAS
- * ═══════════════════════════════════════════════════════════════════════════════
- *
- * CROSS-HOOK PATTERNS:
- *
- * 1. The Ideal Student: Users who:
- *    - Take notes consistently (Hook #3)
- *    - Join study groups early (Hook #4)
- *    - Solve problems without hints (Hook #5)
- *    - Have paid subscriptions (Hook #7)
- *    - Watch lectures at higher speed (Hook #8)
- *    These students should have exceptional completion rates and quiz scores.
- *
- * 2. The Cramming Cascade: Do deadline crammers (Hook #2) also show up
- *    in the semester-end spike (Hook #6)? Is the quality drop compounded?
- *
- * 3. Social Safety Net: Does early study group joining (Hook #4) prevent
- *    churn even for students who struggle on quizzes?
- *
- * 4. Hint-to-Mastery Pipeline: Do hint-dependent students (Hook #5) who
- *    later join study groups (Hook #4) eventually wean off hints?
- *
- * 5. Payment + Notes: Are paid subscribers (Hook #7) more likely to take
- *    notes (Hook #3)? Does the combination create a super-performer segment?
- *
- * COHORT ANALYSIS:
- *
- * - Cohort by education level: Do PhD students vs self-taught learners
- *   show different hook patterns?
- * - Cohort by learning style: Do visual vs hands-on learners take more notes?
- * - Cohort by platform: Do mobile (iOS/Android) users have different playback
- *   speed preferences than Web/iPad users?
- * - Cohort by course category: Do CS students use hints more than Arts students?
- *
- * FUNNEL ANALYSIS:
- *
- * - Onboarding Funnel: How does account_type affect the register -> enroll ->
- *   first lecture conversion?
- * - Course Completion Funnel: Compare by subscription_status, note-taking
- *   behavior, and study group membership
- * - Practice Mastery Funnel: Compare by hint usage, playback speed, and
- *   learning style
- *
- * ═══════════════════════════════════════════════════════════════════════════════
- * EXPECTED METRICS SUMMARY
- * ═══════════════════════════════════════════════════════════════════════════════
- *
- * Hook                    | Metric                | Baseline | Hook Effect  | Ratio
- * ────────────────────────|───────────────────────|──────────|──────────────|──────
- * Student vs Instructor   | Profile attributes    | generic  | role-specific| N/A
- * Deadline Cramming       | Late submission rate  | ~20%     | ~60%         | 3x
- * Deadline Cramming       | Quiz score (Sun/Mon)  | ~65      | ~40          | -25pt
- * Notes-Takers Succeed    | Quiz score            | ~65      | ~85          | +20pt
- * Notes-Takers Succeed    | Certificate rate      | baseline | +40%         | 1.4x
- * Study Group Retention   | D14 retention         | ~40%     | ~90%         | 2.3x
- * Study Group Retention   | Post-D14 events       | 100%     | 30% (churn)  | 0.3x
- * Hint Dependency         | Easy problem rate     | ~33%     | ~60%         | 1.8x
- * Hint Dependency         | Hard problem rate     | ~33%     | ~40% (no hint)| 1.2x
- * Semester-End Spike      | Assessment volume     | baseline | ~2x          | 2x
- * Free vs Paid            | Course completion     | 15%      | 33%          | 2.2x
- * Playback Speed          | Quiz score (speed)    | ~65      | ~73          | +8pt
- *
- * ═══════════════════════════════════════════════════════════════════════════════
- * HOW TO RUN THIS DUNGEON
- * ═══════════════════════════════════════════════════════════════════════════════
- *
- * From the dm4 root directory:
- *
- *   npm start
- *
- * Or programmatically:
- *
- *   import generate from './index.js';
- *   import config from './dungeons/harness-education.js';
- *   const results = await generate(config);
- *
- * OUTPUT FILES (with writeToDisk: false, format: "json", gzip: true):
- *
- *   - needle-haystack-education__events.json.gz - All event data
- *   - needle-haystack-education__user_profiles.json.gz - User profiles
- *   - needle-haystack-education__group_profiles.json.gz - Course & study group profiles
- *   - needle-haystack-education__course_id_lookup.json.gz - Course catalog
- *   - needle-haystack-education__quiz_id_lookup.json.gz - Quiz catalog
- *
- * ═══════════════════════════════════════════════════════════════════════════════
- * TESTING YOUR ANALYTICS PLATFORM
- * ═══════════════════════════════════════════════════════════════════════════════
- *
- * This dungeon is perfect for testing:
- *
- * 1. Segmentation: Can you separate instructor vs student behavior patterns?
- * 2. Temporal Analysis: Can you detect the deadline cramming and semester-end spike?
- * 3. Behavioral Correlation: Can you discover the note-taking success pattern?
- * 4. Retention Analysis: Can you identify the study group retention effect?
- * 5. Feature Impact: Can you measure hint dependency on problem difficulty?
- * 6. Anomaly Detection: Can you automatically detect the semester-end volume spike?
- * 7. Funnel Analysis: Can you quantify the free vs paid completion gap?
- * 8. Counter-intuitive Insight: Can you find the speed learner paradox?
- *
- * ═══════════════════════════════════════════════════════════════════════════════
- * WHY "NEEDLE IN A HAYSTACK"?
- * ═══════════════════════════════════════════════════════════════════════════════
- *
- * Each hook is a "needle" - a meaningful, actionable insight hidden in a
- * "haystack" of 360K events. The challenge is:
- *
- * 1. FINDING the needles (discovery)
- * 2. VALIDATING they are real patterns (statistical significance)
- * 3. UNDERSTANDING why they matter (educational impact)
- * 4. ACTING on them (platform improvements)
- *
- * This mirrors real-world EdTech analytics: your data contains valuable insights
- * about student success, but you need the right tools and skills to find them.
- *
- * Happy Learning!
- *
- * ═══════════════════════════════════════════════════════════════════════════════
- */

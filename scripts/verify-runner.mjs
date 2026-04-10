@@ -1,7 +1,20 @@
+/**
+ * Verify Runner — runs a dungeon at constrained params for hook verification.
+ *
+ * Usage: node scripts/verify-runner.mjs <dungeon-path> [run-name]
+ *
+ * Example: node scripts/verify-runner.mjs dungeons/streaming.js verify-streaming
+ */
 import generate from '../index.js';
 import path from 'path';
 
 const dungeonPath = process.argv[2];
+if (!dungeonPath) {
+	console.error('Usage: node scripts/verify-runner.mjs <dungeon-path> [run-name]');
+	process.exit(1);
+}
+
+const runName = process.argv[3] || 'verify-hooks';
 const absolutePath = path.isAbsolute(dungeonPath)
   ? dungeonPath
   : path.resolve(process.cwd(), dungeonPath);
@@ -16,8 +29,9 @@ const results = await generate({
   format: "json",
   gzip: false,
   writeToDisk: true,
-  name: "verify-hooks",
+  name: runName,
   concurrency: 1,
+  verbose: false,
 });
 
 console.log(JSON.stringify({

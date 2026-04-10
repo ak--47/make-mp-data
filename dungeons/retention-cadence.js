@@ -1,4 +1,3 @@
-
 const SEED = "kurby-retention";
 import dayjs from 'dayjs';
 import utc from 'dayjs/plugin/utc.js';
@@ -11,6 +10,41 @@ const num_users = 100;
 const days = 360;
 
 /** @typedef {import("../types.js").Dungeon} Config */
+
+/**
+ * ═══════════════════════════════════════════════════════════════
+ * DATASET OVERVIEW
+ * ═══════════════════════════════════════════════════════════════
+ *
+ * Retention Cadence — tests behavior frequency and color-based churn.
+ * - 100 users over 360 days, ~5K base events (replaced by cadenced events)
+ * - 4 behavior cadences: hourly, daily, weekly, monthly
+ * - Churn rates vary by user's "favorite color" (red, blue, green, yellow, purple)
+ * - The everything hook REPLACES all generated events with precisely
+ *   cadenced behavior events, making this a pure retention analysis dataset
+ *
+ * ═══════════════════════════════════════════════════════════════
+ * ANALYTICS HOOKS (1 pattern — everything hook)
+ * ═══════════════════════════════════════════════════════════════
+ *
+ * 1. COLOR-BASED CADENCED CHURN (everything hook)
+ *    All raw events are replaced with 4 cadenced behavior streams
+ *    (hourly/daily/weekly/monthly). Each user's "favorite color"
+ *    determines their churn likelihood per cadence:
+ *    - red: high daily churn (40%)
+ *    - blue: high weekly churn (40%)
+ *    - green: low churn across all cadences (5%)
+ *    - yellow: high monthly churn (40%)
+ *    - purple: high hourly churn (40%)
+ *    Churned behaviors get a "churn - X behavior" event at the churn point.
+ *
+ *    Mixpanel Report:
+ *    - Retention: Event A: "first behavior", Event B: "daily behavior",
+ *      breakdown by "favorite color"
+ *      Expected: red users show ~40% daily churn, green users retain well
+ *    - Insights: "churn - *" events, breakdown by "favorite color"
+ *      Expected: each color dominates its respective cadence's churn events
+ */
 
 // Churn rates by favorite color per behavior type (percentage likelihood)
 const CHURN_RATES = {

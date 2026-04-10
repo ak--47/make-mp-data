@@ -1,0 +1,78 @@
+{
+  "schema": {
+    "token": "",
+    "seed": "lets go",
+    "numDays": 360,
+    "numEvents": 5000,
+    "numUsers": 100,
+    "hasAnonIds": false,
+    "hasSessionIds": false,
+    "format": "json",
+    "alsoInferFunnels": false,
+    "hasLocation": false,
+    "hasAndroidDevices": false,
+    "hasIOSDevices": false,
+    "hasDesktopDevices": false,
+    "hasBrowser": false,
+    "hasCampaigns": false,
+    "isAnonymous": false,
+    "hasAdSpend": false,
+    "hasAvatar": false,
+    "batchSize": 5500000,
+    "concurrency": 1,
+    "writeToDisk": false,
+    "percentUsersBornInDataset": 100,
+    "funnels": [],
+    "events": [
+      {
+        "event": "first behavior",
+        "weight": 1,
+        "isFirstEvent": true,
+        "properties": {}
+      },
+      {
+        "event": "hourly behavior",
+        "weight": 40,
+        "properties": {}
+      },
+      {
+        "event": "daily behavior",
+        "weight": 30,
+        "properties": {}
+      },
+      {
+        "event": "weekly behavior",
+        "weight": 15,
+        "properties": {}
+      },
+      {
+        "event": "monthly behavior",
+        "weight": 10,
+        "properties": {}
+      },
+      {
+        "event": "placeholder",
+        "weight": 50,
+        "properties": {}
+      }
+    ],
+    "superProps": {},
+    "userProps": {
+      "favorite color": [
+        "red",
+        "blue",
+        "green",
+        "yellow",
+        "purple"
+      ]
+    },
+    "scdProps": {},
+    "mirrorProps": {},
+    "groupKeys": [],
+    "groupProps": {},
+    "lookupTables": []
+  },
+  "hooks": "function (record, type, meta) {\n\t\tif (type === \"everything\") {\n\t\t\tif (!record.length) return record;\n\n\t\t\tconst userId = record[0].user_id || record[0].device_id;\n\t\t\tif (!userId) return record;\n\n\t\t\tconst favoriteColor = meta.profile?.[\"favorite color\"] || \"green\";\n\t\t\tconst colorChurnRates = CHURN_RATES[favoriteColor] || CHURN_RATES.green;\n\n\t\t\t// Find the time range from the raw events\n\t\t\tconst times = record.map(e => new Date(e.time).getTime()).filter(t => !isNaN(t));\n\t\t\tif (!times.length) return record;\n\t\t\tconst startTime = dayjs(Math.min(...times));\n\t\t\tconst endTime = dayjs(Math.max(...times));\n\t\t\tconst totalSpanHours = endTime.diff(startTime, 'hour');\n\n\t\t\tif (totalSpanHours < 1) return record;\n\n\t\t\t// Keep the \"first behavior\" event from the original stream\n\t\t\tconst firstBehavior = record.find(e => e.event === \"first behavior\");\n\t\t\tconst newEvents = [];\n\n\t\t\tif (firstBehavior) {\n\t\t\t\tnewEvents.push(firstBehavior);\n\t\t\t} else {\n\t\t\t\t// Create a first behavior event at the start\n\t\t\t\tnewEvents.push({\n\t\t\t\t\tevent: \"first behavior\",\n\t\t\t\t\ttime: startTime.toISOString(),\n\t\t\t\t\tuser_id: userId,\n\t\t\t\t\tinsert_id: v.uid(12),\n\t\t\t\t});\n\t\t\t}\n\n\t\t\t// For each behavior type, determine churn and generate cadenced events\n\t\t\tfor (const [behaviorKey, cadence] of Object.entries(BEHAVIORS)) {\n\t\t\t\tconst churnRate = colorChurnRates[behaviorKey];\n\t\t\t\tlet churnTime = null;\n\n\t\t\t\tif (chance.bool({ likelihood: churnRate })) {\n\t\t\t\t\t// Pick churn time between 20% and 80% into the active period\n\t\t\t\t\tconst churnOffsetHours = chance.integer({\n\t\t\t\t\t\tmin: Math.floor(totalSpanHours * 0.2),\n\t\t\t\t\t\tmax: Math.floor(totalSpanHours * 0.8),\n\t\t\t\t\t});\n\t\t\t\t\tchurnTime = startTime.add(churnOffsetHours, 'hour');\n\t\t\t\t}\n\n\t\t\t\tconst behaviorEvents = generateCadencedEvents(\n\t\t\t\t\tbehaviorKey,\n\t\t\t\t\tcadence,\n\t\t\t\t\tstartTime,\n\t\t\t\t\tendTime,\n\t\t\t\t\tchurnTime,\n\t\t\t\t\tuserId\n\t\t\t\t);\n\t\t\t\tnewEvents.push(...behaviorEvents);\n\t\t\t}\n\n\t\t\t// Sort all events by time\n\t\t\tnewEvents.sort((a, b) => new Date(a.time) - new Date(b.time));\n\t\t\treturn newEvents;\n\t\t}\n\n\t\treturn record;\n\t}",
+  "timestamp": "2026-04-10T01:39:07.299Z",
+  "version": "4.0"
+}

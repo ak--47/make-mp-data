@@ -1,0 +1,255 @@
+{
+  "schema": {
+    "token": "",
+    "seed": "foo bar",
+    "numDays": 90,
+    "numEvents": 50000,
+    "numUsers": 500,
+    "format": "json",
+    "region": "US",
+    "hasAnonIds": false,
+    "hasSessionIds": false,
+    "alsoInferFunnels": true,
+    "writeToDisk": false,
+    "concurrency": 1,
+    "funnels": [
+      {
+        "sequence": [
+          "qux",
+          "garply",
+          "durtle",
+          "linny",
+          "fonk",
+          "crumn",
+          "yak"
+        ]
+      },
+      {
+        "sequence": [
+          "foo",
+          "bar",
+          "baz"
+        ],
+        "isFirstFunnel": true
+      }
+    ],
+    "events": [
+      {
+        "event": "foo",
+        "weight": 10,
+        "properties": {}
+      },
+      {
+        "event": "bar",
+        "weight": 9,
+        "isFirstEvent": true,
+        "properties": {}
+      },
+      {
+        "event": "baz",
+        "weight": 8,
+        "properties": {}
+      },
+      {
+        "event": "qux",
+        "weight": 7,
+        "properties": {}
+      },
+      {
+        "event": "garply",
+        "weight": 6,
+        "properties": {}
+      },
+      {
+        "event": "durtle",
+        "weight": 5,
+        "properties": {}
+      },
+      {
+        "event": "linny",
+        "weight": 4,
+        "properties": {}
+      },
+      {
+        "event": "fonk",
+        "weight": 3,
+        "properties": {}
+      },
+      {
+        "event": "crumn",
+        "weight": 2,
+        "properties": {}
+      },
+      {
+        "event": "yak",
+        "weight": 1,
+        "properties": {}
+      }
+    ],
+    "superProps": {
+      "color": [
+        "red",
+        "orange",
+        "yellow",
+        "green",
+        "blue",
+        "indigo",
+        "violet"
+      ],
+      "number": {
+        "functionName": "integer",
+        "args": []
+      }
+    },
+    "userProps": {
+      "title": {
+        "functionName": "arrow",
+        "body": "function () { [native code] }"
+      },
+      "luckyNumber": [
+        65,
+        191,
+        230,
+        411,
+        104,
+        142,
+        202,
+        220,
+        389,
+        289,
+        74,
+        233,
+        267,
+        158,
+        307,
+        144,
+        172,
+        132,
+        188,
+        356,
+        254,
+        289,
+        70,
+        183,
+        251,
+        199,
+        224,
+        201,
+        103,
+        255,
+        306,
+        133,
+        125,
+        335,
+        209,
+        138,
+        374,
+        127,
+        194,
+        122,
+        261,
+        227,
+        201,
+        144,
+        231,
+        184,
+        194,
+        202,
+        184,
+        248
+      ],
+      "spiritAnimal": [
+        "duck",
+        "dog",
+        "otter",
+        "penguin",
+        "cat",
+        "elephant",
+        "lion",
+        "cheetah",
+        "giraffe",
+        "zebra",
+        "rhino",
+        "hippo",
+        "whale",
+        "dolphin",
+        "shark",
+        "octopus",
+        "squid",
+        "jellyfish",
+        "starfish",
+        "seahorse",
+        "crab",
+        "lobster",
+        "shrimp",
+        "clam",
+        "snail",
+        "slug",
+        "butterfly",
+        "moth",
+        "bee",
+        "wasp",
+        "ant",
+        "beetle",
+        "ladybug",
+        "caterpillar",
+        "centipede",
+        "millipede",
+        "scorpion",
+        "spider",
+        "tarantula",
+        "tick",
+        "mite",
+        "mosquito",
+        "fly",
+        "dragonfly",
+        "damselfly",
+        "grasshopper",
+        "cricket",
+        "locust",
+        "mantis",
+        "cockroach",
+        "termite",
+        "praying mantis",
+        "walking stick",
+        "stick bug",
+        "leaf insect",
+        "lacewing",
+        "aphid",
+        "cicada",
+        "thrips",
+        "psyllid",
+        "scale insect",
+        "whitefly",
+        "mealybug",
+        "planthopper",
+        "leafhopper",
+        "treehopper",
+        "flea",
+        "louse",
+        "bedbug",
+        "flea beetle",
+        "weevil",
+        "longhorn beetle",
+        "leaf beetle",
+        "tiger beetle",
+        "ground beetle",
+        "lady beetle",
+        "firefly",
+        "click beetle",
+        "rove beetle",
+        "scarab beetle",
+        "dung beetle",
+        "stag beetle",
+        "rhinoceros beetle",
+        "hercules beetle",
+        "goliath beetle",
+        "jewel beetle",
+        "tortoise beetle"
+      ]
+    }
+  },
+  "hooks": "function (record, type, meta) {\n\t\t// --- user hook: tag power users based on luckyNumber ---\n\t\tif (type === \"user\") {\n\t\t\trecord.userTier = record.luckyNumber > 300 ? \"power\" : \"regular\";\n\t\t\treturn record;\n\t\t}\n\n\t\t// --- event hook: add an engagement score based on event type ---\n\t\tif (type === \"event\") {\n\t\t\tconst highEngagement = [\"fonk\", \"crumn\", \"yak\"];\n\t\t\tconst midEngagement = [\"garply\", \"durtle\", \"linny\"];\n\t\t\tif (highEngagement.includes(record.event)) {\n\t\t\t\trecord.engagement_score = chance.integer({ min: 70, max: 100 });\n\t\t\t} else if (midEngagement.includes(record.event)) {\n\t\t\t\trecord.engagement_score = chance.integer({ min: 30, max: 69 });\n\t\t\t} else {\n\t\t\t\trecord.engagement_score = chance.integer({ min: 1, max: 29 });\n\t\t\t}\n\t\t\treturn record;\n\t\t}\n\n\t\t// --- everything hook: low-activity users lose their last few events (churn simulation) ---\n\t\tif (type === \"everything\") {\n\t\t\tif (record.length > 3 && record.length < 8) {\n\t\t\t\t// users with few events lose the tail end — simulates churn\n\t\t\t\treturn record.slice(0, Math.ceil(record.length * 0.6));\n\t\t\t}\n\t\t\treturn record;\n\t\t}\n\n\t\treturn record;\n\t}",
+  "timestamp": "2026-04-10T01:38:56.166Z",
+  "version": "4.0"
+}

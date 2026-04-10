@@ -1,13 +1,3 @@
-/**
- * This is the default configuration file for the data generator in SIMPLE mode
- * notice how the config object is structured, and see it's type definition in ./types.d.ts
- * feel free to modify this file to customize the data you generate
- * see helper functions in utils.js for more ways to generate data
- */
-
-
-
-
 import Chance from 'chance';
 let chance = new Chance();
 import dayjs from "dayjs";
@@ -19,6 +9,27 @@ import { pickAWinner, weighNumRange, date, integer, weighChoices } from "../lib/
 const itemCategories = ["Books", "Movies", "Music", "Games", "Electronics", "Computers", "Smart Home", "Home", "Garden", "Pet", "Beauty", "Health", "Toys", "Kids", "Baby", "Handmade", "Sports", "Outdoors", "Automotive", "Industrial", "Entertainment", "Art", "Food", "Appliances", "Office", "Wedding", "Software"];
 
 const videoCategories = ["funny", "educational", "inspirational", "music", "news", "sports", "cooking", "DIY", "travel", "gaming"];
+
+/**
+ * ═══════════════════════════════════════════════════════════════
+ * DATASET OVERVIEW
+ * ═══════════════════════════════════════════════════════════════
+ *
+ * Simplest E-Commerce App — the minimal dungeon with no hooks.
+ * - 2,500 users over 100 days, ~250K events
+ * - 25 event types covering browse, search, cart, checkout,
+ *   notifications, reviews, wishlists, rewards
+ * - 11 funnels (signup, purchase, content, browse-to-cart, etc.)
+ * - No device/location/campaign data — pure event stream
+ *
+ * ═══════════════════════════════════════════════════════════════
+ * ANALYTICS HOOKS
+ * ═══════════════════════════════════════════════════════════════
+ *
+ * None — this is a baseline dungeon with a no-op hook function.
+ * Use it for testing core generation, funnel inference, or as a
+ * starting template for new dungeons.
+ */
 
 /** @type {import('../types.js').Dungeon} */
 const config = {

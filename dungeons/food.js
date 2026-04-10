@@ -10,63 +10,142 @@ const chance = u.initChance(SEED);
 const num_users = 5_000;
 const days = 100;
 
-/** @typedef  {import("../../types.js").Dungeon} Config */
+/** @typedef  {import("../types.d.ts").Dungeon} Config */
 
-/**
- * NEEDLE IN A HAYSTACK - FOOD DELIVERY APP DESIGN
+/*
+ * ═══════════════════════════════════════════════════════════════════════════════
+ * DATASET OVERVIEW
+ * ═══════════════════════════════════════════════════════════════════════════════
  *
- * QuickBite - A food delivery platform connecting hungry customers with local restaurants.
- * Think DoorDash/Uber Eats: users browse restaurants, build carts, place orders, track
- * deliveries in real-time, and rate their experiences afterward.
+ * QuickBite — a food delivery platform (DoorDash/Uber Eats style).
+ * Users browse restaurants, build carts, place orders, track deliveries,
+ * and rate their experiences.
  *
- * CORE USER LOOP:
- * Users sign up (email, Google, Apple, Facebook) and immediately enter a discovery flow.
- * They browse restaurants by cuisine, sort by distance/rating/price, search for specific
- * dishes, and eventually land on a restaurant page. From there, they build a cart by adding
- * items (entrees, appetizers, drinks, desserts, sides) with customizations. Checkout
- * captures payment, tip, and delivery details. After ordering, users track their delivery
- * through multiple statuses (confirmed, preparing, picked up, en route, delivered).
+ * Scale: 5,000 users · 600K events · 100 days · 17 event types
  *
- * RESTAURANT ECOSYSTEM:
- * 200 restaurants across cuisine types: American, Italian, Chinese, Japanese, Mexican,
- * Indian, Thai, and Mediterranean. Restaurants span four price tiers ($, $$, $$$, $$$$)
- * with varying delivery times and ratings. This models a realistic marketplace with
- * restaurant-level analytics via group profiles.
+ * Core loop:
+ *   sign up → browse/search restaurants → add items to cart →
+ *   checkout → order placed → track delivery → rate → reorder
  *
- * DISCOVERY & SEARCH:
- * Two paths to finding food: browsing (filtering by cuisine, sorting by rating/distance/price)
- * and searching (by restaurant name, cuisine type, or specific dish). The search-to-order
- * funnel captures intent-driven behavior vs. casual browsing.
+ * Restaurant ecosystem: 200 restaurants across 8 cuisine types,
+ * four price tiers ($–$$$$), modeled as group profiles.
  *
- * MONETIZATION MODEL:
- * - Delivery fees ($0-$12, waived for QuickBite+ subscribers)
- * - QuickBite+ subscription ($9.99/month or $79.99/year) for free delivery and perks
- * - Promotions and coupons drive trial and reactivation
- * - Restaurant-promoted listings (not modeled as user events)
+ * Monetization: delivery fees, QuickBite+ subscription ($9.99/mo or
+ * $79.99/yr for free delivery), and promotional coupons.
  *
- * CART BEHAVIOR:
- * Cart events (add/remove) capture the deliberation process. Removal reasons
- * (changed_mind, too_expensive, substitution) reveal price sensitivity and UX friction.
- * Customization counts show engagement depth with individual items.
+ * Support & retention: support tickets (missing items, wrong orders,
+ * late delivery, quality, refunds) and reorder events model service
+ * quality and repeat behavior.
  *
- * ORDER LIFECYCLE:
- * order placed -> order tracked (multiple status updates) -> order delivered -> order rated
- * This models the full post-purchase experience. On-time delivery, actual vs. estimated
- * delivery time, and food/delivery ratings capture service quality metrics.
+ * Subscription tiers: Free vs QuickBite+ create a natural A/B
+ * comparison for monetization and retention analysis.
+ */
+
+/*
+ * ═══════════════════════════════════════════════════════════════════════════════
+ * ANALYTICS HOOKS (8 architected patterns)
+ * ═══════════════════════════════════════════════════════════════════════════════
  *
- * SUPPORT & RETENTION:
- * Support tickets (missing items, wrong orders, late delivery, quality issues, refund
- * requests) model service failures. Reorder events capture repeat behavior and loyalty.
- * The ratio of support tickets to orders is a key service quality indicator.
+ * 1. LUNCH RUSH CONVERSION (funnel-pre)
+ *    Funnel conversion boosted during meal hours: lunch 1.4x, dinner 1.2x.
+ *    Mixpanel:
+ *      • Funnels → "checkout started" → "order placed" → "order delivered"
+ *        Breakdown: "lunch_rush" → expect ~84% vs ~60% baseline
+ *      • Same funnel, breakdown: "dinner_rush" → expect ~72% vs ~60%
  *
- * WHY THESE EVENTS/PROPERTIES?
- * - Events model the complete food delivery loop: discovery -> consideration -> purchase -> fulfillment -> retention
- * - Properties enable cohort analysis: cuisine preferences, price sensitivity, platform usage, subscription status
- * - Funnels reveal friction: where do users drop off between browsing and ordering?
- * - Time-based patterns (lunch rush, late night) simulate real delivery demand curves
- * - Subscription tier (Free vs QuickBite+) creates a natural A/B comparison for monetization analysis
- * - Support and rating events drive churn prediction and service quality monitoring
- * - The "needle in haystack" hooks simulate real product insights hidden in production data
+ * 2. COUPON INJECTION (funnel-post)
+ *    Free-tier users get coupon_applied spliced into funnels 30% of the time.
+ *    Mixpanel:
+ *      • Insights → "coupon applied" → breakdown "coupon_injected"
+ *        → ~30% of Free-tier coupons are injected
+ *      • Insights → "coupon applied" → breakdown "subscription_tier"
+ *        → Free users have more coupon events
+ *
+ * 3. LATE NIGHT MUNCHIES (event)
+ *    10PM–2AM: 70% American cuisine, 1.3x item prices, late_night_order=true.
+ *    Mixpanel:
+ *      • Insights → "restaurant viewed" → breakdown "cuisine_type"
+ *        filter: late_night_order=true → ~70% American vs ~12% daytime
+ *      • Insights → "item added to cart" → avg "item_price"
+ *        breakdown: "late_night_order" → 1.3x higher at night
+ *
+ * 4. RAINY WEEK SURGE (event + everything)
+ *    Days 20–27: delivery fees 2x, surge_pricing=true, 40% order duplication.
+ *    Mixpanel:
+ *      • Insights (line) → "order placed" → daily → visible spike days 20–27
+ *      • Insights → "order placed" → avg "delivery_fee"
+ *        breakdown: "surge_pricing" → 2x higher
+ *
+ * 5. REFERRAL POWER USERS (everything)
+ *    Referred users: 2x reorders, food_rating 4–5 stars, referral_user=true.
+ *    Mixpanel:
+ *      • Insights → "reorder initiated" → per user
+ *        breakdown: "referral_user" → ~2x more reorders
+ *      • Insights → "order rated" → avg "food_rating"
+ *        breakdown: "referral_user" → 4–5 vs ~3.5 baseline
+ *
+ * 6. TRIAL CONVERSION (everything)
+ *    Trial subs with 3+ orders in 14 days retained; others lose 60% of events.
+ *    Mixpanel:
+ *      • Insights → any event → per user
+ *        breakdown: "trial_retained" → sustained vs ~60% drop
+ *      • Retention → "subscription started" (trial=true) → "order placed"
+ *        → sharp drop after day 14 for non-retained
+ *
+ * 7. SUPPORT TICKET CHURN (user)
+ *    15% of users flagged is_high_risk=true with churn_risk_score 70–100.
+ *    Mixpanel:
+ *      • Insights → any event → unique users
+ *        breakdown: user "is_high_risk" → ~15% high-risk
+ *      • Insights → breakdown: user "churn_risk_score"
+ *        → bimodal: 85% at 0–40, 15% at 70–100
+ *
+ * 8. FIRST ORDER BONUS (funnel-pre)
+ *    New users get 1.4x conversion boost on checkout→order funnel.
+ *    Mixpanel:
+ *      • Funnels → "checkout started" → "order placed" → "order delivered"
+ *        breakdown: "first_order_bonus" → 1.4x higher conversion
+ *      • Insights → "order placed" → breakdown "first_order_bonus"
+ *        → ~50% tagged (hash-based user split)
+ *
+ * ───────────────────────────────────────────────────────────────────────────────
+ * ADVANCED ANALYSIS IDEAS
+ * ───────────────────────────────────────────────────────────────────────────────
+ *
+ * Cross-hook patterns:
+ *   • The Perfect Customer: referral (5) + trial retained (6) + lunch rush (1)
+ *     + low churn risk (7) → exceptional LTV and retention
+ *   • Rainy Night Double Whammy: late-night (3) + rainy week (4)
+ *     → compounded surge pricing?
+ *   • Coupon-Driven Trial: injected coupons (2) → trial starts (6)?
+ *   • Referral + First Order: hooks 5 + 8 → highest conversion rates
+ *   • Support and Churn: high-risk (7) + support tickets during rainy week (4)
+ *
+ * Cohort analysis:
+ *   • Signup week (rainy week cohort behaves differently)
+ *   • Referral vs organic lifecycle
+ *   • Free vs QuickBite+ across all metrics
+ *   • City-level cuisine and ordering patterns
+ *
+ * Funnel analysis:
+ *   • Onboarding: account created → first restaurant view, by signup method
+ *   • Order: checkout → delivery, by platform / tier / time of day
+ *   • Discovery: search type → conversion to ordering
+ *
+ * ───────────────────────────────────────────────────────────────────────────────
+ * EXPECTED METRICS SUMMARY
+ * ───────────────────────────────────────────────────────────────────────────────
+ *
+ * Hook                  | Metric               | Baseline | Hook Effect | Ratio
+ * ──────────────────────|──────────────────────|──────────|─────────────|──────
+ * Lunch Rush            | Funnel conversion    | 60%      | 84%         | 1.4x
+ * Coupon Injection      | Free user coupons    | 0%       | 30%         | N/A
+ * Late Night Munchies   | American cuisine %   | ~15%     | 70%         | ~4.7x
+ * Rainy Week Surge      | Order volume         | 100%     | 140%        | 1.4x
+ * Referral Power Users  | Reorder frequency    | 1x       | 2x          | 2.0x
+ * Trial Conversion      | Post-trial retention | 100%     | 40%         | 0.4x
+ * Support Ticket Churn  | High-risk users      | 0%       | 15%         | N/A
+ * First Order Bonus     | New user conversion  | 1x       | 1.4x        | 1.4x
  */
 
 // Generate consistent IDs for lookup tables and event properties
@@ -673,407 +752,3 @@ const config = {
 };
 
 export default config;
-
-/**
- * ═══════════════════════════════════════════════════════════════════════════════
- * NEEDLE IN A HAYSTACK - QUICKBITE FOOD DELIVERY ANALYTICS
- * ═══════════════════════════════════════════════════════════════════════════════
- *
- * A food delivery app dungeon with 8 deliberately architected analytics
- * insights hidden in the data. This dungeon is designed to showcase advanced
- * product analytics patterns and demonstrate how to find "needles" (meaningful
- * insights) in "haystacks" (large datasets).
- *
- * ═══════════════════════════════════════════════════════════════════════════════
- * DATASET OVERVIEW
- * ═══════════════════════════════════════════════════════════════════════════════
- *
- * - 5,000 users over 100 days
- * - 360K events across 17 event types
- * - 3 funnels (onboarding, order completion, discovery to order)
- * - Group analytics (restaurants)
- * - Lookup tables (menu items, coupon codes)
- * - Subscription tiers (Free, QuickBite+)
- *
- * ═══════════════════════════════════════════════════════════════════════════════
- * THE 8 ARCHITECTED HOOKS
- * ═══════════════════════════════════════════════════════════════════════════════
- *
- * Each hook creates a specific, discoverable analytics insight that simulates
- * real-world product behavior patterns.
- *
- * ───────────────────────────────────────────────────────────────────────────────
- * 1. LUNCH RUSH CONVERSION (funnel-pre)
- * ───────────────────────────────────────────────────────────────────────────────
- *
- * PATTERN: Funnel conversion rates are boosted during meal-time hours.
- * Lunch (11AM-1PM) gets a 1.4x multiplier; dinner (5PM-8PM) gets 1.2x.
- * Events during these windows carry lunch_rush or dinner_rush properties.
- *
- * HOW TO FIND IT IN MIXPANEL:
- *
- *   Report 1: Funnel Conversion by Meal Time
- *   • Report type: Funnels
- *   • Steps: "checkout started" → "order placed" → "order delivered"
- *   • Breakdown: "lunch_rush"
- *   • Expected: lunch_rush=true funnels convert at ~84% vs ~60% baseline (1.4x)
- *
- *   Report 2: Dinner Rush Conversion
- *   • Report type: Funnels
- *   • Steps: "checkout started" → "order placed" → "order delivered"
- *   • Breakdown: "dinner_rush"
- *   • Expected: dinner_rush=true funnels convert at ~72% vs ~60% baseline (1.2x)
- *
- * EXPECTED INSIGHT: Lunch hour funnels convert ~40% better than baseline.
- * Dinner hour funnels convert ~20% better. Clear time-of-day pattern in
- * the checkout-to-order-to-delivery pipeline.
- *
- * REAL-WORLD ANALOGUE: Food delivery apps see massive demand spikes during
- * traditional meal times. Users ordering during these windows have higher
- * intent and thus higher conversion rates.
- *
- * ───────────────────────────────────────────────────────────────────────────────
- * 2. COUPON INJECTION (funnel-post)
- * ───────────────────────────────────────────────────────────────────────────────
- *
- * PATTERN: Free-tier users get coupon_applied events spliced into their
- * funnel sequences 30% of the time. These injected coupons carry the
- * coupon_injected: true property to distinguish them from organic usage.
- *
- * HOW TO FIND IT IN MIXPANEL:
- *
- *   Report 1: Injected Coupon Volume
- *   • Report type: Insights
- *   • Event: "coupon applied"
- *   • Measure: Total events
- *   • Breakdown: "coupon_injected"
- *   • Expected: coupon_injected=true events represent ~30% of Free-tier coupons
- *
- *   Report 2: Coupon Impact by Tier
- *   • Report type: Insights
- *   • Event: "coupon applied"
- *   • Measure: Total events
- *   • Breakdown: "subscription_tier"
- *   • Expected: Free-tier users have more coupon events due to injection
- *
- * EXPECTED INSIGHT: ~30% of Free users receive promotional coupons mid-funnel.
- * These users should show different downstream conversion behavior, simulating
- * how promotional nudges affect the purchase funnel.
- *
- * REAL-WORLD ANALOGUE: Apps frequently inject promotional offers (push
- * notifications, in-app banners) to non-paying users during key funnel
- * moments to boost conversion.
- *
- * ───────────────────────────────────────────────────────────────────────────────
- * 3. LATE NIGHT MUNCHIES (event)
- * ───────────────────────────────────────────────────────────────────────────────
- *
- * PATTERN: Between 10PM and 2AM, restaurant views and cart additions skew
- * 70% toward American (fast food) cuisine. Item prices are boosted by 1.3x.
- * Events carry late_night_order: true.
- *
- * HOW TO FIND IT IN MIXPANEL:
- *
- *   Report 1: Late Night Cuisine Shift
- *   • Report type: Insights
- *   • Event: "restaurant viewed"
- *   • Measure: Total events
- *   • Breakdown: "cuisine_type"
- *   • Filter: "late_night_order" = true
- *   • Expected: ~70% of late-night views are "American" (fast food)
- *     vs ~12% during daytime
- *
- *   Report 2: Late Night Price Premium
- *   • Report type: Insights
- *   • Event: "item added to cart"
- *   • Measure: Average of "item_price"
- *   • Breakdown: "late_night_order"
- *   • Expected: late_night_order=true shows ~1.3x higher avg price
- *
- * EXPECTED INSIGHT: Late-night orders are overwhelmingly fast food with
- * higher average prices. The cuisine distribution at night is dramatically
- * different from daytime patterns.
- *
- * REAL-WORLD ANALOGUE: Late-night food delivery is dominated by fast food
- * and comfort food. Many platforms charge late-night surcharges or see
- * naturally inflated basket sizes during these hours.
- *
- * ───────────────────────────────────────────────────────────────────────────────
- * 4. RAINY WEEK SURGE (event)
- * ───────────────────────────────────────────────────────────────────────────────
- *
- * PATTERN: During days 20-27 of the dataset, a simulated rainy week causes:
- *   - Delivery fees double on order_placed events
- *   - surge_pricing: true flag added
- *   - 40% chance of duplicate order events (demand surge)
- *
- * HOW TO FIND IT IN MIXPANEL:
- *
- *   Report 1: Order Volume Over Time
- *   • Report type: Insights (line chart)
- *   • Event: "order placed"
- *   • Measure: Total events
- *   • Time: Daily trend
- *   • Expected: Visible spike in order volume during days 20-27
- *
- *   Report 2: Surge Pricing Impact
- *   • Report type: Insights
- *   • Event: "order placed"
- *   • Measure: Average of "delivery_fee"
- *   • Breakdown: "surge_pricing"
- *   • Expected: surge_pricing=true shows ~2x higher avg delivery fee
- *
- * EXPECTED INSIGHT: Clear spike in order volume around days 20-27, with
- * doubled delivery fees and surge pricing markers. The demand surge is
- * visible as a ~40% increase in order_placed event volume.
- *
- * REAL-WORLD ANALOGUE: Weather events drive significant demand surges for
- * food delivery. Platforms respond with surge pricing on delivery fees,
- * and order volume increases as people avoid going out.
- *
- * ───────────────────────────────────────────────────────────────────────────────
- * 5. REFERRAL POWER USERS (everything)
- * ───────────────────────────────────────────────────────────────────────────────
- *
- * PATTERN: Users whose account_created event has referral_code = true:
- *   - Get 2x more reorder_initiated events (higher loyalty)
- *   - Have food_rating boosted to 4-5 (higher satisfaction)
- *   - Carry referral_user: true on affected events
- *
- * HOW TO FIND IT IN MIXPANEL:
- *
- *   Report 1: Referral User Reorder Rate
- *   • Report type: Insights
- *   • Event: "reorder initiated"
- *   • Measure: Total events per user
- *   • Breakdown: "referral_user"
- *   • Expected: referral_user=true shows ~2x more reorders per user
- *
- *   Report 2: Referral User Satisfaction
- *   • Report type: Insights
- *   • Event: "order rated"
- *   • Measure: Average of "food_rating"
- *   • Breakdown: "referral_user"
- *   • Expected: referral_user=true avg rating 4-5 stars vs ~3.5 baseline
- *
- * EXPECTED INSIGHT: Referred users reorder roughly 2x more often and rate
- * food 4-5 stars consistently. They represent a higher-LTV, more-satisfied
- * segment of the user base.
- *
- * REAL-WORLD ANALOGUE: Referral programs consistently produce higher-quality
- * users. Referred customers have lower acquisition costs, higher retention,
- * and higher satisfaction because they come with built-in social proof.
- *
- * ───────────────────────────────────────────────────────────────────────────────
- * 6. TRIAL CONVERSION (everything)
- * ───────────────────────────────────────────────────────────────────────────────
- *
- * PATTERN: Users with subscription_started where trial = true are evaluated:
- *   - If they place 3+ orders in their first 14 days: retained (all events kept)
- *   - If fewer than 3 orders: churned (60% of events after day 14 removed)
- *   - Retained users carry trial_retained: true
- *
- * HOW TO FIND IT IN MIXPANEL:
- *
- *   Report 1: Trial Retention Signal
- *   • Report type: Insights
- *   • Event: Any event
- *   • Measure: Total events per user
- *   • Breakdown: "trial_retained"
- *   • Expected: trial_retained=true users have sustained activity;
- *     trial_retained=false users show ~60% fewer events after day 14
- *
- *   Report 2: Trial Subscriber Retention
- *   • Report type: Retention
- *   • Event A: "subscription started" (filter: trial = true)
- *   • Event B: "order placed"
- *   • Expected: Users with 3+ early orders retain at high rate;
- *     others drop off sharply after day 14
- *
- * EXPECTED INSIGHT: Trial users who place 3+ early orders show sustained
- * engagement. Those who don't show a dramatic drop-off after day 14, with
- * 60% fewer events. The "magic number" for trial conversion is 3 orders.
- *
- * REAL-WORLD ANALOGUE: Subscription services often find a "magic number"
- * of early actions that predict long-term retention. For food delivery,
- * this is typically a threshold of orders during the trial period.
- *
- * ───────────────────────────────────────────────────────────────────────────────
- * 7. SUPPORT TICKET CHURN (user)
- * ───────────────────────────────────────────────────────────────────────────────
- *
- * PATTERN: 15% of users are flagged as is_high_risk = true with a
- * churn_risk_score between 70-100. The remaining 85% get scores of 0-40.
- * This creates a binary segmentation opportunity for retention teams.
- *
- * HOW TO FIND IT IN MIXPANEL:
- *
- *   Report 1: Churn Risk Distribution
- *   • Report type: Insights
- *   • Event: Any event
- *   • Measure: Unique users
- *   • Breakdown: User profile "is_high_risk"
- *   • Expected: ~15% of users have is_high_risk=true
- *
- *   Report 2: Risk Score Histogram
- *   • Report type: Insights
- *   • Event: Any event
- *   • Measure: Unique users
- *   • Breakdown: User profile "churn_risk_score"
- *   • Expected: Bimodal distribution — 85% cluster at 0-40, 15% cluster at 70-100
- *
- * EXPECTED INSIGHT: 15% of users have churn scores above 70, creating a
- * clear at-risk segment. These users likely correlate with higher support
- * ticket rates and lower order frequency.
- *
- * REAL-WORLD ANALOGUE: Customer health scoring is used by subscription
- * businesses to identify at-risk users for proactive retention outreach.
- * ML models in production generate similar risk scores from behavioral data.
- *
- * ───────────────────────────────────────────────────────────────────────────────
- * 8. FIRST ORDER BONUS (funnel-pre)
- * ───────────────────────────────────────────────────────────────────────────────
- *
- * PATTERN: For the Order Completion funnel (checkout started -> order placed
- * -> order delivered), new users (born in dataset) get their conversion rate
- * boosted by 1.4x (stacks with rush-hour boosts). Events carry first_order_bonus: true.
- *
- * HOW TO FIND IT IN MIXPANEL:
- *
- *   Report 1: First Order Funnel Conversion
- *   • Report type: Funnels
- *   • Steps: "checkout started" → "order placed" → "order delivered"
- *   • Breakdown: "first_order_bonus"
- *   • Expected: first_order_bonus=true converts ~1.4x higher than baseline
- *
- *   Report 2: New User Order Completion
- *   • Report type: Insights
- *   • Event: "order placed"
- *   • Measure: Total events
- *   • Breakdown: "first_order_bonus"
- *   • Expected: ~50% of checkout-to-order completions tagged with
- *     first_order_bonus=true (hash-based ~50% of users)
- *
- * EXPECTED INSIGHT: New users convert at ~1.4x higher rate through the order funnel,
- * stacking with rush-hour boosts for even higher peak conversion. This simulates first-order
- * promotions (free delivery, $10 off) that most food delivery apps offer.
- *
- * REAL-WORLD ANALOGUE: Every major food delivery app offers aggressive
- * first-order incentives. These dramatically boost initial conversion but
- * the real question is whether those users return (see Hook #6).
- *
- * ═══════════════════════════════════════════════════════════════════════════════
- * ADVANCED ANALYSIS IDEAS
- * ═══════════════════════════════════════════════════════════════════════════════
- *
- * CROSS-HOOK PATTERNS:
- *
- * 1. The Perfect Customer: Users who:
- *    - Signed up via referral (Hook #5)
- *    - Started a trial and placed 3+ early orders (Hook #6)
- *    - Order during lunch rush (Hook #1)
- *    - Have low churn risk score (Hook #7)
- *    These users should have exceptional LTV and retention metrics.
- *
- * 2. Rainy Night Double Whammy: Do late-night orders during rainy week
- *    (Hook #3 + Hook #4) show compounded surge pricing effects?
- *
- * 3. Coupon-Driven Trial Conversion: Do free users who receive injected
- *    coupons (Hook #2) eventually start trials (Hook #6)?
- *
- * 4. Referral + First Order: Referred users (Hook #5) who also get the
- *    first order bonus (Hook #8) should have the highest conversion rates.
- *
- * 5. Support Tickets and Churn Risk: Do high-risk users (Hook #7) file
- *    more support tickets, and does this correlate with rainy week
- *    late deliveries (Hook #4)?
- *
- * COHORT ANALYSIS:
- *
- * - Cohort by signup week: Users who started during rainy week (days 20-27)
- *   should show different ordering patterns
- * - Cohort by referral source: Referred vs. organic user lifecycle comparison
- * - Cohort by subscription tier: Free vs. QuickBite+ across all metrics
- * - Cohort by city: Do different cities show different cuisine preferences
- *   and ordering patterns?
- *
- * FUNNEL ANALYSIS:
- *
- * - Onboarding Funnel: How quickly do users go from account creation to
- *   first restaurant view? Break down by signup method.
- * - Order Funnel: Compare checkout-to-delivery completion by platform,
- *   subscription tier, and time of day.
- * - Discovery Funnel: How does search type (restaurant vs. cuisine vs. dish)
- *   affect downstream conversion to ordering?
- *
- * ═══════════════════════════════════════════════════════════════════════════════
- * EXPECTED METRICS SUMMARY
- * ═══════════════════════════════════════════════════════════════════════════════
- *
- * Hook                  | Metric               | Baseline | Hook Effect | Ratio
- * ──────────────────────|──────────────────────|──────────|─────────────|──────
- * Lunch Rush            | Funnel conversion    | 60%      | 84%         | 1.4x
- * Coupon Injection      | Free user coupons    | 0%       | 30%         | N/A
- * Late Night Munchies   | American cuisine %   | ~15%     | 70%         | ~4.7x
- * Rainy Week Surge      | Order volume         | 100%     | 140%        | 1.4x
- * Referral Power Users  | Reorder frequency    | 1x       | 2x          | 2.0x
- * Trial Conversion      | Post-trial retention | 100%     | 40%         | 0.4x
- * Support Ticket Churn  | High-risk users      | 0%       | 15%         | N/A
- * First Order Bonus     | New user conversion  | 1x       | 1.4x        | 1.4x
- *
- * ═══════════════════════════════════════════════════════════════════════════════
- * HOW TO RUN THIS DUNGEON
- * ═══════════════════════════════════════════════════════════════════════════════
- *
- * From the dm4 root directory:
- *
- *   npm start
- *
- * Or programmatically:
- *
- *   import generate from './index.js';
- *   import config from './dungeons/harness-food.js';
- *   const results = await generate(config);
- *
- * OUTPUT FILES (with writeToDisk: false, format: "json", gzip: true):
- *
- *   - needle-haystack-food__events.json.gz - All event data
- *   - needle-haystack-food__user_profiles.json.gz - User profiles
- *   - needle-haystack-food__group_profiles.json.gz - Restaurant profiles
- *   - needle-haystack-food__item_id_lookup.json.gz - Menu item catalog
- *   - needle-haystack-food__coupon_code_lookup.json.gz - Coupon catalog
- *
- * ═══════════════════════════════════════════════════════════════════════════════
- * TESTING YOUR ANALYTICS PLATFORM
- * ═══════════════════════════════════════════════════════════════════════════════
- *
- * This dungeon is perfect for testing:
- *
- * 1. Time-of-Day Analysis: Can you detect the lunch and dinner rush patterns?
- * 2. Promotional Impact: Can you measure the effect of injected coupons?
- * 3. Behavioral Shifts: Can you discover the late-night cuisine preferences?
- * 4. Anomaly Detection: Can you spot the rainy week demand surge?
- * 5. Referral Analysis: Can you quantify the referral user advantage?
- * 6. Trial Optimization: Can you find the "magic number" of early orders?
- * 7. Churn Prediction: Can you identify high-risk users before they leave?
- * 8. New User Funnels: Can you measure the first-order bonus impact?
- *
- * ═══════════════════════════════════════════════════════════════════════════════
- * WHY "NEEDLE IN A HAYSTACK"?
- * ═══════════════════════════════════════════════════════════════════════════════
- *
- * Each hook is a "needle" - a meaningful, actionable insight hidden in a
- * "haystack" of 360K events. The challenge is:
- *
- * 1. FINDING the needles (discovery)
- * 2. VALIDATING they're real patterns (statistical significance)
- * 3. UNDERSTANDING why they matter (business impact)
- * 4. ACTING on them (product decisions)
- *
- * This mirrors real-world product analytics: your data contains valuable insights,
- * but you need the right tools and skills to find them.
- *
- * Happy Hunting!
- *
- * ═══════════════════════════════════════════════════════════════════════════════
- */

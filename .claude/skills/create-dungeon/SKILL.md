@@ -26,6 +26,13 @@ If you wish, you can view how existing ./dungeons are structured for reference a
 
 ## File Structure
 
+The file is organized so humans (and AI) can understand the intent before reading code:
+
+1. **Imports + constants** — boilerplate, seed, IDs
+2. **Dataset Overview** — what app this models, scale, core loop, monetization
+3. **Analytics Hooks** — each hook with quick Mixpanel report steps
+4. **Code** — the config object, with inline comments in the hook function explaining each mutation
+
 ```javascript
 import dayjs from "dayjs";
 import utc from "dayjs/plugin/utc.js";
@@ -33,7 +40,7 @@ import "dotenv/config";
 import * as u from "../lib/utils/utils.js";
 import * as v from "ak-tools";
 
-const SEED = "needle-haystack-VERTICAL";
+const SEED = "dm4-VERTICAL";
 dayjs.extend(utc);
 const chance = u.initChance(SEED);
 const num_users = 5_000;
@@ -41,30 +48,70 @@ const days = 100;
 
 /** @typedef  {import("../types").Dungeon} Config */
 
-/**
- * APP DESIGN DOCUMENTATION
- * - App name, concept, what it models
- * - Core gameplay/usage loop
- * - Why each event and property was chosen
- * - Monetization model
- */
-
 // Generate consistent IDs at module level
 const entityIds = v.range(1, N).map(n => `prefix_${v.uid(8)}`);
 
-/** @type {Config} */
-const config = { ... };
-
-export default config;
+/**
+ * ═══════════════════════════════════════════════════════════════
+ * DATASET OVERVIEW
+ * ═══════════════════════════════════════════════════════════════
+ *
+ * App Name — what it models, the core user loop, monetization.
+ * - N users over M days, ~X events
+ * - Key entities and relationships
+ * - Why these events/properties were chosen
+ */
 
 /**
- * COMPREHENSIVE DOCUMENTATION BLOCK
- * - Dataset overview
- * - All 8 hooks with: pattern, how to find it (with exact Mixpanel report instructions), expected insight, real-world analogue
- * - Expected metrics summary table
- * - Cross-hook analysis ideas
+ * ═══════════════════════════════════════════════════════════════
+ * ANALYTICS HOOKS
+ * ═══════════════════════════════════════════════════════════════
+ *
+ * 1. HOOK NAME (hook type: event/everything/funnel-pre/etc.)
+ *    What it does to the data and why.
+ *
+ *    Mixpanel Report:
+ *    • Type: Insights | Funnels | Retention
+ *    • Event: "event_name"
+ *    • Measure: Average of "property"
+ *    • Breakdown: "segment_property"
+ *    • Expected: segment_a ~Nx higher than segment_b
+ *
+ * 2. NEXT HOOK NAME (hook type)
+ *    ...
+ *
+ * ═══════════════════════════════════════════════════════════════
+ * EXPECTED METRICS SUMMARY
+ * ═══════════════════════════════════════════════════════════════
+ *
+ * Hook            | Metric          | Baseline | Effect | Ratio
+ * ────────────────|─────────────────|──────────|────────|──────
+ * Hook Name       | order_total     | $50      | $150   | 3x
  */
+
+/** @type {Config} */
+const config = {
+  // ... events, funnels, props ...
+
+  hook: function (record, type, meta) {
+    if (type === "everything") {
+      // ── HOOK 1: HOOK NAME ──────────────────────────────────
+      // Explain what this block does and why
+      // e.g., "Boost order values 1.5x for premium users"
+      // ...mutations with inline comments...
+    }
+    return record;
+  }
+};
+
+export default config;
 ```
+
+**Key principles:**
+- Documentation comes BEFORE code so intent is clear before implementation
+- Hook code has inline comments explaining each mutation (what it does to engineer the trend)
+- No giant doc block after `export default` — all docs are above the config
+- Mixpanel report steps are concise and actionable (report type, event, measure, breakdown, expected result)
 
 ## Base Config (use these exact values)
 
@@ -782,6 +829,20 @@ Include `isFirstEvent`, `isFirstFunnel`, `name`, `weight`, `order`, and other no
 2. If validation fails, fix the issue (usually funnel event names or pickAWinner crashes)
 3. Verify the hook function loads without errors
 4. Verify the JSON schema file is valid JSON: `node -e "import fs from 'fs'; JSON.parse(fs.readFileSync('./dungeons/FILENAME-schema.json', 'utf8')); console.log('valid json');"`
+
+## Verifying Hooks
+
+A verify runner already exists at `scripts/verify-runner.mjs` — do NOT create a new one. Use it to generate a small dataset and verify hooks with DuckDB:
+
+```bash
+# Generate test data (1K users, 100K events)
+node scripts/verify-runner.mjs dungeons/FILENAME.js verify-FILENAME
+
+# Query the output with DuckDB to verify hook patterns
+duckdb -c "SELECT ... FROM 'verify-FILENAME__events.json'"
+```
+
+The runner overrides: `numUsers=1000, numEvents=100_000, format=json, writeToDisk=true, concurrency=1`.
 
 ## Quality Checklist
 

@@ -1,13 +1,3 @@
-/**
- * This is the default configuration file for the data generator in SIMPLE mode
- * notice how the config object is structured, and see it's type definition in ./types.d.ts
- * feel free to modify this file to customize the data you generate
- * see helper functions in utils.js for more ways to generate data
- */
-
-
-
-
 import Chance from 'chance';
 const chance = new Chance();
 import dayjs from "dayjs";
@@ -19,6 +9,44 @@ import { pickAWinner, weighNumRange, date, integer, weighChoices } from "../lib/
 const itemCategories = ["Books", "Movies", "Music", "Games", "Electronics", "Computers", "Smart Home", "Home", "Garden", "Pet", "Beauty", "Health", "Toys", "Kids", "Baby", "Handmade", "Sports", "Outdoors", "Automotive", "Industrial", "Entertainment", "Art", "Food", "Appliances", "Office", "Wedding", "Software"];
 
 const videoCategories = ["funny", "educational", "inspirational", "music", "news", "sports", "cooking", "DIY", "travel", "gaming"];
+
+/**
+ * ═══════════════════════════════════════════════════════════════
+ * DATASET OVERVIEW
+ * ═══════════════════════════════════════════════════════════════
+ *
+ * SCD Test — dungeon focused on Slowly Changing Dimensions.
+ * - 500 users over 30 days, ~50K events (CSV format)
+ * - E-commerce events: checkout, add to cart, page view, watch video, view/save item
+ * - User SCDs: role (weekly), NPS (daily)
+ * - Group SCDs: MRR (monthly), AccountHealthScore (weekly), plan (monthly)
+ * - 1,000 company groups with industry, segment, CSM assignments
+ *
+ * ═══════════════════════════════════════════════════════════════
+ * ANALYTICS HOOKS (3 patterns)
+ * ═══════════════════════════════════════════════════════════════
+ *
+ * 1. SPEND TIERS (user hook)
+ *    Users with luckyNumber > 250 = "high_spender", else "budget".
+ *
+ * 2. COUPON DISCOUNTS + WEEKEND VIEWING (event hook)
+ *    Checkouts with coupons get discounted amounts. Weekend video
+ *    watchers get 1.5x watch time with is_weekend: true.
+ *
+ *    Mixpanel Report:
+ *    - Insights: "checkout", AVG(amount), breakdown by discount_applied
+ *      Expected: discount_applied=true shows lower amounts
+ *    - Insights: "watch video", AVG(watchTimeSec), breakdown by is_weekend
+ *      Expected: weekend watch times ~1.5x higher
+ *
+ * 3. CART ABANDONMENT (everything hook)
+ *    Users who add to cart but never checkout get a synthetic
+ *    "cart_abandoned" event 30 min after last add-to-cart.
+ *
+ *    Mixpanel Report:
+ *    - Insights: "cart_abandoned" total events
+ *      Expected: visible volume of abandoned cart events
+ */
 
 /** @type {import('../types').Dungeon} */
 const config = {

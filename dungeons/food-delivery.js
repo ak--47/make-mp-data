@@ -4,52 +4,148 @@ import "dotenv/config";
 import * as u from "../lib/utils/utils.js";
 import * as v from "ak-tools";
 
-const SEED = "sdfsdf-needle-haystack-food-delivery-lets-go";
+const SEED = "dm4-food-delivery";
 dayjs.extend(utc);
 const chance = u.initChance(SEED);
 const num_users = 5_000;
 const days = 100;
 
-/** @typedef  {import("../types.js").Dungeon} Config */
+/** @typedef  {import("../types.d.ts").Dungeon} Config */
 
 /**
- * NEEDLE IN A HAYSTACK - FOOD DELIVERY APP DESIGN
+ * ===============================================================================
+ * DATASET OVERVIEW
+ * ===============================================================================
  *
- * QuickBite Delivery - A food delivery platform where users browse restaurants,
- * discover menu items, build favorites lists, and place orders. Think DoorDash/UberEats
- * with a focus on the discovery-to-loyalty pipeline.
+ * QuickBite Delivery - A food delivery platform modeled after DoorDash/UberEats,
+ * focused on the discovery-to-loyalty pipeline: users browse restaurants, discover
+ * menu items, build favorites lists, and place orders.
  *
  * CORE USER LOOP:
- * Users sign up and browse restaurants by cuisine type, price, and rating. They view
- * individual menu items, favorite the ones they like, build carts, and place orders.
- * After delivery, they rate their experience. The app rewards engagement: users who
- * curate a favorites list of items they love tend to order more frequently and spend
- * more per order.
+ * Sign up -> browse restaurants -> view menu items -> favorite items -> build cart
+ * -> checkout -> order -> delivery -> rate -> reorder
  *
- * DISCOVERY & FAVORITING:
- * The central mechanic is item discovery. Users browse and view menu items, and the
- * Gaussian relationship between views and favorites peaks at ~25 views → 5 favorites.
- * But 3 favorites is the "magic number" — users who favorite exactly 3 items have the
- * highest order values and most orders. Users who over-favorite (4+) are impulsive and
- * actually perform worse: lower order values, fewer views, fewer purchases.
+ * The central mechanic is item discovery and favoriting. Users who curate a focused
+ * favorites list (exactly 3 items) have the highest order values and most orders.
+ * Over-favoriters (4+) are impulsive and actually perform worse. Users who never
+ * favorite anything churn at high rates.
  *
- * LOYALTY LOOP:
- * The magic number of 3 favorites is the key activation metric. Users who hit it
- * reorder frequently and spend more, especially with 10+ sessions. Users who
- * over-favorite are indecisive — they favorite everything but commit to nothing.
- * Users who never favorite anything disengage and churn at much higher rates.
+ * SCALE:
+ * - 5,000 users over 100 days (~600K events)
+ * - 18 event types, 4 funnels (onboarding, order, discovery, reorder)
+ * - 200 restaurants (group analytics)
+ * - Subscription tiers: Free, QuickBite+
+ * - Session tracking enabled
+ */
+
+/**
+ * ===============================================================================
+ * ANALYTICS HOOKS
+ * ===============================================================================
  *
- * MONETIZATION MODEL:
- * - Delivery fees ($0-$10)
- * - Tips to drivers
- * - QuickBite+ subscription for free delivery
- * - Promotions and coupons for reactivation
+ * 4 deliberately architected hooks centered on the discovery-to-loyalty pipeline.
+ * The hooks create a cascading behavioral pattern: views -> favorites -> orders -> retention.
  *
- * WHY THESE EVENTS/PROPERTIES?
- * - Events model the complete discovery → consideration → purchase → retention loop
- * - The view/favorite/order chain creates a clear behavioral funnel for analysis
- * - Session IDs enable session-depth analysis (key to Hook #3)
- * - Properties enable cohort analysis: cuisine, price tier, platform, city
+ * ---------------------------------------------------------------------------
+ * 1. BELL CURVE: VIEW -> FAVORITE RELATIONSHIP (everything hook)
+ * ---------------------------------------------------------------------------
+ *
+ * PATTERN: Bell-shaped relationship between menu item views and favorites.
+ * Gaussian peaks at ~25 views -> 5 favorites. Users with <=3 views get 0 favorites.
+ * Formula: targetFav = round(5 * exp(-((views-25)^2) / (2*12^2)))
+ *
+ * MIXPANEL REPORT:
+ *   1. Insights > Segmentation
+ *   2. Count "view menu item" per user -> bucket into ranges
+ *   3. Count "favorite item" per user
+ *   4. Plot favorites vs. views -- clear bell curve peaking at ~25 views
+ *   5. Bucket users by view count, compute avg favorites per bucket
+ *
+ * EXPECTED: Inverted-U peaking at ~5 favorites for 25 views, 0 at both extremes.
+ *
+ * ---------------------------------------------------------------------------
+ * 2. MAGIC NUMBER: 3 FAVORITES = PEAK ORDER PERFORMANCE (everything hook)
+ * ---------------------------------------------------------------------------
+ *
+ * PATTERN: Exactly 3 favorites is the sweet spot.
+ *   - 3 favorites: 1.6x order values, ~35% extra order duplication
+ *   - 1-2 favorites: 1.15x small boost
+ *   - 4+ favorites: PENALIZED -- 0.7x order values, ~30% orders removed, views removed
+ *
+ * MIXPANEL REPORT:
+ *   1. Insights > Segmentation
+ *   2. Segment users by favorite count: 0, 1-2, 3, 4+
+ *   3. Compare avg order_total and order count per segment
+ *   4. Filter: magic_number_customer = true to isolate the effect
+ *   5. Verify 4+ favorites has LOWEST order values (even below baseline)
+ *
+ * EXPECTED: 3 favorites dominates on order value and count. Over-favoriters
+ * are impulsive and indecisive -- they perform worse than focused curators.
+ * Real-world analogue: Facebook's "7 friends in 10 days" activation threshold.
+ *
+ * ---------------------------------------------------------------------------
+ * 3. SESSION AMPLIFICATION (everything hook)
+ * ---------------------------------------------------------------------------
+ *
+ * PATTERN: Magic-number boost is amplified for users with 10+ distinct sessions.
+ * These users get 2.2x order value (vs 1.6x) and 60% order duplication (vs 35%).
+ * Only applies to exactly-3-favorites users.
+ *
+ * MIXPANEL REPORT:
+ *   1. Insights > Segmentation
+ *   2. Count distinct session_id per user
+ *   3. Segment: 3 favorites AND 10+ sessions vs 3 favorites AND <10 sessions
+ *   4. Compare order_total and order count between segments
+ *   5. Filter: session_amplified = true
+ *
+ * EXPECTED: Compound effect of magic number + session depth creates the
+ * highest-value "power user" segment.
+ *
+ * ---------------------------------------------------------------------------
+ * 4. NO FAVORITES -> CHURN (everything hook)
+ * ---------------------------------------------------------------------------
+ *
+ * PATTERN: Users who never favorite any item lose ~60% of their events from
+ * the second half of their timeline, simulating disengagement and abandonment.
+ *
+ * MIXPANEL REPORT:
+ *   1. Insights > Segmentation
+ *   2. Segment users: any "favorite item" event vs none
+ *   3. Compare median total event count per user (use median, not mean)
+ *   4. Look for ~60% fewer events in the 0-favorites group
+ *
+ * EXPECTED: 0-favorites users have ~60% fewer events. They fade out.
+ *
+ * ---------------------------------------------------------------------------
+ * ADVANCED ANALYSIS IDEAS
+ * ---------------------------------------------------------------------------
+ *
+ * CROSS-HOOK PATTERNS:
+ *   - Full Cascade: views -> favorites -> orders -> retention (Hooks 1-4 chain)
+ *   - Over-Favoriting Paradox: more favorites = WORSE performance past 3
+ *   - Magic Number Discovery: plot order value by favorite count, peak at 3
+ *   - Session-to-Activation: how many sessions before hitting magic number?
+ *
+ * COHORT ANALYSIS:
+ *   - By favorites count: 0, 1-2, 3 (magic), 4+
+ *   - By session depth: <10, 10+
+ *   - By view count bucket: 0-5, 6-10, 11-15, 16-25, 25+
+ *   - Cross-cohort: favorites x sessions matrix
+ *
+ * ---------------------------------------------------------------------------
+ * EXPECTED METRICS SUMMARY
+ * ---------------------------------------------------------------------------
+ *
+ * Hook                    | Metric                  | Baseline | Hook Effect  | Ratio
+ * ------------------------|-------------------------|----------|--------------|------
+ * Bell Curve              | Favorites at 25 views   | random   | ~5           | peak
+ * Bell Curve              | Favorites at 50+ views  | random   | ~0-1         | zero
+ * Magic Number (3 fav)    | Order total             | ~$70     | ~$143        | 2.0x
+ * Magic Number (3 fav)    | Orders per user         | ~4       | ~9           | 2.3x
+ * Over-Favoriter (4+ fav) | Order total             | ~$70     | ~$48         | 0.7x
+ * Over-Favoriter (4+ fav) | Avg views               | ~16      | ~13          | lower
+ * Session Amplification   | Order total (10+ sess)  | ~$143    | ~$153        | 2.2x
+ * No Favorites -> Churn   | Median events (0 fav)   | ~78      | ~27          | 0.35x
  */
 
 // Generate consistent IDs for entity references
@@ -504,164 +600,3 @@ const config = {
 };
 
 export default config;
-
-/**
- * ═══════════════════════════════════════════════════════════════════════════════
- * NEEDLE IN A HAYSTACK - QUICKBITE DELIVERY ANALYTICS
- * ═══════════════════════════════════════════════════════════════════════════════
- *
- * A food delivery app dungeon with 4 deliberately architected analytics
- * insights centered on the discovery-to-loyalty pipeline. The hooks create
- * a cascading behavioral pattern: views → favorites → orders → retention.
- *
- * ═══════════════════════════════════════════════════════════════════════════════
- * DATASET OVERVIEW
- * ═══════════════════════════════════════════════════════════════════════════════
- *
- * - 5,000 users over 100 days
- * - ~600K events across 18 event types
- * - 4 funnels (onboarding, order completion, discovery, reorder)
- * - Group analytics (200 restaurants)
- * - Subscription tiers (Free, QuickBite+)
- * - Session tracking enabled
- *
- * ═══════════════════════════════════════════════════════════════════════════════
- * THE 4 ARCHITECTED HOOKS
- * ═══════════════════════════════════════════════════════════════════════════════
- *
- * ───────────────────────────────────────────────────────────────────────────────
- * 1. BELL CURVE: VIEW → FAVORITE RELATIONSHIP (everything)
- * ───────────────────────────────────────────────────────────────────────────────
- *
- * PATTERN: Bell-shaped relationship between menu item views and favorites.
- * The Gaussian peaks at ~25 views → 5 favorites. Users with ≤3 views get
- * forced to 0 favorites. The curve produces a distribution of 0-5 favorites
- * across the user population.
- *
- * MECHANISM: Gaussian formula: targetFav = round(5 * exp(-((views-25)^2) / (2*12^2)))
- *   0-3 views → 0 favorites (forced floor)
- *   5 views → 1 favorite
- *   10 views → 2 favorites
- *   13-14 views → 3 favorites (magic number zone)
- *   18-20 views → 4-5 favorites
- *   25 views → 5 favorites (Gaussian peak)
- *   37-38 views → 3 favorites (magic number zone, right side)
- *   50+ views → 1 favorite
- *   55+ views → 0 favorites
- *
- * HOW TO FIND IT:
- *   - Count "view menu item" events per user
- *   - Count "favorite item" events per user
- *   - Plot favorites vs. views — see clear bell curve peaking at ~25 views
- *   - Bucket users by view count and compute avg favorites per bucket
- *
- * EXPECTED INSIGHT: Clear inverted-U relationship. The bell curve peaks at
- * ~5 favorites for 25 views, with 0 at both extremes. Users are distributed
- * across 0-5 favorites, enabling the magic number analysis in Hook 2.
- *
- * ───────────────────────────────────────────────────────────────────────────────
- * 2. MAGIC NUMBER: 3 FAVORITES = PEAK ORDER PERFORMANCE (everything)
- * ───────────────────────────────────────────────────────────────────────────────
- *
- * PATTERN: 3 favorites is the "magic number." Users with exactly 3 favorites
- * have the highest order values (1.6x boost) and the most orders (~35% extra
- * order duplication). Users with 1-2 favorites get a small boost (1.15x).
- * Users with 4+ favorites are PENALIZED: 0.7x order values, ~30% of orders
- * removed, and ~25-50% of view events removed (over-favoriters engage less
- * deeply with menu items).
- *
- * HOW TO FIND IT:
- *   - Segment users by favorite count: 0, 1-2, 3, 4+
- *   - Compare: avg order_total and order count per segment
- *   - 3 favorites should clearly dominate on both metrics
- *   - 4+ favorites should have the LOWEST order values (even below baseline)
- *   - 4+ favorites should also have fewer view events than 3-fav users
- *   - Filter: magic_number_customer = true
- *
- * EXPECTED INSIGHT: 3 favorites is the sweet spot. Users who favorite too
- * many items are impulsive and indecisive — they actually perform worse than
- * users who curate a focused favorites list.
- *
- * REAL-WORLD ANALOGUE: The "magic number" concept (like Facebook's "7 friends
- * in 10 days"). There's an optimal activation threshold — too little engagement
- * and users don't activate, too much and they're overwhelmed.
- *
- * ───────────────────────────────────────────────────────────────────────────────
- * 3. SESSION AMPLIFICATION (everything)
- * ───────────────────────────────────────────────────────────────────────────────
- *
- * PATTERN: The magic-number boost is amplified for users with 10+ distinct
- * sessions. These users get 2.2x order value (vs 1.6x) and 60% order
- * duplication (vs 35%). Only applies to exactly-3-favorites users.
- *
- * HOW TO FIND IT:
- *   - Count distinct session_id values per user
- *   - Segment: 3 favorites AND 10+ sessions vs 3 favorites AND <10 sessions
- *   - Compare: order_total and order count between segments
- *   - Filter: session_amplified = true
- *
- * EXPECTED INSIGHT: The compound effect of magic number + session depth
- * creates the highest-value "power user" segment. Session amplification
- * only kicks in at the magic number — over-favoriters don't benefit.
- *
- * ───────────────────────────────────────────────────────────────────────────────
- * 4. NO FAVORITES → CHURN (everything)
- * ───────────────────────────────────────────────────────────────────────────────
- *
- * PATTERN: Users who never favorite any item experience severe churn. ~60%
- * of their events from the second half of their timeline are removed,
- * simulating disengagement and eventual abandonment.
- *
- * HOW TO FIND IT:
- *   - Segment users by: any favorite_item event vs none
- *   - Compare: median total event count per user (use median, not mean)
- *   - Look for ~60% fewer events in the 0-favorites group
- *
- * EXPECTED INSIGHT: Users without any favorites have roughly 60% fewer
- * events. They effectively "fade out" of the product.
- *
- * ═══════════════════════════════════════════════════════════════════════════════
- * ADVANCED ANALYSIS IDEAS
- * ═══════════════════════════════════════════════════════════════════════════════
- *
- * CROSS-HOOK PATTERNS:
- *
- * 1. The Full Cascade: Track users from views → favorites → orders → retention.
- *    The bell curve (Hook 1) determines favorite count, which drives the magic
- *    number effect (Hook 2), amplified by sessions (Hook 3). Zero favorites
- *    triggers churn (Hook 4).
- *
- * 2. Over-Favoriting Paradox: Users who view more items and favorite more
- *    actually perform WORSE than those who curate a focused list of 3.
- *    This creates a non-obvious insight in the data.
- *
- * 3. Magic Number Discovery: What's the optimal number of favorites?
- *    Plot order value by favorite count — the peak at 3 is unmistakable.
- *
- * 4. Session-to-Activation Pipeline: How many sessions before a user hits
- *    the magic number? Do over-favoriters favorite too early?
- *
- * COHORT ANALYSIS:
- *
- * - Cohort by favorites count: 0, 1-2, 3 (magic), 4+
- * - Cohort by session depth: <10, 10+
- * - Cohort by view count bucket: 0-5, 6-10, 11-15, 16-25, 25+
- * - Cross-cohort: favorites × sessions matrix
- *
- * ═══════════════════════════════════════════════════════════════════════════════
- * EXPECTED METRICS SUMMARY
- * ═══════════════════════════════════════════════════════════════════════════════
- *
- * Hook                    | Metric                  | Baseline | Hook Effect  | Ratio
- * ────────────────────────|─────────────────────────|──────────|──────────────|──────
- * Bell Curve              | Favorites at 25 views   | random   | ~5           | peak
- * Bell Curve              | Favorites at 50+ views  | random   | ~0-1         | zero
- * Magic Number (3 fav)    | Order total             | ~$70     | ~$143        | 2.0x
- * Magic Number (3 fav)    | Orders per user         | ~4       | ~9           | 2.3x
- * Over-Favoriter (4+ fav) | Order total             | ~$70     | ~$48         | 0.7x
- * Over-Favoriter (4+ fav) | Avg views               | ~16      | ~13          | lower
- * Session Amplification   | Order total (10+ sess)  | ~$143    | ~$153        | 2.2x
- * No Favorites → Churn    | Median events (0 fav)   | ~78      | ~27          | 0.35x
- *
- * ═══════════════════════════════════════════════════════════════════════════════
- */

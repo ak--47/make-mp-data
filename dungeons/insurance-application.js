@@ -3,47 +3,123 @@ import utc from "dayjs/plugin/utc.js";
 import "dotenv/config";
 import * as u from "../lib/utils/utils.js";
 
-const SEED = "needle-haystack-insurance";
+const SEED = "dm4-insurance";
 dayjs.extend(utc);
 const chance = u.initChance(SEED);
 const num_users = 5_000;
 const days = 100;
 
-/** @typedef  {import("../types").Dungeon} Config */
+/** @typedef {import("../types").Dungeon} Config */
 
-/**
+/*
+ * ===================================================================
+ * DATASET OVERVIEW
+ * ===================================================================
+ *
  * SAFEHAVEN INSURANCE — Web Application Dungeon
  *
- * SafeHaven Insurance is a modern insurance application where users browse
- * coverage options, request quotes, complete multi-step applications, manage
- * policies, file claims, and make premium payments.
+ * SafeHaven Insurance is a modern insurance application where users
+ * browse coverage options, request quotes, complete multi-step
+ * applications, manage policies, file claims, and make premium payments.
  *
- * CORE USER LOOP:
- * Users create an account, browse insurance products (auto, home, life, health,
- * renters), and request quotes. They then start multi-step applications — filling
- * out personal info, selecting coverage, uploading documents — and submit for
- * approval. Once approved, they activate a policy, make premium payments, and
- * manage renewals. If something goes wrong, they file claims and create support
- * tickets.
+ * - 5,000 users over 100 days
+ * - 600,000 events across 18 event types
+ * - 5 funnels (onboarding, application, approval, claims, renewal)
+ * - 5 insurance types as super property (auto, home, life, health, renters)
+ * - Deterministic app versioning (2.10 → 2.11 → 2.12 → 2.13)
+ * - Platforms: web, iOS, Android
+ *
+ * CORE LOOP:
+ * Users create an account, browse insurance products, and request quotes.
+ * They start multi-step applications (personal info, coverage selection,
+ * document upload) and submit for approval. Once approved, they activate
+ * a policy, make premium payments, and manage renewals. If something
+ * goes wrong, they file claims and create support tickets.
  *
  * KEY DATA STORY — VERSION 2.13 RELEASE:
- * The web app has gone through several versions (2.10 → 2.11 → 2.12 → 2.13).
- * Version 2.13 was released 10 days ago and fixed critical UX issues in the
- * application flow. Two effects are visible in the data:
- *   1. Support ticket volume was HIGH before v2.13, then dropped immediately
- *      and continues trending down.
- *   2. Application funnel conversion (submit → approved → activated) improved
- *      significantly after v2.13 launched.
- * Versions are DETERMINISTIC — all users shift to the new version the moment
- * it is released.
+ * The app has gone through versions 2.10 → 2.11 → 2.12 → 2.13.
+ * Version 2.13 was released 10 days ago and fixed critical UX issues.
+ * Two effects are visible: support ticket volume drops immediately,
+ * and application funnel conversion improves significantly.
+ */
+
+/*
+ * ===================================================================
+ * ANALYTICS HOOKS
+ * ===================================================================
  *
- * INSURANCE TYPES:
- * Five lines of insurance are offered as a superProp on every event:
- * auto, home, life, health, renters. This enables segmentation by product line.
+ * -------------------------------------------------------------------
+ * 1. VERSION STAMPING (event hook)
+ * -------------------------------------------------------------------
+ * Every event gets a deterministic app_version based on its timestamp.
+ * All users shift simultaneously on release dates:
+ *   - Days 0-30:    v2.10
+ *   - Days 30-60:   v2.11
+ *   - Days 60-90:   v2.12
+ *   - Last 10 days: v2.13
  *
- * PLATFORMS:
- * Users access via web, iOS, or Android — also a superProp for cross-platform
- * analysis.
+ * MIXPANEL REPORT:
+ *   1. Insights > "page viewed" > Breakdown by app_version
+ *   2. Chart event volume over time, colored by app_version
+ *   3. Confirm: no overlap between versions (deterministic cutover)
+ *
+ * -------------------------------------------------------------------
+ * 2. SUPPORT TICKET VOLUME DROP (everything hook)
+ * -------------------------------------------------------------------
+ * Before v2.13, support ticket volume is high — each user gets 2-3
+ * extra tickets injected with bug-related categories (form_crash,
+ * login_error, page_timeout, payment_failure). After v2.13, tickets
+ * are progressively removed (30% on day 1 → 85% on day 10).
+ *
+ * MIXPANEL REPORT:
+ *   1. Insights > "support ticket created" count over time (line chart)
+ *   2. Break down by app_version: v2.12 has high volume, v2.13 drops
+ *   3. Filter issue_category to bug categories (form_crash, etc.)
+ *   4. Filter pre_release_bug = true for injected tickets only
+ *   5. Compare weekly ticket volume before vs after v2.13 release
+ *
+ * -------------------------------------------------------------------
+ * 3. APPLICATION CONVERSION BOOST (everything hook)
+ * -------------------------------------------------------------------
+ * Before v2.13, 40% of "application approved" and "policy activated"
+ * events are removed, simulating a broken application flow. After
+ * v2.13, all events are preserved — creating a visible conversion jump.
+ *
+ * MIXPANEL REPORT:
+ *   1. Funnels > application submitted → approved → policy activated
+ *   2. Break down by app_version (v2.12 vs v2.13)
+ *   3. Compare conversion rates: pre-v2.13 ~60% of post-v2.13
+ *   4. Insights > "application approved" count over time — step change
+ *
+ * ===================================================================
+ * EXPECTED METRICS SUMMARY
+ * ===================================================================
+ *
+ * Hook                    | Metric                  | Pre-v2.13 | Post-v2.13
+ * ------------------------|-------------------------|-----------|----------
+ * Version Stamping        | Events per version      | ~30d each | 10 days
+ * Support Ticket Volume   | Weekly ticket count     | HIGH      | ~70% lower
+ * Application Conversion  | Approval rate           | ~42%      | ~70%
+ *
+ * ===================================================================
+ * ADVANCED ANALYSIS IDEAS
+ * ===================================================================
+ *
+ * 1. Version Impact Dashboard: Chart both support tickets AND
+ *    application conversion by app_version to show v2.13's dual impact.
+ *
+ * 2. Bug Category Analysis: Which pre_release_bug categories were most
+ *    common? Do they correlate with the application steps where users
+ *    were dropping off?
+ *
+ * 3. Platform Comparison: Did the v2.13 improvement affect all platforms
+ *    equally, or did web/iOS/Android see different magnitudes?
+ *
+ * 4. Insurance Type Breakdown: Are certain insurance types (auto vs home
+ *    vs life) more affected by the conversion improvement?
+ *
+ * 5. Time-to-Approval: Did v2.13 also change the approval_time_hours
+ *    distribution, or just the volume of approvals?
  */
 
 // ── Time constants for hook calculations ──
@@ -527,128 +603,3 @@ const config = {
 };
 
 export default config;
-
-/**
- * ===================================================================
- * SAFEHAVEN INSURANCE — ANALYTICS DOCUMENTATION
- * ===================================================================
- *
- * An insurance application web app dungeon with 3 deliberately
- * architected analytics hooks centered on a version 2.13 release
- * that improved the product.
- *
- * ===================================================================
- * DATASET OVERVIEW
- * ===================================================================
- *
- * - 5,000 users over 100 days
- * - 600,000 events across 18 event types
- * - 5 funnels (onboarding, application, approval, claims, renewal)
- * - 5 insurance types as super property
- * - Deterministic app versioning (2.10 → 2.11 → 2.12 → 2.13)
- *
- * ===================================================================
- * THE 3 ARCHITECTED HOOKS
- * ===================================================================
- *
- * -------------------------------------------------------------------
- * 1. VERSION STAMPING (event hook)
- * -------------------------------------------------------------------
- *
- * PATTERN: Every event receives a deterministic `app_version` property
- * based on its timestamp. All users shift simultaneously:
- *   - Days 0-30:  v2.10
- *   - Days 30-60: v2.11
- *   - Days 60-90: v2.12
- *   - Last 10 days: v2.13
- *
- * HOW TO FIND IT:
- *   - Breakdown any event by app_version
- *   - Chart event volume over time, colored by app_version
- *   - Confirm: no overlap between versions (deterministic cutover)
- *
- * EXPECTED INSIGHT: Clean version transitions with no overlap.
- * Each version spans ~30 days except v2.13 which covers the last 10.
- *
- * REAL-WORLD ANALOGUE: Enterprise SaaS with forced version upgrades.
- * All users are on the same version at any given time.
- *
- * -------------------------------------------------------------------
- * 2. SUPPORT TICKET VOLUME DROP (everything hook)
- * -------------------------------------------------------------------
- *
- * PATTERN: Before v2.13 release, support ticket volume is high —
- * each user gets 2-3 extra tickets injected with bug-related
- * categories (form_crash, login_error, page_timeout, payment_failure).
- * After v2.13, tickets are progressively removed with increasing
- * probability (30% on day 1 → 85% on day 10).
- *
- * HOW TO FIND IT:
- *   - Chart: "support ticket created" count over time
- *   - Break down by app_version: v2.12 has high volume, v2.13 drops
- *   - Filter: issue_category contains bug categories (form_crash, etc.)
- *   - Filter: pre_release_bug = true for injected tickets
- *   - Compare: Weekly ticket volume before vs after v2.13 release
- *
- * EXPECTED INSIGHT: Dramatic drop in support tickets coinciding with
- * v2.13 release. The drop is immediate and continues trending down
- * over the 10-day post-release period.
- *
- * REAL-WORLD ANALOGUE: A major bug-fix release that resolves the top
- * user complaints. Support teams see immediate relief in ticket volume.
- *
- * -------------------------------------------------------------------
- * 3. APPLICATION CONVERSION BOOST (everything hook)
- * -------------------------------------------------------------------
- *
- * PATTERN: Before v2.13, 40% of "application approved" and
- * "policy activated" events are removed, simulating a broken
- * application flow that caused drop-off. After v2.13, all approval
- * and activation events are preserved — creating a visible jump
- * in funnel conversion.
- *
- * HOW TO FIND IT:
- *   - Funnel: application submitted → application approved → policy activated
- *   - Break down by app_version (v2.12 vs v2.13)
- *   - Compare conversion rates: pre-v2.13 should be ~60% of post-v2.13
- *   - Chart: "application approved" count over time — step change at v2.13
- *
- * EXPECTED INSIGHT: Application approval funnel conversion jumps ~40%
- * after v2.13 release. The effect is immediate and sustained.
- *
- * REAL-WORLD ANALOGUE: A UX fix in the application flow (better form
- * validation, progress saving, clearer error messages) that eliminates
- * a major source of user drop-off.
- *
- * ===================================================================
- * CROSS-HOOK ANALYSIS IDEAS
- * ===================================================================
- *
- * 1. Version Impact Dashboard: Chart both support tickets AND
- *    application conversion by app_version to show v2.13's dual impact.
- *
- * 2. Bug Category Analysis: Which pre_release_bug categories were most
- *    common? Do they correlate with the application steps where users
- *    were dropping off?
- *
- * 3. Platform Comparison: Did the v2.13 improvement affect all platforms
- *    equally, or did web/iOS/Android see different magnitudes?
- *
- * 4. Insurance Type Breakdown: Are certain insurance types (auto vs home
- *    vs life) more affected by the conversion improvement?
- *
- * 5. Time-to-Approval: Did v2.13 also change the approval_time_hours
- *    distribution, or just the volume of approvals?
- *
- * ===================================================================
- * EXPECTED METRICS SUMMARY
- * ===================================================================
- *
- * Hook                    | Metric                  | Pre-v2.13 | Post-v2.13
- * ------------------------|-------------------------|-----------|----------
- * Version Stamping        | Events per version      | ~30d each | 10 days
- * Support Ticket Volume   | Weekly ticket count     | HIGH      | ~70% lower
- * Application Conversion  | Approval rate           | ~42%      | ~70%
- *
- * ===================================================================
- */

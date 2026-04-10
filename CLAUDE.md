@@ -18,7 +18,7 @@ lib/
 ├── utils/          # utils, logger (Pino), mixpanel tracking, chart, project
 ├── cli/            # CLI argument parsing (yargs)
 └── templates/      # Default data, phrase banks, AI instruction templates, hook examples
-scripts/            # dungeon management (create, run, convert to/from JSON)
+scripts/            # dungeon management (run, convert to/from JSON, verify hooks)
 dungeons/           # Pre-built dungeon configurations (simple, complex, sanity, etc.)
 tests/              # Vitest test suite
 ```
@@ -54,7 +54,6 @@ npm run dev                   # nodemon scratch.mjs
 npm run prune                 # Clean generated data files
 
 # Dungeon management
-npm run dungeon:new           # Create new dungeon template
 npm run dungeon:run           # Run a dungeon file
 npm run dungeon:to-json       # Convert JS dungeon → JSON (for UI)
 npm run dungeon:from-json     # Convert JSON → JS dungeon
@@ -172,12 +171,12 @@ Per user, hooks fire in this order:
 
 | Type | Fires in | `record` is | Return value | Metadata |
 |------|----------|-------------|--------------|----------|
-| `"user"` | `user-loop.js:137` | User profile object | Ignored (mutate in-place) | `{ user, config, userIsBornInDataset }` |
-| `"scd-pre"` | `user-loop.js:156` | Array of SCD entries | Ignored (mutate in-place) | `{ profile, type, scd, config, allSCDs }` |
+| `"user"` | `user-loop.js:156` | User profile object | Ignored (mutate in-place) | `{ user, config, userIsBornInDataset }` |
+| `"scd-pre"` | `user-loop.js:175` | Array of SCD entries | Ignored (mutate in-place) | `{ profile, type, scd, config, allSCDs }` |
 | `"funnel-pre"` | `funnels.js:70` | Funnel config object | Ignored (mutate in-place) | `{ user, profile, scd, funnel, config, firstEventTime }` |
 | `"event"` | `events.js:176` | Single event (flat props) | **Used** (replaces event) | `{ user: { distinct_id }, config }` |
 | `"funnel-post"` | `funnels.js:153` | Array of funnel events | Ignored (mutate in-place) | `{ user, profile, scd, funnel, config }` |
-| `"everything"` | `user-loop.js:222` | Array of ALL user events | **Used** if array returned | `{ profile, scd, config, userIsBornInDataset }` |
+| `"everything"` | `user-loop.js:280` | Array of ALL user events | **Used** if array returned | `{ profile, scd, config, userIsBornInDataset }` |
 
 Storage-only hooks (no upstream execution):
 
@@ -279,6 +278,16 @@ soup: { dayOfWeekWeights: null, hourOfDayWeights: null }
 **Cloud**: `@google-cloud/storage` (for `gs://` output paths)
 
 **Dev**: `vitest`, `nodemon`, `typescript`
+
+## Claude Code Skills
+
+Three skills are available via slash commands:
+
+- `/create-dungeon <description>` — Design and create a new dungeon with 8 architected analytics hooks, companion JSON schema, and Mixpanel report instructions
+- `/verify-hooks <dungeon-path>` — Run a dungeon at constrained params (1K users, 100K events) and use DuckDB to verify hook patterns appear in the output
+- `/analyze-soup <dungeon-path>` — Run a dungeon and analyze its time distribution at week/day/hour granularities
+
+The verify runner script lives at `scripts/verify-runner.mjs` — skills use it, do not create a new one.
 
 ## Important Notes
 
