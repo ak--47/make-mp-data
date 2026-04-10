@@ -197,13 +197,16 @@ async function main(config) {
 
 		// ! DATA GENERATION ENDS HERE
 
+		// Flush when writeToDisk is enabled OR batch mode activated (to capture tail data)
+		const shouldFlush = validatedConfig.writeToDisk || context.isBatchMode();
+
 		// Step 10: Flush lookup tables to disk (always as CSVs)
-		if (validatedConfig.writeToDisk) {
+		if (shouldFlush) {
 			await flushLookupTablesToDisk(storage, validatedConfig);
 		}
 
-		// Step 11: Flush other storage containers to disk (if writeToDisk enabled)
-		if (validatedConfig.writeToDisk) {
+		// Step 11: Flush other storage containers to disk
+		if (shouldFlush) {
 			await flushStorageToDisk(storage, validatedConfig);
 		}
 

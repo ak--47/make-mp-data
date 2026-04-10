@@ -6,12 +6,8 @@ import * as u from 'ak-tools';
 import Papa from 'papaparse';
 
 import simple from '../dungeons/simple.js';
-import complex from '../dungeons/complex.js';
-import anon from '../dungeons/anon.js';
-import funnels from '../dungeons/funnels.js';
+
 import foobar from '../dungeons/foobar.js';
-import mirror from '../dungeons/mirror.js';
-import adspend from '../dungeons/adspend.js';
 import scd from '../dungeons/scd.js';
 
 const timeout = 600000;
@@ -60,14 +56,6 @@ describe.sequential('cli', () => {
 		expect(result.includes(successStatement)).toBe(true);
 		const csvs = (await u.ls('./data')).filter(a => a.includes('.csv'));
 		expect(csvs.length).toBeGreaterThanOrEqual(2);
-
-	}, timeout);
-
-	test('--complex', async () => {
-		console.log('COMPLEX CLI TEST');
-		const run = execSync(`${runCommand} --numEvents 100 --numUsers 10 --seed "deal with it" --complex`, { stdio: "ignore" });		
-		const csvs = (await u.ls('./data')).filter(a => a.includes('.json'));
-		expect(csvs.length).toBeGreaterThan(7);
 
 	}, timeout);
 

@@ -75,7 +75,7 @@ Uses **Vitest** (ESM-native). Test files:
 - `tests/sanity.test.js` — Module integration (all dungeon types, formats, batch mode)
 - `tests/performance.test.js` — Context caching, device pools, time shift
 - `tests/hooks.test.js` — Hook system: all hook types, double-fire prevention, patterns (temporal, two-pass, closure state)
-- `tests/new-features.test.js` — strictEventCount, bornRecentBias, hook strings, product generators, function registry, JSON evaluator
+- `tests/features.test.js` — strictEventCount, bornRecentBias, hook strings, product generators, function registry, JSON evaluator
 
 ## Core Modules
 

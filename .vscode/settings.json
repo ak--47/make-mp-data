@@ -40,7 +40,7 @@
 	],
 	// Vitest settings
 	"vitest.enable": true,
-	"vitest.commandLine": "npx vitest",
+	"vitest.commandLine": "npx vitest run",
 	"vitest.include": [
 		"tests/**/*.test.js"
 	],

@@ -805,6 +805,65 @@ describe.sequential('orchestrators', () => {
 		expect(result).toHaveProperty('superProps', { luckyNumber: [7] });
 	});
 
+	test('auto-batch: numEvents >= 2M auto-sets batchSize to 1M', () => {
+		const warnSpy = vi.spyOn(console, 'warn');
+		const config = validateDungeonConfig({ numEvents: 2_000_000, numUsers: 1000 });
+		expect(config.batchSize).toBe(1_000_000);
+		expect(warnSpy).toHaveBeenCalledWith(
+			expect.stringContaining('Auto-enabling batch mode')
+		);
+		warnSpy.mockRestore();
+	});
 
+	test('auto-batch: explicit batchSize is respected even when numEvents >= 2M', () => {
+		const config = validateDungeonConfig({ numEvents: 2_000_000, numUsers: 1000, batchSize: 500_000 });
+		expect(config.batchSize).toBe(500_000);
+	});
+
+	test('auto-batch: numEvents < 2M does not change default batchSize', () => {
+		const config = validateDungeonConfig({ numEvents: 1_999_999, numUsers: 1000 });
+		expect(config.batchSize).toBe(2_500_000);
+	});
+
+	test('batch mode: writeToDisk=false with low batchSize warns but succeeds', async () => {
+		const warnSpy = vi.spyOn(console, 'warn');
+		const results = await main({
+			numUsers: 10,
+			numEvents: 100,
+			batchSize: 50,
+			writeToDisk: false,
+			verbose: false,
+			seed: 'batch-warn-test'
+		});
+		// Should not throw — just warn
+		expect(results.eventCount).toBeGreaterThan(0);
+		expect(results.userCount).toBe(10);
+		expect(warnSpy).toHaveBeenCalledWith(
+			expect.stringContaining('batchSize')
+		);
+		warnSpy.mockRestore();
+	});
+
+	test('batch mode: tail data flushed when writeToDisk=false', async () => {
+		const results = await main({
+			numUsers: 10,
+			numEvents: 200,
+			batchSize: 50,
+			writeToDisk: false,
+			verbose: false,
+			seed: 'flush-tail-test',
+			format: 'csv'
+		});
+
+		// Should succeed and have generated events
+		expect(results.eventCount).toBeGreaterThan(50);
+
+		// Batch files should have been written (even though writeToDisk=false)
+		const dataFiles = (await u.ls('./data')).filter(f =>
+			f.includes('-EVENTS') && f.includes('-part-')
+		);
+		expect(dataFiles.length).toBeGreaterThanOrEqual(2);
+	});
 
 });
+

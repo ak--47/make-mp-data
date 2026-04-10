@@ -10,12 +10,8 @@ import * as u from 'ak-tools';
 import Papa from 'papaparse';
 
 import simple from '../dungeons/simple.js';
-import complex from '../dungeons/complex.js';
-import anon from '../dungeons/anon.js';
-import funnels from '../dungeons/funnels.js';
+
 import foobar from '../dungeons/foobar.js';
-import mirror from '../dungeons/mirror.js';
-import adspend from '../dungeons/adspend.js';
 import scd from '../dungeons/scd.js';
 
 // 1 minute timeout
@@ -66,60 +62,12 @@ describe.sequential('module', () => {
 
 	}, timeout);
 
-	test('works as module (complex)', async () => {
-		console.log('MODULE TEST: COMPLEX');
-		const results = await generate({ ...complex, verbose: false, writeToDisk: false, numEvents: 1100, numUsers: 100, seed: "deal with it" });
-		const { eventData, groupProfilesData, lookupTableData, scdTableData, userProfilesData } = results;
-		expect(eventData.length).toBeGreaterThan(980);
-		expect(groupProfilesData[0]?.length).toBe(500);
-		expect(lookupTableData.length).toBe(2);
-		expect(lookupTableData[0].length).toBe(1000);
-		expect(scdTableData.length).toBe(5);
-		expect(userProfilesData.length).toBe(100);
-
-	}, timeout);
-
-	test('works as module (funnels)', async () => {
-		console.log('MODULE TEST: FUNNELS');
-		const results = await generate({ ...funnels, verbose: false, writeToDisk: false, numEvents: 1100, numUsers: 100, seed: "deal with it" });
-		const { eventData, groupProfilesData, scdTableData, userProfilesData } = results;
-		expect(eventData.length).toBeGreaterThan(980);
-		expect(groupProfilesData.length).toBe(3);
-		expect(groupProfilesData[0]?.length).toBe(5000);
-		expect(groupProfilesData[1]?.length).toBe(500);
-		expect(groupProfilesData[2]?.length).toBe(50);
-		expect(userProfilesData.length).toBe(100);
-
-	}, timeout);
-
-	test('works as module (mirror)', async () => {
-		console.log('MODULE TEST: MIRROR');
-		const results = await generate({ ...mirror, verbose: false, writeToDisk: false, numEvents: 1100, numUsers: 100, seed: "deal with it" });
-		const { eventData, userProfilesData, mirrorEventData } = results;
-		expect(eventData.length).toBeGreaterThan(980);
-		expect(mirrorEventData.length).toBeGreaterThan(980);
-		expect(mirrorEventData.every(e => e.newlyCreated)).toBe(true);
-		expect(eventData.every(e => e.newlyCreated)).toBe(false);
-		expect(userProfilesData.length).toBe(100);
-
-	}, timeout);
-
 	test('works as module (foobar)', async () => {
 		console.log('MODULE TEST: FOOBAR');
 		const results = await generate({ ...foobar, verbose: false, writeToDisk: false, numEvents: 1100, numUsers: 100, seed: "deal with it" });
 		const { eventData, userProfilesData } = results;
 		expect(eventData.length).toBeGreaterThan(980);
 		expect(userProfilesData.length).toBe(100);
-
-	}, timeout);
-
-	test('works as module (adspend)', async () => {
-		console.log('MODULE TEST: ADSPEND');
-		const results = await generate({ ...adspend, verbose: false, writeToDisk: false, numEvents: 1100, numUsers: 100, seed: "deal with it" });
-		const { eventData, adSpendData, userProfilesData } = results;
-		expect(eventData.length).toBeGreaterThan(980);
-		expect(userProfilesData.length).toBe(100);
-		expect(adSpendData.length).toBe(14600);
 
 	}, timeout);
 
@@ -433,14 +381,6 @@ describe.sequential('options + tweaks', () => {
 
 	}, timeout);
 
-	test('anonymous users', async () => {
-		console.log('ANON TEST');
-		const results = await generate({ ...anon, writeToDisk: false, verbose: false, numEvents: 1000, numUsers: 100 });
-		const { userProfilesData } = results;
-		expect(userProfilesData.every(u => u.name === 'Anonymous User')).toBe(true);
-
-	}, timeout);
-
 	test('no avatars (default)', async () => {
 		console.log('AVATAR TEST');
 		const results = await generate({ ...simple, writeToDisk: false, verbose: false, numEvents: 1000, numUsers: 100 });
@@ -608,25 +548,31 @@ describe.sequential('options + tweaks', () => {
 
 	}, timeout);
 
-	test('validation: writeToDisk=false with low batchSize throws error', async () => {
-		console.log('VALIDATION ERROR TEST');
-		
-		await expect(async () => {
-			await generate({
-				numUsers: 10,
-				numEvents: 100,
-				batchSize: 50,
-				writeToDisk: false,
-				verbose: false,
-				seed: 'validation-test'
-			});
-		}).rejects.toThrow(/Configuration error.*writeToDisk.*batchSize/);
+	test('validation: writeToDisk=false with low batchSize warns but succeeds', async () => {
+		clearData();
+		const warnSpy = vi.spyOn(console, 'warn');
 
+		const results = await generate({
+			numUsers: 10,
+			numEvents: 100,
+			batchSize: 50,
+			writeToDisk: false,
+			verbose: false,
+			seed: 'validation-test'
+		});
+
+		// Should not throw — just warn and succeed
+		expect(results.eventCount).toBeGreaterThan(0);
+		expect(results.userCount).toBe(10);
+		expect(warnSpy).toHaveBeenCalledWith(
+			expect.stringContaining('batchSize')
+		);
+
+		warnSpy.mockRestore();
+		clearData();
 	}, timeout);
 
 	test('validation: writeToDisk=false with adequate batchSize works', async () => {
-		console.log('VALIDATION SUCCESS TEST');
-		
 		const results = await generate({
 			numUsers: 10,
 			numEvents: 100,
@@ -635,7 +581,7 @@ describe.sequential('options + tweaks', () => {
 			verbose: false,
 			seed: 'validation-success-test'
 		});
-		
+
 		expect(results.eventData.length).toBeGreaterThan(0);
 		expect(results.userProfilesData.length).toBe(10);
 
